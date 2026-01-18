@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/ibraaaheeeem/o4school:latest
+    container_name: 4school_app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:postgresql://db:5432/j4school
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}
+      - PAYSTACK_PUBLIC_KEY=${PAYSTACK_PUBLIC_KEY}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SENDER_EMAIL=${SENDER_EMAIL}
+    depends_on:
+      - db
+    networks:
+      - school_network
+
+  db:
+    image: postgres:15-alpine
+    container_name: 4school_db
+    restart: always
+    environment:
+      - POSTGRES_DB=j4school
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - school_network
+
+volumes:
+  postgres_data:
+
+networks:
+  school_network:
+    driver: bridge
