@@ -1,7 +1,8 @@
-FROM ghcr.io/graalvm/native-image-community:21-muslib AS builder
+FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 # Install build essentials and dependencies
-RUN microdnf clean all && microdnf install -y findutils tar gzip zlib-devel
+# Using standard GLIBC builder to avoid package conflicts
+RUN microdnf install -y findutils tar gzip gcc zlib-devel
 
 WORKDIR /app
 
@@ -30,7 +31,7 @@ RUN sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/d
 RUN chmod +x gradlew
 RUN ./gradlew nativeCompile --no-daemon
 
-FROM gcr.io/distroless/static-debian12:latest
+FROM gcr.io/distroless/base-debian12:latest
 WORKDIR /app
 COPY --from=builder /app/build/native/nativeCompile/4school /app/4school
 EXPOSE 8080
