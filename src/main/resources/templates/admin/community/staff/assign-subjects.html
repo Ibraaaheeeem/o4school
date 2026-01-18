@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Assign Subjects</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/school-setup.css}" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-users me-2"></i>Community</h5>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/community}">
+                            <i class="fas fa-home me-2"></i>Overview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/admin/community/staff}">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>Staff
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/community/students}">
+                            <i class="fas fa-user-graduate me-2"></i>Students
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/admin/community/parents}">
+                            <i class="fas fa-users me-2"></i>Parents
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="content-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2>Assign Subject Teacher</h2>
+                            <p class="text-muted">Assign <span
+                                    th:text="${staff.user.firstName + ' ' + staff.user.lastName}"></span> as subject
+                                teacher</p>
+                        </div>
+                        <a th:href="@{/admin/community/staff}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Staff
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Flash Messages -->
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span th:text="${success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${info}" class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span th:text="${info}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="row">
+                    <!-- Assignment Form -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-plus me-2"></i>New Subject Assignment
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form
+                                    th:action="@{/admin/community/staff/{staffId}/assign-subjects(staffId=${staff.id})}"
+                                    method="post">
+                                    <div class="mb-3">
+                                        <label for="subjectId" class="form-label">Select Subject</label>
+                                        <select class="form-select" id="subjectId" name="subjectId" required>
+                                            <option value="">Choose a subject...</option>
+                                            <option th:each="subject : ${subjects}" th:value="${subject.id}"
+                                                th:text="${subject.subjectName}">
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="classId" class="form-label">Select Class</label>
+                                        <select class="form-select" id="classId" name="classId" required>
+                                            <option value="">Choose a class...</option>
+                                            <option th:each="class : ${classes}" th:value="${class.id}"
+                                                th:text="${class.track.name + ' - ' + class.className}">
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Academic Year</label>
+                                        <input type="text" class="form-control" th:value="${academicYear}" readonly>
+                                    </div>
+
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Assign as Subject Teacher
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Assignments -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-list me-2"></i>Current Subject Assignments
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div th:if="${#lists.isEmpty(currentAssignments)}" class="text-center text-muted py-4">
+                                    <i class="fas fa-book fa-3x mb-3"></i>
+                                    <p>No subject teacher assignments yet</p>
+                                </div>
+
+                                <div th:if="${!#lists.isEmpty(currentAssignments)}">
+                                    <div th:each="assignment : ${currentAssignments}" class="assignment-item mb-3">
+                                        <div
+                                            class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                            <div>
+                                                <h6 class="mb-1" th:text="${assignment.subject.subjectName}"></h6>
+                                                <small class="text-muted">
+                                                    Class: <span
+                                                        th:text="${assignment.schoolClass.track.name + ' - ' + assignment.schoolClass.className}"></span><br>
+                                                    Academic Year: <span th:text="${assignment.academicYear}"></span>
+                                                </small>
+                                            </div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                                onclick="confirmRemoveAssignment('subject', [[${assignment.id}]])"
+                                                title="Remove Assignment">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/community.js}"></script>
+    <script>
+        function confirmRemoveAssignment(type, assignmentId) {
+            if (confirm('Are you sure you want to remove this ' + type + ' teacher assignment?')) {
+                // Create a form and submit it
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/community/staff/remove-' + type + '-assignment/' + assignmentId;
+
+                // Add CSRF token if needed
+                const csrfToken = document.querySelector('meta[name="_csrf"]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_csrf';
+                    csrfInput.value = csrfToken.getAttribute('content');
+                    form.appendChild(csrfInput);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Reports - 4School</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta th:name="_csrf" th:content="${_csrf.token}" />
+    <meta th:name="_csrf_header" th:content="${_csrf.headerName}" />
+    <style>
+        /* Custom styles for staff class reports */
+        .staff-reports-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 80px);
+        }
+
+        .staff-sidebar {
+            background: white;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .staff-content {
+            padding: 2rem;
+            background: #f8fafc;
+        }
+
+        .report-tab {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            background: none;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .report-tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        .tab-content {
+            display: none;
+            padding-top: 1.5rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .behavioral-traits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .behavioral-trait-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .behavior-score-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .behavior-score-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .behavior-score-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content staff-reports-layout">
+        <!-- Sidebar with Filters -->
+        <aside class="staff-sidebar">
+            <div class="sidebar-header mb-4">
+                <h3 class="h5 fw-bold">Class Reports</h3>
+                <p class="text-muted small">Filter and select student</p>
+            </div>
+
+            <div class="sidebar-filters">
+                <!-- Academic Period -->
+                <div class="filter-section mb-4">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Academic Period</h6>
+                    <div class="mb-3">
+                        <label class="small fw-medium mb-1">Session</label>
+                        <select id="sessionFilter" class="form-select form-select-sm" onchange="updateFilters()">
+                            <option value="">Select Session</option>
+                            <option th:each="acadSession : ${academicSessions}" th:value="${acadSession.sessionYear}"
+                                th:text="${acadSession.sessionName}"
+                                th:selected="${selectedSession == acadSession.sessionYear}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-medium mb-1">Term</label>
+                        <select id="termFilter" class="form-select form-select-sm" onchange="updateFilters()">
+                            <option value="">Select Term</option>
+                            <option th:each="term : ${terms}" th:value="${term}" th:text="${term}"
+                                th:selected="${selectedTerm == term}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Class Selection -->
+                <div class="filter-section mb-4">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Class Selection</h6>
+                    <div class="mb-3">
+                        <label class="small fw-medium mb-1">Class</label>
+                        <select id="classFilter" class="form-select form-select-sm" onchange="updateFilters()">
+                            <option value="">Select Class</option>
+                            <option th:each="cls : ${classes}" th:value="${cls.id}" th:text="${cls.className}"
+                                th:selected="${selectedClassId == cls.id}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Student Selection -->
+                <div class="filter-section mb-4">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Student</h6>
+                    <div id="studentSelectorContainer">
+                        <select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"
+                            th:fragment="student-selector">
+                            <option value="">Select Student</option>
+                            <option th:each="student : ${students}" th:value="${student.id}"
+                                th:text="${student.user.fullName + ' (' + student.admissionNumber + ')'}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button class="btn btn-primary btn-sm" onclick="applyFilters()">
+                        <i class="fas fa-sync-alt me-1"></i> Refresh List
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="staff-content" id="reportsContainer">
+            <div th:fragment="reports-content">
+                <div class="setup-header animate-fade-in mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h3 fw-bold">Student Assessment</h1>
+                            <p class="text-muted">Enter scores and behavioral ratings.</p>
+                        </div>
+                        <div class="header-actions d-flex gap-2">
+                            <button class="btn btn-outline-primary" onclick="openImportModal()">
+                                <i class="fas fa-download me-2"></i> Import Scores
+                            </button>
+                            <button class="btn btn-primary" onclick="saveAssessment()">
+                                <i class="fas fa-save me-2"></i> Save Assessment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="glass-card-premium animate-slide-up text-center p-5"
+                    th:if="${selectedStudentId == null}">
+                    <div class="empty-state-icon mb-3" style="font-size: 3rem; color: #cbd5e1;">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">No Student Selected</h3>
+                    <p class="text-muted">Please select a class and student from the sidebar to begin.</p>
+                </div>
+
+                <!-- Assessment Card -->
+                <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
+                    <!-- Student Profile Header -->
+                    <div class="student-profile-header p-4 border-bottom d-flex align-items-center gap-4">
+                        <div class="student-avatar-large bg-primary text-white d-flex align-items-center justify-content-center rounded-circle"
+                            id="studentAvatar" style="width: 64px; height: 64px; font-size: 1.5rem; font-weight: 700;">
+                            JS
+                        </div>
+                        <div class="student-info-main">
+                            <h2 class="h4 fw-bold mb-1" id="studentNameHeader">Student Name</h2>
+                            <div class="student-info-meta d-flex gap-3 text-muted small">
+                                <span class="meta-item"><i class="fas fa-id-card me-1"></i> <span
+                                        id="studentAdmissionMeta">ADM-001</span></span>
+                                <span class="meta-item"><i class="fas fa-layer-group me-1"></i> <span
+                                        id="studentTrackMeta">Track</span></span>
+                                <span class="meta-item"><i class="fas fa-school me-1"></i> <span
+                                        id="studentClassMeta">Class</span></span>
+                            </div>
+                        </div>
+                        <div class="ms-auto">
+                            <button id="editModeBtn" class="btn btn-outline-primary btn-sm" onclick="toggleEditMode()">
+                                <i class="fas fa-edit me-1"></i> Edit Mode
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <!-- Tab Navigation -->
+                        <div class="px-4 pt-4 border-bottom">
+                            <div class="report-tabs d-flex gap-4">
+                                <button class="report-tab active" onclick="switchTab('academic')">
+                                    <i class="fas fa-book me-1"></i> Academic Scores
+                                </button>
+                                <button class="report-tab" onclick="switchTab('behavioral')">
+                                    <i class="fas fa-user-check me-1"></i> Behavioral
+                                </button>
+                                <button class="report-tab" onclick="switchTab('comments')">
+                                    <i class="fas fa-comment-alt me-1"></i> Comments & Attendance
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <div class="p-4">
+                            <!-- Academic Tab -->
+                            <div id="academicTab" class="tab-content active">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr id="tableHeaderRow">
+                                                <!-- Dynamic Headers -->
+                                            </tr>
+                                        </thead>
+                                        <tbody id="assessmentTableBody">
+                                            <!-- Dynamic Rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Behavioral Tab -->
+                            <div id="behavioralTab" class="tab-content">
+                                <div class="behavioral-header mb-4">
+                                    <h4 class="h6 fw-bold mb-1">Behavioral Assessment</h4>
+                                    <p class="text-muted small">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
+                                        Excellent)</p>
+                                </div>
+                                <div class="behavioral-traits-grid" id="behaviorContainer">
+                                    <!-- Dynamic Trait Cards -->
+                                </div>
+                            </div>
+
+                            <!-- Comments Tab -->
+                            <div id="commentsTab" class="tab-content">
+                                <div class="row g-4">
+                                    <div class="col-md-4">
+                                        <div class="attendance-card p-3 border rounded bg-light">
+                                            <h5 class="h6 fw-bold mb-3"><i
+                                                    class="fas fa-calendar-check me-2 text-primary"></i>Attendance</h5>
+                                            <div class="form-group">
+                                                <label class="small mb-1">Days Present</label>
+                                                <input type="number" id="attendanceInput" class="form-control" min="0"
+                                                    disabled>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="comment-box mb-4">
+                                            <h5 class="h6 fw-bold mb-2"><i
+                                                    class="fas fa-user-tie me-2 text-info"></i>Class Teacher's Remark
+                                            </h5>
+                                            <textarea id="classTeacherComment" class="form-control" rows="4"
+                                                placeholder="Enter remarks..." disabled></textarea>
+                                        </div>
+                                        <div class="comment-box">
+                                            <h5 class="h6 fw-bold mb-2"><i
+                                                    class="fas fa-user-shield me-2 text-warning"></i>Head Teacher's
+                                                Remark</h5>
+                                            <textarea id="headTeacherComment" class="form-control" rows="4"
+                                                placeholder="Head teacher remarks..." disabled></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-0">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-download me-2 text-primary"></i>Import Scores</h5>
+                    <button type="button" class="btn-close" onclick="closeModal('importModal')"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Target Component</label>
+                        <select id="importComponent" class="form-select">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Source Examinations</label>
+                        <div id="sourceExamsContainer" class="d-flex flex-column gap-2 mb-2">
+                            <!-- Dynamic Rows -->
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="addSourceExamRow()">
+                            <i class="fas fa-plus me-1"></i> Add Source Exam
+                        </button>
+                    </div>
+
+                    <div id="formulaConfig" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Divisor</label>
+                            <input type="number" id="importDivisor" class="form-control" value="1" min="0.1" step="0.1">
+                            <div class="form-text small">Final Score = (Sum of Weighted Sources) / Divisor</div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="importAllStudents">
+                            <label class="form-check-label small fw-bold" for="importAllStudents">
+                                Import for all students in this class
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light" onclick="closeModal('importModal')">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="executeImport()">Start Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        let currentStudentData = null;
+        let isEditMode = false;
+
+        function updateFilters() {
+            // Auto-apply filters when any dropdown changes
+            const session = document.getElementById('sessionFilter').value;
+            const term = document.getElementById('termFilter').value;
+            const classId = document.getElementById('classFilter').value;
+
+            // Only auto-apply if all required fields are selected
+            if (session && term && classId) {
+                applyFilters();
+            } else {
+                // Clear student selector if any required filter is missing
+                const container = document.getElementById('studentSelectorContainer');
+                container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">Select session, term & class first</option></select>';
+
+                // Hide assessment card
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        async function applyFilters() {
+            const session = document.getElementById('sessionFilter').value;
+            const term = document.getElementById('termFilter').value;
+            const classId = document.getElementById('classFilter').value;
+
+            console.log('Applying filters:', { session, term, classId });
+
+            if (!session || !term || !classId) {
+                // Clear student selector if any required filter is missing
+                const container = document.getElementById('studentSelectorContainer');
+                container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">Select filters first</option></select>';
+
+                // Hide assessment card
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            const container = document.getElementById('studentSelectorContainer');
+            container.innerHTML = '<div class="text-center py-2"><i class="fas fa-spinner fa-spin text-primary"></i> Loading students...</div>';
+
+            const baseUrl = /*[[@{/staff/reports/class/filter}]]*/ '/staff/reports/class/filter';
+            const url = `${baseUrl}?sessionYear=${session}&term=${term}&classId=${classId}`;
+
+            console.log('Fetching URL:', url);
+
+            try {
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                if (response.ok) {
+                    const html = await response.text();
+                    console.log('Received HTML length:', html.length);
+
+                    // Update the container with the new student selector
+                    container.innerHTML = html;
+
+                    // Check if students were loaded
+                    const studentSelect = document.getElementById('studentSelect');
+                    if (studentSelect && studentSelect.options.length > 1) {
+                        console.log('Students loaded successfully:', studentSelect.options.length - 1, 'students');
+                    } else {
+                        console.log('No students found for the selected filters');
+                        container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">No students found</option></select>';
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    container.innerHTML = '<div class="text-danger small">Error loading students: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                container.innerHTML = '<div class="text-danger small">Network error loading students</div>';
+            }
+        }
+
+        async function loadStudentData() {
+            const studentId = document.getElementById('studentSelect').value;
+            const session = document.getElementById('sessionFilter').value;
+            const term = document.getElementById('termFilter').value;
+            const classId = document.getElementById('classFilter').value;
+
+            if (!studentId) {
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            try {
+                const url = `/staff/reports/class/student-data?studentId=${studentId}&classId=${classId}&session=${session}&term=${term}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to load data');
+
+                currentStudentData = await response.json();
+
+                // Update UI
+                document.getElementById('studentNameHeader').textContent = currentStudentData.studentName;
+                document.getElementById('studentAdmissionMeta').textContent = currentStudentData.admissionNumber;
+                document.getElementById('studentClassMeta').textContent = currentStudentData.className;
+                document.getElementById('studentTrackMeta').textContent = currentStudentData.trackName;
+
+                // Avatar
+                const names = currentStudentData.studentName.split(' ');
+                const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0][0].toUpperCase();
+                document.getElementById('studentAvatar').textContent = initials;
+
+                // Fields
+                document.getElementById('attendanceInput').value = currentStudentData.attendance || 0;
+                document.getElementById('classTeacherComment').value = currentStudentData.classTeacherComment || '';
+                document.getElementById('headTeacherComment').value = currentStudentData.headTeacherComment || '';
+
+                renderAssessmentTable();
+                renderBehavioralAssessment();
+
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('assessmentCard').style.display = 'block';
+
+                isEditMode = false;
+                updateEditModeUI();
+                switchTab('academic');
+
+                // Ensure edit button state is correct
+                updateEditModeUI();
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error loading student data');
+            }
+        }
+
+        function renderAssessmentTable() {
+            const headerRow = document.getElementById('tableHeaderRow');
+            const tbody = document.getElementById('assessmentTableBody');
+
+            const components = new Set();
+            currentStudentData.subjects.forEach(s => {
+                if (s.scoringScheme) {
+                    try {
+                        const scheme = JSON.parse(s.scoringScheme);
+                        scheme.forEach(item => components.add(item.alias || item.name));
+                    } catch (e) { }
+                }
+            });
+
+            if (components.size === 0) {
+                components.add('CA 1');
+                components.add('CA 2');
+                components.add('Exam');
+            }
+
+            const componentList = Array.from(components);
+
+            // Header
+            headerRow.innerHTML = '<th style="width: 30%;">Subject</th>';
+            componentList.forEach(c => {
+                headerRow.innerHTML += `<th class="text-center">${c}</th>`;
+            });
+            headerRow.innerHTML += `
+                <th class="text-center" style="width: 80px;">Total</th>
+                <th class="text-center" style="width: 80px;">Grade</th>
+                <th class="text-center" style="width: 100px;">Remark</th>
+            `;
+
+            // Body
+            tbody.innerHTML = '';
+            currentStudentData.subjects.forEach(s => {
+                const tr = document.createElement('tr');
+                let rowHtml = `<td><div class="fw-bold">${s.subjectName}</div></td>`;
+
+                let scheme = [];
+                try { scheme = s.scoringScheme ? JSON.parse(s.scoringScheme) : []; } catch (e) { }
+
+                componentList.forEach(c => {
+                    const schemeItem = scheme.find(item => (item.alias || item.name) === c);
+                    if (!schemeItem) {
+                        rowHtml += `<td class="text-center text-muted">-</td>`;
+                        return;
+                    }
+
+                    const max = schemeItem.max;
+                    let value = '';
+                    if (s.scores && s.scores[c] !== undefined && s.scores[c] !== null) value = s.scores[c];
+                    else if (c.toLowerCase().includes('ca 1') && s.ca1 !== null) value = s.ca1;
+                    else if (c.toLowerCase().includes('ca 2') && s.ca2 !== null) value = s.ca2;
+                    else if (c.toLowerCase().includes('exam') && s.exam !== null) value = s.exam;
+
+                    rowHtml += `
+                        <td>
+                            <div class="d-flex align-items-center justify-content-center gap-1">
+                                <input type="number" class="form-control form-control-sm text-center score-input" 
+                                       style="width: 60px;" data-subject-id="${s.subjectId}" data-component="${c}"
+                                       value="${value}" min="0" max="${max}" ${isEditMode ? '' : 'disabled'}
+                                       onchange="updateRowTotal(this)">
+                                <span class="text-muted small">/ ${max}</span>
+                            </div>
+                        </td>
+                    `;
+                });
+
+                rowHtml += `
+                    <td class="text-center fw-bold row-total">${s.total !== null ? s.total : ''}</td>
+                    <td class="text-center"><span class="badge ${s.grade && s.grade !== '-' ? 'bg-primary' : 'bg-light text-dark border'} row-grade">${s.grade || '-'}</span></td>
+                    <td class="text-center"><span class="badge bg-light text-dark border row-remark">${s.remark || '-'}</span></td>
+                `;
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateRowTotal(input) {
+            const tr = input.closest('tr');
+            const inputs = tr.querySelectorAll('.score-input');
+            let total = 0;
+            let allFilled = true;
+
+            inputs.forEach(inp => {
+                if (inp.value === '') {
+                    allFilled = false;
+                } else {
+                    total += parseInt(inp.value) || 0;
+                }
+            });
+
+            if (!allFilled) {
+                tr.querySelector('.row-total').textContent = '';
+                tr.querySelector('.row-grade').textContent = '-';
+                tr.querySelector('.row-grade').className = 'badge bg-light text-dark border row-grade';
+                tr.querySelector('.row-remark').textContent = '-';
+                return;
+            }
+
+            tr.querySelector('.row-total').textContent = total;
+
+            // Simple grading logic
+            let grade = 'F', remark = 'Fail', badgeClass = 'bg-danger';
+            if (total >= 70) { grade = 'A'; remark = 'Excellent'; badgeClass = 'bg-success'; }
+            else if (total >= 60) { grade = 'B'; remark = 'Very Good'; badgeClass = 'bg-primary'; }
+            else if (total >= 50) { grade = 'C'; remark = 'Good'; badgeClass = 'bg-info text-dark'; }
+            else if (total >= 45) { grade = 'D'; remark = 'Fair'; badgeClass = 'bg-warning text-dark'; }
+            else if (total >= 40) { grade = 'E'; remark = 'Pass'; badgeClass = 'bg-secondary'; }
+
+            const gradeBadge = tr.querySelector('.row-grade');
+            gradeBadge.textContent = grade;
+            gradeBadge.className = `badge ${badgeClass} row-grade`;
+            tr.querySelector('.row-remark').textContent = remark;
+        }
+
+        function renderBehavioralAssessment() {
+            const container = document.getElementById('behaviorContainer');
+            container.innerHTML = '';
+            const traits = [
+                { key: 'fluency', label: 'Fluency', icon: 'fa-comment-dots', color: '#3b82f6' },
+                { key: 'handwriting', label: 'Handwriting', icon: 'fa-pen-nib', color: '#8b5cf6' },
+                { key: 'game', label: 'Game/Sports', icon: 'fa-volleyball-ball', color: '#10b981' },
+                { key: 'initiative', label: 'Initiative', icon: 'fa-lightbulb', color: '#f59e0b' },
+                { key: 'criticalThinking', label: 'Critical Thinking', icon: 'fa-brain', color: '#ec4899' },
+                { key: 'punctuality', label: 'Punctuality', icon: 'fa-clock', color: '#06b6d4' },
+                { key: 'attentiveness', label: 'Attentiveness', icon: 'fa-eye', color: '#6366f1' },
+                { key: 'neatness', label: 'Neatness', icon: 'fa-broom', color: '#14b8a6' },
+                { key: 'selfDiscipline', label: 'Self Discipline', icon: 'fa-user-shield', color: '#ef4444' },
+                { key: 'politeness', label: 'Politeness', icon: 'fa-smile', color: '#f97316' }
+            ];
+
+            traits.forEach(trait => {
+                const value = currentStudentData[trait.key] || 0;
+                let buttons = '';
+                for (let i = 1; i <= 5; i++) {
+                    buttons += `<button type="button" class="behavior-score-btn ${i === value ? 'active' : ''}" 
+                                ${!isEditMode ? 'disabled' : ''} onclick="selectBehavior(this, '${trait.key}', ${i})">${i}</button>`;
+                }
+
+                container.innerHTML += `
+                    <div class="behavioral-trait-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-2 rounded" style="background: ${trait.color}15; color: ${trait.color};"><i class="fas ${trait.icon}"></i></div>
+                            <span class="fw-bold small">${trait.label}</span>
+                        </div>
+                        <div class="d-flex gap-2 justify-content-center">
+                            ${buttons}
+                        </div>
+                        <input type="hidden" id="behavior_${trait.key}" value="${value}">
+                    </div>
+                `;
+            });
+        }
+
+        // window.selectBehavior = (btn, key, val) => {
+        //     btn.parentElement.querySelectorAll('.behavior-score-btn').forEach(b => b.classList.remove('active'));
+        //     btn.classList.add('active');
+        //     document.getElementById(`behavior_${key}`).value = val;
+        // };
+
+        // // --- Tab Switching ---
+        // window.switchTab = function (tabId) {
+        //     console.log('Switching to tab:', tabId);
+        //     document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+        //     document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        //     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        //     document.getElementById(tabId + 'Tab').classList.add('active');
+        // };
+
+        // // --- Edit Mode Functions ---
+        // window.toggleEditMode = function () {
+        //     console.log('Staff toggleEditMode called, current isEditMode:', isEditMode);
+        //     isEditMode = !isEditMode;
+        //     console.log('Staff new isEditMode:', isEditMode);
+
+        //     // First render the table with the new edit mode state
+        //     renderAssessmentTable();
+        //     renderBehavioralAssessment();
+
+        //     // Then update the UI elements
+        //     updateEditModeUI();
+        // };
+
+        // function updateEditModeUI() {
+        //     console.log('updateEditModeUI called, isEditMode:', isEditMode);
+        //     const btn = document.getElementById('editModeBtn');
+        //     if (!btn) {
+        //         console.error('Edit mode button not found');
+        //         return;
+        //     }
+
+        //     btn.innerHTML = isEditMode ? '<i class="fas fa-times me-1"></i> Cancel' : '<i class="fas fa-edit me-1"></i> Edit Mode';
+        //     btn.className = isEditMode ? 'btn btn-outline-danger btn-sm' : 'btn btn-outline-primary btn-sm';
+
+        //     // Update form elements
+        //     ['attendanceInput', 'classTeacherComment', 'headTeacherComment'].forEach(id => {
+        //         const element = document.getElementById(id);
+        //         if (element) {
+        //             element.disabled = !isEditMode;
+        //             console.log(`Updated ${id} disabled to:`, !isEditMode);
+        //         } else {
+        //             console.warn(`Element ${id} not found`);
+        //         }
+        //     });
+
+        //     // Update score inputs
+        //     const scoreInputs = document.querySelectorAll('.score-input');
+        //     console.log('Found score inputs:', scoreInputs.length);
+        //     scoreInputs.forEach(input => {
+        //         input.disabled = !isEditMode;
+        //     });
+
+        //     // Update behavioral score buttons
+        //     const behaviorButtons = document.querySelectorAll('.behavior-score-btn');
+        //     console.log('Found behavior buttons:', behaviorButtons.length);
+        //     behaviorButtons.forEach(button => {
+        //         button.disabled = !isEditMode;
+        //     });
+        // }
+
+
+
+        // --- Import Logic ---
+        function openImportModal() {
+            const select = document.getElementById('importComponent');
+            select.innerHTML = '';
+            document.querySelectorAll('#tableHeaderRow th').forEach((th, i) => {
+                if (i > 0 && i < document.querySelectorAll('#tableHeaderRow th').length - 3) {
+                    select.innerHTML += `<option value="${th.textContent}">${th.textContent}</option>`;
+                }
+            });
+            document.getElementById('sourceExamsContainer').innerHTML = '';
+            addSourceExamRow();
+            new bootstrap.Modal(document.getElementById('importModal')).show();
+        }
+
+        function closeModal(id) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById(id));
+            if (modal) modal.hide();
+        }
+
+        function addSourceExamRow() {
+            const id = Date.now();
+            const container = document.getElementById('sourceExamsContainer');
+            const div = document.createElement('div');
+            div.className = 'd-flex gap-2 align-items-center';
+            div.id = `source-${id}`;
+            div.innerHTML = `
+                <select class="form-select form-select-sm exam-type-select">
+                    <option value="Assignment">Assignment</option>
+                    <option value="Continuous Assessment">Continuous Assessment</option>
+                    <option value="Mid-Term Test">Mid-Term Test</option>
+                    <option value="End-of-Term Examination">End-of-Term Examination</option>
+                </select>
+                <input type="number" class="form-control form-control-sm factor-input" style="width: 70px; display: none;" value="1" step="0.1">
+                <button class="btn btn-link text-danger p-0" onclick="this.parentElement.remove(); updateImportUI();"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+            updateImportUI();
+        }
+
+        function updateImportUI() {
+            const rows = document.querySelectorAll('#sourceExamsContainer > div');
+            const multi = rows.length > 1;
+            document.getElementById('formulaConfig').style.display = multi ? 'block' : 'none';
+            rows.forEach(r => r.querySelector('.factor-input').style.display = multi ? 'block' : 'none');
+        }
+
+        async function executeImport() {
+            const sources = [];
+            document.querySelectorAll('#sourceExamsContainer > div').forEach(r => {
+                sources.push({
+                    examType: r.querySelector('.exam-type-select').value,
+                    factor: parseFloat(r.querySelector('.factor-input').value) || 1.0
+                });
+            });
+
+            const data = {
+                classId: document.getElementById('classFilter').value,
+                session: document.getElementById('sessionFilter').value,
+                term: document.getElementById('termFilter').value,
+                componentName: document.getElementById('importComponent').value,
+                sources: sources,
+                divisor: parseFloat(document.getElementById('importDivisor').value) || 1.0,
+                studentId: document.getElementById('importAllStudents').checked ? null : document.getElementById('studentSelect').value
+            };
+
+            try {
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader] = csrfToken;
+                }
+
+                const response = await fetch('/staff/reports/class/import', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    closeModal('importModal');
+                    loadStudentData();
+                }
+            } catch (error) {
+                alert('Import failed');
+            }
+        }
+
+        // --- Modal Functions ---
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            const select = document.getElementById('importComponent');
+            select.innerHTML = '';
+
+            // Get components from table header
+            const headers = document.querySelectorAll('#tableHeaderRow th');
+            headers.forEach((th, index) => {
+                if (index > 0 && index < headers.length - 3) { // Skip Subject, Total, Grade, Remark
+                    const option = document.createElement('option');
+                    option.value = th.textContent;
+                    option.textContent = th.textContent;
+                    select.appendChild(option);
+                }
+            });
+
+            // Reset Source Exams
+            document.getElementById('sourceExamsContainer').innerHTML = '';
+            addSourceExamRow(); // Add first row by default
+
+            modal.style.display = 'block';
+        }
+
+        // --- Save Assessment Function ---
+        async function saveAssessment() {
+            const studentId = document.getElementById('studentSelect').value;
+            const session = document.getElementById('sessionFilter').value;
+            const term = document.getElementById('termFilter').value;
+
+            console.log('Saving assessment for student:', studentId);
+
+            // Gather Scores
+            const scores = [];
+            const rows = document.querySelectorAll('#assessmentTableBody tr');
+            rows.forEach(row => {
+                const firstInput = row.querySelector('.score-input');
+                if (!firstInput) return;
+
+                const subjectId = firstInput.dataset.subjectId; // Keep as UUID string
+                const subjectScores = {};
+
+                row.querySelectorAll('.score-input').forEach(input => {
+                    const componentName = input.dataset.component;
+                    const val = input.value === '' ? null : (parseInt(input.value) || 0);
+                    subjectScores[componentName] = val;
+                });
+
+                // For backward compatibility, we still send ca1, ca2, exam if they exist in the map
+                let ca1 = 0, ca2 = 0, exam = 0;
+                Object.keys(subjectScores).forEach(key => {
+                    const k = key.toLowerCase();
+                    if (k.includes('ca 1') || k.includes('continuous assessment 1')) ca1 = subjectScores[key];
+                    else if (k.includes('ca 2')) ca2 = subjectScores[key];
+                    else if (k.includes('exam')) exam = subjectScores[key];
+                });
+
+                console.log('Adding score for subject:', subjectId, subjectScores);
+
+                scores.push({
+                    subjectId: subjectId, // Keep as UUID string, don't parse as int
+                    ca1: ca1,
+                    ca2: ca2,
+                    exam: exam,
+                    scores: subjectScores
+                });
+            });
+
+            // Gather Other Data
+            const requestData = {
+                studentId: studentId,
+                classId: document.getElementById('classFilter').value,
+                session: session,
+                term: term,
+                scores: scores,
+                attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
+                classTeacherComment: document.getElementById('classTeacherComment').value,
+                headTeacherComment: document.getElementById('headTeacherComment').value,
+                // Behavior
+                fluency: parseInt(document.getElementById('behavior_fluency')?.value) || 0,
+                handwriting: parseInt(document.getElementById('behavior_handwriting')?.value) || 0,
+                game: parseInt(document.getElementById('behavior_game')?.value) || 0,
+                initiative: parseInt(document.getElementById('behavior_initiative')?.value) || 0,
+                criticalThinking: parseInt(document.getElementById('behavior_criticalThinking')?.value) || 0,
+                punctuality: parseInt(document.getElementById('behavior_punctuality')?.value) || 0,
+                attentiveness: parseInt(document.getElementById('behavior_attentiveness')?.value) || 0,
+                neatness: parseInt(document.getElementById('behavior_neatness')?.value) || 0,
+                selfDiscipline: parseInt(document.getElementById('behavior_selfDiscipline')?.value) || 0,
+                politeness: parseInt(document.getElementById('behavior_politeness')?.value) || 0
+            };
+
+            console.log('Sending request data:', requestData);
+
+            try {
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader] = csrfToken;
+                }
+
+                const response = await fetch('/staff/reports/class/save', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Assessment updated successfully!');
+                    // Optionally reload the student data to reflect changes
+                    loadStudentData();
+                } else {
+                    alert('Error: ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving assessment:', error);
+                alert('Error saving assessment: ' + error.message);
+            }
+        }
+
+        // --- Missing Functions for Edit Mode ---
+        window.toggleEditMode = function () {
+            console.log('Staff toggleEditMode called, current isEditMode:', isEditMode);
+            console.log('Button clicked, about to toggle edit mode');
+            isEditMode = !isEditMode;
+            console.log('Staff new isEditMode:', isEditMode);
+
+            // Re-render the table with new edit mode state
+            renderAssessmentTable();
+            renderBehavioralAssessment();
+
+            // Update UI elements
+            updateEditModeUI();
+        };
+
+        // Also define it without window for compatibility
+        function toggleEditMode() {
+            console.log('Staff toggleEditMode (non-window) called, current isEditMode:', isEditMode);
+            window.toggleEditMode();
+        }
+
+        function updateEditModeUI() {
+            console.log('Staff updateEditModeUI called, isEditMode:', isEditMode);
+            const btn = document.getElementById('editModeBtn');
+            const attendanceInput = document.getElementById('attendanceInput');
+            const classTeacherComment = document.getElementById('classTeacherComment');
+            const headTeacherComment = document.getElementById('headTeacherComment');
+
+            if (!btn) {
+                console.error('Edit mode button not found');
+                return;
+            }
+
+            // Enforce clickability
+            btn.style.position = 'relative';
+            btn.style.zIndex = '100';
+            btn.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Edit button clicked (JS handler)');
+                toggleEditMode();
+            };
+
+            if (isEditMode) {
+                btn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel Edit';
+                btn.className = 'btn btn-outline-danger btn-sm';
+                if (attendanceInput) attendanceInput.disabled = false;
+                if (classTeacherComment) classTeacherComment.disabled = false;
+                if (headTeacherComment) headTeacherComment.disabled = false;
+
+                // Enable all score inputs
+                const scoreInputs = document.querySelectorAll('.score-input');
+                console.log('Staff: Found score inputs:', scoreInputs.length);
+                scoreInputs.forEach(input => {
+                    input.disabled = false;
+                });
+
+                // Enable behavioral score buttons
+                const behaviorButtons = document.querySelectorAll('.behavior-score-btn');
+                console.log('Staff: Found behavior buttons:', behaviorButtons.length);
+                behaviorButtons.forEach(btn => {
+                    btn.disabled = false;
+                });
+            } else {
+                btn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit Mode';
+                btn.className = 'btn btn-outline-primary btn-sm';
+                if (attendanceInput) attendanceInput.disabled = true;
+                if (classTeacherComment) classTeacherComment.disabled = true;
+                if (headTeacherComment) headTeacherComment.disabled = true;
+
+                // Disable all score inputs
+                const scoreInputs = document.querySelectorAll('.score-input');
+                console.log('Staff: Disabling score inputs:', scoreInputs.length);
+                scoreInputs.forEach(input => {
+                    input.disabled = true;
+                });
+
+                // Disable behavioral score buttons
+                document.querySelectorAll('.behavior-score-btn').forEach(btn => {
+                    btn.disabled = true;
+                });
+            }
+        }
+
+        // --- Tab Switching ---
+        window.switchTab = function (tabId) {
+            // Update buttons
+            document.querySelectorAll('.report-tab').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('onclick').includes(tabId)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        };
+
+        // --- Behavioral Assessment Functions ---
+        window.selectBehavior = function (btn, key, value) {
+            const ratingButtons = btn.parentElement;
+            ratingButtons.querySelectorAll('.behavior-score-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            document.getElementById(`behavior_${key}`).value = value;
+        };
+
+        // Test function availability on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM loaded, testing function availability');
+            console.log('toggleEditMode function exists:', typeof window.toggleEditMode);
+            console.log('toggleEditMode function exists (global):', typeof toggleEditMode);
+
+            // Test if we can call the function
+            try {
+                console.log('Testing function call...');
+                // Don't actually call it, just test if it's callable
+                if (typeof window.toggleEditMode === 'function') {
+                    console.log('window.toggleEditMode is callable');
+                } else {
+                    console.error('window.toggleEditMode is not a function');
+                }
+            } catch (e) {
+                console.error('Error testing function:', e);
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

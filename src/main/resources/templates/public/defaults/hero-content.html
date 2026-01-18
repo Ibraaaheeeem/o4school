@@ -1,0 +1,14 @@
+<div class="hero-content">
+    <h1 class="hero-title" th:text="'Welcome to ' + ${school.name}">Welcome to School Name</h1>
+    <p class="hero-subtitle">Excellence in Education, Innovation in Learning</p>
+    <p th:if="${school.schoolMotto}" class="hero-motto" th:text="'&quot;' + ${school.schoolMotto} + '&quot;'">"School Motto"</p>
+    
+    <div class="hero-buttons">
+        <a href="/register" class="btn btn-white btn-large">
+            <i class="fas fa-user-plus"></i> Get Started
+        </a>
+        <a href="#about" class="btn btn-outline btn-large" style="border-color: white; color: white;">
+            <i class="fas fa-info-circle"></i> Learn More
+        </a>
+    </div>
+</div>

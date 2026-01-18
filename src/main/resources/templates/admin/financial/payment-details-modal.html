@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <!-- Payment Details Modal Fragment -->
+    <div th:fragment="payment-details-modal" id="paymentDetailsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Payment Details</h3>
+                <span class="close" onclick="closePaymentModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="paymentDetailsContent">
+                <div class="loading">Loading payment details...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Details Button Fragment -->
+    <button th:fragment="view-details-btn" class="btn btn-sm btn-primary" 
+            th:onclick="'showPaymentDetails(\'' + ${itemId} + '\')'">
+        View Details
+    </button>
+</body>
+</html>

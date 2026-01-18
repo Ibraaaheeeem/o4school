@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Scoring Schemes</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
+    <link rel="stylesheet" th:href="@{/css/notifications.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Assessment Sidebar -->
+        <div th:replace="~{fragments/assessment-sidebar :: assessment-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header animate-in">
+                <div>
+                    <h1>Scoring Schemes</h1>
+                    <p>Configure how end-of-term assessments are graded for different subjects and classes.</p>
+                </div>
+            </div>
+
+            <div class="scoring-grid">
+                <!-- Left Column: Configuration -->
+                <div class="glass-card animate-in" style="animation-delay: 0.1s;">
+                    <div class="card-header mb-4">
+                        <h2 class="section-title mb-0">
+                            <i class="fas fa-cog me-2 text-primary"></i>
+                            Configuration
+                        </h2>
+                        <p class="text-muted small mt-1">Define and apply scoring rules.</p>
+                    </div>
+
+                    <form id="scoringSchemeForm">
+                        <div class="form-section mb-4">
+                            <label class="form-label fw-bold text-dark">1. Select Scope</label>
+                            <div class="form-group">
+                                <select id="scopeType" class="form-control glass-input"
+                                    onchange="handleScopeTypeChange()" required>
+                                    <option value="">Select Scope</option>
+                                    <option value="SCHOOL">Entire School</option>
+                                    <option value="TRACK">Specific Track</option>
+                                    <option value="DEPARTMENT">Specific Department</option>
+                                    <option value="CLASS">Specific Class</option>
+                                </select>
+                            </div>
+
+                            <!-- Dynamic Selections -->
+                            <div id="track-selection" class="form-group mt-3 animate-fade-in" style="display: none;">
+                                <label class="form-label small fw-bold">Select Track *</label>
+                                <select id="trackId" class="form-control glass-input" onchange="handleTrackChange()">
+                                    <option value="">Select Track</option>
+                                    <option th:each="track : ${educationTracks}" th:value="${track.id}"
+                                        th:text="${track.name}">Primary Track</option>
+                                </select>
+                            </div>
+
+                            <div id="department-selection" class="form-group mt-3 animate-fade-in"
+                                style="display: none;">
+                                <label class="form-label small fw-bold">Select Department *</label>
+                                <select id="departmentId" class="form-control glass-input"
+                                    onchange="handleDepartmentChange()">
+                                    <option value="">Select Department</option>
+                                </select>
+                            </div>
+
+                            <div id="class-selection" class="form-group mt-3 animate-fade-in" style="display: none;">
+                                <label class="form-label small fw-bold">Select Class *</label>
+                                <select id="classId" class="form-control glass-input" onchange="loadCurrentSchemes()">
+                                    <option value="">Select Class</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <label class="form-label fw-bold text-dark">2. Scoring Components</label>
+                            <p class="text-muted small mb-3">Define assessment parts (e.g., CA 1, Exam).</p>
+
+
+                            <div id="scoring-items-list" class="scoring-items-container mb-3">
+                                <!-- Dynamic items -->
+                            </div>
+
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100 dashed-border mb-3"
+                                onclick="addScoringItem()">
+                                <i class="fas fa-plus me-2"></i>Add Component
+                            </button>
+
+                            <div
+                                class="total-marks-container p-3 rounded bg-light d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-muted">Total Marks</span>
+                                <div>
+                                    <span id="total-marks-display" class="h4 mb-0 fw-bold">0</span>
+                                    <span class="text-muted small">/ 100</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions mt-4">
+                            <button type="button" id="apply-scheme-btn"
+                                class="btn btn-primary w-100 py-2 fw-bold shadow-sm" onclick="submitScoringScheme()"
+                                disabled>
+                                <i class="fas fa-check-circle me-2"></i>Apply Scheme
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Column: Current Configurations -->
+                <div class="glass-card animate-in" style="animation-delay: 0.2s;">
+                    <div class="card-header d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="section-title mb-0">
+                                <i class="fas fa-list-ul me-2 text-info"></i>
+                                Current Configurations
+                            </h2>
+                        </div>
+                        <button class="btn btn-sm btn-light shadow-sm" onclick="loadCurrentSchemes()" title="Refresh">
+                            <i class="fas fa-sync-alt text-muted"></i>
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table glass-table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">Class & Subject</th>
+                                    <th>Scoring Scheme</th>
+                                </tr>
+                            </thead>
+                            <tbody id="current-schemes-body">
+                                <tr>
+                                    <td colspan="2" class="text-center py-5 text-muted">
+                                        <i class="fas fa-mouse-pointer d-block mb-3 fa-2x opacity-50"></i>
+                                        Select a scope to view configurations
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Notifications -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <script>
+        let scoringItems = [
+            { id: Date.now(), name: 'Continuous Assessment', alias: 'CA', max: 30 },
+            { id: Date.now() + 1, name: 'Examination', alias: 'Exam', max: 70 }
+        ];
+
+        function init() {
+            renderScoringItems();
+            updateTotalMarks();
+        }
+
+        function handleScopeTypeChange() {
+            const scopeType = document.getElementById('scopeType').value;
+
+            // Reset selections
+            document.getElementById('track-selection').style.display = 'none';
+            document.getElementById('department-selection').style.display = 'none';
+            document.getElementById('class-selection').style.display = 'none';
+
+            document.getElementById('trackId').required = false;
+            document.getElementById('departmentId').required = false;
+            document.getElementById('classId').required = false;
+
+            if (scopeType === 'TRACK') {
+                document.getElementById('track-selection').style.display = 'block';
+                document.getElementById('trackId').required = true;
+            } else if (scopeType === 'DEPARTMENT') {
+                document.getElementById('track-selection').style.display = 'block';
+                document.getElementById('department-selection').style.display = 'block';
+                document.getElementById('departmentId').required = true;
+            } else if (scopeType === 'CLASS') {
+                document.getElementById('track-selection').style.display = 'block';
+                document.getElementById('department-selection').style.display = 'block';
+                document.getElementById('class-selection').style.display = 'block';
+                document.getElementById('classId').required = true;
+            }
+
+            loadCurrentSchemes();
+        }
+
+        function handleTrackChange() {
+            loadDepartments();
+            loadCurrentSchemes();
+        }
+
+        function handleDepartmentChange() {
+            loadClasses();
+            loadCurrentSchemes();
+        }
+
+        async function loadCurrentSchemes() {
+            const scopeType = document.getElementById('scopeType').value;
+            const body = document.getElementById('current-schemes-body');
+
+            if (!scopeType) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="text-center py-5 text-muted">
+                            <i class="fas fa-mouse-pointer d-block mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
+                            Select a scope to view configurations
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const scopeId = document.getElementById('classId').value ||
+                document.getElementById('departmentId').value ||
+                document.getElementById('trackId').value || null;
+
+            if ((scopeType === 'TRACK' || scopeType === 'DEPARTMENT' || scopeType === 'CLASS') && !scopeId) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="text-center py-5 text-muted">
+                            <i class="fas fa-info-circle d-block mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
+                            Please complete the selection to view configurations
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            body.innerHTML = `
+                <tr>
+                    <td colspan="2" class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin d-block mb-3" style="font-size: 2rem; color: #6366f1;"></i>
+                        Loading configurations...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const url = `/admin/assessments/scoring-schemes/list?scopeType=${scopeType}${scopeId ? `&scopeId=${scopeId}` : ''}`;
+                const response = await fetch(url);
+                const schemes = await response.json();
+
+                if (schemes.length === 0) {
+                    body.innerHTML = `
+                        <tr>
+                            <td colspan="2" class="text-center py-5 text-muted">
+                                <i class="fas fa-folder-open d-block mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
+                                No subject-class combinations found for this scope
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                body.innerHTML = schemes.map(scheme => `
+                    <tr class="animate-in">
+                        <td>
+                            <span class="subject-name">${scheme.subjectName}</span>
+                            <span class="class-badge mt-1">${scheme.className}</span>
+                        </td>
+                        <td>
+                            ${formatScoringScheme(scheme.scoringScheme)}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading schemes:', error);
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="text-center py-5 text-danger">
+                            <i class="fas fa-exclamation-triangle d-block mb-3" style="font-size: 2rem;"></i>
+                            Error loading configurations
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function loadDepartments() {
+            const trackId = document.getElementById('trackId').value;
+            if (!trackId) return;
+
+            try {
+                const response = await fetch(`/admin/assessments/api/tracks/${trackId}/departments`);
+                const departments = await response.json();
+
+                const select = document.getElementById('departmentId');
+                select.innerHTML = '<option value="">Select Department</option>';
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.id;
+                    option.textContent = dept.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        }
+
+        async function loadClasses() {
+            const departmentId = document.getElementById('departmentId').value;
+            if (!departmentId) return;
+
+            try {
+                const response = await fetch(`/admin/assessments/api/departments/${departmentId}/classes`);
+                const classes = await response.json();
+
+                const select = document.getElementById('classId');
+                select.innerHTML = '<option value="">Select Class</option>';
+                classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = cls.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading classes:', error);
+            }
+        }
+
+        function formatScoringScheme(jsonString) {
+            if (!jsonString) return '<span class="no-scheme-text">Not configured</span>';
+            try {
+                const items = JSON.parse(jsonString);
+                return `
+                    <div class="scheme-badge-group">
+                        ${items.map(item => `
+                            <span class="scheme-badge">${item.alias || item.name}: ${item.max}</span>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                return '<span class="text-danger">Invalid data</span>';
+            }
+        }
+
+        function addScoringItem() {
+            scoringItems.push({
+                id: Date.now(),
+                name: '',
+                alias: '',
+                max: 0
+            });
+            renderScoringItems();
+            updateTotalMarks();
+        }
+
+        function removeScoringItem(id) {
+            if (scoringItems.length <= 1) {
+                showNotification('At least one scoring component is required.', 'warning');
+                return;
+            }
+            scoringItems = scoringItems.filter(item => item.id !== id);
+            renderScoringItems();
+            updateTotalMarks();
+        }
+
+        function updateItemName(id, name) {
+            const item = scoringItems.find(item => item.id === id);
+            if (item) item.name = name;
+        }
+
+        function updateItemAlias(id, alias) {
+            const item = scoringItems.find(item => item.id === id);
+            if (item) item.alias = alias;
+        }
+
+        function updateItemMax(id, max) {
+            const item = scoringItems.find(item => item.id === id);
+            if (item) item.max = parseInt(max) || 0;
+            updateTotalMarks();
+        }
+
+        function renderScoringItems() {
+            const container = document.getElementById('scoring-items-list');
+            container.innerHTML = scoringItems.map(item => `
+                <div class="scoring-item-row animate-in" data-id="${item.id}">
+                    <div class="remove-btn-container">
+                        <button type="button" class="btn btn-link text-danger p-0" onclick="removeScoringItem(${item.id})" title="Remove">
+                            <i class="fas fa-times-circle fa-lg"></i>
+                        </button>
+                    </div>
+                    <div class="scoring-item-content">
+                        <div class="mb-3">
+                            <label class="field-label">Component Name</label>
+                            <input type="text" class="form-control glass-input" value="${item.name}" placeholder="e.g. Continuous Assessment" 
+                                oninput="updateItemName(${item.id}, this.value)" required>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-7">
+                                <label class="field-label">Alias</label>
+                                <input type="text" class="form-control glass-input" value="${item.alias || ''}" placeholder="e.g. CA" 
+                                    oninput="updateItemAlias(${item.id}, this.value)" required>
+                            </div>
+                            <div class="col-5">
+                                <label class="field-label">Max Score</label>
+                                <input type="number" class="form-control glass-input text-center" value="${item.max}" min="1" max="100" 
+                                    oninput="updateItemMax(${item.id}, this.value)" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            `).join('');
+        }
+
+        function updateTotalMarks() {
+            const total = scoringItems.reduce((sum, item) => sum + item.max, 0);
+            const display = document.getElementById('total-marks-display');
+            display.textContent = total;
+
+            if (total === 100) {
+                display.className = 'total-marks-value valid';
+                document.getElementById('apply-scheme-btn').disabled = false;
+            } else {
+                display.className = 'total-marks-value invalid';
+                document.getElementById('apply-scheme-btn').disabled = true;
+            }
+        }
+
+        async function submitScoringScheme() {
+            const form = document.getElementById('scoringSchemeForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const btn = document.getElementById('apply-scheme-btn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Applying...';
+
+            const scopeType = document.getElementById('scopeType').value;
+            const scopeId = document.getElementById('classId').value ||
+                document.getElementById('departmentId').value ||
+                document.getElementById('trackId').value || null;
+
+            const data = {
+                scopeType: scopeType,
+                scopeId: scopeId,
+                items: scoringItems.map((item, index) => ({
+                    id: index + 1,
+                    name: item.name,
+                    alias: item.alias,
+                    max: item.max
+                }))
+            };
+
+            try {
+                const response = await fetch('/admin/assessments/scoring-schemes/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showNotification(result.message, 'success');
+                    setTimeout(() => loadCurrentSchemes(), 2000);
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                } else {
+                    showNotification(result.message || 'Error applying scoring scheme', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error applying scoring scheme', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            container.appendChild(notification);
+            setTimeout(() => notification.remove(), 5000);
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

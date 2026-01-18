@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Staff Management</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/modal.js}"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Staff Management</h1>
+                    <p>Manage teaching and non-teaching staff members</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" hx-get="/admin/community/staff/new/modal"
+                        hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('staffModal'), 100)">
+                        + Add New Staff
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <form id="filterForm" hx-get="/admin/community/staff" hx-target="#staff-cards-container"
+                    hx-trigger="change, keyup delay:500ms from:#staffSearchInput" hx-replace-url="true"
+                    class="filters-container">
+                    <div class="filter-group">
+                        <label for="staffSearchInput">Search:</label>
+                        <div class="search-input-container">
+                            <input type="text" id="staffSearchInput" name="search" class="form-input"
+                                placeholder="Search by name or staff ID..." th:value="${search}">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="designationFilter">Designation:</label>
+                        <select id="designationFilter" name="designation" class="form-select">
+                            <option value="">All Designations</option>
+                            <option th:each="designation : ${designations}" th:value="${designation}"
+                                th:text="${designation}" th:selected="${selectedDesignation == designation}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="clearFilters()">Clear</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Staff Cards -->
+            <div class="cards-container">
+                <div id="staff-cards-container">
+                    <div th:replace="~{admin/community/staff/staff-cards :: staff-cards-content}"></div>
+                </div>
+            </div>
+    </main>
+
+    <!-- Staff Modal -->
+    <div id="staffModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Staff Assignment Modal -->
+    <div id="staffAssignmentModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Delete</h3>
+                <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="staffName"></strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Class Teacher Assignment Modal -->
+    <div id="deleteTeacherAssignmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Remove Class Teacher Assignment</h3>
+                <button class="close-modal" onclick="closeModal('deleteTeacherAssignmentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove the class teacher assignment:</p>
+                <p><strong id="teacherAssignmentInfo"></strong>?</p>
+                <p class="text-muted">The staff member will no longer be the class teacher for this class.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('deleteTeacherAssignmentModal')">Cancel</button>
+                <form id="deleteTeacherAssignmentForm" hx-post="/admin/community/staff/remove-class-assignment/0"
+                    hx-target="#staff-cards-container" hx-swap="innerHTML"
+                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                    hx-on::after-request="if(event.detail.successful) { closeModal('deleteTeacherAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
+                    hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
+                    style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Remove Assignment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Subject Teacher Assignment Modal -->
+    <div id="deleteSubjectAssignmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Remove Subject Teacher Assignment</h3>
+                <button class="close-modal" onclick="closeModal('deleteSubjectAssignmentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove the subject teacher assignment:</p>
+                <p><strong id="subjectAssignmentInfo"></strong>?</p>
+                <p class="text-muted">The staff member will no longer teach this subject in this class.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('deleteSubjectAssignmentModal')">Cancel</button>
+                <form id="deleteSubjectAssignmentForm" hx-post="/admin/community/staff/remove-subject-assignment/0"
+                    hx-target="#staff-cards-container" hx-swap="innerHTML"
+                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                    hx-on::after-request="if(event.detail.successful) { closeModal('deleteSubjectAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
+                    hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
+                    style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Remove Assignment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define modal functions globally
+        window.openModal = function (modalId) {
+            console.log('Opening modal:', modalId);
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                console.log('Modal opened successfully');
+            } else {
+                console.error('Modal not found:', modalId);
+            }
+        };
+
+        window.closeModal = function (modalId) {
+            console.log('Closing modal:', modalId);
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        function clearFilters() {
+            const form = document.getElementById('filterForm');
+            if (form) {
+                // Clear search input
+                const searchInput = form.querySelector('#staffSearchInput');
+                if (searchInput) searchInput.value = '';
+
+                // Reset all select dropdowns
+                form.querySelectorAll('select').forEach(select => {
+                    select.value = '';
+                });
+
+                // Trigger HTMX request
+                htmx.trigger(form, 'change');
+
+                // Update URL without reload
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+
+        // Staff-specific functions
+        window.confirmDeleteStaff = function (staffId, staffName) {
+            document.getElementById('staffName').textContent = staffName;
+            document.getElementById('deleteForm').action = `/admin/community/staff/${staffId}/delete`;
+            document.getElementById('deleteModal').classList.add('active');
+        };
+
+        // HTMX event listeners
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                // Update community stats in sidebar
+                htmx.trigger('#community-stats', 'refresh');
+            }
+        });
+    </script>
+</body>
+
+</html>

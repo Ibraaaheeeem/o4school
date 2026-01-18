@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Payments</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/financial.css}">
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .payments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .payments-filters {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .filter-group select:disabled {
+            background-color: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .loading-terms {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        /* Modal Styles - using active class for visibility */
+        .modal.active {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .modal.active .modal-dialog {
+            transform: scale(1);
+        }
+
+        .modal-dialog {
+            max-width: 800px;
+            width: 90%;
+            margin: 5% auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #9ca3af;
+        }
+
+        .close-modal:hover {
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .payment-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+
+        .children-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .child-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+
+        .distribution-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .distribution-badge.sequential {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .distribution-badge.spread {
+            background: #f0fdf4;
+            color: #15803d;
+        }
+
+        .child-name {
+            font-weight: 600;
+        }
+
+        .child-class {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .child-fees {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .settlements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .settlement-item {
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        .settlement-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .settlement-ref {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .settlement-amount {
+            font-weight: 700;
+            color: #10b981;
+            font-size: 1.1rem;
+        }
+
+        .settlement-details {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .settlement-status {
+            padding: 0.125rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .settlement-period {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .no-settlements {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        .loading,
+        .error,
+        .info {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .info {
+            color: #3b82f6;
+        }
+
+        /* Pagination Styles */
+        .pagination-container {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #374151;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .pagination-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .pagination-btn.current {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border: 1px solid #3b82f6;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .payments-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .payments-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: #f9fafb;
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .table-content {
+            overflow-x: auto;
+        }
+
+        .payments-data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .payments-data-table th,
+        .payments-data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .payments-data-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .payments-data-table td {
+            font-size: 0.875rem;
+            color: #1f2937;
+        }
+
+        .payments-data-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .progress-bar {
+            width: 100px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-high {
+            background: #10b981;
+        }
+
+        .progress-medium {
+            background: #f59e0b;
+        }
+
+        .progress-low {
+            background: #ef4444;
+        }
+
+        .amount {
+            font-weight: 600;
+        }
+
+        .amount.positive {
+            color: #10b981;
+        }
+
+        .amount.negative {
+            color: #ef4444;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge.high {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.low {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .btn.btn-outline {
+            background: transparent;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn.btn-outline:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .selected-period {
+            background: #eff6ff;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            border: 1px solid #dbeafe;
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .payments-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .payments-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .payments-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Financial Sidebar -->
+        <div th:replace="~{fragments/financial-sidebar :: financial-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="payments-header">
+                <div>
+                    <h1>Payment Management</h1>
+                    <p>Track student payments and outstanding fees</p>
+                    <div th:if="${selectedSession != null or selectedTerm != null}" class="selected-period"
+                        style="margin-top: 0.5rem;">
+                        <small style="color: #6b7280;">
+                            <strong>Viewing:</strong>
+                            <span th:if="${selectedSession != null}"
+                                th:text="${selectedSession.sessionYear}">Session</span>
+                            <span th:if="${selectedSession != null and selectedTerm != null}"> - </span>
+                            <span th:if="${selectedTerm != null}" th:text="${selectedTerm.termName}">Term</span>
+                            <span th:unless="${selectedSession != null or selectedTerm != null}">All Periods</span>
+                        </small>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="btn btn-primary" hx-get="/admin/financial/payments/manual/modal"
+                        hx-target="#manualSettlementContent" hx-trigger="click"
+                        hx-on:htmx:after-request="openManualModal()">
+                        <i class="fas fa-plus"></i> Log Manual Settlement
+                    </button>
+                    <button type="button" onclick="clearAllFilters()" class="btn btn-outline">
+                        Clear All Filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- Payment Statistics -->
+            <div class="payments-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-number" th:text="${paymentStats.totalParents}">0</div>
+                    <div class="stat-label">Total Parents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👨‍🎓</div>
+                    <div class="stat-number" th:text="${paymentStats.totalStudents}">0</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-number"
+                        th:text="'₦' + ${#numbers.formatDecimal(paymentStats.expectedTotal, 0, 'COMMA', 2, 'POINT')}">₦0
+                    </div>
+                    <div class="stat-label">Expected Revenue</div>
+                    <button class="btn btn-sm btn-outline" style="margin-top: 0.5rem; width: 100%; font-size: 0.75rem;"
+                        hx-get="/admin/financial/payments/breakdown/modal" hx-target="#breakdownModal"
+                        hx-trigger="click" hx-include="#academicSessionId, #termId"
+                        hx-on:htmx:after-request="document.getElementById('breakdownModal').classList.add('active')">
+                        View Breakdown
+                    </button>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-number"
+                        th:text="'₦' + ${#numbers.formatDecimal(paymentStats.totalAmount, 0, 'COMMA', 2, 'POINT')}">₦0
+                    </div>
+                    <div class="stat-label">Total Collected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-number" style="color: #ef4444;"
+                        th:text="'₦' + ${#numbers.formatDecimal(paymentStats.outstandingTotal, 0, 'COMMA', 2, 'POINT')}">
+                        ₦0
+                    </div>
+                    <div class="stat-label">Outstanding</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-number" th:text="${paymentStats.paymentPercentage} + '%'">0%</div>
+                    <div class="stat-label">Payment Rate</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="payments-filters">
+                <div class="filter-group">
+                    <label for="academicSessionId">Academic Session:</label>
+                    <select id="academicSessionId" name="academicSessionId" onchange="onSessionChange()">
+                        <option value="">All Sessions</option>
+                        <option th:each="academicSession : ${academicSessions}" th:value="${academicSession.id}"
+                            th:text="${academicSession.sessionYear}"
+                            th:selected="${academicSession.id == selectedSessionId}">
+                            Session
+                        </option>
+                        <option th:if="${academicSessions.isEmpty()}" value="" disabled>No sessions available</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="termId">Term:</label>
+                    <select id="termId" name="termId" onchange="updateFilters()">
+                        <option value="">All Terms</option>
+                        <option th:each="term : ${terms}" th:value="${term.id}" th:text="${term.termName}"
+                            th:selected="${term.id == selectedTermId}">
+                            Term
+                        </option>
+                        <option th:if="${terms.isEmpty()}" value="" disabled>No terms available</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="viewBy">View By:</label>
+                    <select id="viewBy" name="viewBy" onchange="updateFilters()">
+                        <option value="parents" th:selected="${viewBy == 'parents'}">Parents</option>
+                        <option value="students" th:selected="${viewBy == 'students'}">Students</option>
+                        <option value="dates" th:selected="${viewBy == 'dates'}">Dates</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" name="startDate" th:value="${startDate}"
+                        onchange="updateFilters()">
+                </div>
+
+                <div class="filter-group">
+                    <label for="endDate">End Date:</label>
+                    <input type="date" id="endDate" name="endDate" th:value="${endDate}" onchange="updateFilters()">
+                </div>
+
+                <div class="filter-group">
+                    <label for="sortOrder">Sort Order:</label>
+                    <select id="sortOrder" name="sortOrder" onchange="updateFilters()">
+                        <option value="desc" th:selected="${sortOrder == 'desc'}"
+                            th:text="${viewBy == 'dates' ? 'Newest First' : 'Highest Payment % First'}">Highest Payment
+                            % First</option>
+                        <option value="asc" th:selected="${sortOrder == 'asc'}"
+                            th:text="${viewBy == 'dates' ? 'Oldest First' : 'Lowest Payment % First'}">Lowest Payment %
+                            First</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="search">Search:</label>
+                    <input type="text" id="search" name="search" th:value="${search}" placeholder="Search by name..."
+                        onkeyup="debounceSearch()">
+                </div>
+
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" onclick="clearSearch()" class="btn btn-secondary">Clear</button>
+                </div>
+            </div>
+
+            <!-- Payments Table -->
+            <div id="paymentListContainer">
+                <div class="payments-table" id="paymentList" th:fragment="paymentList">
+                    <div class="table-header">
+                        <div class="table-title"
+                            th:text="'Payment Data - ' + ${viewBy == 'parents' ? 'By Parents' : (viewBy == 'students' ? 'By Students' : 'By Dates')}">
+                            Payment Data
+                        </div>
+                        <div class="table-info">
+                            <span
+                                th:text="${totalItems} + ' total records, showing page ' + ${currentPage + 1} + ' of ' + ${totalPages}">0
+                                records</span>
+                        </div>
+                    </div>
+
+                    <div class="table-content">
+                        <table class="payments-data-table" th:if="${!paymentData.isEmpty()}">
+                            <thead>
+                                <tr th:if="${viewBy == 'parents'}">
+                                    <th>Parent Name</th>
+                                    <th>Contact</th>
+                                    <th>Children</th>
+                                    <th>Total Fees</th>
+                                    <th>Paid</th>
+                                    <th>Outstanding</th>
+                                    <th>Payment %</th>
+                                    <th>Payments</th>
+                                    <th>Last Payment</th>
+                                    <th>Actions</th>
+                                </tr>
+                                <tr th:if="${viewBy == 'students'}">
+                                    <th>Student Name</th>
+                                    <th>Student ID</th>
+                                    <th>Class</th>
+                                    <th>Total Fees</th>
+                                    <th>Paid</th>
+                                    <th>Outstanding</th>
+                                    <th>Payment %</th>
+                                    <th>Parents</th>
+                                    <th>Last Payment</th>
+                                    <th>Actions</th>
+                                </tr>
+                                <tr th:if="${viewBy == 'dates'}">
+                                    <th>Date</th>
+                                    <th>Reference</th>
+                                    <th>Parent Name</th>
+                                    <th>Amount</th>
+                                    <th>Channel</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Parent View -->
+                                <tr th:each="data : ${paymentData}" th:if="${viewBy == 'parents'}">
+                                    <td>
+                                        <div style="font-weight: 600;" th:text="${data.name}">Parent Name</div>
+                                    </td>
+                                    <td>
+                                        <div th:text="${data.email}">Email</div>
+                                        <div style="font-size: 0.75rem; color: #6b7280;" th:text="${data.phone}">Phone
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge" th:text="${data.childrenCount}"
+                                            th:classappend="${data.childrenCount > 2 ? 'high' : (data.childrenCount > 1 ? 'medium' : 'low')}">0</span>
+                                    </td>
+                                    <td>
+                                        <span class="amount"
+                                            th:text="'₦' + ${#numbers.formatDecimal(data.totalFees, 0, 'COMMA', 2, 'POINT')}">₦0</span>
+                                    </td>
+                                    <td>
+                                        <span class="amount positive"
+                                            th:text="'₦' + ${#numbers.formatDecimal(data.totalPaid, 0, 'COMMA', 2, 'POINT')}">₦0</span>
+                                    </td>
+                                    <td>
+                                        <span class="amount"
+                                            th:text="'₦' + ${#numbers.formatDecimal(data.outstanding, 0, 'COMMA', 2, 'POINT')}"
+                                            th:classappend="${data.outstanding > 0 ? 'negative' : 'positive'}">₦0</span>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill"
+                                                    th:style="'width: ' + ${data.paymentPercentage} + '%'"
+                                                    th:classappend="${data.paymentPercentage >= 80 ? 'progress-high' : (data.paymentPercentage >= 50 ? 'progress-medium' : 'progress-low')}">
+                                                </div>
+                                            </div>
+                                            <span
+                                                th:text="${#numbers.formatDecimal(data.paymentPercentage, 0, 2)} + '%'">0%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span th:text="${data.paymentsCount}">0</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${data.lastPaymentDate}"
+                                            th:text="${#temporals.format(data.lastPaymentDate, 'MMM dd, yyyy')}">-</span>
+                                        <span th:unless="${data.lastPaymentDate}">No payments</span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary payment-details-btn"
+                                            th:data-parent-id="${data.id}">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Student View -->
+                                <tr th:each="data : ${paymentData}" th:if="${viewBy == 'students'}">
+                                    <td>
+                                        <div style="font-weight: 600;" th:text="${data.name}">Student Name</div>
+                                    </td>
+                                    <td>
+                                        <span th:text="${data.studentId}">ID</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${data.className}">Class</span>
+                                    </td>
+                                    <td>
+                                        <span class="amount"
+                                            th:text="'₦' + ${#numbers.formatDecimal(data.totalFees, 0, 'COMMA', 2, 'POINT')}">₦0</span>
+                                    </td>
+                                    <td>
+                                        <span class="amount positive"
+                                            th:text="'₦' + ${#numbers.formatDecimal(data.totalPaid, 0, 'COMMA', 2, 'POINT')}">₦0</span>
+                                    </td>
+                                    <td>
+                                        <span class="amount"
+                                            th:text="'₦' + ${#numbers.formatDecimal(data.outstanding, 0, 'COMMA', 2, 'POINT')}"
+                                            th:classappend="${data.outstanding > 0 ? 'negative' : 'positive'}">₦0</span>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill"
+                                                    th:style="'width: ' + ${data.paymentPercentage} + '%'"
+                                                    th:classappend="${data.paymentPercentage >= 80 ? 'progress-high' : (data.paymentPercentage >= 50 ? 'progress-medium' : 'progress-low')}">
+                                                </div>
+                                            </div>
+                                            <span
+                                                th:text="${#numbers.formatDecimal(data.paymentPercentage, 0, 2)} + '%'">0%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span th:text="${data.parentsCount}">0</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${data.lastPaymentDate}"
+                                            th:text="${#temporals.format(data.lastPaymentDate, 'MMM dd, yyyy')}">-</span>
+                                        <span th:unless="${data.lastPaymentDate}">No payments</span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary student-details-btn"
+                                            th:data-student-id="${data.id}">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Dates View -->
+                                <tr th:each="data : ${paymentData}" th:if="${viewBy == 'dates'}">
+                                    <td>
+                                        <div style="font-weight: 600;"
+                                            th:text="${#temporals.format(data.date, 'MMM dd, yyyy HH:mm')}">Date</div>
+                                    </td>
+                                    <td>
+                                        <span style="font-family: monospace; font-size: 0.85rem;"
+                                            th:text="${data.reference}">REF</span>
+                                    </td>
+                                    <td>
+                                        <div th:text="${data.parentName}">Parent Name</div>
+                                    </td>
+                                    <td>
+                                        <span class="amount positive"
+                                            th:text="'₦' + ${#numbers.formatDecimal(data.amount, 0, 'COMMA', 2, 'POINT')}">₦0</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${data.channel ?: 'N/A'}">Channel</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" th:text="${data.status}"
+                                            th:classappend="${data.status == 'SUCCESS' ? 'high' : (data.status == 'PENDING' ? 'medium' : 'low')}">Status</span>
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 0.8rem; color: #6b7280;"
+                                            th:text="${data.notes ?: '-'}">Notes</span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary settlement-details-btn"
+                                            th:data-settlement-id="${data.id}">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="no-data" th:if="${paymentData.isEmpty()}">
+                            <i class="fas fa-receipt"></i>
+                            <h3>No Payment Data Found</h3>
+                            <p>No payment records match your current filters.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div class="pagination-container" th:if="${totalPages > 1}">
+                        <div class="pagination">
+                            <a th:if="${hasPrevious}" href="javascript:void(0)"
+                                th:onclick="'updateFilters(' + ${currentPage - 1} + ')'" class="pagination-btn">
+                                Previous
+                            </a>
+
+                            <span th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                                th:class="${i == currentPage} ? 'pagination-btn current' : 'pagination-btn'">
+                                <a th:if="${i != currentPage}" href="javascript:void(0)"
+                                    th:onclick="'updateFilters(' + ${i} + ')'" th:text="${i + 1}">1</a>
+                                <span th:if="${i == currentPage}" th:text="${i + 1}">1</span>
+                            </span>
+
+                            <a th:if="${hasNext}" href="javascript:void(0)"
+                                th:onclick="'updateFilters(' + ${currentPage + 1} + ')'" class="pagination-btn">
+                                Next
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <!-- Payment Details Modal -->
+    <!-- Manual Settlement Modal -->
+    <div id="manualSettlementModal" class="modal">
+        <div id="manualSettlementContent">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="loading">Loading form...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentDetailsModal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Payment Details</h3>
+                    <button type="button" class="close-modal" onclick="closePaymentModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="paymentDetailsContent">
+                    <div class="loading">Loading payment details...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let searchTimeout;
+
+        function onSessionChange() {
+            const sessionId = document.getElementById('academicSessionId').value;
+            const termSelect = document.getElementById('termId');
+
+            // Show loading state
+            termSelect.disabled = true;
+            termSelect.innerHTML = '<option value="">Loading terms...</option>';
+
+            if (sessionId) {
+                // Fetch terms for the selected session
+                fetch(`/admin/financial/payments/api/terms/${sessionId}`)
+                    .then(response => response.json())
+                    .then(terms => {
+                        termSelect.innerHTML = '<option value="">All Terms</option>';
+                        terms.forEach(term => {
+                            const option = document.createElement('option');
+                            option.value = term.id;
+                            option.textContent = term.termName;
+                            if (term.isCurrentTerm) {
+                                option.selected = true;
+                            }
+                            termSelect.appendChild(option);
+                        });
+
+                        termSelect.disabled = false;
+
+                        // Update filters after populating terms
+                        updateFilters();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching terms:', error);
+                        termSelect.innerHTML = '<option value="">All Terms</option>';
+                        termSelect.disabled = false;
+                        updateFilters();
+                    });
+            } else {
+                // If no session selected, show all terms
+                termSelect.innerHTML = '<option value="">All Terms</option>';
+                termSelect.disabled = false;
+                updateFilters();
+            }
+        }
+
+        function updateFilters(page = 0) {
+            const academicSessionId = document.getElementById('academicSessionId').value;
+            const termId = document.getElementById('termId').value;
+            const viewBy = document.getElementById('viewBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            const search = document.getElementById('search').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const params = new URLSearchParams();
+            if (academicSessionId) params.set('academicSessionId', academicSessionId);
+            if (termId) params.set('termId', termId);
+            params.set('viewBy', viewBy);
+            params.set('sortOrder', sortOrder);
+            params.set('page', page);
+            params.set('size', '20');
+            if (search) params.set('search', search);
+            if (startDate) params.set('startDate', startDate);
+            if (endDate) params.set('endDate', endDate);
+
+            const url = '/admin/financial/payments?' + params.toString();
+
+            // Update URL in browser without refreshing
+            window.history.replaceState({ path: url }, '', url);
+
+            // Show loading state in the table
+            const container = document.getElementById('paymentListContainer');
+            const paymentList = document.getElementById('paymentList');
+            if (paymentList) {
+                paymentList.style.opacity = '0.5';
+                paymentList.style.pointerEvents = 'none';
+            }
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.text())
+                .then(html => {
+                    if (container) {
+                        container.innerHTML = html;
+                    }
+
+                    // Re-initialize any necessary event listeners if needed
+                    // (The global click listener for modal buttons should still work)
+                })
+                .catch(error => {
+                    console.error('Error updating filters:', error);
+                    if (paymentList) {
+                        paymentList.style.opacity = '1';
+                        paymentList.style.pointerEvents = 'auto';
+                    }
+                });
+        }
+
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(updateFilters, 500);
+        }
+
+        function clearSearch() {
+            document.getElementById('search').value = '';
+            updateFilters();
+        }
+
+        function clearAllFilters() {
+            document.getElementById('academicSessionId').value = '';
+            document.getElementById('termId').innerHTML = '<option value="">All Terms</option>';
+            document.getElementById('search').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            updateFilters();
+        }
+
+        // Initialize terms on page load if a session is already selected
+        document.addEventListener('DOMContentLoaded', function () {
+            const sessionId = document.getElementById('academicSessionId').value;
+            if (sessionId) {
+                // Don't trigger update on initial load, just populate terms
+                const termSelect = document.getElementById('termId');
+                const currentTermId = termSelect.value; // Store current selection
+
+                fetch(`/admin/financial/payments/api/terms/${sessionId}`)
+                    .then(response => response.json())
+                    .then(terms => {
+                        termSelect.innerHTML = '<option value="">All Terms</option>';
+                        terms.forEach(term => {
+                            const option = document.createElement('option');
+                            option.value = term.id;
+                            option.textContent = term.termName;
+                            // Restore previous selection or select current term
+                            if (term.id === currentTermId || (!currentTermId && term.isCurrentTerm)) {
+                                option.selected = true;
+                            }
+                            termSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching terms on page load:', error);
+                    });
+            }
+
+            // Add event listeners for payment detail buttons
+            document.addEventListener('click', function (event) {
+                const parentBtn = event.target.closest('.payment-details-btn');
+                if (parentBtn) {
+                    const parentId = parentBtn.dataset.parentId;
+                    if (parentId) {
+                        showPaymentDetails(parentId);
+                    }
+                }
+
+                const studentBtn = event.target.closest('.student-details-btn');
+                if (studentBtn) {
+                    const studentId = studentBtn.dataset.studentId;
+                    if (studentId) {
+                        showStudentPaymentDetails(studentId);
+                    }
+                }
+
+                const settlementBtn = event.target.closest('.settlement-details-btn');
+                if (settlementBtn) {
+                    const settlementId = settlementBtn.dataset.settlementId;
+                    if (settlementId) {
+                        showSettlementDetails(settlementId);
+                    }
+                }
+            });
+        });
+        // Payment details modal functions
+        function showPaymentDetails(parentId) {
+            const modal = document.getElementById('paymentDetailsModal');
+            const content = document.getElementById('paymentDetailsContent');
+
+            if (modal && content) {
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+                content.innerHTML = '<div class="loading">Loading payment details...</div>';
+            } else {
+                console.error('Modal or content element not found');
+                return;
+            }
+
+            const sessionId = document.getElementById('academicSessionId').value;
+            const termId = document.getElementById('termId').value;
+
+            const params = new URLSearchParams();
+            if (sessionId) params.set('sessionId', sessionId);
+            if (termId) params.set('termId', termId);
+
+            fetch(`/admin/financial/payments/api/details/${parentId}?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        content.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                        return;
+                    }
+                    content.innerHTML = generatePaymentDetailsHTML(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching payment details:', error);
+                    content.innerHTML = `<div class="error">Failed to load payment details: ${error.message}</div>`;
+                });
+        }
+
+        function showStudentPaymentDetails(studentId) {
+            const modal = document.getElementById('paymentDetailsModal');
+            const content = document.getElementById('paymentDetailsContent');
+
+            if (modal && content) {
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+                content.innerHTML = '<div class="loading">Loading student payment details...</div>';
+            } else {
+                console.error('Modal or content element not found');
+                return;
+            }
+
+            const sessionId = document.getElementById('academicSessionId').value;
+            const termId = document.getElementById('termId').value;
+
+            const params = new URLSearchParams();
+            if (sessionId) params.set('sessionId', sessionId);
+            if (termId) params.set('termId', termId);
+
+            fetch(`/admin/financial/payments/api/student-details/${studentId}?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        content.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                        return;
+                    }
+
+                    content.innerHTML = generateStudentPaymentDetailsHTML(data);
+                })
+                .catch(error => {
+                    content.innerHTML = `<div class="error">Failed to load student payment details: ${error.message}</div>`;
+                });
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('paymentDetailsModal');
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        }
+
+        function showSettlementDetails(settlementId) {
+            const modal = document.getElementById('paymentDetailsModal');
+            const content = document.getElementById('paymentDetailsContent');
+
+            if (modal && content) {
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+                content.innerHTML = '<div class="loading">Loading settlement details...</div>';
+            } else {
+                console.error('Modal or content element not found');
+                return;
+            }
+
+            fetch(`/admin/financial/payments/api/settlement-details/${settlementId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        content.innerHTML = `<div class="error-message">${data.error}</div>`;
+                    } else {
+                        content.innerHTML = generateSettlementDetailsHTML(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching settlement details:', error);
+                    content.innerHTML = '<div class="error-message">Failed to load settlement details. Please try again.</div>';
+                });
+        }
+
+        function generateSettlementDetailsHTML(data) {
+            const date = new Date(data.transactionDate).toLocaleString();
+
+            let html = `
+                <div class="payment-details">
+                    <div class="student-info">
+                        <h4>Transaction Information</h4>
+                        <div class="info-grid">
+                            <div><strong>Reference:</strong> <span style="font-family: monospace;">${data.reference}</span></div>
+                            <div><strong>Date:</strong> ${date}</div>
+                            <div><strong>Amount:</strong> <span class="positive">₦${formatNumber(data.amount)}</span></div>
+                            <div><strong>Status:</strong> <span class="badge ${data.status === 'SUCCESS' ? 'high' : 'medium'}">${data.status}</span></div>
+                            <div><strong>Channel:</strong> ${data.paymentChannel || 'N/A'}</div>
+                            <div><strong>Payer Email:</strong> ${data.payerEmail || 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-summary">
+                        <h4>Academic Period</h4>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span class="label">Session:</span>
+                                <span class="value">${data.academicSession || 'N/A'}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Term:</span>
+                                <span class="value">${data.term || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="parents-info">
+                        <h4>Parent Information</h4>
+                        <div class="info-grid">
+                            <div><strong>Name:</strong> ${data.parentName}</div>
+                            <div><strong>Email:</strong> ${data.parentEmail || 'N/A'}</div>
+                            <div><strong>Phone:</strong> ${data.parentPhone || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    ${data.notes ? `
+                    <div class="notes-info">
+                        <h4>Notes</h4>
+                        <div style="padding: 1rem; background: #f9fafb; border-radius: 4px; font-size: 0.9rem;">
+                            ${data.notes}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${data.rawPayload ? `
+                    <div class="payload-info">
+                        <h4>Raw Payload (Debug)</h4>
+                        <pre style="padding: 1rem; background: #f3f4f6; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; max-height: 200px;">${data.rawPayload}</pre>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            return html;
+        }
+
+        function generatePaymentDetailsHTML(data) {
+            const paymentPercentage = Math.round(data.paymentPercentage * 100) / 100;
+
+            let html = `
+                <div class="payment-details">
+                    <div class="parent-info">
+                        <h4>Parent Information</h4>
+                        <div class="info-grid">
+                            <div><strong>Name:</strong> ${data.parentName}</div>
+                            <div><strong>Email:</strong> ${data.parentEmail || 'N/A'}</div>
+                            <div><strong>Phone:</strong> ${data.parentPhone || 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-summary">
+                        <h4>Payment Summary</h4>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span class="label">Total Fees:</span>
+                                <span class="value">₦${formatNumber(data.totalFees)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Total Paid:</span>
+                                <span class="value positive">₦${formatNumber(data.totalPaid)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Outstanding:</span>
+                                <span class="value ${data.outstanding > 0 ? 'negative' : 'positive'}">₦${formatNumber(data.outstanding)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Payment %:</span>
+                                <span class="value">${paymentPercentage}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="children-info">
+                        <h4>Children (${data.children.length})</h4>
+                        <div class="children-list">
+            `;
+
+            data.children.forEach(child => {
+                html += `
+                    <div class="child-item">
+                        <span class="child-name">${child.studentName}</span>
+                        <span class="child-class">${child.className}</span>
+                        <span class="child-fees">₦${formatNumber(child.fees)}</span>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                    
+                    <div class="settlements-info">
+                        <h4>Payment History (${data.settlements.length} payments)</h4>
+                        <div class="settlements-list">
+            `;
+
+            if (data.settlements.length === 0) {
+                html += '<div class="no-settlements">No payments found for the selected period.</div>';
+            } else {
+                data.settlements.forEach(settlement => {
+                    const date = new Date(settlement.transactionDate).toLocaleDateString();
+                    html += `
+                        <div class="settlement-item">
+                            <div class="settlement-main">
+                                <div class="settlement-ref">${settlement.reference}</div>
+                                <div class="settlement-amount">₦${formatNumber(settlement.amount)}</div>
+                            </div>
+                            <div class="settlement-details">
+                                <span class="settlement-date">${date}</span>
+                                <span class="settlement-status status-${settlement.status.toLowerCase()}">${settlement.status}</span>
+                                ${settlement.paymentChannel ? `<span class="settlement-channel">${settlement.paymentChannel}</span>` : ''}
+                            </div>
+                            ${settlement.academicSession || settlement.term ? `
+                                <div class="settlement-period">
+                                    ${settlement.academicSession || ''} ${settlement.term || ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        function generateStudentPaymentDetailsHTML(data) {
+            const paymentPercentage = Math.round(data.paymentPercentage * 100) / 100;
+
+            let html = `
+                <div class="payment-details">
+                    <div class="student-info">
+                        <h4>Student Information</h4>
+                        <div class="info-grid">
+                            <div><strong>Name:</strong> ${data.studentName}</div>
+                            <div><strong>Student ID:</strong> ${data.studentId || 'N/A'}</div>
+                            <div><strong>Class:</strong> ${data.className}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-summary">
+                        <h4>Payment Summary</h4>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span class="label">Total Fees:</span>
+                                <span class="value">₦${formatNumber(data.totalFees)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Allocated Amount:</span>
+                                <span class="value positive">₦${formatNumber(data.totalPaid)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Outstanding:</span>
+                                <span class="value ${data.outstanding > 0 ? 'negative' : 'positive'}">₦${formatNumber(data.outstanding)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Payment %:</span>
+                                <span class="value">${paymentPercentage}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="parents-info">
+                        <h4>Parents (${data.parents.length})</h4>
+                        <div class="children-list">
+            `;
+
+            data.parents.forEach(parent => {
+                html += `
+                    <div class="child-item">
+                        <div class="parent-info-main">
+                            <div class="child-name">${parent.parentName}</div>
+                            <div style="font-size: 0.8rem; color: #666;">${parent.relationshipType || 'Parent'}</div>
+                        </div>
+                        <div class="parent-info-meta" style="text-align: right;">
+                            <div class="distribution-badge ${(parent.distributionType || 'SPREAD').toLowerCase()}">${parent.distributionType || 'SPREAD'}</div>
+                            <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">${parent.parentEmail || 'N/A'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                    
+                    <div class="settlements-info">
+                        <h4>Payment Allocations (${data.allocations ? data.allocations.length : 0} allocations)</h4>
+                        <div class="settlements-list">
+            `;
+
+            if (!data.allocations || data.allocations.length === 0) {
+                html += '<div class="no-settlements">No payment allocations found for the selected period.</div>';
+            } else {
+                data.allocations.forEach(allocation => {
+                    const date = new Date(allocation.allocationDate).toLocaleDateString();
+                    html += `
+                        <div class="settlement-item">
+                            <div class="settlement-main">
+                                <div class="settlement-ref">
+                                    ${allocation.settlementReference} 
+                                    <span style="font-size: 0.8em; color: #666;">(Order: ${allocation.allocationOrder})</span>
+                                </div>
+                                <div class="settlement-amount">₦${formatNumber(allocation.allocatedAmount)}</div>
+                            </div>
+                            <div class="settlement-details">
+                                <span class="settlement-date">${date}</span>
+                                <span class="settlement-status status-${allocation.status ? allocation.status.toLowerCase() : 'success'}">${allocation.status || 'Allocated'}</span>
+                                ${allocation.paymentChannel ? `<span class="settlement-channel">${allocation.paymentChannel}</span>` : ''}
+                                <span class="allocation-method">${allocation.allocationMethod}</span>
+                            </div>
+                            <div class="allocation-details" style="font-size: 0.75em; color: #666; margin-top: 0.5rem;">
+                                <div>Balance Before: ₦${formatNumber(allocation.remainingBalanceBefore)}</div>
+                                <div>Balance After: ₦${formatNumber(allocation.remainingBalanceAfter)}</div>
+                                ${allocation.notes ? `<div>Notes: ${allocation.notes}</div>` : ''}
+                            </div>
+                            ${allocation.academicSession || allocation.term ? `
+                                <div class="settlement-period">
+                                    ${allocation.academicSession || ''} ${allocation.term || ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(num);
+        }
+
+        function openManualModal() {
+            document.getElementById('manualSettlementModal').classList.add('active');
+        }
+
+        function closeManualModal() {
+            document.getElementById('manualSettlementModal').classList.remove('active');
+            // Refresh the page if a settlement was saved
+            if (document.querySelector('#modal-message .success-response')) {
+                window.location.reload();
+            }
+        }
+
+        // Close modal when clicking outside
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            const detailsModal = document.getElementById('paymentDetailsModal');
+            const manualModal = document.getElementById('manualSettlementModal');
+            const breakdownModal = document.getElementById('breakdownModal');
+
+            if (event.target === detailsModal) {
+                closePaymentModal();
+            }
+            if (event.target === manualModal) {
+                closeManualModal();
+            }
+            if (event.target === breakdownModal) {
+                breakdownModal.classList.remove('active');
+            }
+        }
+
+        function closeModal(element) {
+            element.closest('.modal').classList.remove('active');
+        }
+    </script>
+
+    <!-- Breakdown Modal -->
+    <div id="breakdownModal" class="modal"></div>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</body>
+
+</html>

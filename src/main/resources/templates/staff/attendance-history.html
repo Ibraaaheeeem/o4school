@@ -1,0 +1,150 @@
+<th:block th:fragment="attendance-history-content">
+    <style>
+        .history-container {
+            padding: 20px;
+        }
+
+        .history-header {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .term-badge {
+            background: #e1f5fe;
+            color: #0288d1;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .stats-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+        }
+
+        .stats-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            color: #444;
+        }
+
+        .percentage-bar-bg {
+            width: 100px;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        .percentage-bar-fill {
+            height: 100%;
+            background: #27ae60;
+        }
+
+        .percentage-text {
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        .btn-back {
+            background: #95a5a6;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .history-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .stats-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+
+    <div class="history-container">
+        <div class="history-header">
+            <div>
+                <h2 style="margin: 0;">Attendance History</h2>
+                <div style="margin-top: 5px;">
+                    <span class="term-badge" th:if="${currentTerm}"
+                        th:text="${currentTerm.termName + ' (' + currentTerm.academicSession.sessionYear + ')'}">Term</span>
+                </div>
+            </div>
+            <a href="javascript:void(0)" class="btn-back" onclick="goBackToAttendanceTab()">
+                ← Back to Attendance
+            </a>
+        </div>
+
+        <div th:if="${dailyStats == null || dailyStats.isEmpty()}"
+            style="text-align: center; padding: 50px; color: #999;">
+            <p>No attendance records found for the current term.</p>
+        </div>
+
+        <table class="stats-table" th:unless="${dailyStats == null || dailyStats.isEmpty()}">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Fraction (Present/Total)</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="entry : ${dailyStats}">
+                    <td th:text="${#temporals.format(entry.key, 'dd MMM, yyyy')}">Date</td>
+                    <td th:text="${entry.value.present + ' / ' + entry.value.total}">15 / 20</td>
+                    <td>
+                        <div class="percentage-bar-bg">
+                            <div class="percentage-bar-fill" th:style="'width: ' + ${entry.value.percentage} + '%'">
+                            </div>
+                        </div>
+                        <span class="percentage-text" th:text="${entry.value.percentage + '%'}">75%</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script th:inline="javascript">
+        window.goBackToAttendanceTab = function () {
+            const activeClassItem = document.querySelector('.class-item.active');
+            if (activeClassItem && typeof loadClassDetails === 'function') {
+                loadClassDetails(activeClassItem);
+                setTimeout(() => {
+                    const attendanceTab = document.querySelector('[data-tab="attendance"]');
+                    if (attendanceTab) attendanceTab.click();
+                }, 500);
+            }
+        };
+    </script>
+</th:block>

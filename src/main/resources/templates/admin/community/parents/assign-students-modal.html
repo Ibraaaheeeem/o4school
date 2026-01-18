@@ -1,0 +1,129 @@
+<!-- Parent Student Assignment Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3>Assign Parent to Students</h3>
+        <button class="close-modal" onclick="closeModal('parentStudentModal')">&times;</button>
+    </div>
+
+    <div class="modal-body">
+        <div class="parent-info">
+            <h4>Parent: <span th:text="${parent.user.fullName}">Parent Name</span></h4>
+            <p class="parent-contact-info">
+                <span th:if="${parent.user.email}" th:text="${parent.user.email}">email@example.com</span>
+                <span th:if="${parent.user.phoneNumber}" th:text="' • ' + ${parent.user.phoneNumber}">• +234...</span>
+            </p>
+        </div>
+
+        <!-- Current Assignments -->
+        <div class="form-section" th:if="${!currentAssignments.empty}">
+            <h5>Current Student Relationships</h5>
+            <div class="current-assignments">
+                <div th:each="assignment : ${currentAssignments}" class="assignment-item">
+                    <span th:text="${assignment.student.user.fullName}">Student Name</span>
+                    <span class="relationship-type"
+                        th:text="${#strings.capitalize(assignment.relationshipType)}">Biological</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <div class="form-section">
+            <h5>Search and Assign Students</h5>
+            <div class="search-form">
+                <div class="form-group">
+                    <label for="studentSearch">Search Students</label>
+                    <input type="text" id="studentSearch" class="form-input" th:value="${search}"
+                        placeholder="Search by name, student ID, or admission number..." name="search">
+                    <button type="button" class="btn btn-sm btn-outline"
+                        th:hx-get="@{/admin/community/parents/{parentId}/assign-students/modal(parentId=${parent.id})}"
+                        hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML" hx-include="#studentSearch"
+                        style="margin-top: 0.5rem;">
+                        Search
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Students -->
+        <div class="form-section">
+            <h5>Available Students</h5>
+            <div th:if="${!availableStudents.empty}" class="students-list">
+                <div th:each="student : ${availableStudents}" class="student-item">
+                    <div class="student-info">
+                        <strong th:text="${student.user.fullName}">Student Name</strong>
+                        <small
+                            th:text="${student.studentId + ' - ' + (student.admissionNumber ?: 'No Admission Number')}">STU001
+                            - ADM2024001</small>
+                        <small th:text="${student.currentGradeLevel ?: 'No Grade Level'}">Grade 10</small>
+                    </div>
+                    <button class="btn btn-sm btn-primary" th:data-student-id="${student.id}"
+                        th:data-student-name="${student.user.fullName}"
+                        onclick="showRelationshipForm(this.dataset.studentId, this.dataset.studentName)">
+                        Assign
+                    </button>
+                </div>
+            </div>
+
+            <div th:if="${availableStudents.empty}" class="empty-state">
+                <p th:if="${search}">No students found matching your search criteria.</p>
+                <p th:unless="${search}">All students are already assigned to this parent or no students exist.</p>
+            </div>
+        </div>
+
+        <!-- Relationship Assignment Form (Hidden by default) -->
+        <div id="relationshipForm" class="form-section" style="display: none;">
+            <h5>Assign Relationship</h5>
+            <form hx-post="/admin/community/parents/{parentId}/assign-student/modal"
+                th:hx-post="@{/admin/community/parents/{parentId}/assign-student/modal(parentId=${parent.id})}"
+                hx-target="#parent-cards-container" hx-swap="innerHTML"
+                hx-on::after-request="if(event.detail.successful) closeModal('parentStudentModal')"
+                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+                <input type="hidden" id="selectedStudentId" name="studentId">
+
+                <div class="form-group">
+                    <label>Assigning to: <strong id="selectedStudentName">Student Name</strong></label>
+                </div>
+
+                <div class="form-group">
+                    <label for="relationshipType">Relationship Type *</label>
+                    <select id="relationshipType" name="relationshipType" class="form-select" required>
+                        <option value="">Select Relationship</option>
+                        <option value="biological">Biological Parent</option>
+                        <option value="adoptive">Adoptive Parent</option>
+                        <option value="guardian">Legal Guardian</option>
+                        <option value="stepparent">Step Parent</option>
+                        <option value="grandparent">Grandparent</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="hideRelationshipForm()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Assign Relationship</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('parentStudentModal')">Close</button>
+    </div>
+</div>
+
+<script>
+    function showRelationshipForm(studentId, studentName) {
+        document.getElementById('selectedStudentId').value = studentId;
+        document.getElementById('selectedStudentName').textContent = studentName;
+        document.getElementById('relationshipForm').style.display = 'block';
+
+        // Scroll to the form
+        document.getElementById('relationshipForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideRelationshipForm() {
+        document.getElementById('relationshipForm').style.display = 'none';
+        document.getElementById('selectedStudentId').value = '';
+        document.getElementById('relationshipType').value = '';
+    }
+</script>

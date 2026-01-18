@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Community Management</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Community Overview</h1>
+                    <p>Manage staff, students, and parents in your school community.</p>
+                </div>
+            </div>
+
+            <!-- Community Dashboard Grid -->
+            <div class="community-dashboard">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card community-card">
+                        <div class="card-icon">👨‍🏫</div>
+                        <h3>Staff Management</h3>
+                        <p class="card-number" th:text="${staffCount}">0</p>
+                        <p class="card-description">Teaching & non-teaching staff</p>
+                        <div class="card-actions">
+                            <a th:href="@{/admin/community/staff}" class="card-link">Manage Staff</a>
+                            <button class="btn btn-primary btn-sm" hx-get="/admin/community/staff/new/home-modal"
+                                hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
+                                onclick="setTimeout(() => openModal('staffModal'), 100)">
+                                + Add Staff
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card community-card">
+                        <div class="card-icon">🎓</div>
+                        <h3>Student Management</h3>
+                        <p class="card-number" th:text="${studentCount}">0</p>
+                        <p class="card-description">Enrolled students</p>
+                        <div class="card-actions">
+                            <a th:href="@{/admin/community/students}" class="card-link">Manage Students</a>
+                            <button class="btn btn-primary btn-sm" hx-get="/admin/community/students/new/home-modal"
+                                hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+                                onclick="setTimeout(() => openModal('studentModal'), 100)">
+                                + Enroll Student
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card community-card">
+                        <div class="card-icon">👨‍👩‍👧‍👦</div>
+                        <h3>Parent Management</h3>
+                        <p class="card-number" th:text="${parentCount}">0</p>
+                        <p class="card-description">Parents & guardians</p>
+                        <div class="card-actions">
+                            <a th:href="@{/admin/community/parents}" class="card-link">Manage Parents</a>
+                            <button class="btn btn-primary btn-sm" hx-get="/admin/community/parents/new/home-modal"
+                                hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
+                                onclick="setTimeout(() => openModal('parentModal'), 100)">
+                                + Add Parent
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card community-card" style="border-left: 4px solid #f59e0b;">
+                        <div class="card-icon">👥</div>
+                        <h3>User Management</h3>
+                        <p class="card-number" th:text="${pendingApprovalCount}">0</p>
+                        <p class="card-description">Manage staff, parents & students</p>
+                        <div class="card-actions">
+                            <a th:href="@{/admin/community/approvals}" class="card-link" style="color: #d97706;">Manage
+                                Users</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Section -->
+                <div class="quick-actions-section">
+                    <h3>Quick Actions</h3>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-card" hx-get="/admin/community/staff/new/home-modal"
+                            hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
+                            onclick="setTimeout(() => openModal('staffModal'), 100)">
+                            <div class="action-icon">👨‍🏫</div>
+                            <span>Add Staff Member</span>
+                        </button>
+                        <button class="quick-action-card" hx-get="/admin/community/students/new/home-modal"
+                            hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+                            onclick="setTimeout(() => openModal('studentModal'), 100)">
+                            <div class="action-icon">🎓</div>
+                            <span>Enroll Student</span>
+                        </button>
+                        <button class="quick-action-card" hx-get="/admin/community/parents/new/home-modal"
+                            hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
+                            onclick="setTimeout(() => openModal('parentModal'), 100)">
+                            <div class="action-icon">👪</div>
+                            <span>Add Parent</span>
+                        </button>
+                        <a href="#" class="quick-action-card">
+                            <div class="action-icon">📋</div>
+                            <span>Bulk Import</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Containers -->
+    <!-- Staff Modal -->
+    <div id="staffModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Student Modal -->
+    <div id="studentModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Parent Modal -->
+    <div id="parentModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <script>
+        // Define modal functions globally for community home
+        window.openModal = function (modalId) {
+            console.log('Opening modal:', modalId);
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                console.log('Modal opened successfully');
+            } else {
+                console.error('Modal not found:', modalId);
+            }
+        };
+
+        window.closeModal = function (modalId) {
+            console.log('Closing modal:', modalId);
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        // HTMX event handlers
+        document.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                // Refresh the page to update counts
+                window.location.reload();
+            }
+        });
+
+        document.addEventListener('htmx:responseError', function (event) {
+            console.error('HTMX response error:', event.detail);
+            alert('There was an error processing your request. Please try again.');
+        });
+    </script>
+</body>
+
+</html>

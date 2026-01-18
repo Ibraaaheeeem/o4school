@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <aside th:fragment="community-sidebar" class="setup-sidebar">
+        <div class="sidebar-header">
+            <h3>Community Management</h3>
+        </div>
+        <nav class="setup-nav">
+            <a th:href="@{/admin/community}" th:classappend="${requestURI == '/admin/community' ? 'active' : ''}"
+                class="nav-item">
+                <span class="icon">📊</span>
+                Overview
+            </a>
+            <a th:href="@{/admin/community/staff}"
+                th:classappend="${requestURI.contains('community/staff') ? 'active' : ''}" class="nav-item">
+                <span class="icon">👨‍🏫</span>
+                Staff Management
+            </a>
+            <a th:href="@{/admin/community/students}"
+                th:classappend="${requestURI.contains('community/students') ? 'active' : ''}" class="nav-item">
+                <span class="icon">🎓</span>
+                Student Management
+            </a>
+            <a th:href="@{/admin/community/parents}"
+                th:classappend="${requestURI.contains('community/parents') ? 'active' : ''}" class="nav-item">
+                <span class="icon">👨‍👩‍👧‍👦</span>
+                Parent Management
+            </a>
+            <a th:href="@{/admin/community/approvals}"
+                th:classappend="${requestURI.contains('community/approvals') ? 'active' : ''}" class="nav-item">
+                <span class="icon">👥</span>
+                User Management
+            </a>
+        </nav>
+
+        <div class="setup-progress-widget" th:if="${communityStats != null}">
+            <h4>Community Stats</h4>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${communityStats.staffCount}">0</span>
+                    <span class="stat-label">Staff</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${communityStats.studentCount}">0</span>
+                    <span class="stat-label">Students</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${communityStats.parentCount}">0</span>
+                    <span class="stat-label">Parents</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

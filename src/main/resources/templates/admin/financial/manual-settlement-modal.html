@@ -1,0 +1,80 @@
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Log Manual Settlement</h2>
+            <button type="button" class="close-modal" onclick="closeManualModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form hx-post="/admin/financial/payments/manual/save" hx-target="#modal-message" hx-swap="innerHTML"
+                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="parentId"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Select
+                            Parent</label>
+                        <select name="parentId" id="parentId" required class="form-control"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                            <option value="">-- Select Parent --</option>
+                            <option th:each="parent : ${parents}" th:value="${parent.id}"
+                                th:text="${parent.user.fullName + ' (' + parent.user.phoneNumber + ')'}"></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Amount
+                            (NGN)</label>
+                        <input type="number" name="amount" id="amount" step="0.01" required class="form-control"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;"
+                            placeholder="0.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="academicSessionId"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Academic
+                            Session</label>
+                        <select name="academicSessionId" id="academicSessionId" required class="form-control"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                            <option th:each="academicSession : ${academicSessions}" th:value="${academicSession.id}"
+                                th:text="${academicSession.sessionYear}"
+                                th:selected="${academicSession.id == selectedSessionId}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="termId"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Term
+                            (Optional)</label>
+                        <select name="termId" id="termId" class="form-control"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                            <option value="">-- All Terms --</option>
+                            <option th:each="term : ${terms}" th:value="${term.id}" th:text="${term.termName}"
+                                th:selected="${term.id == selectedTermId}"></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="notes"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Notes /
+                            Reference</label>
+                        <textarea name="notes" id="notes" rows="3" class="form-control"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px;"
+                            placeholder="Enter any additional details or manual reference number..."></textarea>
+                    </div>
+                </div>
+
+                <div id="modal-message" style="margin-top: 1.5rem;"></div>
+
+                <div class="modal-footer"
+                    style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
+                    <button type="button" class="btn btn-outline" onclick="closeManualModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"
+                        style="background: #2563eb; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer;">
+                        Save Settlement
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

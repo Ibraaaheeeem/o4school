@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Optional Fees</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div style="padding: 20px;">
+            <h1>Optional Fees Management</h1>
+
+            <div style="margin: 20px 0;">
+                <p>User: <span th:text="${user?.fullName}">Unknown</span></p>
+                <p>School: <span th:text="${school?.name}">Unknown</span></p>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3>Statistics</h3>
+                <p>Total: <span th:text="${stats?.total}">0</span></p>
+                <p>Locked: <span th:text="${stats?.locked}">0</span></p>
+                <p>Unlocked: <span th:text="${stats?.unlocked}">0</span></p>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3>Academic Sessions</h3>
+                <p>Count: <span th:text="${#lists.size(academicSessions)}">0</span></p>
+                <ul>
+                    <li th:each="academicSession : ${academicSessions}" th:text="${academicSession.sessionYear}">Session
+                    </li>
+                </ul>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3>Terms</h3>
+                <p>Count: <span th:text="${#lists.size(terms)}">0</span></p>
+                <ul>
+                    <li th:each="term : ${terms}" th:text="${term.termName}">Term</li>
+                </ul>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3>Optional Fee Assignments</h3>
+                <p>Count: <span th:text="${#lists.size(optionalFeeAssignments)}">0</span></p>
+
+                <div th:if="${#lists.isEmpty(optionalFeeAssignments)}">
+                    <p>No optional fee assignments found.</p>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(optionalFeeAssignments)}">
+                    <table border="1" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>Fee Name</th>
+                                <th>Class</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="assignment : ${optionalFeeAssignments}">
+                                <td th:text="${assignment.feeItem?.name}">Fee Name</td>
+                                <td th:text="${assignment.schoolClass?.className}">Class</td>
+                                <td th:text="${assignment.effectiveAmount}">Amount</td>
+                                <td th:text="${assignment.isLocked ? 'Locked' : 'Unlocked'}">Status</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <a href="/admin/financial">Back to Financial</a>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

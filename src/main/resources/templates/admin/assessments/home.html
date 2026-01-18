@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Assessments</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Assessment Sidebar -->
+        <div th:replace="~{fragments/assessment-sidebar :: assessment-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Assessment Management</h1>
+                    <p>Create and manage examinations, assignments, and assessments for your school.</p>
+                </div>
+            </div>
+
+            <!-- Assessment Overview Cards -->
+            <div class="assessment-overview">
+                <div class="overview-cards">
+                    <div class="assessment-card">
+                        <div class="card-icon">📝</div>
+                        <div class="card-content">
+                            <div class="card-number" th:text="${assessmentStats.totalExaminations}">0</div>
+                            <div class="card-description">Total Examinations</div>
+                            <div class="card-actions">
+                                <a th:href="@{/admin/assessments/examinations}" class="card-link">Manage All</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="assessment-card">
+                        <div class="card-icon">✅</div>
+                        <div class="card-content">
+                            <div class="card-number" th:text="${assessmentStats.publishedExaminations}">0</div>
+                            <div class="card-description">Published</div>
+                            <div class="card-actions">
+                                <a th:href="@{/admin/assessments/examinations?published=true}" class="card-link">View
+                                    Published</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="assessment-card">
+                        <div class="card-icon">📋</div>
+                        <div class="card-content">
+                            <div class="card-number" th:text="${assessmentStats.draftExaminations}">0</div>
+                            <div class="card-description">Drafts</div>
+                            <div class="card-actions">
+                                <a th:href="@{/admin/assessments/examinations?published=false}" class="card-link">View
+                                    Drafts</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="assessment-card">
+                        <div class="card-icon">❓</div>
+                        <div class="card-content">
+                            <div class="card-number" th:text="${assessmentStats.totalQuestions}">0</div>
+                            <div class="card-description">Questions</div>
+                            <div class="card-actions">
+                                <a th:href="@{/admin/assessments/questions}" class="card-link">Manage</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions-section">
+                <h2>Quick Actions</h2>
+                <div class="quick-actions-grid">
+                    <a th:href="@{/admin/assessments/examinations}" class="quick-action-card">
+                        <div class="action-icon">📝</div>
+                        <h3>Create Examination</h3>
+                        <p>Create new examinations, assignments, and continuous assessments.</p>
+                    </a>
+
+                    <a th:href="@{/admin/assessments/examinations}" class="quick-action-card">
+                        <div class="action-icon">📊</div>
+                        <h3>Manage Examinations</h3>
+                        <p>View, edit, and manage all examinations and assessments.</p>
+                    </a>
+
+                    <a href="#" class="quick-action-card disabled">
+                        <div class="action-icon">📈</div>
+                        <h3>Assessment Reports</h3>
+                        <p>Generate reports and analytics for student performance.</p>
+                        <span class="coming-soon">Coming Soon</span>
+                    </a>
+
+                    <a href="#" class="quick-action-card disabled">
+                        <div class="action-icon">🎯</div>
+                        <h3>Question Bank</h3>
+                        <p>Manage reusable questions and question templates.</p>
+                        <span class="coming-soon">Coming Soon</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="recent-activity-section">
+                <h2>Assessment Types</h2>
+                <div class="assessment-types-grid">
+                    <div class="assessment-type-card">
+                        <div class="type-icon">📚</div>
+                        <h3>Assignment</h3>
+                        <p>Homework and take-home assignments for students to complete over time.</p>
+                        <div class="type-features">
+                            <span class="feature-tag">Extended Duration</span>
+                            <span class="feature-tag">Research Based</span>
+                        </div>
+                    </div>
+
+                    <div class="assessment-type-card">
+                        <div class="type-icon">📊</div>
+                        <h3>Continuous Assessment</h3>
+                        <p>Regular assessments to monitor student progress throughout the term.</p>
+                        <div class="type-features">
+                            <span class="feature-tag">Regular</span>
+                            <span class="feature-tag">Progress Tracking</span>
+                        </div>
+                    </div>
+
+                    <div class="assessment-type-card">
+                        <div class="type-icon">⏰</div>
+                        <h3>Mid-Term Test</h3>
+                        <p>Timed assessments conducted in the middle of the academic term.</p>
+                        <div class="type-features">
+                            <span class="feature-tag">Timed</span>
+                            <span class="feature-tag">Mid-Term</span>
+                        </div>
+                    </div>
+
+                    <div class="assessment-type-card">
+                        <div class="type-icon">🎓</div>
+                        <h3>End-of-Term Examination</h3>
+                        <p>Comprehensive examinations at the end of each academic term.</p>
+                        <div class="type-features">
+                            <span class="feature-tag">Comprehensive</span>
+                            <span class="feature-tag">Final</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Include HTMX and Community JS -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+</body>
+
+</html>

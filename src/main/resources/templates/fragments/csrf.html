@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <!-- CSRF Meta Tags Fragment -->
+    <div th:fragment="csrf-meta">
+        <meta name="_csrf" th:content="${_csrf.token}" />
+        <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    </div>
+
+    <!-- CSRF JavaScript Setup Fragment -->
+    <script th:fragment="csrf-js">
+        // Global CSRF token management
+        window.CSRFManager = {
+            token: null,
+            header: null,
+            
+            init: function() {
+                const tokenMeta = document.querySelector("meta[name='_csrf']");
+                const headerMeta = document.querySelector("meta[name='_csrf_header']");
+                
+                this.token = tokenMeta ? tokenMeta.getAttribute("content") : null;
+                this.header = headerMeta ? headerMeta.getAttribute("content") : 'X-CSRF-TOKEN';
+                
+                // Setup HTMX CSRF configuration
+                this.setupHTMX();
+            },
+            
+            setupHTMX: function() {
+                if (typeof htmx !== 'undefined' && this.token) {
+                    document.addEventListener('htmx:configRequest', (event) => {
+                        event.detail.headers[this.header] = this.token;
+                    });
+                }
+            },
+            
+            getToken: function() {
+                return this.token;
+            },
+            
+            getHeader: function() {
+                return this.header;
+            },
+            
+            addToHeaders: function(headers = {}) {
+                if (this.token) {
+                    headers[this.header] = this.token;
+                }
+                return headers;
+            },
+            
+            addToFormData: function(formData) {
+                if (this.token) {
+                    formData.append('_csrf', this.token);
+                }
+                return formData;
+            },
+            
+            createHiddenInput: function() {
+                if (this.token) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = '_csrf';
+                    input.value = this.token;
+                    return input;
+                }
+                return null;
+            },
+            
+            refresh: function() {
+                // Refresh CSRF token for long-lived pages
+                return fetch('/csrf-token', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    this.token = data.token;
+                    document.querySelector("meta[name='_csrf']").setAttribute("content", data.token);
+                    document.dispatchEvent(new CustomEvent('csrf-token-updated'));
+                    return data.token;
+                })
+                .catch(error => {
+                    console.warn('Failed to refresh CSRF token:', error);
+                    return null;
+                });
+            }
+        };
+        
+        // Initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            window.CSRFManager.init();
+        });
+    </script>
+
+    <!-- CSRF Form Helper Fragment -->
+    <input th:fragment="csrf-input" type="hidden" name="_csrf" th:value="${_csrf.token}" />
+
+</body>
+</html>

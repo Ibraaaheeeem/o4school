@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${errorTitle} + ' - 4School'">Error - 4School</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --brand-gradient: linear-gradient(135deg, #1e293b 0%, #4338ca 100%);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --bg-soft: #f8fafc;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-soft);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* Background Decorations */
+        .bg-decoration {
+            position: fixed;
+            z-index: -1;
+            filter: blur(80px);
+            opacity: 0.4;
+            border-radius: 50%;
+        }
+
+        .bg-1 {
+            width: 400px;
+            height: 400px;
+            background: #4f46e5;
+            top: -100px;
+            right: -100px;
+        }
+
+        .bg-2 {
+            width: 300px;
+            height: 300px;
+            background: #db2777;
+            bottom: -50px;
+            left: -50px;
+        }
+
+        .error-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 32px;
+            padding: 3rem;
+            width: 90%;
+            max-width: 540px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            animation: cardAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .error-icon-wrapper {
+            width: 100px;
+            height: 100px;
+            background: var(--brand-gradient);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            box-shadow: 0 15px 30px rgba(67, 56, 202, 0.25);
+            transform: rotate(-5deg);
+            transition: transform 0.3s ease;
+        }
+
+        .error-card:hover .error-icon-wrapper {
+            transform: rotate(0deg) scale(1.05);
+        }
+
+        .error-icon-wrapper i {
+            font-size: 3rem;
+            color: white;
+        }
+
+        .status-code {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #4f46e5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0 0 1rem;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .btn-primary {
+            background: var(--brand-gradient);
+            color: white;
+            box-shadow: 0 10px 20px -5px rgba(67, 56, 202, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(67, 56, 202, 0.4);
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-outline:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        .footer-logo {
+            margin-top: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            opacity: 0.5;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 640px) {
+            .error-card {
+                padding: 2rem 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-decoration bg-1"></div>
+    <div class="bg-decoration bg-2"></div>
+
+    <div class="error-card">
+        <div class="error-icon-wrapper">
+            <i class="fas" th:classappend="${errorIcon ?: 'fa-exclamation-triangle'}"></i>
+        </div>
+
+        <span class="status-code" th:text="'Error ' + ${statusCode ?: 'Unknown'}">Error 404</span>
+        <h1 th:text="${errorTitle ?: 'Something went wrong'}">Page Not Found</h1>
+        <p th:text="${errorMessage ?: 'An unexpected error occurred while processing your request.'}">
+            The page you are looking for doesn't exist or has been moved.
+        </p>
+
+        <div class="actions">
+            <!-- Authenticated Users: Show Dashboard Link based on Role -->
+            <th:block sec:authorize="isAuthenticated()">
+                <!-- Admin/Principal -->
+                <a th:href="@{/admin/dashboard}" class="btn btn-primary"
+                    sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN', 'PRINCIPAL')">
+                    <i class="fas fa-tachometer-alt"></i> Back to Dashboard
+                </a>
+
+                <!-- Staff/Teacher (Only if not Admin) -->
+                <a th:href="@{/staff/dashboard}" class="btn btn-primary"
+                    sec:authorize="hasAnyRole('STAFF', 'TEACHER') and !hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN', 'PRINCIPAL')">
+                    <i class="fas fa-tachometer-alt"></i> Back to Dashboard
+                </a>
+
+                <!-- Parent -->
+                <a th:href="@{/parent/dashboard}" class="btn btn-primary"
+                    sec:authorize="hasRole('PARENT') and !hasAnyRole('STAFF', 'TEACHER', 'ADMIN', 'SCHOOL_ADMIN', 'PRINCIPAL')">
+                    <i class="fas fa-tachometer-alt"></i> Back to Dashboard
+                </a>
+
+                <!-- Student -->
+                <a th:href="@{/student/dashboard}" class="btn btn-primary"
+                    sec:authorize="hasRole('STUDENT') and !hasAnyRole('PARENT', 'STAFF', 'TEACHER', 'ADMIN', 'SCHOOL_ADMIN')">
+                    <i class="fas fa-tachometer-alt"></i> Back to Dashboard
+                </a>
+            </th:block>
+
+            <!-- Anonymous: Show Home Link -->
+            <a th:href="@{/}" class="btn btn-primary" sec:authorize="isAnonymous()">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+            <a href="javascript:history.back()" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Go Back
+            </a>
+        </div>
+
+        <a href="/" class="footer-logo" style="text-decoration: none;">
+            <i class="fas fa-school"></i> 4School
+        </a>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,127 @@
+plugins {
+	id 'org.jetbrains.kotlin.jvm' version '2.1.0'
+	id 'org.jetbrains.kotlin.plugin.spring' version '2.1.0'
+	id 'org.springframework.boot' version '3.4.1'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.jetbrains.kotlin.plugin.jpa' version '2.1.0'
+	id 'org.graalvm.buildtools.native' version '0.10.3'
+	id 'org.hibernate.orm' version '6.6.4.Final'
+}
+
+group = 'com.haneef'
+version = '0.0.1-SNAPSHOT'
+description = '4school School Management System'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+graalvmNative {
+    toolchainDetection = false
+    binaries {
+        main {
+            // javaLauncher = javaToolchains.launcherFor {
+            //    languageVersion = JavaLanguageVersion.of(21)
+            // }
+            // Increase memory for native image build to prevent OOM (Exit code 99)
+            // Dynamic memory allocation: 10GB for local (16GB RAM), 6GB for CI (Standard GitHub Runners have 7GB)
+            def isCi = System.getenv('CI') != null
+            def memory = isCi ? '6G' : '10G'
+            buildArgs.add("-J-Xmx${memory}")
+            
+            // Ensure headless mode is set
+            buildArgs.add('-Djava.awt.headless=true')
+            
+            // Fix for Jackson FromStringDeserializer error
+            buildArgs.add('--initialize-at-run-time=com.fasterxml.jackson.databind.deser.std.FromStringDeserializer$Std')
+        }
+    }
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework:spring-aop'
+	implementation 'org.aspectj:aspectjweaver'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'org.jetbrains.kotlin:kotlin-reflect'
+	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.jsoup:jsoup:1.17.2'
+	implementation 'org.dhatim:fastexcel:0.17.0'
+	implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+	implementation 'com.bucket4j:bucket4j-core:8.10.1'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'org.postgresql:postgresql'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+kotlin {
+	jvmToolchain(21)
+	compilerOptions {
+		freeCompilerArgs.addAll '-Xjsr305=strict'
+	}
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+    }
+}
+
+allOpen {
+	annotation 'jakarta.persistence.Entity'
+	annotation 'jakarta.persistence.MappedSuperclass'
+	annotation 'jakarta.persistence.Embeddable'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+sourceSets {
+	main {
+		kotlin {
+			exclude 'com/haneef/_school/service/DataInitializationService.kt'
+		}
+	}
+}
+
+
+hibernate {
+    enhancement {
+        enableLazyInitialization = true
+        enableDirtyTracking = true
+        enableAssociationManagement = true
+    }
+}

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>4School - School Details</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}" />
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <h1>School Details</h1>
+                <p>Enter the basic information about your school.</p>
+            </div>
+
+            <div class="setup-form-card">
+                <form th:action="@{/admin/school-setup/school-details}" th:object="${schoolDto}" method="post">
+
+                    <div class="alert alert-success" th:if="${successMessage}">
+                        <span th:text="${successMessage}"></span>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Basic Information</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="name">School Name *</label>
+                                <input type="text" id="name" th:field="*{name}" class="form-input" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">School Email *</label>
+                                <input type="email" id="email" th:field="*{email}" class="form-input" required />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="phone">Phone Number *</label>
+                                <input type="tel" id="phone" th:field="*{phone}" class="form-input" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="website">Website</label>
+                                <input type="url" id="website" th:field="*{website}" class="form-input" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>School Identifiers</h3>
+                        <p class="section-description">These identifiers are used for your school's unique URL and
+                            student admission numbers.</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="slug">School Code (Slug) *</label>
+                                <div style="position: relative;">
+                                    <input type="text" id="slug" th:field="*{slug}" class="form-input" maxlength="10"
+                                        required oninput="verifySlugAvailability()" placeholder="e.g. myschool" />
+                                    <div id="slugStatus"
+                                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">
+                                    </div>
+                                </div>
+                                <p class="help-text">Maximum 10 characters. Used in your school's URL.</p>
+                                <p id="slugError"
+                                    style="color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="admissionPrefix">Admission Number Prefix *</label>
+                                <div style="position: relative;">
+                                    <input type="text" id="admissionPrefix" th:field="*{admissionPrefix}"
+                                        class="form-input" required oninput="verifyPrefixAvailability()"
+                                        placeholder="e.g. SCH" />
+                                    <div id="prefixStatus"
+                                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">
+                                    </div>
+                                </div>
+                                <p class="help-text">Used as a prefix for all student admission numbers.</p>
+                                <p id="prefixError"
+                                    style="color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Address Information</h3>
+
+                        <div class="form-group">
+                            <label for="addressLine1">Address Line 1 *</label>
+                            <input type="text" id="addressLine1" th:field="*{addressLine1}" class="form-input"
+                                required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="addressLine2">Address Line 2</label>
+                            <input type="text" id="addressLine2" th:field="*{addressLine2}" class="form-input" />
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">City *</label>
+                                <input type="text" id="city" th:field="*{city}" class="form-input" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="state">State *</label>
+                                <input type="text" id="state" th:field="*{state}" class="form-input" required />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="postalCode">Postal Code *</label>
+                                <input type="text" id="postalCode" th:field="*{postalCode}" class="form-input"
+                                    required />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="country">Country *</label>
+                                <input type="text" id="country" th:field="*{country}" class="form-input" value="Nigeria"
+                                    required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Administrator Information</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adminName">Administrator Name *</label>
+                                <input type="text" id="adminName" th:field="*{adminName}" class="form-input" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="adminEmail">Administrator Email *</label>
+                                <input type="email" id="adminEmail" th:field="*{adminEmail}" class="form-input"
+                                    required />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="adminPhone">Administrator Phone *</label>
+                            <input type="tel" id="adminPhone" th:field="*{adminPhone}" class="form-input" required />
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Bank Account Details</h3>
+                        <p class="section-description">This information will be used for school reimbursements.</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bankCode">Bank Name *</label>
+                                <select id="bankCode" name="bankCode" class="form-input" required
+                                    onchange="checkAccountDetails()">
+                                    <option value="">Select Bank</option>
+                                    <option th:each="bank : ${banks}" th:value="${bank.code}" th:text="${bank.name}"
+                                        th:selected="${bankAccount.bankCode == bank.code}">
+                                        Bank Name
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="accountNumber">Account Number *</label>
+                                <input type="text" id="accountNumber" name="accountNumber"
+                                    th:value="${bankAccount.accountNumber}" class="form-input" maxlength="10"
+                                    minlength="10" pattern="\d{10}" required oninput="checkAccountDetails()" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="accountName">Account Name *</label>
+                            <div style="position: relative;">
+                                <input type="text" id="accountName" name="accountName"
+                                    th:value="${bankAccount.accountName}" class="form-input" required readonly
+                                    style="background-color: #f3f4f6;" />
+                                <div id="accountLoading"
+                                    style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">
+                                    <span class="spinner"
+                                        style="width: 16px; height: 16px; border: 2px solid #ccc; border-top-color: #4f46e5; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite;"></span>
+                                </div>
+                            </div>
+                            <p id="accountError"
+                                style="color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save & Continue</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        @keyframes spin {
+            to {
+                transform: translateY(-50%) rotate(360deg);
+            }
+        }
+
+        .help-text {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+    </style>
+
+    <script>
+        function checkAccountDetails() {
+            const bankCode = document.getElementById('bankCode').value;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const accountNameField = document.getElementById('accountName');
+            const loadingIndicator = document.getElementById('accountLoading');
+            const errorText = document.getElementById('accountError');
+
+            if (bankCode && accountNumber.length === 10) {
+                loadingIndicator.style.display = 'block';
+                errorText.style.display = 'none';
+                accountNameField.value = 'Resolving...';
+
+                fetch(`/admin/school-setup/resolve-bank-account?accountNumber=${accountNumber}&bankCode=${bankCode}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingIndicator.style.display = 'none';
+                        if (data.status) {
+                            accountNameField.value = data.accountName;
+                        } else {
+                            accountNameField.value = '';
+                            errorText.textContent = data.message || 'Could not resolve account name';
+                            errorText.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        loadingIndicator.style.display = 'none';
+                        accountNameField.value = '';
+                        errorText.textContent = 'Error connecting to server';
+                        errorText.style.display = 'block';
+                        console.error('Error:', error);
+                    });
+            } else if (accountNumber.length < 10) {
+                accountNameField.value = '';
+                errorText.style.display = 'none';
+            }
+        }
+
+        let slugTimeout = null;
+        function verifySlugAvailability() {
+            const slug = document.getElementById('slug').value;
+            const statusDiv = document.getElementById('slugStatus');
+            const errorText = document.getElementById('slugError');
+
+            if (slugTimeout) clearTimeout(slugTimeout);
+
+            if (!slug) {
+                statusDiv.innerHTML = '';
+                errorText.style.display = 'none';
+                return;
+            }
+
+            slugTimeout = setTimeout(() => {
+                statusDiv.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: #4f46e5; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite;"></span>';
+
+                fetch(`/admin/school-setup/check-slug?slug=${encodeURIComponent(slug)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.available) {
+                            statusDiv.innerHTML = '<span style="color: #059669;">✓</span>';
+                            errorText.style.display = 'none';
+                        } else {
+                            statusDiv.innerHTML = '<span style="color: #dc2626;">✗</span>';
+                            errorText.textContent = 'This school code is already taken';
+                            errorText.style.display = 'block';
+                        }
+                    });
+            }, 500);
+        }
+
+        let prefixTimeout = null;
+        function verifyPrefixAvailability() {
+            const prefix = document.getElementById('admissionPrefix').value;
+            const statusDiv = document.getElementById('prefixStatus');
+            const errorText = document.getElementById('prefixError');
+
+            if (prefixTimeout) clearTimeout(prefixTimeout);
+
+            if (!prefix) {
+                statusDiv.innerHTML = '';
+                errorText.style.display = 'none';
+                return;
+            }
+
+            prefixTimeout = setTimeout(() => {
+                statusDiv.innerHTML = '<span class="spinner" style="width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: #4f46e5; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite;"></span>';
+
+                fetch(`/admin/school-setup/check-prefix?prefix=${encodeURIComponent(prefix)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.available) {
+                            statusDiv.innerHTML = '<span style="color: #059669;">✓</span>';
+                            errorText.style.display = 'none';
+                        } else {
+                            statusDiv.innerHTML = '<span style="color: #dc2626;">✗</span>';
+                            errorText.textContent = 'This prefix is already in use';
+                            errorText.style.display = 'block';
+                        }
+                    });
+            }, 500);
+        }
+    </script>
+</body>
+
+</html>

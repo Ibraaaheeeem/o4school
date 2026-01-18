@@ -1,0 +1,169 @@
+<!-- Term Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit ? 'Edit Term' : 'New Term'}">New Term</h3>
+        <button class="close-modal" onclick="closeModal('termModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/academic/terms/save-htmx" hx-target="#modal-response-container" hx-swap="innerHTML"
+        class="modal-form" th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+        <input type="hidden" name="id" th:value="${isEdit ? term.id : ''}">
+        <input type="hidden" name="sessionId" th:value="${academicSession.id}">
+
+        <div class="modal-body">
+            <!-- Response Container -->
+            <div id="modal-response-container"></div>
+
+            <!-- Session Information -->
+            <div class="form-section">
+                <h4>Academic Session</h4>
+                <div class="session-info-display">
+                    <strong th:text="${academicSession.sessionName}">2024-2025 Academic Session</strong>
+                    <span class="session-year" th:text="${academicSession.sessionYear}">2024-2025</span>
+                </div>
+            </div>
+
+            <!-- Term Information -->
+            <div class="form-section">
+                <h4>Term Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="termName">Term Name *</label>
+                        <input type="text" id="termName" name="termName" class="form-input" th:value="${term.termName}"
+                            placeholder="e.g., First Term, Second Term" required>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Date Information -->
+            <div class="form-section">
+                <h4>Term Dates</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="startDate">Start Date *</label>
+                        <input type="date" id="startDate" name="startDate" class="form-input"
+                            th:value="${term.startDate}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate" id="endDateLabel">End Date *</label>
+                        <input type="date" id="endDate" name="endDate" class="form-input" th:value="${term.endDate}"
+                            required>
+                    </div>
+                </div>
+                <div class="date-validation-info">
+                    <small class="form-help">
+                        <i class="fas fa-info-circle"></i>
+                        Term dates should fall within the academic session period
+                        (<span th:text="${#temporals.format(academicSession.startDate, 'MMM dd, yyyy')}">Sep 15,
+                            2024</span>
+                        <span th:if="${academicSession.endDate != null}">
+                            - <span th:text="${#temporals.format(academicSession.endDate, 'MMM dd, yyyy')}">Jul 30,
+                                2025</span>
+                        </span>)
+                    </small>
+                </div>
+            </div>
+
+            <!-- Term Settings -->
+            <div class="form-section">
+                <h4>Term Settings</h4>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="isCurrentTerm" value="true" th:checked="${term.isCurrentTerm}">
+                        <span class="checkmark"></span>
+                        Set as Current Term
+                    </label>
+                    <small class="form-help">Only one term can be current at a time</small>
+                </div>
+
+                <!-- Previous Term Warning (Conditional) -->
+                <div th:if="${existingOpenTerm != null}" id="previousTermWarning" class="form-group"
+                    style="display: none; background-color: #fff7ed; padding: 12px; border-radius: 6px; border: 1px solid #fed7aa; margin-top: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <i class="fas fa-exclamation-triangle" style="color: #c2410c; margin-top: 3px;"></i>
+                        <div>
+                            <strong style="color: #9a3412; display: block; margin-bottom: 4px;">Automatic Term
+                                Closure</strong>
+                            <p style="color: #c2410c; font-size: 0.9em; margin: 0;">
+                                The current term <strong>'<span th:text="${existingOpenTerm.termName}"></span>'</strong>
+                                is still open.
+                                Proceeding will automatically close it, setting its end date to the day before this new
+                                term starts.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-input" rows="3"
+                        th:text="${term.description}" placeholder="Additional details about this term"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('termModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+                <span th:text="${isEdit ? 'Update Term' : 'Create Term'}">Create Term</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Date validation and Requirement Logic
+    // Date validation and Requirement Logic
+    (function () {
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const isCurrentTermCheckbox = document.querySelector('input[name="isCurrentTerm"]');
+        const endDateLabel = document.getElementById('endDateLabel');
+
+        if (startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', function () {
+                endDateInput.min = this.value;
+                if (endDateInput.value && endDateInput.value <= this.value) {
+                    endDateInput.value = '';
+                }
+            });
+
+            endDateInput.addEventListener('change', function () {
+                startDateInput.max = this.value;
+            });
+        }
+
+        // Toggle End Date Requirement
+        function updateEndDateRequirement() {
+            if (isCurrentTermCheckbox && endDateInput && endDateLabel) {
+                if (isCurrentTermCheckbox.checked) {
+                    endDateInput.removeAttribute('required');
+                    endDateLabel.textContent = 'End Date (Optional for Current Term)';
+
+                    // Show previous term warning if it exists
+                    const prevTermWarning = document.getElementById('previousTermWarning');
+                    if (prevTermWarning) {
+                        prevTermWarning.style.display = 'block';
+                    }
+                } else {
+                    endDateInput.setAttribute('required', 'required');
+                    endDateLabel.textContent = 'End Date *';
+
+                    // Hide previous term warning
+                    const prevTermWarning = document.getElementById('previousTermWarning');
+                    if (prevTermWarning) {
+                        prevTermWarning.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        if (isCurrentTermCheckbox) {
+            isCurrentTermCheckbox.addEventListener('change', updateEndDateRequirement);
+            // Run initially
+            updateEndDateRequirement();
+        }
+    })();
+</script>

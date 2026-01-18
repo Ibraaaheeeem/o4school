@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Profile - 4School</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <!-- Breadcrumb -->
+            <div style="margin-bottom: 1.5rem; font-size: 0.9rem;">
+                <a th:href="@{${userRole == 'Parent' ? '/parent/dashboard' : '/staff/dashboard'}}"
+                    style="color: var(--text-muted); text-decoration: none; transition: color 0.2s;">Dashboard</a>
+                <span style="margin: 0 0.5rem; color: var(--text-light);">/</span>
+                <a th:if="${userRole != 'Parent'}" href="/staff/classes"
+                    style="color: var(--text-muted); text-decoration: none; transition: color 0.2s;">Classes</a>
+                <span th:if="${userRole != 'Parent'}" style="margin: 0 0.5rem; color: var(--text-light);">/</span>
+                <span style="color: var(--text-main); font-weight: 500;">Student Profile</span>
+            </div>
+
+            <!-- Profile Header -->
+            <div class="welcome-section" style="align-items: flex-start;">
+                <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                        <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
+                            style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: var(--shadow-md);"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div th:unless="${student.passportPhotoUrl}"
+                            style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; border: 4px solid white; box-shadow: var(--shadow-md);"
+                            th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                        <div th:if="${student.passportPhotoUrl}"
+                            style="display: none; width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; border: 4px solid white; box-shadow: var(--shadow-md);"
+                            th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                    </div>
+
+                    <div class="welcome-text">
+                        <h1 th:text="${student.user.firstName + ' ' + student.user.lastName}"
+                            style="margin-bottom: 0.5rem;">Student Name</h1>
+
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                            <span class="badge"
+                                style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600;"
+                                th:if="${!enrollments.isEmpty()}"
+                                th:text="${enrollments[0].schoolClass.className}">Class</span>
+                            <span class="badge"
+                                style="background: #f3f4f6; color: #4b5563; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600;"
+                                th:if="${enrollments.isEmpty()}">Not Enrolled</span>
+                            <span class="badge"
+                                style="background: #dcfce7; color: #166534; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600;">Active
+                                Student</span>
+                        </div>
+
+                        <div
+                            style="display: flex; gap: 1.5rem; color: var(--text-muted); font-size: 0.9rem; flex-wrap: wrap;">
+                            <span style="display: flex; align-items: center; gap: 0.5rem;"><i
+                                    class="fas fa-id-card"></i> <span
+                                    th:text="${student.admissionNumber}">ADM-001</span></span>
+                            <span style="display: flex; align-items: center; gap: 0.5rem;"><i
+                                    class="fas fa-envelope"></i> <span
+                                    th:text="${student.user.email}">email@example.com</span></span>
+                            <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-phone"></i>
+                                <span th:text="${student.user.phoneNumber}">+1234567890</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="dashboard-grid"
+                style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+                <div class="dashboard-card" style="align-items: center; text-align: center;">
+                    <div class="card-value" style="color: var(--primary-color);"
+                        th:text="${attendancePercentage + '%'}">0%</div>
+                    <div class="card-title">Attendance Rate</div>
+                </div>
+                <div class="dashboard-card" style="align-items: center; text-align: center;">
+                    <div class="card-value" style="color: var(--success-color);" th:text="${presentCount}">0</div>
+                    <div class="card-title">Days Present</div>
+                </div>
+                <div class="dashboard-card" style="align-items: center; text-align: center;">
+                    <div class="card-value" style="color: var(--danger-color);" th:text="${absentCount}">0</div>
+                    <div class="card-title">Days Absent</div>
+                </div>
+                <div class="dashboard-card" style="align-items: center; text-align: center;">
+                    <div class="card-value" style="color: var(--warning-color);" th:text="${lateCount}">0</div>
+                    <div class="card-title">Days Late</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid"
+                style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); align-items: start;">
+                <!-- Personal Information -->
+                <div class="content-panel">
+                    <div class="section-header">
+                        <h3 class="section-title">Personal Information</h3>
+                    </div>
+                    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div>
+                            <label
+                                style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Date
+                                of Birth</label>
+                            <div style="font-weight: 500; color: var(--text-main);"
+                                th:text="${student.dateOfBirth ?: '-'}">-</div>
+                        </div>
+                        <div>
+                            <label
+                                style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Gender</label>
+                            <div style="font-weight: 500; color: var(--text-main);" th:text="${student.gender ?: '-'}">-
+                            </div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <label
+                                style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Address</label>
+                            <div style="font-weight: 500; color: var(--text-main);"
+                                th:text="${student.user.addressLine1 ?: '-'}">-</div>
+                        </div>
+                        <div>
+                            <label
+                                style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">City/State</label>
+                            <div style="font-weight: 500; color: var(--text-main);"
+                                th:text="${(student.user.city ?: '') + (student.user.city != null && student.user.state != null ? ', ' : '') + (student.user.state ?: '')}">
+                                -</div>
+                        </div>
+                        <div>
+                            <label
+                                style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Transportation</label>
+                            <div style="font-weight: 500; color: var(--text-main);"
+                                th:text="${student.transportationMethod ?: '-'}">-</div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <label
+                                style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Previous
+                                School</label>
+                            <div style="font-weight: 500; color: var(--text-main);"
+                                th:text="${student.previousSchool ?: '-'}">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic & Guardians -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- Academic Info -->
+                    <div class="content-panel">
+                        <div class="section-header">
+                            <h3 class="section-title">Academic Information</h3>
+                        </div>
+
+                        <div th:if="${enrollments.isEmpty()}"
+                            style="color: var(--text-muted); font-style: italic; text-align: center; padding: 1rem;">
+                            Not currently enrolled in any classes.
+                        </div>
+
+                        <div th:each="enrollment : ${enrollments}"
+                            style="border-bottom: 1px dashed var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label
+                                        style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Current
+                                        Class</label>
+                                    <div style="font-weight: 600; color: var(--text-main);"
+                                        th:text="${enrollment.schoolClass.className}">Class Name</div>
+                                </div>
+                                <div>
+                                    <label
+                                        style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">Track</label>
+                                    <div style="font-weight: 500; color: var(--text-main);"
+                                        th:text="${enrollment.schoolClass.department?.track?.name ?: '-'}">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Guardians Info -->
+                    <div class="content-panel">
+                        <div class="section-header">
+                            <h3 class="section-title">Guardians / Parents</h3>
+                        </div>
+                        <div th:if="${parentRelationships.isEmpty()}"
+                            style="color: var(--text-muted); font-style: italic; text-align: center; padding: 1rem;">
+                            No guardian information available.
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div th:each="rel : ${parentRelationships}" class="dashboard-card"
+                                style="padding: 1rem; background: var(--bg-body);">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <strong style="color: var(--text-main);"
+                                        th:text="${rel.parent.user.fullName}">Guardian Name</strong>
+                                    <span class="badge"
+                                        style="background: #e0e7ff; color: #4338ca; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.75rem;"
+                                        th:text="${rel.relationshipType}">Relation</span>
+                                </div>
+                                <div
+                                    style="font-size: 0.9rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.25rem;">
+                                    <div><i class="fas fa-phone" style="width: 20px;"></i> <span
+                                            th:text="${rel.parent.user.phoneNumber}">Phone</span></div>
+                                    <div><i class="fas fa-envelope" style="width: 20px;"></i> <span
+                                            th:text="${rel.parent.user.email}">Email</span></div>
+                                </div>
+                                <div th:if="${rel.parent.isEmergencyContact}" style="margin-top: 0.5rem;">
+                                    <span class="badge"
+                                        style="background: #dcfce7; color: #166534; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">Emergency
+                                        Contact</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</body>
+
+</html>

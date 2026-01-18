@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Classes - 4School Management System</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* Page Specific Styles extending Dashboard System */
+        .classes-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+            align-items: start;
+            margin-top: 1.5rem;
+        }
+
+        /* Sidebar Styling */
+        .classes-sidebar {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            position: sticky;
+            top: 100px;
+            max-height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: #f8fafc;
+        }
+
+        .sidebar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .class-list {
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .class-card {
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            position: relative;
+        }
+
+        .class-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .class-card.active {
+            background: #eff6ff;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 1px var(--primary-color);
+        }
+
+        .class-card.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--primary-color);
+            border-radius: 4px 0 0 4px;
+        }
+
+        .class-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .class-name {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .role-badge {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            white-space: nowrap;
+            margin-left: 0.5rem;
+        }
+
+        .role-badge.class-teacher {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .role-badge.subject-teacher {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .class-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .subject-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .subject-tag {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* Main Content Area */
+        .content-area {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-text h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text p {
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 900px) {
+            .classes-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .classes-sidebar {
+                position: static;
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <!-- Welcome Section -->
+            <div class="welcome-section">
+                <div class="welcome-text">
+                    <h1>My Classes</h1>
+                    <p>Manage your assigned classes, students, and assessments.</p>
+                </div>
+                <div class="welcome-stats" th:if="${school}">
+                    <div class="stat-badge">
+                        <span class="value" th:text="${#lists.size(classes)}">0</span>
+                        <span class="label">Total Classes</span>
+                    </div>
+                    <div class="stat-badge">
+                        <span class="value" th:text="${school.name}">School Name</span>
+                        <span class="label">Current School</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="classes-layout">
+                <!-- Sidebar -->
+                <aside class="classes-sidebar">
+                    <div class="sidebar-header">
+                        <h2 class="sidebar-title">
+                            <i class="fas fa-book-reader"></i> Assigned Classes
+                        </h2>
+                    </div>
+
+                    <div class="class-list">
+                        <div th:if="${classes.isEmpty()}"
+                            style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            <i class="fas fa-chalkboard fa-2x" style="margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <p>No classes assigned yet.</p>
+                        </div>
+
+                        <div th:each="classInfo : ${classes}" class="class-card"
+                            th:data-class-id="${classInfo.schoolClass.id}" onclick="loadClassDetails(this)">
+
+                            <div class="class-header">
+                                <span class="class-name" th:text="${classInfo.schoolClass.className}">Class Name</span>
+                                <span th:if="${classInfo.isClassTeacher}" class="role-badge class-teacher">Class
+                                    Teacher</span>
+                                <span th:unless="${classInfo.isClassTeacher}" class="role-badge subject-teacher">Subject
+                                    Teacher</span>
+                            </div>
+
+                            <div class="class-meta">
+                                <span th:if="${classInfo.schoolClass.gradeLevel}">
+                                    <i class="fas fa-layer-group" style="width: 16px;"></i>
+                                    Grade <span th:text="${classInfo.schoolClass.gradeLevel}"></span>
+                                </span>
+                                <div th:if="${!classInfo.subjects.isEmpty()}" class="subject-tags">
+                                    <span th:each="subject : ${classInfo.subjects}" class="subject-tag"
+                                        th:text="${subject.subjectName}">Math</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Main Content -->
+                <section class="content-area" id="mainContentArea">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">
+                            <i class="fas fa-school"></i>
+                        </div>
+                        <div class="empty-text">
+                            <h3>Select a Class</h3>
+                            <p>Choose a class from the sidebar to view student details, take attendance, manage
+                                assessments, and more.</p>
+                        </div>
+                    </div>
+
+                    <div id="class-detail-content" style="display: none; width: 100%;">
+                        <!-- Content loaded via HTMX/Fetch -->
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Container -->
+    <div id="examinationModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <script>
+        // Global HTMX Configuration for CSRF
+        document.body.addEventListener('htmx:configRequest', function (evt) {
+            const csrfMeta = document.querySelector('meta[name="_csrf"]');
+            const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+
+            if (csrfMeta && csrfHeaderMeta) {
+                evt.detail.headers[csrfHeaderMeta.getAttribute('content')] = csrfMeta.getAttribute('content');
+            }
+        });
+
+        function loadClassDetails(element) {
+            // UI Updates
+            document.querySelectorAll('.class-card').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+
+            const classId = element.getAttribute('data-class-id');
+            const emptyState = document.getElementById('emptyState');
+            const contentArea = document.getElementById('class-detail-content');
+
+            // Show loading
+            emptyState.style.display = 'none';
+            contentArea.style.display = 'block';
+            contentArea.innerHTML = `
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading class details...</p>
+                </div>
+            `;
+
+            // Fetch Content
+            fetch('/staff/classes/' + classId + '/details')
+                .then(response => response.text())
+                .then(html => {
+                    contentArea.innerHTML = html;
+                    htmx.process(contentArea);
+                    initializeTabs();
+                    executeScripts(contentArea);
+                })
+                .catch(error => {
+                    contentArea.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon" style="color: var(--danger-color);">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="empty-text">
+                                <h3>Error Loading Details</h3>
+                                <p>Unable to load class information. Please try again.</p>
+                            </div>
+                        </div>
+                    `;
+                    console.error('Error:', error);
+                });
+        }
+
+        function initializeTabs() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    // Deactivate all
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+                    // Activate clicked
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    const pane = document.getElementById(tabId + '-tab');
+                    if (pane) pane.classList.add('active');
+
+                    // Load specific tab content if needed
+                    if (tabId === 'assessments') {
+                        loadAssessments();
+                    }
+                });
+            });
+        }
+
+        function loadAssessments() {
+            const activeClass = document.querySelector('.class-card.active');
+            if (!activeClass) return;
+
+            const classId = activeClass.getAttribute('data-class-id');
+            const container = document.getElementById('assessments-content');
+
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="loading-state" style="padding: 2rem;">
+                    <div class="spinner" style="width: 30px; height: 30px;"></div>
+                    <p>Loading assessments...</p>
+                </div>
+            `;
+
+            fetch('/staff/classes/' + classId + '/assessments')
+                .then(response => response.text())
+                .then(html => {
+                    container.innerHTML = html;
+                    htmx.process(container);
+                })
+                .catch(err => {
+                    container.innerHTML = '<p class="text-center text-danger">Failed to load assessments</p>';
+                });
+        }
+
+        function executeScripts(container) {
+            container.querySelectorAll('script').forEach(oldScript => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+        }
+
+        // HTMX Modal Handling
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            if (evt.target.closest('#examinationModal')) {
+                const modal = document.getElementById('examinationModal');
+                if (typeof openModal === 'function') {
+                    openModal('examinationModal');
+                } else {
+                    modal.classList.add('active');
+                    modal.style.display = 'flex'; // Ensure generic modal display
+                }
+            }
+        });
+
+        // Generic function to load sub-views (like questions, attendance)
+        function loadSubView(event, element) {
+            event.preventDefault();
+            const url = element.getAttribute('href');
+            const contentArea = document.getElementById('class-detail-content');
+
+            contentArea.innerHTML = `
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            `;
+
+            fetch(url)
+                .then(res => res.text())
+                .then(html => {
+                    contentArea.innerHTML = html;
+                    htmx.process(contentArea);
+                    executeScripts(contentArea);
+                });
+        }
+
+        // Map old function names to new generic one for compatibility
+        window.loadExaminationQuestions = loadSubView;
+        window.loadAttendanceView = loadSubView;
+
+    </script>
+</body>
+
+</html>

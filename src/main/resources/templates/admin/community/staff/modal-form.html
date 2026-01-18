@@ -1,0 +1,145 @@
+<!-- Staff Modal Form -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit ? 'Edit Staff Member' : 'Add New Staff Member'}">Add Staff Member</h3>
+        <button class="close-modal" onclick="closeModal('staffModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/community/staff/save-htmx" hx-target="#staff-cards-container" hx-swap="innerHTML"
+        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+        hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('staffModal'); } else { alert('Error saving staff. Please try again.'); }"
+        hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form">
+
+        <input type="hidden" name="id" th:value="${isEdit ? staff.id : ''}">
+
+        <div class="modal-body">
+            <!-- Personal Information Section -->
+            <div class="form-section">
+                <h4>Personal Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" th:value="${userDto.firstName}"
+                            class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" th:value="${userDto.lastName}"
+                            class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="middleName">Middle Name</label>
+                        <input type="text" id="middleName" name="middleName" th:value="${userDto.middleName}"
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" th:value="${userDto.email}" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="countryCode">Country Code *</label>
+                        <select id="countryCode" name="countryCode" class="form-select" required>
+                            <option value="+234" th:selected="${countryCode == '+234' or countryCode == null}">🇳🇬
+                                Nigeria (+234)</option>
+                            <option value="+1" th:selected="${countryCode == '+1'}">🇺🇸 United States (+1)</option>
+                            <option value="+44" th:selected="${countryCode == '+44'}">🇬🇧 United Kingdom (+44)</option>
+                            <option value="+91" th:selected="${countryCode == '+91'}">🇮🇳 India (+91)</option>
+                            <option value="+86" th:selected="${countryCode == '+86'}">🇨🇳 China (+86)</option>
+                            <option value="+33" th:selected="${countryCode == '+33'}">🇫🇷 France (+33)</option>
+                            <option value="+49" th:selected="${countryCode == '+49'}">🇩🇪 Germany (+49)</option>
+                            <option value="+81" th:selected="${countryCode == '+81'}">🇯🇵 Japan (+81)</option>
+                            <option value="+27" th:selected="${countryCode == '+27'}">🇿🇦 South Africa (+27)</option>
+                            <option value="+254" th:selected="${countryCode == '+254'}">🇰🇪 Kenya (+254)</option>
+                            <option value="+233" th:selected="${countryCode == '+233'}">🇬🇭 Ghana (+233)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number *</label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" th:value="${phoneNumber}"
+                            class="form-input" required placeholder="e.g., 8012345678">
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" th:value="${userDto.dateOfBirth}"
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" class="form-select">
+                            <option value="">Select Gender</option>
+                            <option value="Male" th:selected="${userDto.gender == 'Male'}">Male</option>
+                            <option value="Female" th:selected="${userDto.gender == 'Female'}">Female</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employment Information Section -->
+            <div class="form-section">
+                <h4>Employment Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="designation">Designation *</label>
+                        <select id="designation" name="designation" class="form-select" required>
+                            <option value="">Select Designation</option>
+                            <option value="Teacher" th:selected="${staff.designation == 'Teacher'}">Teacher</option>
+                            <option value="Principal" th:selected="${staff.designation == 'Principal'}">Principal
+                            </option>
+                            <option value="Vice Principal" th:selected="${staff.designation == 'Vice Principal'}">Vice
+                                Principal</option>
+                            <option value="Head Teacher" th:selected="${staff.designation == 'Head Teacher'}">Head
+                                Teacher</option>
+                            <option value="Librarian" th:selected="${staff.designation == 'Librarian'}">Librarian
+                            </option>
+                            <option value="Accountant" th:selected="${staff.designation == 'Accountant'}">Accountant
+                            </option>
+                            <option value="Secretary" th:selected="${staff.designation == 'Secretary'}">Secretary
+                            </option>
+                            <option value="Security" th:selected="${staff.designation == 'Security'}">Security</option>
+                            <option value="Cleaner" th:selected="${staff.designation == 'Cleaner'}">Cleaner</option>
+                            <option value="Driver" th:selected="${staff.designation == 'Driver'}">Driver</option>
+                            <option value="Other" th:selected="${staff.designation == 'Other'}">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="departmentId">Department</label>
+                        <select id="departmentId" name="departmentId" class="form-select">
+                            <option value="">Select Department</option>
+                            <option th:each="dept : ${departments}" th:value="${dept.id}"
+                                th:text="${dept.name + (dept.track != null ? ' (' + dept.track.name + ')' : '')}"
+                                th:selected="${staff.department != null and dept.name == staff.department}">
+                                Department Name
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="employmentType">Employment Type</label>
+                        <select id="employmentType" name="employmentType" class="form-select">
+                            <option value="full_time" th:selected="${staff.employmentType == 'full_time'}">Full Time
+                            </option>
+                            <option value="part_time" th:selected="${staff.employmentType == 'part_time'}">Part Time
+                            </option>
+                            <option value="contract" th:selected="${staff.employmentType == 'contract'}">Contract
+                            </option>
+                            <option value="temporary" th:selected="${staff.employmentType == 'temporary'}">Temporary
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="highestDegree">Highest Degree</label>
+                        <input type="text" id="highestDegree" name="highestDegree" th:value="${staff.highestDegree}"
+                            class="form-input" placeholder="e.g., B.Ed, M.Sc, PhD">
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('staffModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary" th:text="${isEdit ? 'Update Staff' : 'Add Staff'}">Add
+                Staff</button>
+        </div>
+    </form>
+</div>

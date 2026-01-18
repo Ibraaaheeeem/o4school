@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Parent Management</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/modal.js}"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Parent Management</h1>
+                    <p>Manage parents and guardians in the school community</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" hx-get="/admin/community/parents/new/modal"
+                        hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('parentModal'), 100)">
+                        + Add New Parent
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <form id="filterForm" hx-get="/admin/community/parents" hx-target="#parent-cards-container"
+                    hx-trigger="change, keyup delay:500ms from:#parentSearchInput" hx-replace-url="true"
+                    class="filters-container">
+                    <div class="filter-group">
+                        <label for="parentSearchInput">Search:</label>
+                        <div class="search-input-container">
+                            <input type="text" id="parentSearchInput" name="search" class="form-input"
+                                placeholder="Search by name or phone..." th:value="${search}">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="clearFilters()">Clear</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Parent Cards -->
+            <div class="cards-container">
+                <div id="parent-cards-container">
+                    <div th:replace="~{admin/community/parents/parent-cards :: parent-cards-content}"></div>
+                </div>
+            </div>
+    </main>
+
+    <!-- Parent Modal -->
+    <div id="parentModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Parent Student Assignment Modal -->
+    <div id="parentStudentModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Delete</h3>
+                <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="parentName"></strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Parent Assignment Confirmation Modal -->
+    <div id="deleteParentAssignmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Remove Child Assignment</h3>
+                <button class="close-modal" onclick="closeModal('deleteParentAssignmentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove the child assignment:</p>
+                <p><strong id="parentAssignmentInfo"></strong>?</p>
+                <p class="text-muted">The parent will no longer be linked to this child.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('deleteParentAssignmentModal')">Cancel</button>
+                <form id="deleteParentAssignmentForm"
+                    hx-post="/admin/community/parents/remove-assignment/00000000-0000-0000-0000-000000000000"
+                    hx-target="#parent-cards-container" hx-swap="innerHTML"
+                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                    hx-on::after-request="if(event.detail.successful) { closeModal('deleteParentAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
+                    hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
+                    style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Remove Assignment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // applyFilters function is now in community.js
+
+        function clearFilters() {
+            const form = document.getElementById('filterForm');
+            if (form) {
+                // Clear search input
+                const searchInput = form.querySelector('#parentSearchInput');
+                if (searchInput) searchInput.value = '';
+
+                // Trigger HTMX request
+                htmx.trigger(form, 'change');
+
+                // Update URL without reload
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+
+        // Parent-specific functions
+        window.confirmDelete = function (parentId, parentName) {
+            document.getElementById('parentName').textContent = parentName;
+            document.getElementById('deleteForm').action = `/admin/community/parents/${parentId}/delete`;
+            document.getElementById('deleteModal').classList.add('active');
+        };
+
+        // HTMX event listeners
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                // Update community stats in sidebar
+                htmx.trigger('#community-stats', 'refresh');
+            }
+        });
+    </script>
+</body>
+
+</html>

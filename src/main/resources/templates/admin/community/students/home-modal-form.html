@@ -1,0 +1,223 @@
+<!-- Student Modal Form for Community Home -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3>Enroll New Student</h3>
+        <button class="close-modal" onclick="closeModal('studentModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/community/students/save-htmx-home" hx-target="#response-container" hx-swap="innerHTML"
+        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'" class="modal-form"
+        enctype="multipart/form-data">
+
+        <div class="modal-body">
+            <!-- Response Container -->
+            <div id="response-container"></div>
+
+            <!-- Personal Information Section -->
+            <div class="form-section">
+                <h4>Personal Information</h4>
+
+                <!-- Passport Photo Upload -->
+                <div class="form-group full-width">
+                    <label for="passportPhotoHome">Passport Photograph</label>
+                    <div class="photo-upload-container">
+                        <div class="current-photo">
+                            <div class="student-avatar-large">
+                                <span>?</span>
+                            </div>
+                            <p class="photo-label">Default Avatar</p>
+                        </div>
+                        <div class="photo-upload">
+                            <input type="file" id="passportPhotoHome" name="passportPhoto"
+                                accept="image/jpeg,image/jpg,image/png,image/gif" class="form-input file-input"
+                                onchange="previewPassportPhotoHome(this)">
+                            <div class="file-upload-help">
+                                <small>Upload a passport-style photograph (JPEG, PNG, GIF - Max 5MB)</small>
+                            </div>
+                            <div id="photoPreviewHome" class="photo-preview" style="display: none;">
+                                <img id="previewImageHome" alt="Photo preview" class="passport-preview">
+                                <p class="photo-label">New Photo Preview</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="middleName">Middle Name</label>
+                        <input type="text" id="middleName" name="middleName" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input"
+                            placeholder="Optional student phone number">
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" class="form-input">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Information Section -->
+            <div class="form-section">
+                <h4>Academic Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="studentId">Student ID *</label>
+                        <input type="text" id="studentId" name="studentId" class="form-input" required
+                            placeholder="Enter unique student ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="enrollmentClassId">Assign to Class</label>
+                        <select id="enrollmentClassId" name="assignedClassId" class="form-input">
+                            <option value="">Select Class (Optional)</option>
+                            <option th:each="class : ${classes}" th:value="${class.id}"
+                                th:text="${(class.track != null ? class.track.name : 'No Track') + ' - ' + class.className}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('studentModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Enroll Student</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .photo-upload-container {
+        display: flex;
+        gap: 15px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+
+    .current-photo,
+    .photo-preview {
+        text-align: center;
+    }
+
+    .passport-preview {
+        width: 80px;
+        height: 100px;
+        object-fit: cover;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .photo-label {
+        margin-top: 5px;
+        font-size: 0.8rem;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .photo-upload {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .file-input {
+        margin-bottom: 5px;
+    }
+
+    .file-upload-help {
+        color: #666;
+        font-size: 0.75rem;
+        margin-bottom: 8px;
+    }
+
+    .student-avatar-large {
+        width: 80px;
+        height: 100px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: bold;
+        border-radius: 6px;
+        text-transform: uppercase;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    @media (max-width: 768px) {
+        .photo-upload-container {
+            flex-direction: column;
+        }
+
+        .passport-preview,
+        .student-avatar-large {
+            width: 70px;
+            height: 85px;
+        }
+    }
+</style>
+
+<script>
+    function previewPassportPhotoHome(input) {
+        const preview = document.getElementById('photoPreviewHome');
+        const previewImage = document.getElementById('previewImageHome');
+
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                input.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select a valid image file (JPEG, PNG, or GIF)');
+                input.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewImage.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+</script>

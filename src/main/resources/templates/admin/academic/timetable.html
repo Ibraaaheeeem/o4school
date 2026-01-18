@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Timetable</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Academic Sidebar -->
+        <div th:replace="~{fragments/academic-sidebar :: academic-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>School Timetable</h1>
+                    <p>Manage daily school schedule and time periods.</p>
+                </div>
+                <button class="btn btn-primary" hx-get="/admin/academic/timetable/new/modal"
+                    hx-target="#timetableModal .modal-dialog" hx-swap="innerHTML"
+                    onclick="setTimeout(() => openModal('timetableModal'), 100)">
+                    <i class="fas fa-plus me-2"></i>Add Time Period
+                </button>
+            </div>
+
+            <!-- Timetable Grid -->
+            <div class="timetable-container">
+                <style>
+                    .timetable-grid {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1.5rem;
+                    }
+
+                    .day-row {
+                        background: white;
+                        border-radius: 12px;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    }
+
+                    .day-header {
+                        background: #f8f9fa;
+                        padding: 1rem 1.5rem;
+                        border-bottom: 1px solid #e9ecef;
+                        flex-shrink: 0;
+                    }
+
+                    .day-header h3 {
+                        margin: 0;
+                        font-size: 1.1rem;
+                        color: #2d3748;
+                    }
+
+                    .day-schedule {
+                        padding: 1rem;
+                        display: flex !important;
+                        flex-direction: row !important;
+                        flex-wrap: nowrap !important;
+                        gap: 1rem;
+                        overflow-x: auto;
+                        min-height: 120px;
+                        align-items: flex-start;
+                    }
+
+                    .time-slot {
+                        flex: 0 0 200px;
+                        min-width: 200px;
+                        background: #fff;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        padding: 0.75rem;
+                        transition: all 0.2s ease;
+                        position: relative;
+                        display: block;
+                        /* Ensure it behaves as a block within flex item */
+                    }
+
+                    .time-slot:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+                        border-color: #cbd5e0;
+                    }
+
+                    .time-slot.break-slot {
+                        background: #fffaf0;
+                        border-color: #fbd38d;
+                    }
+
+                    .time-slot.break-slot .activity-type {
+                        background: #ffebd8;
+                        color: #dd6b20;
+                    }
+
+                    .time-range {
+                        font-size: 0.85rem;
+                        color: #718096;
+                        font-weight: 600;
+                        margin-bottom: 0.5rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.25rem;
+                    }
+
+                    .activity-info h4 {
+                        margin: 0 0 0.25rem 0;
+                        font-size: 1rem;
+                        color: #2d3748;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    .activity-info p {
+                        margin: 0 0 0.5rem 0;
+                        font-size: 0.85rem;
+                        color: #718096;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    .activity-meta {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+
+                    .activity-type {
+                        font-size: 0.7rem;
+                        padding: 0.15rem 0.4rem;
+                        background: #e2e8f0;
+                        color: #4a5568;
+                        border-radius: 4px;
+                        text-transform: uppercase;
+                        font-weight: 600;
+                    }
+
+                    .slot-actions {
+                        position: absolute;
+                        top: 0.5rem;
+                        right: 0.5rem;
+                        opacity: 0;
+                        transition: opacity 0.2s ease;
+                        display: flex;
+                        gap: 0.25rem;
+                    }
+
+                    .time-slot:hover .slot-actions {
+                        opacity: 1;
+                    }
+
+                    .empty-day {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 2rem;
+                        color: #a0aec0;
+                        width: 100%;
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        border: 2px dashed #e2e8f0;
+                    }
+                </style>
+                <div class="timetable-grid" th:if="${!timetableByDay.isEmpty()}">
+                    <div th:each="day : ${daysOfWeek}" class="day-row">
+                        <div class="day-header">
+                            <h3 th:text="${day}">Monday</h3>
+                        </div>
+                        <div class="day-schedule">
+                            <div th:each="entry : ${timetableByDay.get(day)}" class="time-slot"
+                                th:classappend="${entry.isBreak ? 'break-slot' : 'activity-slot'}"
+                                th:attr="data-activity-type=${entry.activityType}">
+                                <div class="time-range">
+                                    <i class="far fa-clock"></i>
+                                    <span th:text="${#temporals.format(entry.startTime, 'HH:mm')}">08:00</span>
+                                    <span>-</span>
+                                    <span th:text="${#temporals.format(entry.endTime, 'HH:mm')}">09:00</span>
+                                </div>
+                                <div class="activity-info">
+                                    <h4 th:text="${entry.activityName}">Mathematics</h4>
+                                    <p th:if="${entry.description}" th:text="${entry.description}">Basic algebra</p>
+                                    <div class="activity-meta">
+                                        <span class="activity-type" th:text="${entry.activityType}">ACADEMIC</span>
+                                    </div>
+                                </div>
+                                <div class="slot-actions">
+                                    <button class="btn btn-xs btn-outline"
+                                        th:hx-get="@{/admin/academic/timetable/{id}/modal(id=${entry.id})}"
+                                        hx-target="#timetableModal .modal-dialog" hx-swap="innerHTML"
+                                        onclick="setTimeout(() => openModal('timetableModal'), 100)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-danger" th:data-id="${entry.id}"
+                                        onclick="deleteTimetableEntry(this.getAttribute('data-id'))">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div th:if="${timetableByDay.get(day) == null || #lists.isEmpty(timetableByDay.get(day))}"
+                                class="empty-day">
+                                <p>No schedule set</p>
+                                <button class="btn btn-sm btn-outline" hx-get="/admin/academic/timetable/new/modal"
+                                    hx-target="#timetableModal .modal-dialog" hx-swap="innerHTML"
+                                    onclick="setTimeout(() => openModal('timetableModal'), 100)">
+                                    <i class="fas fa-plus me-1"></i> Add Period
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="empty-state" th:if="${timetableByDay.isEmpty()}">
+                    <div class="empty-icon">🕐</div>
+                    <h3>No Timetable Set</h3>
+                    <p>Create your school's daily schedule.</p>
+                    <button class="btn btn-primary" hx-get="/admin/academic/timetable/new/modal"
+                        hx-target="#timetableModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('timetableModal'), 100)">
+                        Create Timetable
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Timetable Modal -->
+    <div id="timetableModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <script>
+        // Modal functions
+        window.openModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+            }
+        };
+
+        window.closeModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        // Delete timetable entry
+        window.deleteTimetableEntry = function (entryId) {
+            if (confirm('Are you sure you want to delete this timetable entry?')) {
+                htmx.ajax('POST', `/admin/academic/timetable/delete/${entryId}`, {
+                    target: 'body',
+                    swap: 'none'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        };
+
+        // HTMX event handlers
+        document.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+
+</html>

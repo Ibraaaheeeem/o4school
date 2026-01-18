@@ -1,0 +1,91 @@
+<!-- Parent Table Fragment -->
+<div th:fragment="parent-table-content" id="parent-table-content">
+    <div class="alert alert-success" th:if="${success}">
+        <span th:text="${success}"></span>
+    </div>
+    <div class="alert alert-danger" th:if="${error}">
+        <span th:text="${error}"></span>
+    </div>
+
+    <table class="data-table" th:if="${!parentPage.content.empty}">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Relationship</th>
+                <th>Contact</th>
+                <th>Primary Contact</th>
+                <th>Emergency Contact</th>
+                <th>Children</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="parent : ${parentPage.content}">
+                <td>
+                    <div class="user-info">
+                        <strong th:text="${parent.user.fullName}">John Doe</strong>
+                        <small th:text="${parent.user.email}">john@example.com</small>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-info" th:text="${#strings.capitalize(parent.relationshipType)}">Father</span>
+                </td>
+                <td th:text="${parent.user.phoneNumber}">+234...</td>
+                <td>
+                    <span class="badge badge-success" th:if="${parent.isPrimaryContact}">Yes</span>
+                    <span class="badge badge-secondary" th:unless="${parent.isPrimaryContact}">No</span>
+                </td>
+                <td>
+                    <span class="badge badge-warning" th:if="${parent.isEmergencyContact}">Yes</span>
+                    <span class="badge badge-secondary" th:unless="${parent.isEmergencyContact}">No</span>
+                </td>
+                <td>
+                    <span th:if="${parent.studentRelationships.empty}" class="text-muted">No children linked</span>
+                    <div th:unless="${parent.studentRelationships.empty}" class="children-list">
+                        <span th:each="relationship : ${parent.studentRelationships}" 
+                              class="child-tag" th:text="${relationship.student.user.fullName}">
+                            Child Name
+                        </span>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline" 
+                                th:hx-get="@{/admin/community/parents/{id}/modal(id=${parent.id})}"
+                                hx-target="#parentModal .modal-dialog"
+                                hx-swap="innerHTML"
+                                th:onclick="'setTimeout(() => openModal(\'parentModal\'), 100)'">
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-info" 
+                                th:hx-get="@{/admin/community/parents/{id}/assign-students/modal(id=${parent.id})}"
+                                hx-target="#parentStudentModal .modal-dialog"
+                                hx-swap="innerHTML"
+                                th:onclick="'setTimeout(() => openModal(\'parentStudentModal\'), 100)'">
+                            Assign Students
+                        </button>
+                        <button class="btn btn-sm btn-danger" 
+                                th:data-parent-id="${parent.id}"
+                                th:data-parent-name="${parent.user.fullName}"
+                                onclick="confirmDelete(this.dataset.parentId, this.dataset.parentName)">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="empty-state" th:if="${parentPage.content.empty}">
+        <div class="empty-icon">👨‍👩‍👧‍👦</div>
+        <h3>No Parents Found</h3>
+        <p>Start by adding parents and guardians to the system.</p>
+        <button class="btn btn-primary" 
+                hx-get="/admin/community/parents/new/modal"
+                hx-target="#parentModal .modal-dialog"
+                hx-swap="innerHTML"
+                hx-on::after-request="openModal('parentModal')">
+            Add First Parent
+        </button>
+    </div>
+</div>

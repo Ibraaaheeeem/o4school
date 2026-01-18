@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Error</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: #f8fafc;
+            color: #1a202c;
+        }
+
+        .error-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #e53e3e;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3182ce;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 0 8px;
+        }
+
+        .btn:hover {
+            background: #2c5282;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h1>Something went wrong</h1>
+
+        <div class="error-message" th:if="${error}">
+            <strong>Error:</strong> <span th:text="${error}">An unexpected error occurred</span>
+        </div>
+
+        <div class="error-message" th:unless="${error}">
+            <strong>Error:</strong> An unexpected error occurred while loading this page.
+        </div>
+
+        <div class="actions">
+            <a href="/admin/financial" class="btn">Back to Financial</a>
+            <a href="/admin/dashboard" class="btn">Admin Dashboard</a>
+        </div>
+    </div>
+</body>
+
+</html>

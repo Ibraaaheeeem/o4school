@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <aside th:fragment="academic-sidebar" class="setup-sidebar">
+        <div class="sidebar-header">
+            <h3>Academic Management</h3>
+        </div>
+        <nav class="setup-nav">
+            <a th:href="@{/admin/academic}" 
+               th:classappend="${requestURI == '/admin/academic' ? 'active' : ''}"
+               class="nav-item">
+                <span class="icon">📊</span>
+                Overview
+            </a>
+            <a th:href="@{/admin/academic/sessions}"
+               th:classappend="${requestURI.contains('academic/sessions') ? 'active' : ''}" 
+               class="nav-item">
+                <span class="icon">🎓</span>
+                Academic Sessions
+            </a>
+            <a th:href="@{/admin/academic/calendar}"
+               th:classappend="${requestURI.contains('academic/calendar') ? 'active' : ''}" 
+               class="nav-item">
+                <span class="icon">📅</span>
+                School Calendar
+            </a>
+            <a th:href="@{/admin/academic/timetable}"
+               th:classappend="${requestURI.contains('academic/timetable') ? 'active' : ''}" 
+               class="nav-item">
+                <span class="icon">🕐</span>
+                School Timetable
+            </a>
+        </nav>
+
+        <div class="setup-progress-widget" th:if="${currentSession != null}">
+            <h4>Current Session</h4>
+            <div class="current-session-info">
+                <div class="session-name" th:text="${currentSession.sessionName}">2024-2025</div>
+                <div class="session-year" th:text="${currentSession.sessionYear}">Academic Year</div>
+                <div class="session-dates">
+                    <span th:text="${#temporals.format(currentSession.startDate, 'MMM dd, yyyy')}">Start Date</span>
+                    <span th:if="${currentSession.endDate != null}">
+                        - <span th:text="${#temporals.format(currentSession.endDate, 'MMM dd, yyyy')}">End Date</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="setup-progress-widget" th:if="${upcomingEvents != null and !upcomingEvents.isEmpty()}">
+            <h4>Upcoming Events</h4>
+            <div class="upcoming-events-list">
+                <div class="event-item" th:each="event : ${upcomingEvents}">
+                    <div class="event-date">
+                        <span class="event-day" th:text="${#temporals.format(event.startDate, 'dd')}">15</span>
+                        <span class="event-month" th:text="${#temporals.format(event.startDate, 'MMM')}">Dec</span>
+                    </div>
+                    <div class="event-info">
+                        <div class="event-name" th:text="${event.eventName}">Event Name</div>
+                        <div class="event-type" th:text="${event.eventType}">Event Type</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

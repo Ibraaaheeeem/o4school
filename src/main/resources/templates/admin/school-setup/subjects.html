@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>4School - Subjects</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Subjects</h1>
+                    <p>Define the subjects taught in your school.</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" onclick="openModal('subjectModal')">
+                        + New Subject
+                    </button>
+
+                    <button th:if="${subjectsWithClasses.empty}" class="btn btn-outline"
+                        hx-post="/admin/school-setup/academic-structure/subjects/generate-default"
+                        hx-confirm="This will generate default subjects based on standard curriculum. Continue?"
+                        hx-target="#subjects-list-container" hx-swap="outerHTML" hx-indicator="#loading-indicator"
+                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                        Generate Default Subjects
+                    </button>
+                </div>
+            </div>
+
+            <div id="loading-indicator" class="htmx-indicator alert alert-info">
+                Generating subjects... This may take a moment.
+            </div>
+
+            <!-- Filtering Section -->
+            <div class="filters-section" th:if="${!tracks.empty || !allClasses.empty}">
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="trackFilter">Filter by Track:</label>
+                        <select id="trackFilter" class="form-select" onchange="filterByTrack()">
+                            <option value="">All Tracks</option>
+                            <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}"
+                                th:selected="${selectedTrackId != null && selectedTrackId == track.id}">
+                                Track Name
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="classFilter">Filter by Class:</label>
+                        <select id="classFilter" class="form-select" onchange="filterByClass()">
+                            <option value="">All Classes</option>
+                            <option th:each="schoolClass : ${filteredClasses}" th:value="${schoolClass.id}"
+                                th:text="${schoolClass.className + ' (' + schoolClass.department?.name + ')'}"
+                                th:selected="${selectedClassId != null && selectedClassId == schoolClass.id}">
+                                Class Name
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button class="btn btn-outline btn-sm" onclick="clearFilters()">Clear Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="subjects-list-container" th:fragment="subjects-list-fragment">
+                <div class="alert alert-success" th:if="${success}">
+                    <span th:text="${success}"></span>
+                </div>
+                <div class="alert alert-danger" th:if="${error}">
+                    <span th:text="${error}"></span>
+                </div>
+
+                <div class="table-container" th:if="${!subjectsWithClasses.empty}">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Subject Name</th>
+                                <th>Code</th>
+                                <th>Type</th>
+                                <th>Assigned Classes</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="subjectWithClasses : ${subjectsWithClasses}">
+                                <td th:text="${subjectWithClasses.subject.subjectName}">Math</td>
+                                <td th:text="${subjectWithClasses.subject.subjectCode}">MTH</td>
+                                <td>
+                                    <span th:if="${subjectWithClasses.subject.isCoreSubject}"
+                                        class="badge badge-primary">Core</span>
+                                    <span th:unless="${subjectWithClasses.subject.isCoreSubject}"
+                                        class="badge badge-secondary">Elective</span>
+                                </td>
+                                <td>
+                                    <div class="assigned-classes">
+                                        <span th:if="${subjectWithClasses.assignedClasses.empty}" class="text-muted">No
+                                            classes assigned</span>
+                                        <div th:unless="${subjectWithClasses.assignedClasses.empty}" class="class-tags">
+                                            <span th:each="schoolClass : ${subjectWithClasses.assignedClasses}"
+                                                class="class-tag" th:text="${schoolClass.className}">
+                                                Class Name
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td th:text="${subjectWithClasses.subject.description}">Description</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline" th:data-id="${subjectWithClasses.subject.id}"
+                                        onclick="editSubject(this.getAttribute('data-id'))">
+                                        Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty-state" th:if="${subjectsWithClasses.empty}">
+                    <div class="empty-icon">📚</div>
+                    <h3>No Subjects Yet</h3>
+                    <p>Get started by generating default subjects or adding them manually.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Subject Modal -->
+    <div id="subjectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">New Subject</h3>
+                <button class="close-modal" onclick="closeModal('subjectModal')">&times;</button>
+            </div>
+            <form id="subjectForm" th:action="@{/admin/school-setup/subjects}" method="post">
+                <input type="hidden" id="subjectId" name="id" />
+                <div class="form-group">
+                    <label>Subject Name</label>
+                    <input type="text" id="subjectName" name="subjectName" class="form-input" required />
+                </div>
+                <div class="form-group">
+                    <label>Subject Code</label>
+                    <input type="text" id="subjectCode" name="subjectCode" class="form-input" />
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="isCoreSubject" name="isCoreSubject" /> Core Subject
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="description" name="description" class="form-input" rows="3"></textarea>
+                </div>
+
+                <!-- Class Assignment Section -->
+                <div class="form-group" id="classAssignmentSection" style="display: none;">
+                    <label>Assign to Classes</label>
+                    <div class="class-assignment-container">
+                        <div class="class-selection-help">
+                            <small class="text-muted">Select tracks and then choose classes within each track:</small>
+                        </div>
+
+                        <!-- Track Selection -->
+                        <div class="track-selection-section">
+                            <label for="trackSelector">Select Tracks:</label>
+                            <div id="trackCheckboxes" class="track-checkbox-grid">
+                                <!-- Track checkboxes will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Class Selection (populated based on selected tracks) -->
+                        <div id="classSelectionContainer" class="class-selection-section" style="display: none;">
+                            <label>Select Classes:</label>
+                            <!-- Hidden input to ensure parameter is always sent, even when no classes are selected -->
+                            <input type="hidden" name="assignedClassIds" value="" />
+                            <div id="classCheckboxes" class="checkbox-grid">
+                                <!-- Class checkboxes will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('subjectModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('subjectForm').reset();
+            document.getElementById('subjectId').value = '';
+            document.getElementById('modalTitle').textContent = 'New Subject';
+            document.getElementById('saveButton').textContent = 'Save';
+            document.getElementById('classAssignmentSection').style.display = 'none';
+            document.getElementById('trackCheckboxes').innerHTML = '';
+            document.getElementById('classCheckboxes').innerHTML = '';
+            document.getElementById('classSelectionContainer').style.display = 'none';
+        }
+
+        async function editSubject(subjectId) {
+            try {
+                const response = await fetch(`/admin/school-setup/subjects/${subjectId}/edit`);
+                if (response.ok) {
+                    const subject = await response.json();
+
+                    // Populate form fields
+                    document.getElementById('subjectId').value = subject.id;
+                    document.getElementById('subjectName').value = subject.subjectName || '';
+                    document.getElementById('subjectCode').value = subject.subjectCode || '';
+                    document.getElementById('isCoreSubject').checked = subject.isCoreSubject || false;
+                    document.getElementById('description').value = subject.description || '';
+
+                    // Show and populate class assignments
+                    populateTrackAndClassAssignments(subject.availableTracks, subject.availableClasses, subject.assignedClassIds);
+                    document.getElementById('classAssignmentSection').style.display = 'block';
+
+                    // Update modal title and button
+                    document.getElementById('modalTitle').textContent = 'Edit Subject';
+                    document.getElementById('saveButton').textContent = 'Update';
+
+                    // Open modal
+                    openModal('subjectModal');
+                } else {
+                    alert('Error loading subject data');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error loading subject data');
+            }
+        }
+
+        let allAvailableClasses = [];
+        let currentAssignedClassIds = [];
+
+        function populateTrackAndClassAssignments(availableTracks, availableClasses, assignedClassIds) {
+            allAvailableClasses = availableClasses;
+            currentAssignedClassIds = assignedClassIds;
+
+            populateTrackSelection(availableTracks, availableClasses, assignedClassIds);
+        }
+
+        function populateTrackSelection(availableTracks, availableClasses, assignedClassIds) {
+            const trackContainer = document.getElementById('trackCheckboxes');
+            trackContainer.innerHTML = '';
+
+            if (!availableTracks || availableTracks.length === 0) {
+                trackContainer.innerHTML = '<p class="text-muted">No tracks available. Please create tracks first.</p>';
+                return;
+            }
+
+            // Find which tracks have assigned classes
+            const tracksWithAssignedClasses = new Set();
+            assignedClassIds.forEach(classId => {
+                const cls = availableClasses.find(c => c.id === classId);
+                if (cls && cls.trackId) {
+                    tracksWithAssignedClasses.add(cls.trackId);
+                }
+            });
+
+            // Create track checkboxes
+            availableTracks.forEach(track => {
+                const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'checkbox-item track-checkbox-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `track_${track.id}`;
+                checkbox.value = track.id;
+                checkbox.checked = tracksWithAssignedClasses.has(track.id);
+                checkbox.addEventListener('change', () => onTrackSelectionChange());
+
+                const label = document.createElement('label');
+                label.htmlFor = `track_${track.id}`;
+                label.textContent = track.name;
+
+                checkboxDiv.appendChild(checkbox);
+                checkboxDiv.appendChild(label);
+                trackContainer.appendChild(checkboxDiv);
+            });
+
+            // Initial load of classes based on pre-selected tracks
+            onTrackSelectionChange();
+        }
+
+        function onTrackSelectionChange() {
+            const selectedTrackIds = [];
+            document.querySelectorAll('#trackCheckboxes input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedTrackIds.push(checkbox.value);
+            });
+
+            if (selectedTrackIds.length > 0) {
+                loadClassesForTracks(selectedTrackIds);
+                document.getElementById('classSelectionContainer').style.display = 'block';
+            } else {
+                document.getElementById('classSelectionContainer').style.display = 'none';
+                document.getElementById('classCheckboxes').innerHTML = '';
+            }
+        }
+
+        function loadClassesForTracks(trackIds) {
+            const classContainer = document.getElementById('classCheckboxes');
+            classContainer.innerHTML = '<div class="loading">Loading classes...</div>';
+
+            // Filter classes by selected tracks
+            const filteredClasses = allAvailableClasses.filter(cls => trackIds.includes(cls.trackId));
+
+            if (filteredClasses.length === 0) {
+                classContainer.innerHTML = '<p class="text-muted">No classes found in selected tracks.</p>';
+                return;
+            }
+
+            // Group classes by track
+            const classesByTrack = {};
+            filteredClasses.forEach(cls => {
+                const trackName = cls.trackName || 'Other';
+                if (!classesByTrack[trackName]) {
+                    classesByTrack[trackName] = [];
+                }
+                classesByTrack[trackName].push(cls);
+            });
+
+            // Clear container and populate with classes
+            classContainer.innerHTML = '';
+
+            Object.keys(classesByTrack).forEach(trackName => {
+                const trackDiv = document.createElement('div');
+                trackDiv.className = 'track-group';
+
+                const trackHeader = document.createElement('h4');
+                trackHeader.textContent = trackName;
+                trackHeader.className = 'track-header';
+                trackDiv.appendChild(trackHeader);
+
+                const classesDiv = document.createElement('div');
+                classesDiv.className = 'classes-grid';
+
+                classesByTrack[trackName].forEach(cls => {
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'checkbox-item';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = 'assignedClassIds';
+                    checkbox.value = cls.id;
+                    checkbox.id = `class_${cls.id}`;
+                    checkbox.checked = currentAssignedClassIds.includes(cls.id);
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `class_${cls.id}`;
+                    label.textContent = `${cls.className}${cls.departmentName ? ' (' + cls.departmentName + ')' : ''}`;
+
+                    checkboxDiv.appendChild(checkbox);
+                    checkboxDiv.appendChild(label);
+                    classesDiv.appendChild(checkboxDiv);
+                });
+
+                trackDiv.appendChild(classesDiv);
+                classContainer.appendChild(trackDiv);
+            });
+        }
+
+        function filterByTrack() {
+            const trackId = document.getElementById('trackFilter').value;
+            const classFilter = document.getElementById('classFilter');
+
+            // Update URL with track filter
+            const url = new URL(window.location);
+            if (trackId) {
+                url.searchParams.set('trackId', trackId);
+            } else {
+                url.searchParams.delete('trackId');
+            }
+            url.searchParams.delete('classId'); // Clear class filter when track changes
+
+            window.location.replace(url.toString());
+        }
+
+        function filterByClass() {
+            const classId = document.getElementById('classFilter').value;
+
+            // Update URL with class filter
+            const url = new URL(window.location);
+            if (classId) {
+                url.searchParams.set('classId', classId);
+            } else {
+                url.searchParams.delete('classId');
+            }
+
+            window.location.replace(url.toString());
+        }
+
+        function clearFilters() {
+            const url = new URL(window.location);
+            url.searchParams.delete('trackId');
+            url.searchParams.delete('classId');
+            window.location.replace(url.toString());
+        }
+
+        // Update class dropdown when track filter changes
+        document.addEventListener('DOMContentLoaded', function () {
+            const trackFilter = document.getElementById('trackFilter');
+            const classFilter = document.getElementById('classFilter');
+
+            if (trackFilter && classFilter) {
+                trackFilter.addEventListener('change', function () {
+                    // This will be handled by filterByTrack() function
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

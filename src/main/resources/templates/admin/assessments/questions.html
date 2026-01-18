@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Manage Questions</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
+    <link rel="stylesheet" th:href="@{/css/notifications.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Quill WYSIWYG Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Assessment Sidebar -->
+        <div th:replace="~{fragments/assessment-sidebar :: assessment-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <div class="breadcrumb-nav-inline" style="margin-bottom: 0.5rem;">
+                        <a th:href="@{/admin/assessments/examinations}"
+                            style="text-decoration: none; color: #6b7280;">Examinations</a>
+                        <i class="fas fa-chevron-right"
+                            style="font-size: 0.8rem; margin: 0 0.5rem; color: #9ca3af;"></i>
+                        <span style="color: #111827; font-weight: 500;">Manage Questions</span>
+                    </div>
+                    <h1 th:text="${examination.title}">Examination Title</h1>
+                    <div class="examination-meta-header">
+                        <span class="meta-badge" th:text="${examination.subject.subjectName}">Subject</span>
+                        <span class="meta-badge" th:text="${examination.schoolClass.className}">Class</span>
+                        <span class="meta-badge" th:text="${examination.term}">Term</span>
+                        <span class="meta-badge" th:text="${examination.session}">Session</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button type="submit" form="questionsForm" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Submit All Questions
+                    </button>
+                </div>
+            </div>
+
+            <div class="questions-content">
+                <!-- Existing Questions List (Previews) -->
+                <div id="existingQuestionsList" class="questions-list">
+                    <div th:each="question, stat : ${examination.questions}" class="question-preview-card"
+                        th:id="'question-' + ${question.id}">
+                        <div class="question-card-header">
+                            <span class="question-number" th:text="'Question ' + ${stat.index + 1}">Question 1</span>
+                            <div class="question-actions">
+                                <button type="button" class="btn-edit-question" th:data-id="${question.id}"
+                                    onclick="editQuestion(this.getAttribute('data-id'))">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button type="button" class="btn-delete-question" th:data-id="${question.id}"
+                                    onclick="deleteQuestion(this.getAttribute('data-id'))">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="question-preview-body">
+                            <div th:if="${question.instruction}" class="preview-instruction">
+                                <strong>Instruction:</strong>
+                                <div class="html-content" th:utext="${question.instruction}"></div>
+                            </div>
+                            <div class="preview-question-text">
+                                <strong>Question:</strong>
+                                <div class="html-content" th:utext="${question.questionText}"></div>
+                            </div>
+                            <div class="preview-options-grid">
+                                <div class="preview-option">
+                                    <strong>A:</strong>
+                                    <div class="html-content" th:utext="${question.optionA}"></div>
+                                </div>
+                                <div class="preview-option">
+                                    <strong>B:</strong>
+                                    <div class="html-content" th:utext="${question.optionB}"></div>
+                                </div>
+                                <div th:if="${question.optionC}" class="preview-option">
+                                    <strong>C:</strong>
+                                    <div class="html-content" th:utext="${question.optionC}"></div>
+                                </div>
+                                <div th:if="${question.optionD}" class="preview-option">
+                                    <strong>D:</strong>
+                                    <div class="html-content" th:utext="${question.optionD}"></div>
+                                </div>
+                                <div th:if="${question.optionE}" class="preview-option">
+                                    <strong>E:</strong>
+                                    <div class="html-content" th:utext="${question.optionE}"></div>
+                                </div>
+                            </div>
+                            <div class="preview-footer">
+                                <span class="badge badge-success">Correct: [[${question.correctAnswer}]]</span>
+                                <span class="badge badge-info">Marks: [[${question.marks}]]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State if no questions -->
+                <div id="noQuestionsMessage" class="empty-questions-message"
+                    th:if="${#lists.isEmpty(examination.questions)}">
+                    <p>No questions added yet. Click the button below to start adding questions.</p>
+                </div>
+
+                <hr class="section-divider" th:if="${not #lists.isEmpty(examination.questions)}">
+
+                <!-- New Questions Form -->
+                <form id="questionsForm"
+                    th:action="@{/admin/assessments/examinations/{id}/questions/save(id=${examination.id})}"
+                    method="POST" hx-post="" hx-target="#notification-container" hx-swap="innerHTML"
+                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+                    <h3 class="section-title">Add New Questions</h3>
+                    <div id="newQuestionsList" class="questions-list">
+                        <!-- New questions will be appended here -->
+                    </div>
+
+                    <div class="form-actions-footer">
+                        <button type="button" class="btn btn-outline-primary" onclick="addQuestion()">
+                            <i class="fas fa-plus me-2"></i>Add another question
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Question Template (Hidden) -->
+    <template id="questionTemplate">
+        <div class="question-card" data-index="__INDEX__">
+            <div class="question-card-header">
+                <span class="question-number">Question __NUMBER__</span>
+                <button type="button" class="btn-remove-question" onclick="removeQuestion(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="question-card-body">
+                <div class="form-group full-width">
+                    <label>Instruction (Optional)</label>
+                    <div class="quill-editor" data-placeholder="e.g., Read the passage below and answer the question">
+                    </div>
+                    <input type="hidden" name="questions[__INDEX__].instruction" class="quill-hidden-input">
+                </div>
+                <div class="form-group full-width">
+                    <label>Question Text</label>
+                    <div class="quill-editor" data-placeholder="Type your question here..."></div>
+                    <input type="hidden" name="questions[__INDEX__].questionText" class="quill-hidden-input" required>
+                </div>
+                <div class="options-grid">
+                    <div class="form-group">
+                        <label>Option A</label>
+                        <div class="quill-editor minimal" data-placeholder="Option A"></div>
+                        <input type="hidden" name="questions[__INDEX__].optionA" class="quill-hidden-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Option B</label>
+                        <div class="quill-editor minimal" data-placeholder="Option B"></div>
+                        <input type="hidden" name="questions[__INDEX__].optionB" class="quill-hidden-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Option C</label>
+                        <div class="quill-editor minimal" data-placeholder="Option C"></div>
+                        <input type="hidden" name="questions[__INDEX__].optionC" class="quill-hidden-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Option D</label>
+                        <div class="quill-editor minimal" data-placeholder="Option D"></div>
+                        <input type="hidden" name="questions[__INDEX__].optionD" class="quill-hidden-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Option E</label>
+                        <div class="quill-editor minimal" data-placeholder="Option E"></div>
+                        <input type="hidden" name="questions[__INDEX__].optionE" class="quill-hidden-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Correct Answer</label>
+                        <select name="questions[__INDEX__].correctAnswer" required>
+                            <option value="" disabled selected>Select Correct Option</option>
+                            <option value="A">Option A</option>
+                            <option value="B">Option B</option>
+                            <option value="C">Option C</option>
+                            <option value="D">Option D</option>
+                            <option value="E">Option E</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group marks-group">
+                    <label>Marks</label>
+                    <input type="number" step="0.5" name="questions[__INDEX__].marks" value="1.0" required>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Edit Question Modal -->
+    <div id="editQuestionModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Edit Question</h3>
+                <button type="button" class="btn-close" onclick="closeModal('editQuestionModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editQuestionForm">
+                    <input type="hidden" id="edit-question-id">
+                    <div class="form-group full-width">
+                        <label>Instruction (Optional)</label>
+                        <div id="edit-instruction-editor" class="quill-editor"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Question Text</label>
+                        <div id="edit-questionText-editor" class="quill-editor"></div>
+                    </div>
+                    <div class="options-grid">
+                        <div class="form-group">
+                            <label>Option A</label>
+                            <div id="edit-optionA-editor" class="quill-editor minimal"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Option B</label>
+                            <div id="edit-optionB-editor" class="quill-editor minimal"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Option C</label>
+                            <div id="edit-optionC-editor" class="quill-editor minimal"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Option D</label>
+                            <div id="edit-optionD-editor" class="quill-editor minimal"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Option E</label>
+                            <div id="edit-optionE-editor" class="quill-editor minimal"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Correct Answer</label>
+                            <select id="edit-correctAnswer" required>
+                                <option value="A">Option A</option>
+                                <option value="B">Option B</option>
+                                <option value="C">Option C</option>
+                                <option value="D">Option D</option>
+                                <option value="E">Option E</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group marks-group">
+                        <label>Marks</label>
+                        <input type="number" id="edit-marks" step="0.5" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal('editQuestionModal')">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveEditedQuestion()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification-container"></div>
+
+    <script th:inline="javascript">
+        const examinationId = /*[[${examination.id}]]*/ 0;
+        let questionCount = 0; // Only for new questions
+        const quillInstances = new Map();
+
+        const MAX_IMAGE_SIZE = 500 * 1024; // 500KB
+        const MAX_CONTENT_LENGTH = 50000; // 50k chars per field
+
+        function initQuill(element) {
+            const editors = element.querySelectorAll('.quill-editor');
+            editors.forEach(editor => {
+                if (editor.classList.contains('ql-container')) return;
+
+                const isMinimal = editor.classList.contains('minimal');
+                const toolbarOptions = isMinimal ? [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'script': 'sub' }, { 'script': 'super' }],
+                    ['image'],
+                    ['clean']
+                ] : [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    [{ 'script': 'sub' }, { 'script': 'super' }],
+                    ['image'],
+                    ['clean']
+                ];
+
+                const quill = new Quill(editor, {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: toolbarOptions
+                    },
+                    placeholder: editor.getAttribute('data-placeholder') || 'Type here...'
+                });
+
+                // Image size validation
+                quill.getModule('toolbar').addHandler('image', () => {
+                    const input = document.createElement('input');
+                    input.setAttribute('type', 'file');
+                    input.setAttribute('accept', 'image/*');
+                    input.click();
+
+                    input.onchange = () => {
+                        const file = input.files[0];
+                        if (file && file.size > MAX_IMAGE_SIZE) {
+                            showNotification('Image size exceeds 500KB limit', 'error');
+                            return;
+                        }
+
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const range = quill.getSelection();
+                                quill.insertEmbed(range.index, 'image', e.target.result);
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    };
+                });
+
+                // Content length limit
+                quill.on('text-change', () => {
+                    if (quill.getLength() > MAX_CONTENT_LENGTH) {
+                        quill.deleteText(MAX_CONTENT_LENGTH, quill.getLength());
+                        showNotification('Content length limit reached', 'warning');
+                    }
+                });
+
+                quillInstances.set(editor, quill);
+            });
+        }
+
+        // Initialize editors in modal
+        initQuill(document.getElementById('editQuestionModal'));
+
+        function addQuestion() {
+            const container = document.getElementById('newQuestionsList');
+            const template = document.getElementById('questionTemplate');
+            const noMsg = document.getElementById('noQuestionsMessage');
+
+            if (noMsg) noMsg.style.display = 'none';
+
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector('.question-card');
+
+            // Replace placeholders
+            const index = questionCount;
+            card.setAttribute('data-index', index);
+
+            const html = card.innerHTML
+                .replace(/__INDEX__/g, index)
+                .replace(/__NUMBER__/g, index + 1);
+
+            card.innerHTML = html;
+            container.appendChild(card);
+
+            // Initialize Quill for the new card
+            initQuill(card);
+
+            questionCount++;
+
+            // Scroll to the new question
+            card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function removeQuestion(btn) {
+            const card = btn.closest('.question-card');
+            card.querySelectorAll('.quill-editor').forEach(editor => {
+                quillInstances.delete(editor);
+            });
+            card.remove();
+            reindexQuestions();
+        }
+
+        function reindexQuestions() {
+            const cards = document.querySelectorAll('#newQuestionsList .question-card');
+            questionCount = cards.length;
+
+            cards.forEach((card, index) => {
+                card.setAttribute('data-index', index);
+                card.querySelector('.question-number').textContent = `New Question ${index + 1}`;
+
+                const inputs = card.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name) {
+                        input.setAttribute('name', name.replace(/questions\[\d+\]/, `questions[${index}]`));
+                    }
+                });
+            });
+        }
+
+        // Modal Handling
+        function editQuestion(questionId) {
+            fetch(`/admin/assessments/examinations/${examinationId}/questions/${questionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('edit-question-id').value = data.id;
+
+                    // Set Quill content
+                    quillInstances.get(document.getElementById('edit-instruction-editor')).root.innerHTML = data.instruction || '';
+                    quillInstances.get(document.getElementById('edit-questionText-editor')).root.innerHTML = data.questionText || '';
+                    quillInstances.get(document.getElementById('edit-optionA-editor')).root.innerHTML = data.optionA || '';
+                    quillInstances.get(document.getElementById('edit-optionB-editor')).root.innerHTML = data.optionB || '';
+                    quillInstances.get(document.getElementById('edit-optionC-editor')).root.innerHTML = data.optionC || '';
+                    quillInstances.get(document.getElementById('edit-optionD-editor')).root.innerHTML = data.optionD || '';
+                    quillInstances.get(document.getElementById('edit-optionE-editor')).root.innerHTML = data.optionE || '';
+
+                    document.getElementById('edit-correctAnswer').value = data.correctAnswer;
+                    document.getElementById('edit-marks').value = data.marks;
+
+                    document.getElementById('editQuestionModal').classList.add('active');
+                });
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function saveEditedQuestion() {
+            const questionId = document.getElementById('edit-question-id').value;
+            const formData = new FormData();
+
+            formData.append('instruction', quillInstances.get(document.getElementById('edit-instruction-editor')).root.innerHTML);
+            formData.append('questionText', quillInstances.get(document.getElementById('edit-questionText-editor')).root.innerHTML);
+            formData.append('optionA', quillInstances.get(document.getElementById('edit-optionA-editor')).root.innerHTML);
+            formData.append('optionB', quillInstances.get(document.getElementById('edit-optionB-editor')).root.innerHTML);
+            formData.append('optionC', quillInstances.get(document.getElementById('edit-optionC-editor')).root.innerHTML);
+            formData.append('optionD', quillInstances.get(document.getElementById('edit-optionD-editor')).root.innerHTML);
+            formData.append('optionE', quillInstances.get(document.getElementById('edit-optionE-editor')).root.innerHTML);
+            formData.append('correctAnswer', document.getElementById('edit-correctAnswer').value);
+            formData.append('marks', document.getElementById('edit-marks').value);
+
+            const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+            fetch(`/admin/assessments/examinations/${examinationId}/questions/${questionId}/update`, {
+                method: 'POST',
+                headers: {
+                    [csrfHeader]: csrfToken
+                },
+                body: formData
+            })
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('notification-container').innerHTML = html;
+                    if (html.includes('alert-success')) {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                });
+        }
+
+        function deleteQuestion(questionId) {
+            if (confirm('Are you sure you want to delete this question?')) {
+                const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+                const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+                fetch(`/admin/assessments/examinations/${examinationId}/questions/${questionId}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    }
+                })
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('notification-container').innerHTML = html;
+                        if (html.includes('alert-success')) {
+                            document.getElementById(`question-${questionId}`).remove();
+                        }
+                    });
+            }
+        }
+
+        // Sync Quill content for NEW questions before submission
+        document.getElementById('questionsForm').addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent default form submission
+
+            let totalSize = 0;
+            quillInstances.forEach((quill, editor) => {
+                // Only sync editors that are inside the new questions form
+                if (document.getElementById('newQuestionsList').contains(editor)) {
+                    const hiddenInput = editor.nextElementSibling;
+                    if (hiddenInput && hiddenInput.classList.contains('quill-hidden-input')) {
+                        const html = quill.root.innerHTML;
+                        hiddenInput.value = html === '<p><br></p>' ? '' : html;
+                        totalSize += hiddenInput.value.length;
+                    }
+                }
+            });
+
+            if (totalSize > 2 * 1024 * 1024) {
+                showNotification('Total form size exceeds limit. Please reduce image sizes.', 'error');
+                return;
+            }
+
+            // Submit via HTMX
+            const form = e.target;
+            const formData = new FormData(form);
+
+            const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    [csrfHeader]: csrfToken
+                },
+                body: formData
+            })
+                .then(response => response.text())
+                .then(html => {
+                    // Check if success or error
+                    if (html.includes('alert-success')) {
+                        showNotification('New questions added successfully!', 'success');
+                        // Clear the new questions list
+                        document.getElementById('newQuestionsList').innerHTML = '';
+                        questionCount = 0;
+                        // Reload to show new questions in preview
+                        setTimeout(() => location.reload(), 1500);
+                    } else if (html.includes('alert-danger')) {
+                        // Extract error message
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const errorMsg = doc.querySelector('.alert-danger')?.textContent || 'Error saving questions';
+                        showNotification(errorMsg, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('An error occurred while saving questions', 'error');
+                });
+        });
+
+        function showNotification(message, type) {
+            const container = document.getElementById('notification-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`;
+            alert.style.position = 'fixed';
+            alert.style.top = '20px';
+            alert.style.right = '20px';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+    </script>
+    <script th:src="@{/js/community.js}"></script>
+</body>
+
+</html>

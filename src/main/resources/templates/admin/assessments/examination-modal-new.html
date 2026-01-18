@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 th:text="${isEdit ? 'Edit Examination' : 'Create New Examination'}">Create New Examination</h2>
+            <button type="button" class="modal-close" onclick="closeModal('examinationModal')">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <form th:hx-post="@{/admin/assessments/examinations/save-htmx}" hx-target="#messageContainer"
+                hx-swap="innerHTML" id="examinationForm"
+                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                <input type="hidden" name="id" th:value="${examination.id}" th:if="${isEdit}">
+
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h4>Basic Information</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="title">Examination Title:</label>
+                            <input type="text" id="title" name="title" class="form-input"
+                                th:value="${examination.title}" required placeholder="e.g., First Term CA 1 2024/2025">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="examType">Examination Type:</label>
+                            <select id="examType" name="examType" class="form-select" required>
+                                <option value="">Choose examination type...</option>
+                                <option th:each="type : ${examTypes}" th:value="${type}" th:text="${type}"
+                                    th:selected="${examination.examType == type}">
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hierarchical Selection -->
+                <div class="form-section">
+                    <h4>Academic Context</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="academicSessionId">Academic Session:</label>
+                            <select id="academicSessionId" name="academicSessionId" class="form-select" required
+                                onchange="loadTerms()">
+                                <option value="">Choose session...</option>
+                                <option th:each="academicSession : ${academicSessions}" th:value="${academicSession.id}"
+                                    th:text="${academicSession.sessionName + ' (' + academicSession.sessionYear + ')'}"
+                                    th:data-session-year="${academicSession.sessionYear}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="termId">Term:</label>
+                            <select id="termId" name="termId" class="form-select" required disabled>
+                                <option value="">Choose term...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="trackId">Education Track:</label>
+                            <select id="trackId" name="trackId" class="form-select" required
+                                onchange="loadDepartments()">
+                                <option value="">Choose track...</option>
+                                <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="departmentId">Department:</label>
+                            <select id="departmentId" name="departmentId" class="form-select" required
+                                onchange="loadClasses()" disabled>
+                                <option value="">Choose department...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="classId">Class:</label>
+                            <select id="classId" name="classId" class="form-select" required onchange="loadSubjects()"
+                                disabled>
+                                <option value="">Choose class...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subjectId">Subject:</label>
+                            <select id="subjectId" name="subjectId" class="form-select" required disabled>
+                                <option value="">Choose subject...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Examination Settings -->
+                <div class="form-section">
+                    <h4>Examination Settings</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="durationMinutes">Duration (Minutes):</label>
+                            <input type="number" id="durationMinutes" name="durationMinutes" class="form-input"
+                                th:value="${examination.durationMinutes ?: 60}" min="1" max="480" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="totalMarks">Total Marks (Optional):</label>
+                            <input type="number" id="totalMarks" name="totalMarks" class="form-input"
+                                th:value="${examination.totalMarks}" min="1" max="1000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="startTime">Start Time (Optional):</label>
+                            <input type="datetime-local" id="startTime" name="startTime" class="form-input"
+                                th:value="${examination.startTime}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="endTime">End Time (Optional):</label>
+                            <input type="datetime-local" id="endTime" name="endTime" class="form-input"
+                                th:value="${examination.endTime}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('examinationModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        <span th:text="${isEdit ? 'Update Examination' : 'Create Examination'}">Create
+                            Examination</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Message Container -->
+            <div id="messageContainer" class="mt-3"></div>
+        </div>
+    </div>
+
+    <script>
+        // Hierarchical selection functions
+        function loadTerms() {
+            const sessionSelect = document.getElementById('academicSessionId');
+            const termSelect = document.getElementById('termId');
+            const sessionId = sessionSelect.value;
+
+            if (sessionId) {
+                fetch(`/admin/assessments/api/sessions/${sessionId}/terms`)
+                    .then(response => response.json())
+                    .then(terms => {
+                        termSelect.innerHTML = '<option value="">Choose term...</option>';
+                        terms.forEach(term => {
+                            termSelect.innerHTML += `<option value="${term.name}">${term.name}</option>`;
+                        });
+                        termSelect.disabled = false;
+
+                        // Set session year for form submission
+                        const selectedOption = sessionSelect.options[sessionSelect.selectedIndex];
+                        document.getElementById('sessionYear').value = selectedOption.dataset.sessionYear;
+                    })
+                    .catch(error => console.error('Error loading terms:', error));
+            } else {
+                termSelect.innerHTML = '<option value="">Choose term...</option>';
+                termSelect.disabled = true;
+            }
+        }
+
+        function loadDepartments() {
+            const trackSelect = document.getElementById('trackId');
+            const departmentSelect = document.getElementById('departmentId');
+            const trackId = trackSelect.value;
+
+            if (trackId) {
+                fetch(`/admin/assessments/api/tracks/${trackId}/departments`)
+                    .then(response => response.json())
+                    .then(departments => {
+                        departmentSelect.innerHTML = '<option value="">Choose department...</option>';
+                        departments.forEach(dept => {
+                            departmentSelect.innerHTML += `<option value="${dept.id}">${dept.name}</option>`;
+                        });
+                        departmentSelect.disabled = false;
+
+                        // Reset dependent selects
+                        resetSelect('classId');
+                        resetSelect('subjectId');
+                    })
+                    .catch(error => console.error('Error loading departments:', error));
+            } else {
+                resetSelect('departmentId');
+                resetSelect('classId');
+                resetSelect('subjectId');
+            }
+        }
+
+        function loadClasses() {
+            const departmentSelect = document.getElementById('departmentId');
+            const classSelect = document.getElementById('classId');
+            const departmentId = departmentSelect.value;
+
+            if (departmentId) {
+                fetch(`/admin/assessments/api/departments/${departmentId}/classes`)
+                    .then(response => response.json())
+                    .then(classes => {
+                        classSelect.innerHTML = '<option value="">Choose class...</option>';
+                        classes.forEach(schoolClass => {
+                            classSelect.innerHTML += `<option value="${schoolClass.id}">${schoolClass.name}</option>`;
+                        });
+                        classSelect.disabled = false;
+
+                        // Reset dependent selects
+                        resetSelect('subjectId');
+                    })
+                    .catch(error => console.error('Error loading classes:', error));
+            } else {
+                resetSelect('classId');
+                resetSelect('subjectId');
+            }
+        }
+
+        function loadSubjects() {
+            const classSelect = document.getElementById('classId');
+            const subjectSelect = document.getElementById('subjectId');
+            const classId = classSelect.value;
+
+            if (classId) {
+                fetch(`/admin/assessments/api/classes/${classId}/subjects`)
+                    .then(response => response.json())
+                    .then(subjects => {
+                        subjectSelect.innerHTML = '<option value="">Choose subject...</option>';
+                        subjects.forEach(subject => {
+                            subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
+                        });
+                        subjectSelect.disabled = false;
+                    })
+                    .catch(error => console.error('Error loading subjects:', error));
+            } else {
+                resetSelect('subjectId');
+            }
+        }
+
+        function resetSelect(selectId) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Choose ' + selectId.replace('Id', '').toLowerCase() + '...</option>';
+            select.disabled = true;
+        }
+
+        // Add hidden field for session year
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('examinationForm');
+            const hiddenSessionYear = document.createElement('input');
+            hiddenSessionYear.type = 'hidden';
+            hiddenSessionYear.name = 'sessionYear';
+            hiddenSessionYear.id = 'sessionYear';
+            form.appendChild(hiddenSessionYear);
+        });
+
+        // Handle form submission success
+        document.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.target.id === 'examinationForm') {
+                setTimeout(() => {
+                    closeModal('examinationModal');
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+
+</html>

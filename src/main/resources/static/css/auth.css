@@ -1,0 +1,817 @@
+/* Authentication Pages Styles */
+.auth-body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.school-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.auth-logo {
+    width: auto;
+    height: 80px;
+    object-fit: contain;
+}
+
+.brand-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    margin-bottom: 0.2rem;
+}
+
+.brand-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    font-weight: 300;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 1.5rem;
+    }
+
+    .brand-title {
+        font-size: 2rem;
+    }
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.card-header h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.card-header p {
+    color: #666;
+    font-size: 1rem;
+}
+
+/* Alert Messages */
+.alert {
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.alert-error {
+    background-color: #fee;
+    color: #c53030;
+    border: 1px solid #fed7d7;
+}
+
+.alert-success {
+    background-color: #f0fff4;
+    color: #38a169;
+    border: 1px solid #c6f6d5;
+}
+
+/* Form Styles */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    overflow: hidden;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.form-input {
+    padding: 0.875rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background-color: #f9fafb;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #667eea;
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-input::placeholder {
+    color: #9ca3af;
+}
+
+/* Password Toggle Styles */
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper .form-input {
+    padding-right: 3rem;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #9ca3af;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease;
+    z-index: 10;
+}
+
+.password-toggle:hover {
+    color: #667eea;
+}
+
+.password-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Form Options */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0.5rem 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #667eea;
+}
+
+.forgot-link {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.forgot-link:hover {
+    color: #5a67d8;
+    text-decoration: underline;
+}
+
+/* Buttons */
+.auth-btn {
+    padding: 1rem 1.5rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.auth-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.auth-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+}
+
+/* Auth Links */
+.auth-links {
+    margin-top: 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.auth-links p {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.link-primary {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.link-primary:hover {
+    color: #5a67d8;
+    text-decoration: underline;
+}
+
+.link-secondary {
+    color: #9ca3af;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.link-secondary:hover {
+    color: #6b7280;
+    text-decoration: underline;
+}
+
+/* Demo Info */
+.demo-info {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.demo-info h4 {
+    color: white;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.demo-accounts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.demo-account {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .auth-container {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+
+    .auth-card {
+        padding: 2rem 1.5rem;
+        margin: 0 auto;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .form-options {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .brand-title {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 0 0.5rem;
+    }
+
+    .auth-card {
+        padding: 1.5rem 1rem;
+        border-radius: 15px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .form-input {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* 
+School and Role Selection Styles */
+.user-info {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.user-info p {
+    margin: 0;
+    color: #495057;
+    font-weight: 500;
+}
+
+.school-list,
+.role-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.school-option,
+.role-option {
+    position: relative;
+}
+
+.school-option input[type="radio"],
+.role-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.school-card,
+.role-card {
+    display: block;
+    padding: 1.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fff;
+}
+
+.school-card:hover,
+.role-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+}
+
+.school-option input[type="radio"]:checked+.school-card,
+.role-option input[type="radio"]:checked+.role-card {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.school-info h3,
+.role-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #343a40;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.roles-info {
+    margin-top: 1rem;
+}
+
+.roles-info p {
+    margin: 0 0 0.5rem 0;
+    color: #6c757d;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.roles-info ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    list-style-type: disc;
+}
+
+.roles-info li {
+    color: #495057;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.role-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.role-info div:first-child {
+    flex: 1;
+}
+
+.role-info p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.role-icon {
+    font-size: 2rem;
+    opacity: 0.7;
+}
+
+.school-option input[type="radio"]:checked+.school-card .role-icon,
+.role-option input[type="radio"]:checked+.role-card .role-icon {
+    opacity: 1;
+}
+
+.btn {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 100%;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+
+    .school-card,
+    .role-card {
+        padding: 1rem;
+    }
+
+    .role-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+
+    .role-icon {
+        font-size: 1.5rem;
+    }
+}
+
+.s chool-details {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin: 0.25rem 0 0.75rem 0;
+    font-style: italic;
+}
+
+.school-info h3 {
+    color: #2c3e50;
+    font-size: 1.3rem;
+    margin-bottom: 0.25rem;
+}
+
+.roles-info p {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.roles-info ul {
+    background: rgba(102, 126, 234, 0.1);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    margin: 0;
+}
+
+.roles-info li {
+    color: #495057;
+    font-weight: 500;
+    padding: 0.1rem 0;
+}
+
+/* Role and School Card Styles */
+.school-card,
+.role-card {
+    display: block;
+    padding: 1.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+}
+
+.school-card:hover,
+.role-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Updated selectors for the new radio button names */
+.school-option input[type="radio"]:checked+.school-card,
+.role-option input[name="roleSelection"]:checked+.role-card {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Role icon highlighting */
+.school-option input[type="radio"]:checked+.school-card .role-icon,
+.role-option input[name="roleSelection"]:checked+.role-card .role-icon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Role info styling */
+.role-info h3,
+.school-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #343a40;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Make sure radio buttons are hidden but functional */
+.school-option input[type="radio"],
+.role-option input[name="roleSelection"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    width: 0;
+    height: 0;
+}
+
+/* Add a visual indicator for selected state */
+.school-option input[type="radio"]:checked+.school-card::before,
+.role-option input[name="roleSelection"]:checked+.role-card::before {
+    content: "✓";
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Make sure the cards are positioned relative for the checkmark */
+.school-card,
+.role-card {
+    position: relative;
+}
+
+/* Lo
+gin Method Tabs */
+.login-method-tabs {
+    display: flex;
+    border-radius: 12px;
+    background: #f8f9fa;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 1rem;
+}
+
+.login-method-tabs input[type="radio"] {
+    display: none;
+}
+
+.method-tab {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #6b7280;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.method-tab:hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.login-method-tabs input[type="radio"]:checked+.method-tab {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.tab-icon {
+    font-size: 1.2rem;
+    display: block;
+}
+
+.login-fields {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Country code select styling */
+#country-code {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    appearance: none;
+}
+
+/* Phone number input styling */
+#phone-identifier {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+/* Student admission number styling */
+#student-identifier {
+    text-transform: uppercase;
+    font-weight: 500;
+    letter-spacing: 1px;
+}
+
+/* Responsive adjustments for login method tabs */
+@media (max-width: 480px) {
+    .method-tab {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .tab-icon {
+        font-size: 1rem;
+    }
+
+    .login-method-tabs {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .method-tab {
+        flex-direction: row;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+}
+
+/*
+ Input help text styling */
+.input-help {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+/* Phone input specific styling */
+#phone-identifier {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+/* Visual feedback for cleaned input */
+#phone-identifier.cleaned {
+    border-color: #10b981;
+    background-color: #f0fdf4;
+}
+
+#phone-identifier.cleaned:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Loading Spinner */
+.spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* When button is in loading state (htmx-request class added by hx-indicator) */
+.auth-btn.htmx-request .spinner {
+    display: inline-block;
+}
+
+.auth-btn.htmx-request span,
+.auth-btn.htmx-request .btn-icon {
+    display: none;
+}

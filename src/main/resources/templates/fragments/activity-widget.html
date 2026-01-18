@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .activity-widget {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .activity-widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .activity-widget-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        
+        .view-all-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .view-all-link:hover {
+            text-decoration: underline;
+        }
+        
+        .activity-widget-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        
+        .activity-widget-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-widget-icon {
+            font-size: 1.25rem;
+            margin-right: 0.75rem;
+            margin-top: 0.125rem;
+        }
+        
+        .activity-widget-content {
+            flex: 1;
+        }
+        
+        .activity-widget-title-text {
+            font-weight: 500;
+            color: #333;
+            margin: 0 0 0.25rem 0;
+            font-size: 0.875rem;
+        }
+        
+        .activity-widget-description {
+            color: #666;
+            font-size: 0.8125rem;
+            margin: 0 0 0.25rem 0;
+        }
+        
+        .activity-widget-meta {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        
+        .activity-widget-time {
+            font-size: 0.75rem;
+            color: #888;
+            white-space: nowrap;
+            margin-left: 0.5rem;
+        }
+        
+        .no-activities {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 2rem 0;
+        }
+        
+        .loading-activities {
+            text-align: center;
+            color: #666;
+            padding: 2rem 0;
+        }
+        
+        .activity-widget-refresh {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            font-size: 0.875rem;
+            padding: 0;
+        }
+        
+        .activity-widget-refresh:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Recent Activity Widget Fragment -->
+    <div th:fragment="recent-activity-widget" class="activity-widget" id="activity-widget">
+        <div class="activity-widget-header">
+            <h3 class="activity-widget-title">Recent Activity</h3>
+            <div>
+                <button class="activity-widget-refresh" onclick="refreshActivities()">Refresh</button>
+                <a href="/admin/activities" class="view-all-link">View All</a>
+            </div>
+        </div>
+        
+        <div id="activity-list" class="activity-widget-list">
+            <div class="loading-activities">Loading activities...</div>
+        </div>
+    </div>
+
+    <!-- User-specific Activity Widget Fragment -->
+    <div th:fragment="user-activity-widget" class="activity-widget" id="user-activity-widget">
+        <div class="activity-widget-header">
+            <h3 class="activity-widget-title">Your Recent Activity</h3>
+            <button class="activity-widget-refresh" onclick="refreshUserActivities()">Refresh</button>
+        </div>
+        
+        <div id="user-activity-list" class="activity-widget-list">
+            <div class="loading-activities">Loading your activities...</div>
+        </div>
+    </div>
+
+    <script th:fragment="activity-widget-script">
+        // Activity widget functionality
+        function refreshActivities() {
+            const activityList = document.getElementById('activity-list');
+            if (!activityList) return;
+            
+            activityList.innerHTML = '<div class="loading-activities">Loading activities...</div>';
+            
+            fetch('/admin/activities/api/recent?limit=5')
+                .then(response => response.json())
+                .then(activities => {
+                    if (activities.length === 0) {
+                        activityList.innerHTML = '<div class="no-activities">No recent activities</div>';
+                        return;
+                    }
+                    
+                    activityList.innerHTML = activities.map(activity => `
+                        <div class="activity-widget-item">
+                            <div class="activity-widget-icon">${activity.icon}</div>
+                            <div class="activity-widget-content">
+                                <h4 class="activity-widget-title-text">${activity.title}</h4>
+                                ${activity.description ? `<p class="activity-widget-description">${activity.description}</p>` : ''}
+                                <div class="activity-widget-meta">
+                                    <span>${activity.userName} (${activity.userRole})</span>
+                                    ${activity.targetUserName ? `<span> → ${activity.targetUserName}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="activity-widget-time">${activity.timeAgo}</div>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading activities:', error);
+                    activityList.innerHTML = '<div class="no-activities">Error loading activities</div>';
+                });
+        }
+        
+        function refreshUserActivities(userId) {
+            const userActivityList = document.getElementById('user-activity-list');
+            if (!userActivityList) return;
+            
+            // Get userId from data attribute or current user
+            const targetUserId = userId || userActivityList.dataset.userId;
+            if (!targetUserId) return;
+            
+            userActivityList.innerHTML = '<div class="loading-activities">Loading your activities...</div>';
+            
+            fetch(`/admin/activities/api/user/${targetUserId}?limit=5`)
+                .then(response => response.json())
+                .then(data => {
+                    const activities = data.activities || [];
+                    
+                    if (activities.length === 0) {
+                        userActivityList.innerHTML = '<div class="no-activities">No recent activities</div>';
+                        return;
+                    }
+                    
+                    userActivityList.innerHTML = activities.map(activity => `
+                        <div class="activity-widget-item">
+                            <div class="activity-widget-icon">${activity.icon}</div>
+                            <div class="activity-widget-content">
+                                <h4 class="activity-widget-title-text">${activity.title}</h4>
+                                ${activity.description ? `<p class="activity-widget-description">${activity.description}</p>` : ''}
+                                <div class="activity-widget-meta">
+                                    ${activity.targetUserName ? `<span>Regarding: ${activity.targetUserName}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="activity-widget-time">${activity.timeAgo}</div>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading user activities:', error);
+                    userActivityList.innerHTML = '<div class="no-activities">Error loading activities</div>';
+                });
+        }
+        
+        // Auto-refresh activities every 30 seconds
+        setInterval(refreshActivities, 30000);
+        
+        // Load activities when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshActivities();
+            
+            // Load user activities if widget exists
+            const userActivityWidget = document.getElementById('user-activity-widget');
+            if (userActivityWidget) {
+                const userId = userActivityWidget.dataset.userId;
+                if (userId) {
+                    refreshUserActivities(userId);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

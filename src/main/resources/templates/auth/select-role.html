@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Select Role</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body class="auth-body">
+    <div class="auth-container">
+        <!-- School Branding -->
+        <div class="auth-header">
+            <div class="school-brand">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+            </div>
+        </div>
+
+        <!-- Role Selection Form -->
+        <div class="auth-card">
+            <div class="card-header">
+                <h2>Select Role</h2>
+                <p>You have multiple roles in this school. Please select one to continue.</p>
+            </div>
+
+            <!-- Error Messages -->
+            <div th:if="${param.error}" class="alert alert-error">
+                <span th:if="${param.error[0] == 'invalid_role'}">Invalid role selection. Please try again.</span>
+                <span th:unless="${param.error[0] == 'invalid_role'}">An error occurred. Please try again.</span>
+            </div>
+
+            <form th:action="@{/select-role}" method="post" class="auth-form" id="roleForm">
+                <div class="role-list">
+                    <div th:each="userSchoolRole : ${userRoles}" class="role-option">
+                        <input type="radio" th:id="'role-' + ${userSchoolRole.role?.id}" name="roleSelection"
+                            th:value="${userSchoolRole.role?.id} + '|' + ${userSchoolRole.role?.name}" required>
+
+                        <label th:for="'role-' + ${userSchoolRole.role?.id}" class="role-card">
+                            <div class="role-info">
+                                <h3 th:text="${userSchoolRole.role?.name}">Role Name</h3>
+                                <p th:text="${userSchoolRole.role?.description}">Role Description</p>
+                                <div class="role-icon">
+                                    <span th:switch="${userSchoolRole.role?.name}">
+                                        <span th:case="'SYSTEM_ADMIN'">👨‍💼</span>
+                                        <span th:case="'System Administrator'">👨‍💼</span>
+                                        <span th:case="'SCHOOL_ADMIN'">🏫</span>
+                                        <span th:case="'PRINCIPAL'">🏫</span>
+                                        <span th:case="'Principal'">🏫</span>
+                                        <span th:case="'TEACHER'">👨‍🏫</span>
+                                        <span th:case="'Teacher'">👨‍🏫</span>
+                                        <span th:case="'STAFF'">👨‍💼</span>
+                                        <span th:case="'Staff'">👨‍💼</span>
+                                        <span th:case="'PARENT'">👨‍👩‍👧‍👦</span>
+                                        <span th:case="'Parent'">👨‍👩‍👧‍👦</span>
+                                        <span th:case="'STUDENT'">👨‍🎓</span>
+                                        <span th:case="'Student'">👨‍🎓</span>
+                                        <span th:case="*">👤</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <input type="hidden" name="roleId" id="roleId">
+                <input type="hidden" name="roleName" id="roleName">
+
+                <button type="submit" class="auth-btn primary">
+                    <span>Continue</span>
+                    <i class="btn-icon">→</i>
+                </button>
+            </form>
+
+            <!-- Alternative Actions -->
+            <div class="auth-links">
+                <p>Need to select a different school?
+                    <a th:href="@{/select-school}" class="link-primary">Change School</a>
+                </p>
+                <p>
+                <form th:action="@{/auth/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="link-secondary"
+                        style="background: none; border: none; padding: 0; cursor: pointer; font: inherit; text-decoration: underline;">Logout</button>
+                </form>
+                </p>
+            </div>
+
+            <script>
+                document.getElementById('roleForm').addEventListener('submit', function (e) {
+                    const selectedRole = document.querySelector('input[name="roleSelection"]:checked');
+                    if (selectedRole) {
+                        const [roleId, roleName] = selectedRole.value.split('|');
+                        document.getElementById('roleId').value = roleId;
+                        document.getElementById('roleName').value = roleName;
+                    }
+                });
+            </script>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Assign Class</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Assign Student to Class</h1>
+                    <p>Assign <strong th:text="${student.user.fullName}">Student Name</strong> to classes in different
+                        tracks</p>
+                </div>
+                <div>
+                    <a th:href="@{/admin/community/students}" class="btn btn-outline">← Back to Students</a>
+                </div>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <div class="alert alert-success" th:if="${success}">
+                <span th:text="${success}"></span>
+            </div>
+            <div class="alert alert-danger" th:if="${error}">
+                <span th:text="${error}"></span>
+            </div>
+
+            <!-- Current Assignments -->
+            <div class="form-section" th:if="${!currentAssignments.empty}">
+                <h3>Current Class Assignments</h3>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Track</th>
+                                <th>Class</th>
+                                <th>Grade Level</th>
+                                <th>Academic Year</th>
+                                <th>Enrollment Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="assignment : ${currentAssignments}">
+                                <td th:text="${assignment.schoolClass.department?.track?.name ?: 'Unknown'}">Track Name
+                                </td>
+                                <td th:text="${assignment.schoolClass.className}">Class Name</td>
+                                <td th:text="${assignment.schoolClass.gradeLevel}">Grade Level</td>
+                                <td th:text="${assignment.academicSession.sessionYear}">2024-2025</td>
+                                <td th:text="${#temporals.format(assignment.enrollmentDate, 'MMM dd, yyyy')}">Jan 15,
+                                    2024</td>
+                                <td>
+                                    <form
+                                        th:action="@{/admin/community/students/{studentId}/remove-class/{assignmentId}(studentId=${student.id}, assignmentId=${assignment.id})}"
+                                        method="post" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Are you sure you want to remove this student from the class?')">
+                                            Remove
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Assignment Form -->
+            <div class="form-section">
+                <h3>Assign to New Class</h3>
+                <form th:action="@{/admin/community/students/{studentId}/assign-class(studentId=${student.id})}"
+                    method="post">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="trackId">Education Track *</label>
+                            <select id="trackId" name="trackId" class="form-select" required
+                                onchange="loadClassesByTrack()">
+                                <option value="">Select Track</option>
+                                <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
+                                    Track Name
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="classId">Class *</label>
+                            <select id="classId" name="assignedClassId" class="form-select" required disabled>
+                                <option value="">Select Track First</option>
+                            </select>
+                        </div>
+
+                        <!-- Academic Year is determined by the current session -->
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Assign to Class</button>
+                        <a th:href="@{/admin/community/students}" class="btn btn-outline">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        function loadClassesByTrack() {
+            const trackId = document.getElementById('trackId').value;
+            const classSelect = document.getElementById('classId');
+
+            if (!trackId) {
+                classSelect.innerHTML = '<option value="">Select Track First</option>';
+                classSelect.disabled = true;
+                return;
+            }
+
+            classSelect.disabled = true;
+            classSelect.innerHTML = '<option value="">Loading...</option>';
+
+            const studentId = [[${ student.id }]];
+            fetch(`/admin/community/students/${studentId}/classes-by-track/${trackId}`)
+                .then(response => response.json())
+                .then(classes => {
+                    classSelect.innerHTML = '<option value="">Select Class</option>';
+                    classes.forEach(cls => {
+                        const option = document.createElement('option');
+                        option.value = cls.id;
+                        option.textContent = `${cls.className} (${cls.gradeLevel || 'No Grade'}) - ${cls.currentEnrollment}/${cls.maxCapacity} students`;
+                        classSelect.appendChild(option);
+                    });
+                    classSelect.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error loading classes:', error);
+                    classSelect.innerHTML = '<option value="">Error loading classes</option>';
+                });
+        }
+    </script>
+</body>
+
+</html>
