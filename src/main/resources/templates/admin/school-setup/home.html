@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>4School - School Setup</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}" />
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <h1>School Setup Overview</h1>
+                <p>Welcome to the school setup wizard. Complete the steps below to configure your school.</p>
+            </div>
+
+            <div class="setup-dashboard">
+                <div class="status-card" th:classappend="${setupProgress.steps.schoolDetails} ? 'completed' : ''">
+                    <div class="status-icon">🏫</div>
+                    <div class="status-info">
+                        <h3>School Details</h3>
+                        <p th:if="${setupProgress.steps.schoolDetails}">Completed</p>
+                        <p th:unless="${setupProgress.steps.schoolDetails}">Pending</p>
+                    </div>
+                    <a th:href="@{/admin/school-setup/school-details}" class="btn btn-sm btn-outline">
+                        <span th:if="${setupProgress.steps.schoolDetails}">Edit</span>
+                        <span th:unless="${setupProgress.steps.schoolDetails}">Start</span>
+                    </a>
+                </div>
+
+                <div class="status-card" th:classappend="${setupProgress.steps.educationTracks} ? 'completed' : ''">
+                    <div class="status-icon">🎓</div>
+                    <div class="status-info">
+                        <h3>Education Tracks</h3>
+                        <p th:if="${setupProgress.steps.educationTracks}">Completed</p>
+                        <p th:unless="${setupProgress.steps.educationTracks}">Pending</p>
+                    </div>
+                    <a th:href="@{/admin/school-setup/education-tracks}" class="btn btn-sm btn-outline">
+                        <span th:if="${setupProgress.steps.educationTracks}">Manage</span>
+                        <span th:unless="${setupProgress.steps.educationTracks}">Start</span>
+                    </a>
+                </div>
+
+                <div class="status-card" th:classappend="${setupProgress.steps.departments} ? 'completed' : ''">
+                    <div class="status-icon">🏢</div>
+                    <div class="status-info">
+                        <h3>Departments</h3>
+                        <p th:if="${setupProgress.steps.departments}">Completed</p>
+                        <p th:unless="${setupProgress.steps.departments}">Pending</p>
+                    </div>
+                    <a th:href="@{/admin/school-setup/departments}" class="btn btn-sm btn-outline">
+                        <span th:if="${setupProgress.steps.departments}">Manage</span>
+                        <span th:unless="${setupProgress.steps.departments}">Start</span>
+                    </a>
+                </div>
+
+                <div class="status-card" th:classappend="${setupProgress.steps.classes} ? 'completed' : ''">
+                    <div class="status-icon">👥</div>
+                    <div class="status-info">
+                        <h3>Classes</h3>
+                        <p th:if="${setupProgress.steps.classes}">Completed</p>
+                        <p th:unless="${setupProgress.steps.classes}">Pending</p>
+                    </div>
+                    <a th:href="@{/admin/school-setup/classes}" class="btn btn-sm btn-outline">
+                        <span th:if="${setupProgress.steps.classes}">Manage</span>
+                        <span th:unless="${setupProgress.steps.classes}">Start</span>
+                    </a>
+                </div>
+
+                <div class="status-card" th:classappend="${setupProgress.steps.subjects} ? 'completed' : ''">
+                    <div class="status-icon">📚</div>
+                    <div class="status-info">
+                        <h3>Subjects</h3>
+                        <p th:if="${setupProgress.steps.subjects}">Completed</p>
+                        <p th:unless="${setupProgress.steps.subjects}">Pending</p>
+                    </div>
+                    <a th:href="@{/admin/school-setup/subjects}" class="btn btn-sm btn-outline">
+                        <span th:if="${setupProgress.steps.subjects}">Manage</span>
+                        <span th:unless="${setupProgress.steps.subjects}">Start</span>
+                    </a>
+                </div>
+
+                <div class="status-card" th:classappend="${setupProgress.steps.landingPage} ? 'completed' : ''">
+                    <div class="status-icon">🌐</div>
+                    <div class="status-info">
+                        <h3>Landing Page</h3>
+                        <p th:if="${setupProgress.steps.landingPage}">Completed</p>
+                        <p th:unless="${setupProgress.steps.landingPage}">Pending</p>
+                    </div>
+                    <a th:href="@{/admin/school-setup/landing-page}" class="btn btn-sm btn-outline">
+                        <span th:if="${setupProgress.steps.landingPage}">Manage</span>
+                        <span th:unless="${setupProgress.steps.landingPage}">Start</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="completion-section" th:if="${setupProgress.progressPercentage == 100}">
+                <div class="alert alert-success">
+                    <h3>🎉 Setup Complete!</h3>
+                    <p>You have successfully configured all the basic settings for your school.</p>
+                    <a th:href="@{/admin/dashboard}" class="btn btn-success mt-2">Go to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

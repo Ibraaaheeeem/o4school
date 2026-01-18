@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Admin Dashboard</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="dashboard-container role-admin">
+            <!-- Welcome Section -->
+            <div class="welcome-section">
+                <div class="welcome-text">
+                    <h1>Welcome back, <span th:text="${user.firstName}">Admin</span>!</h1>
+                    <p th:if="${school}">
+                        Managing <strong th:text="${school.name}">School Name</strong> • School Administrator
+                    </p>
+                </div>
+                <div class="welcome-stats">
+                    <div class="stat-badge">
+                        <span class="value" th:text="${#temporals.format(#temporals.createNow(), 'MMM dd')}">Date</span>
+                        <span class="label">Today</span>
+                    </div>
+                    <div class="stat-badge">
+                        <span class="value">Active</span>
+                        <span class="label">Status</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="dashboard-grid">
+                <!-- Students Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <span class="card-title">Total Students</span>
+                        <div class="card-icon"><i class="fas fa-user-graduate"></i></div>
+                    </div>
+                    <div class="card-value" th:text="${studentCount}">0</div>
+                    <div class="card-trend">
+                        <span class="trend-neutral">Enrolled Students</span>
+                    </div>
+                    <a th:href="@{/admin/community/students}" class="card-link">
+                        Manage Students <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Parents Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <span class="card-title">Parents</span>
+                        <div class="card-icon"><i class="fas fa-users"></i></div>
+                    </div>
+                    <div class="card-value" th:text="${parentCount}">0</div>
+                    <div class="card-trend">
+                        <span class="trend-neutral">Registered Guardians</span>
+                    </div>
+                    <a th:href="@{/admin/community/parents}" class="card-link">
+                        Manage Parents <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Staff Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <span class="card-title">Staff Members</span>
+                        <div class="card-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                    </div>
+                    <div class="card-value" th:text="${staffCount}">0</div>
+                    <div class="card-trend">
+                        <span class="trend-neutral">Active Staff</span>
+                    </div>
+                    <a th:href="@{/admin/community/staff}" class="card-link">
+                        Manage Staff <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Classes Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <span class="card-title">Classes</span>
+                        <div class="card-icon"><i class="fas fa-layer-group"></i></div>
+                    </div>
+                    <div class="card-value" th:text="${classCount}">0</div>
+                    <div class="card-trend">
+                        <span class="trend-neutral">Active Classes</span>
+                    </div>
+                    <a th:href="@{/admin/school-setup/academic-structure}" class="card-link">
+                        Manage Classes <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+                <!-- Recent Activity -->
+                <div class="content-panel">
+                    <div class="section-header">
+                        <h2 class="section-title">Recent Activity</h2>
+                        <a href="#" class="btn btn-outline btn-sm">View All</a>
+                    </div>
+
+                    <div class="activity-list" th:if="${!#lists.isEmpty(recentActivities)}">
+                        <div th:each="activity : ${recentActivities}" class="activity-item">
+                            <div class="activity-icon-wrapper">
+                                <i class="fas" th:classappend="${
+                                    activity.activityType.name() == 'USER_CREATED' ? 'fa-user-plus' : 
+                                    activity.activityType.name() == 'USER_UPDATED' ? 'fa-user-edit' : 
+                                    activity.activityType.name() == 'USER_DELETED' ? 'fa-user-minus' : 
+                                    activity.activityType.name() == 'STUDENT_ENROLLED' ? 'fa-graduation-cap' : 
+                                    activity.activityType.name() == 'PAYMENT_RECEIVED' ? 'fa-money-bill-wave' : 
+                                    activity.activityType.name() == 'GRADE_ENTERED' ? 'fa-chart-bar' : 
+                                    activity.activityType.name() == 'CLASS_CREATED' ? 'fa-chalkboard' : 
+                                    activity.activityType.name() == 'STAFF_HIRED' ? 'fa-briefcase' : 
+                                    activity.activityType.name() == 'PARENT_ADDED' ? 'fa-user-friends' : 'fa-clipboard-list'
+                                }"></i>
+                            </div>
+                            <div class="activity-details">
+                                <h4 th:text="${activity.title}">Activity Title</h4>
+                                <p th:if="${activity.description}" th:text="${activity.description}">Description</p>
+                                <span class="activity-time"
+                                    th:text="${#temporals.format(activity.createdAt, 'MMM dd, HH:mm')}">Time</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(recentActivities)}" class="empty-state">
+                        <i class="fas fa-clipboard-list"
+                            style="font-size: 2rem; color: #cbd5e0; margin-bottom: 1rem;"></i>
+                        <p>No recent activity found</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="content-panel">
+                    <div class="section-header">
+                        <h2 class="section-title">Quick Actions</h2>
+                    </div>
+                    <div class="actions-grid">
+                        <a href="/admin/school-setup" class="action-card">
+                            <i class="fas fa-cog"></i>
+                            <span>School Setup</span>
+                        </a>
+                        <a th:href="@{/admin/community}" class="action-card">
+                            <i class="fas fa-users"></i>
+                            <span>Community</span>
+                        </a>
+                        <a th:href="@{/admin/academic}" class="action-card">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Academic</span>
+                        </a>
+                        <a th:href="@{/admin/financial}" class="action-card">
+                            <i class="fas fa-wallet"></i>
+                            <span>Financial</span>
+                        </a>
+                        <a th:href="@{/admin/assessments}" class="action-card">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Assessments</span>
+                        </a>
+                        <a th:href="@{/admin/assessments/reports}" class="action-card">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Reports</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script th:src="@{/js/dashboard-tabs.js}"></script>
+</body>
+
+</html>

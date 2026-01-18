@@ -1,0 +1,153 @@
+<!-- Staff Cards Fragment -->
+<div th:fragment="staff-cards-content" id="staff-cards-content">
+    <div class="alert alert-success" th:if="${success}">
+        <span th:text="${success}"></span>
+    </div>
+    <div class="alert alert-danger" th:if="${error}">
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="staff-cards-grid" th:if="${!staffPage.content.empty}">
+        <div th:each="staff : ${staffPage.content}" class="staff-card">
+            <div class="staff-card-header">
+                <div class="staff-avatar">
+                    <span th:text="${#strings.substring(staff.user.fullName, 0, 1)}">J</span>
+                </div>
+                <div class="staff-info">
+                    <h3 th:text="${staff.user.fullName}">John Doe</h3>
+                    <p class="staff-email" th:text="${staff.user.email}">john@example.com</p>
+                    <p class="staff-id">
+                        <strong>Staff ID:</strong> <span th:text="${staff.staffId ?: 'N/A'}">STF001</span>
+                    </p>
+                </div>
+                <div class="staff-status">
+                    <span class="badge badge-success" th:if="${staff.isActive}">Active</span>
+                    <span class="badge badge-secondary" th:unless="${staff.isActive}">Inactive</span>
+                </div>
+            </div>
+
+            <div class="staff-card-body">
+                <!-- Teacher Assignments Section -->
+                <div class="teacher-assignments-section"
+                    th:if="${!staff.classTeacherAssignments.empty || !staff.subjectTeacherAssignments.empty}">
+                    <h4>Teaching Assignments</h4>
+
+                    <!-- Class Teacher Assignments -->
+                    <div th:if="${!staff.classTeacherAssignments.empty}" class="assignment-group">
+                        <h5>Class Teacher</h5>
+                        <div class="assignments-grid">
+                            <div th:each="classAssignment : ${staff.classTeacherAssignments}"
+                                th:if="${classAssignment.isActive}" class="assignment-card class-teacher-card">
+                                <div class="assignment-details">
+                                    <div class="assignment-title" th:text="${classAssignment.schoolClass.className}">
+                                        Grade 10A</div>
+                                    <div class="assignment-year"
+                                        th:text="${classAssignment.academicSession.sessionName + ' - ' + classAssignment.term.termName}">
+                                        2024-2025
+                                    </div>
+                                </div>
+                                <button class="remove-assignment-btn" th:data-assignment-id="${classAssignment.id}"
+                                    th:data-assignment-info="'Class Teacher: ' + ${classAssignment.schoolClass.className}"
+                                    onclick="removeClassAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                    title="Remove class teacher assignment">
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subject Teacher Assignments -->
+                    <div th:if="${!staff.subjectTeacherAssignments.empty}" class="assignment-group">
+                        <h5>Subject Teacher</h5>
+                        <div class="assignments-grid">
+                            <div th:each="subjectAssignment : ${staff.subjectTeacherAssignments}"
+                                th:if="${subjectAssignment.isActive}" class="assignment-card subject-teacher-card">
+                                <div class="assignment-details">
+                                    <div class="assignment-title" th:text="${subjectAssignment.subject.subjectName}">
+                                        Mathematics</div>
+                                    <div class="assignment-class" th:text="${subjectAssignment.schoolClass.className}">
+                                        Grade 10A</div>
+                                    <div class="assignment-year"
+                                        th:text="${subjectAssignment.academicSession.sessionName + ' - ' + subjectAssignment.term.termName}">
+                                        2024-2025
+                                    </div>
+                                </div>
+                                <button class="remove-assignment-btn" th:data-assignment-id="${subjectAssignment.id}"
+                                    th:data-assignment-info="'Subject Teacher: ' + ${subjectAssignment.subject.subjectName} + ' in ' + ${subjectAssignment.schoolClass.className}"
+                                    onclick="removeSubjectAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                    title="Remove subject teacher assignment">
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="staff-card-footer">
+                <div class="card-actions">
+                    <button class="btn btn-sm btn-outline"
+                        th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}"
+                        hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
+                        th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'">
+                        <i class="icon-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-info"
+                        th:hx-get="@{/admin/community/staff/{id}/assignments/modal(id=${staff.id})}"
+                        hx-target="#staffAssignmentModal .modal-dialog" hx-swap="innerHTML"
+                        th:onclick="'setTimeout(() => openModal(\'staffAssignmentModal\'), 100)'">
+                        <i class="icon-plus"></i> Staff Assignments
+                    </button>
+                    <a class="btn btn-sm btn-warning" th:href="@{/staff/view-as/{id}(id=${staff.id})}" target="_blank">
+                        <i class="icon-eye"></i> Dashboard
+                    </a>
+                    <button class="btn btn-sm btn-danger" th:data-staff-id="${staff.id}"
+                        th:data-staff-name="${staff.user.fullName}"
+                        onclick="confirmDeleteStaff(this.dataset.staffId, this.dataset.staffName)">
+                        <i class="icon-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="empty-state" th:if="${staffPage.content.empty}">
+        <div class="empty-icon">👨‍🏫</div>
+        <h3>No Staff Found</h3>
+        <p>Start by adding staff members to the system.</p>
+        <button class="btn btn-primary" hx-get="/admin/community/staff/new/modal" hx-target="#staffModal .modal-dialog"
+            hx-swap="innerHTML" hx-on::after-request="openModal('staffModal')">
+            Add First Staff Member
+        </button>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container" th:if="${staffPage.totalPages > 1}">
+        <div class="pagination-info">
+            Showing <span th:text="${staffPage.number * staffPage.size + 1}">1</span> to
+            <span
+                th:text="${(staffPage.number + 1) * staffPage.size > staffPage.totalElements ? staffPage.totalElements : (staffPage.number + 1) * staffPage.size}">20</span>
+            of <span th:text="${staffPage.totalElements}">100</span> entries
+        </div>
+        <div class="pagination">
+            <a th:if="${staffPage.hasPrevious()}" href="javascript:void(0)"
+                th:attr="hx-get=@{/admin/community/staff(page=${staffPage.number - 1}, size=${staffPage.size})}"
+                hx-target="#staff-cards-container" hx-swap="innerHTML" hx-include="#filterForm" hx-replace-url="true"
+                class="pagination-link">Previous</a>
+
+            <th:block th:each="i : ${#numbers.sequence(0, staffPage.totalPages - 1)}"
+                th:if="${i >= staffPage.number - 2 && i <= staffPage.number + 2}">
+                <a th:if="${i != staffPage.number}" href="javascript:void(0)"
+                    th:attr="hx-get=@{/admin/community/staff(page=${i}, size=${staffPage.size})}"
+                    hx-target="#staff-cards-container" hx-swap="innerHTML" hx-include="#filterForm"
+                    hx-replace-url="true" th:text="${i + 1}" class="pagination-link"></a>
+                <span th:if="${i == staffPage.number}" th:text="${i + 1}" class="pagination-link active"></span>
+            </th:block>
+
+            <a th:if="${staffPage.hasNext()}" href="javascript:void(0)"
+                th:attr="hx-get=@{/admin/community/staff(page=${staffPage.number + 1}, size=${staffPage.size})}"
+                hx-target="#staff-cards-container" hx-swap="innerHTML" hx-include="#filterForm" hx-replace-url="true"
+                class="pagination-link">Next</a>
+        </div>
+    </div>
+</div>

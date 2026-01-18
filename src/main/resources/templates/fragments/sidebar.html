@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <aside th:fragment="sidebar" class="setup-sidebar">
+        <div class="sidebar-header">
+            <h3>Setup Menu</h3>
+        </div>
+        <nav class="setup-nav">
+            <a th:href="@{/admin/school-setup}" th:classappend="${requestURI == '/admin/school-setup' ? 'active' : ''}"
+                class="nav-item">
+                <span class="icon">📊</span>
+                Overview
+            </a>
+            <a th:href="@{/admin/school-setup/school-details}"
+                th:classappend="${requestURI.contains('school-details') ? 'active' : ''}" class="nav-item">
+                <span class="icon">🏫</span>
+                School Details
+            </a>
+            <a th:href="@{/admin/school-setup/academic-structure}"
+                th:classappend="${requestURI.contains('academic-structure') ? 'active' : ''}" class="nav-item">
+                <span class="icon">🏛️</span>
+                Academic Structure
+            </a>
+            <a th:href="@{/admin/school-setup/subjects}"
+                th:classappend="${requestURI.contains('subjects') ? 'active' : ''}" class="nav-item">
+                <span class="icon">📚</span>
+                Subjects
+            </a>
+            <a th:href="@{/admin/school-setup/landing-page}"
+                th:classappend="${requestURI.contains('landing-page') ? 'active' : ''}" class="nav-item">
+                <span class="icon">🌐</span>
+                Landing Page
+            </a>
+        </nav>
+
+        <div class="setup-progress-widget" th:if="${setupProgress != null}">
+            <h4>Setup Progress</h4>
+            <div class="progress-bar small">
+                <div class="progress-fill" th:style="'width: ' + ${setupProgress.progressPercentage} + '%'"></div>
+            </div>
+            <p class="progress-text small">
+                <span th:text="${setupProgress.progressPercentage}">0</span>% Complete
+            </p>
+        </div>
+    </aside>
+</body>
+
+</html>

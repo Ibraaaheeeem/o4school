@@ -1,0 +1,9 @@
+<div id="response-container">
+    <div class="alert alert-success" th:text="${message}">Saved successfully!</div>
+    <script>
+        setTimeout(() => {
+            closeModal('feeItemModal');
+        }, 1000);
+    </script>
+</div>
+<div th:replace="~{admin/financial/fee-items :: feeItemsList(swapOob=true)}"></div>

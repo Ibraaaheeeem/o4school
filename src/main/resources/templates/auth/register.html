@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Register</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body class="auth-body">
+    <div class="auth-container">
+        <!-- School Branding -->
+        <div class="auth-header">
+            <div class="school-brand">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div class="auth-card">
+            <div class="card-header">
+                <h2>Create Account</h2>
+                <p>Join our school community</p>
+            </div>
+
+            <!-- Error and Success Messages -->
+            <div th:if="${error}" class="alert alert-error"
+                style="background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #ef4444;"
+                th:text="${error}"></div>
+            <div th:if="${message}" class="alert alert-success"
+                style="background: #ecfdf5; color: #065f46; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #10b981;"
+                th:text="${message}"></div>
+            <div th:if="${success}" class="alert alert-success"
+                style="background: #ecfdf5; color: #065f46; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #10b981;"
+                th:text="${success}"></div>
+
+            <form class="auth-form" th:action="@{/auth/register}" method="post">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" required placeholder="Enter first name"
+                            class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" required placeholder="Enter last name"
+                            class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="Enter your email"
+                        class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label for="localPhoneNumber">Phone Number</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="countryCode" class="form-input"
+                            style="width: 110px; padding-right: 1.5rem; background-position: right 0.5rem center;">
+                            <option value="+234" selected>🇳🇬 +234</option>
+                            <option value="+1">🇺🇸 +1</option>
+                            <option value="+44">🇬🇧 +44</option>
+                            <option value="+233">🇬🇭 +233</option>
+                            <option value="+254">🇰🇪 +254</option>
+                            <option value="+27">🇿🇦 +27</option>
+                            <option value="+91">🇮🇳 +91</option>
+                            <option value="+971">🇦🇪 +971</option>
+                        </select>
+                        <input type="tel" id="localPhoneNumber" required placeholder="8012345678" class="form-input"
+                            style="flex: 1;">
+                    </div>
+                    <input type="hidden" id="phoneNumber" name="phoneNumber">
+                    <small class="input-help">Leading zeros are automatically removed</small>
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const countryCodeSelect = document.getElementById('countryCode');
+                        const localPhoneInput = document.getElementById('localPhoneNumber');
+                        const hiddenPhoneInput = document.getElementById('phoneNumber');
+
+                        function updatePhoneNumber() {
+                            let localNumber = localPhoneInput.value.replace(/\D/g, ''); // Remove non-digits
+
+                            // Remove leading zeros
+                            while (localNumber.startsWith('0')) {
+                                localNumber = localNumber.substring(1);
+                            }
+
+                            if (localNumber) {
+                                hiddenPhoneInput.value = countryCodeSelect.value + localNumber;
+                            } else {
+                                hiddenPhoneInput.value = '';
+                            }
+                        }
+
+                        localPhoneInput.addEventListener('input', function () {
+                            // Immediately remove leading zeros from view
+                            if (this.value.startsWith('0')) {
+                                this.value = this.value.replace(/^0+/, '');
+                            }
+                            updatePhoneNumber();
+                        });
+
+                        countryCodeSelect.addEventListener('change', updatePhoneNumber);
+                    });
+                </script>
+
+
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" required placeholder="Create password"
+                                class="form-input">
+                            <button type="button" class="password-toggle" onclick="togglePassword('password', this)"
+                                tabindex="-1">
+                                <svg class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="confirmPassword" name="confirmPassword" required
+                                placeholder="Confirm password" class="form-input">
+                            <button type="button" class="password-toggle"
+                                onclick="togglePassword('confirmPassword', this)" tabindex="-1">
+                                <svg class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function togglePassword(inputId, button) {
+                        const input = document.getElementById(inputId);
+                        const icon = button.querySelector('svg');
+
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            icon.innerHTML = `
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                            `;
+                        } else {
+                            input.type = 'password';
+                            icon.innerHTML = `
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            `;
+                        }
+                    }
+                </script>
+
+                <div class="form-group">
+                    <label for="role">Account Type</label>
+                    <select id="role" name="role" class="form-input" onchange="toggleSchoolCode()">
+                        <option value="STAFF">Staff</option>
+                        <option value="PARENT">Parent</option>
+                        <option value="SCHOOL_ADMIN">School Admin</option>
+                    </select>
+                </div>
+
+                <div id="schoolCodeGroup" class="form-group" style="display: none;">
+                    <label for="schoolCode">School Code (Slug)</label>
+                    <input type="text" id="schoolCode" name="schoolCode"
+                        placeholder="Enter the school code provided to you" class="form-input">
+                    <div id="slugFeedback" class="validation-feedback"></div>
+                    <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                        Staff and Parents must provide a valid school code to register.
+                    </small>
+                </div>
+
+                <script>
+                    let slugValidationTimeout;
+
+                    function toggleSchoolCode() {
+                        const role = document.getElementById('role').value;
+                        const schoolCodeGroup = document.getElementById('schoolCodeGroup');
+                        const schoolCodeInput = document.getElementById('schoolCode');
+
+                        if (role === 'STAFF' || role === 'PARENT') {
+                            schoolCodeGroup.style.display = 'block';
+                            schoolCodeInput.required = true;
+                        } else {
+                            schoolCodeGroup.style.display = 'none';
+                            schoolCodeInput.required = false;
+                            // Clear validation state if hidden
+                            clearValidation();
+                        }
+                    }
+
+                    function validateSchoolSlug() {
+                        const input = document.getElementById('schoolCode');
+                        const feedback = document.getElementById('slugFeedback');
+                        const slug = input.value.trim();
+
+                        clearTimeout(slugValidationTimeout);
+                        clearValidation();
+
+                        if (!slug) return;
+
+                        // Show loading state if desired, or just wait
+                        slugValidationTimeout = setTimeout(() => {
+                            fetch(`/api/public/validate-school-slug?slug=${encodeURIComponent(slug)}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.valid) {
+                                        input.classList.remove('is-invalid');
+                                        input.classList.add('is-valid');
+                                        feedback.className = 'validation-feedback valid';
+                                        feedback.innerHTML = `
+                                            <i class="fas fa-check-circle"></i>
+                                            <div>
+                                                <strong>${data.name}</strong><br>
+                                                <small>${data.address}</small>
+                                            </div>
+                                        `;
+                                    } else {
+                                        input.classList.remove('is-valid');
+                                        input.classList.add('is-invalid');
+                                        feedback.className = 'validation-feedback invalid';
+                                        feedback.innerHTML = `
+                                            <i class="fas fa-times-circle"></i>
+                                            <span>Invalid school code</span>
+                                        `;
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error('Validation error:', err);
+                                });
+                        }, 500); // Debounce 500ms
+                    }
+
+                    function clearValidation() {
+                        const input = document.getElementById('schoolCode');
+                        const feedback = document.getElementById('slugFeedback');
+                        input.classList.remove('is-valid', 'is-invalid');
+                        feedback.className = 'validation-feedback';
+                        feedback.innerHTML = '';
+                    }
+
+                    // Run on load in case of browser autocomplete
+                    document.addEventListener('DOMContentLoaded', () => {
+                        toggleSchoolCode();
+                        const schoolCodeInput = document.getElementById('schoolCode');
+                        schoolCodeInput.addEventListener('input', validateSchoolSlug);
+                    });
+                </script>
+
+                <style>
+                    .validation-feedback {
+                        margin-top: 0.5rem;
+                        font-size: 0.9rem;
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 0.5rem;
+                        min-height: 1.5rem;
+                    }
+
+                    .validation-feedback.valid {
+                        color: #059669;
+                    }
+
+                    .validation-feedback.invalid {
+                        color: #dc2626;
+                    }
+
+                    .form-input.is-valid {
+                        border-color: #059669;
+                        background-image: none;
+                        /* Remove default browser icons if any */
+                    }
+
+                    .form-input.is-invalid {
+                        border-color: #dc2626;
+                    }
+                </style>
+
+                <button type="submit" class="auth-btn primary">
+                    <span>Create Account</span>
+                    <i class="btn-icon">→</i>
+                </button>
+            </form>
+
+            <!-- Alternative Actions -->
+            <div class="auth-links">
+                <p>Already have an account?
+                    <a th:href="@{/login}" class="link-primary">Sign In</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

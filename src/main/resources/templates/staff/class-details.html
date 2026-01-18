@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <div th:fragment="class-detail-fragment">
+        <!-- Header -->
+        <div class="section-header"
+            style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0;">
+            <div>
+                <h2 class="section-title" th:text="${schoolClass.className}"
+                    style="margin-bottom: 0.5rem; font-size: 1.5rem;">Class Name</h2>
+                <div style="display: flex; gap: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                    <span th:if="${schoolClass.gradeLevel}">
+                        <i class="fas fa-layer-group" style="margin-right: 0.5rem;"></i> <span
+                            th:text="${schoolClass.gradeLevel}"></span>
+                    </span>
+                    <span th:if="${currentTerm}">
+                        <i class="fas fa-calendar-alt" style="margin-right: 0.5rem;"></i> <span
+                            th:text="${currentTerm.termName}"></span>
+                    </span>
+                    <span>
+                        <i class="fas fa-users" style="margin-right: 0.5rem;"></i> <span
+                            th:text="${#lists.size(students)} + ' Students'"></span>
+                    </span>
+                </div>
+            </div>
+            <div th:if="${isClassTeacher}">
+                <span class="role-badge class-teacher" style="font-size: 0.8rem; padding: 0.5rem 1rem;">Class
+                    Teacher</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container"
+            style="padding: 0 1.5rem; margin-bottom: 0; background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="students">Students</button>
+                <button class="tab-btn" data-tab="subjects">Subjects</button>
+                <button class="tab-btn" data-tab="attendance">Attendance</button>
+                <button class="tab-btn" data-tab="assessments">Assessments</button>
+            </div>
+        </div>
+
+        <!-- Content Padding -->
+        <div style="padding: 1.5rem;">
+
+            <!-- Students Tab -->
+            <div id="students-tab" class="tab-pane active">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                    <a th:href="@{/staff/classes/{id}/students/export(id=${schoolClass.id})}" class="action-btn"
+                        style="background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-export"></i> Export List
+                    </a>
+                </div>
+
+                <div th:if="${#lists.isEmpty(students)}" class="empty-state"
+                    style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                    <p>No students enrolled.</p>
+                </div>
+
+                <div class="dashboard-grid" th:unless="${#lists.isEmpty(students)}"
+                    style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+                    <div th:each="student : ${students}" class="dashboard-card"
+                        style="padding: 1.5rem; align-items: center; text-align: center;">
+                        <div
+                            style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 1rem; border: 3px solid var(--border-color);">
+                            <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
+                                style="width: 100%; height: 100%; object-fit: cover;"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div th:unless="${student.passportPhotoUrl}"
+                                style="width: 100%; height: 100%; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 2rem;"
+                                th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                            <div th:if="${student.passportPhotoUrl}"
+                                style="display: none; width: 100%; height: 100%; background: var(--bg-hover); align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 2rem;"
+                                th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                        </div>
+                        <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-main);"
+                            th:text="${student.user.fullName}">Name</h4>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;"
+                            th:text="${student.admissionNumber}">ID</p>
+                        <a th:href="@{/staff/students/{id}(id=${student.id})}" class="card-link"
+                            style="width: 100%; justify-content: center; border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: auto;">
+                            View Profile <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subjects Tab -->
+            <div id="subjects-tab" class="tab-pane">
+                <div class="dashboard-grid" th:unless="${#lists.isEmpty(classSubjects)}">
+                    <div th:each="classSubject : ${classSubjects}" class="dashboard-card" style="padding: 1.5rem;">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: #f0f9ff; color: #0ea5e9;">
+                                <i class="fas fa-book"></i>
+                            </div>
+                        </div>
+                        <h4 class="card-title"
+                            style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.5rem;"
+                            th:text="${classSubject.subject.subjectName}">Subject</h4>
+                        <p class="card-value"
+                            style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0;"
+                            th:text="${classSubject.subject.subjectCode}">Code</p>
+
+                        <div th:if="${#lists.contains(subjectsTaught, classSubject.subject)}" style="margin-top: 1rem;">
+                            <span class="role-badge subject-teacher">You teach this</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div id="attendance-tab" class="tab-pane">
+                <div class="actions-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+                    <a th:href="@{/staff/classes/{id}/attendance/take(id=${schoolClass.id})}"
+                        onclick="loadAttendanceView(event, this)" class="action-card">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Take Attendance</span>
+                    </a>
+                    <a th:href="@{/staff/classes/{id}/attendance/history(id=${schoolClass.id})}"
+                        onclick="loadAttendanceView(event, this)" class="action-card">
+                        <i class="fas fa-history"></i>
+                        <span>View History</span>
+                    </a>
+                    <a th:href="@{/staff/classes/{id}/attendance/report(id=${schoolClass.id})}"
+                        onclick="loadAttendanceView(event, this)" class="action-card">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Generate Report</span>
+                    </a>
+                </div>
+
+                <div th:if="${attendanceTakenToday}">
+                    <h3 class="section-title" style="margin-bottom: 1rem; font-size: 1.1rem;">Today's Summary</h3>
+                    <div class="dashboard-grid"
+                        style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                        <div class="stat-badge" style="background: #f0fdf4; border-color: #bbf7d0;">
+                            <span class="value" style="color: #16a34a;" th:text="${presentCount}">0</span>
+                            <span class="label">Present</span>
+                        </div>
+                        <div class="stat-badge" style="background: #fef2f2; border-color: #fecaca;">
+                            <span class="value" style="color: #dc2626;" th:text="${absentCount}">0</span>
+                            <span class="label">Absent</span>
+                        </div>
+                        <div class="stat-badge" style="background: #fffbeb; border-color: #fde68a;">
+                            <span class="value" style="color: #d97706;" th:text="${lateCount}">0</span>
+                            <span class="label">Late</span>
+                        </div>
+                        <div class="stat-badge" style="background: #eff6ff; border-color: #bfdbfe;">
+                            <span class="value" style="color: #2563eb;" th:text="${excusedCount}">0</span>
+                            <span class="label">Excused</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assessments Tab -->
+            <div id="assessments-tab" class="tab-pane">
+                <div id="assessments-content">
+                    <!-- Loaded via AJAX -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

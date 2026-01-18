@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+
+    <!-- Email Form Fragment -->
+    <div th:fragment="email-form" id="auth-step-container">
+        <div th:fragment="email-form-content" id="email-form-content">
+            <div class="card-header">
+                <h2 th:text="${type == 'ACTIVATE' ? 'Activate Account' : 'Reset Password'}">Auth Action</h2>
+                <p>Enter your email address to receive an OTP</p>
+            </div>
+
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <form class="auth-form" hx-post="/auth/request-otp" hx-target="#auth-step-container" hx-swap="outerHTML"
+                hx-indicator="#otp-btn">
+                <input type="hidden" name="type" th:value="${type}">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required th:value="${email}"
+                        placeholder="Enter your registered email" class="form-input">
+                </div>
+
+                <button id="otp-btn" type="submit" class="auth-btn primary">
+                    <span>Send me OTP</span>
+                    <i class="btn-icon">→</i>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- OTP Form Fragment -->
+    <div th:fragment="otp-form" id="auth-step-container">
+        <div th:fragment="otp-form-content" id="otp-form-content">
+            <div class="card-header">
+                <h2>Verify OTP</h2>
+                <p>Enter the 6-digit code sent to <strong th:text="${email}"></strong></p>
+            </div>
+
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <form class="auth-form" hx-post="/auth/verify-otp" hx-target="#auth-step-container" hx-swap="outerHTML"
+                hx-indicator="#verify-btn">
+                <input type="hidden" name="email" th:value="${email}">
+                <input type="hidden" name="type" th:value="${type}">
+
+                <div class="form-group">
+                    <label for="otp">One-Time Password (OTP)</label>
+                    <input type="text" id="otp" name="otp" required placeholder="Enter 6-digit code" class="form-input"
+                        maxlength="6">
+                </div>
+
+                <button id="verify-btn" type="submit" class="auth-btn primary">
+                    <span>Verify OTP</span>
+                    <i class="btn-icon">✓</i>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+
+            <div class="auth-links">
+                <p>Didn't receive the code?
+                    <a href="#" hx-post="/auth/request-otp"
+                        th:hx-vals="'{&quot;email&quot;: &quot;' + ${email} + '&quot;, &quot;type&quot;: &quot;' + ${type} + '&quot;}'"
+                        hx-target="#auth-step-container" hx-swap="outerHTML" class="link-primary">Resend Code</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Reset Form Fragment -->
+    <div th:fragment="password-reset-form" id="auth-step-container">
+        <div th:fragment="password-form-content" id="password-form-content">
+            <div class="card-header">
+                <h2>Set New Password</h2>
+                <p>Please enter your new password below</p>
+            </div>
+
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <form class="auth-form" hx-post="/auth/reset-password" hx-target="#auth-step-container" hx-swap="outerHTML"
+                hx-indicator="#reset-btn">
+                <input type="hidden" name="email" th:value="${email}">
+                <input type="hidden" name="otp" th:value="${otp}">
+
+                <div class="form-group">
+                    <label for="password">New Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" required placeholder="Enter new password"
+                            class="form-input">
+                        <button type="button" class="password-toggle" onclick="togglePassword('password', this)"
+                            tabindex="-1">
+                            <svg class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="confirmPassword" name="confirmPassword" required
+                            placeholder="Confirm new password" class="form-input">
+                        <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword', this)"
+                            tabindex="-1">
+                            <svg class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button id="reset-btn" type="submit" class="auth-btn primary">
+                    <span>Reset Password</span>
+                    <i class="btn-icon">🔒</i>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+            <script>
+                if (typeof togglePassword !== 'function') {
+                    function togglePassword(inputId, button) {
+                        const input = document.getElementById(inputId);
+                        const icon = button.querySelector('svg');
+
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            icon.innerHTML = `
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                            `;
+                        } else {
+                            input.type = 'password';
+                            icon.innerHTML = `
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            `;
+                        }
+                    }
+                }
+            </script>
+        </div>
+    </div>
+
+    <!-- Success Message Fragment -->
+    <div th:fragment="success-message" id="auth-step-container">
+        <div class="card-header">
+            <h2>Success!</h2>
+            <p th:text="${success}">Action completed successfully.</p>
+        </div>
+
+        <div class="auth-links" style="text-align: center; margin-top: 1.5rem;">
+            <a th:href="@{/login}" class="auth-btn primary"
+                style="text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box;">
+                <span>Go to Login</span>
+                <i class="btn-icon">→</i>
+            </a>
+        </div>
+    </div>
+
+</body>
+
+</html>

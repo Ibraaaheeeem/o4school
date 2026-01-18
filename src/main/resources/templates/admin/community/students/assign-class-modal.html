@@ -1,0 +1,67 @@
+<!-- Student Class Assignment Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3>Assign Student to Class</h3>
+        <button class="close-modal" onclick="closeModal('studentClassModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/community/students/{studentId}/assign-class/modal"
+        th:hx-post="@{/admin/community/students/{studentId}/assign-class/modal(studentId=${student.id})}"
+        hx-target="#student-cards-container" hx-swap="innerHTML"
+        hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('studentClassModal'); } else { alert('Error assigning class. Please try again.'); }"
+        hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form"
+        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+        <div class="modal-body">
+            <div class="student-info">
+                <h4>Student: <span th:text="${student.user.fullName}">Student Name</span></h4>
+                <p>Student ID: <span th:text="${student.studentId}">STU001</span></p>
+            </div>
+
+            <!-- Current Assignments -->
+            <div class="form-section" th:if="${!currentAssignments.empty}">
+                <h5>Current Class Assignments</h5>
+                <div class="current-assignments">
+                    <div th:each="assignment : ${currentAssignments}" class="assignment-item">
+                        <span
+                            th:text="${(assignment.schoolClass.department?.track?.name ?: 'Unknown') + ' - ' + assignment.schoolClass.className}">Track
+                            - Class</span>
+                        <span class="academic-year" th:text="${assignment.academicSession.sessionYear}">2024-2025</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assignment Form -->
+            <div class="form-section">
+                <h5>Assign to New Class</h5>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="modalTrackId">Education Track *</label>
+                        <select id="modalTrackId" name="trackId" class="form-select" required
+                            onchange="loadClassesByTrackModal(this)" data-student-id="${student.id}"
+                            th:data-student-id="${student.id}">
+                            <option value="">Select Track</option>
+                            <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
+                                Track Name
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalClassId">Class *</label>
+                        <select id="modalClassId" name="assignedClassId" class="form-select" required disabled>
+                            <option value="">Select Track First</option>
+                        </select>
+                    </div>
+
+                    <!-- Academic Year is determined by the current session -->
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('studentClassModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Assign to Class</button>
+        </div>
+    </form>
+</div>

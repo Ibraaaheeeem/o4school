@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Edit ' + ${#strings.capitalize(#strings.replace(section, '-', ' '))} + ' - Content Management'">
+        Edit Content - 4School Management System</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <!-- Quill CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+
+        .editor-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        /* Quill Editor Styles */
+        #quill-editor-container {
+            height: calc(100% - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ql-container {
+            flex-grow: 1;
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        .ql-editor {
+            min-height: 200px;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: calc(100% - 60px);
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            flex-grow: 1;
+        }
+
+        .editor-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .help-section {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .help-section h4 {
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        .help-section code {
+            background: #e5e7eb;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.875rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+
+        .status-custom {
+            color: #059669;
+        }
+
+        .status-default {
+            color: #d97706;
+        }
+
+        @media (max-width: 1024px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            #quill-editor-container {
+                height: 400px;
+            }
+
+            .preview-frame {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include School Setup Sidebar -->
+        <!-- Include Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1 th:text="'Edit ' + ${#strings.capitalize(#strings.replace(section, '-', ' '))}">Edit Content
+                        </h1>
+                        <p>Customize this section of your school's landing page</p>
+                    </div>
+                    <div class="status-indicator">
+                        <span th:if="${hasCustomContent}" class="status-custom">
+                            <i class="fas fa-check-circle"></i> Custom Content
+                        </span>
+                        <span th:unless="${hasCustomContent}" class="status-default">
+                            <i class="fas fa-cog"></i> Using Default
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="help-section">
+                <h4><i class="fas fa-info-circle"></i> Editing Tips</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div>
+                        <strong>School Variables:</strong><br>
+                        <code th:text="${school.name}">school.name</code><br>
+                        <code th:text="${school.schoolMotto}">school.schoolMotto</code><br>
+                        <code th:text="${school.email}">school.email</code>
+                    </div>
+                    <div>
+                        <strong>CSS Classes:</strong><br>
+                        <code>.btn .btn-primary</code><br>
+                        <code>.feature-card</code><br>
+                        <code>.section-title</code>
+                    </div>
+                    <div>
+                        <strong>HTML Tags:</strong><br>
+                        Use standard HTML for formatting<br>
+                        Include images, links, etc.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Container -->
+            <div class="editor-container">
+                <!-- Content Editor -->
+                <div class="editor-panel">
+                    <div class="editor-header">
+                        <h3><i class="fas fa-edit"></i> Rich Text Editor</h3>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleHtmlMode()">
+                                <i class="fas fa-code"></i> <span id="mode-text">View HTML</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="contentForm" style="height: 100%; display: flex; flex-direction: column;">
+                        <!-- Hidden input to store the actual HTML content -->
+                        <input type="hidden" id="content-input" name="content">
+
+                        <!-- Quill Editor Container -->
+                        <div id="quill-editor-container">
+                            <div id="editor"></div>
+                        </div>
+
+                        <!-- Raw HTML Editor (Hidden by default) -->
+                        <textarea id="html-editor" class="content-editor"
+                            style="display: none; height: calc(100% - 120px); width: 100%; font-family: monospace; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: none;"></textarea>
+
+                        <div class="editor-actions">
+                            <div>
+                                <button type="button" class="btn btn-primary" onclick="saveContent()">
+                                    <i class="fas fa-save"></i> Save Content
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="updatePreviewFromEditor()">
+                                    <i class="fas fa-eye"></i> Update Preview
+                                </button>
+                            </div>
+                            <div>
+                                <a th:href="@{/admin/school-content}" class="btn btn-outline">
+                                    <i class="fas fa-arrow-left"></i> Back
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="editor-panel">
+                    <div class="editor-header">
+                        <h3><i class="fas fa-eye"></i> Live Preview</h3>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="openFullPreview()">
+                            <i class="fas fa-external-link-alt"></i> Full Preview
+                        </button>
+                    </div>
+
+                    <iframe id="previewFrame" class="preview-frame"
+                        srcdoc="<p>Click 'Update Preview' to see your changes</p>">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <script th:inline="javascript">
+        const section = /*[[${section}]]*/ 'section';
+        const initialContent = /*[[${content}]]*/ '';
+        let quill;
+        let isHtmlMode = false;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize Quill
+            quill = new Quill('#editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+                        ['blockquote', 'code-block'],
+
+                        [{ 'header': 1 }, { 'header': 2 }],               // custom button values
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'script': 'sub' }, { 'script': 'super' }],      // superscript/subscript
+                        [{ 'indent': '-1' }, { 'indent': '+1' }],          // outdent/indent
+                        [{ 'direction': 'rtl' }],                         // text direction
+
+                        [{ 'size': ['small', false, 'large', 'huge'] }],  // custom dropdown
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+
+                        [{ 'color': [] }, { 'background': [] }],          // dropdown with defaults from theme
+                        [{ 'font': [] }],
+                        [{ 'align': [] }],
+
+                        ['clean'],                                         // remove formatting button
+                        ['link', 'image', 'video']
+                    ]
+                }
+            });
+
+            // Set initial content
+            // We need to decode HTML entities if they were encoded by Thymeleaf
+            const txt = document.createElement("textarea");
+            txt.innerHTML = initialContent;
+            quill.root.innerHTML = txt.value;
+
+            // Also set for HTML editor
+            document.getElementById('html-editor').value = txt.value;
+
+            // Update preview initially
+            updatePreviewFromEditor();
+
+            // Auto-update preview on change (debounced)
+            let timeout;
+            quill.on('text-change', function () {
+                clearTimeout(timeout);
+                timeout = setTimeout(updatePreviewFromEditor, 1000);
+            });
+
+            document.getElementById('html-editor').addEventListener('input', function () {
+                clearTimeout(timeout);
+                timeout = setTimeout(updatePreviewFromEditor, 1000);
+            });
+        });
+
+        function toggleHtmlMode() {
+            const quillContainer = document.getElementById('quill-editor-container');
+            const htmlEditor = document.getElementById('html-editor');
+            const modeText = document.getElementById('mode-text');
+
+            if (isHtmlMode) {
+                // Switch to Rich Text
+                // Update Quill with HTML content
+                quill.root.innerHTML = htmlEditor.value;
+
+                htmlEditor.style.display = 'none';
+                quillContainer.style.display = 'flex';
+                modeText.textContent = 'View HTML';
+                isHtmlMode = false;
+            } else {
+                // Switch to HTML
+                // Update HTML editor with Quill content
+                htmlEditor.value = quill.root.innerHTML;
+
+                quillContainer.style.display = 'none';
+                htmlEditor.style.display = 'block';
+                modeText.textContent = 'View Rich Text';
+                isHtmlMode = true;
+            }
+        }
+
+        function getCurrentContent() {
+            if (isHtmlMode) {
+                return document.getElementById('html-editor').value;
+            } else {
+                return quill.root.innerHTML;
+            }
+        }
+
+        function saveContent() {
+            const content = getCurrentContent();
+            const formData = new FormData();
+            formData.append('content', content);
+
+            // Get CSRF token from meta tags
+            const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+            const headers = {};
+            if (csrfToken && csrfHeader) {
+                headers[csrfHeader] = csrfToken;
+            }
+
+            fetch(`/admin/school-content/save/${section}`, {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Content saved successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error saving content');
+                    console.error('Error:', error);
+                });
+        }
+
+        function updatePreviewFromEditor() {
+            const content = getCurrentContent();
+            previewContent(content);
+        }
+
+        function previewContent(content) {
+            const schoolName = /*[[${school.name}]]*/ 'School Name';
+            const schoolMotto = /*[[${school.schoolMotto}]]*/ 'School Motto';
+            const schoolEmail = /*[[${school.email}]]*/ 'school@example.com';
+
+            // Replace Thymeleaf expressions with actual values for preview
+            let previewContent = content
+                .replace(/th:text="\${school\.name}"/g, `>${schoolName}<`)
+                .replace(/th:text="\${school\.schoolMotto}"/g, `>${schoolMotto}<`)
+                .replace(/th:text="\${school\.email}"/g, `>${schoolEmail}<`)
+                .replace(/\$\{school\.name\}/g, schoolName)
+                .replace(/\$\{school\.schoolMotto\}/g, schoolMotto)
+                .replace(/\$\{school\.email\}/g, schoolEmail);
+
+            const previewHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Content Preview</title>
+                    <link rel="stylesheet" href="/css/public.css">
+                    <style>
+                        body { 
+                            padding: 20px; 
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        }
+                        :root {
+                            --primary-color: /*[[${school.primaryColor != null ? school.primaryColor : '#007bff'}]]*/ '#007bff';
+                            --secondary-color: /*[[${school.secondaryColor != null ? school.secondaryColor : '#6c757d'}]]*/ '#6c757d';
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="border: 2px dashed #ccc; padding: 20px; margin: 10px 0;">
+                        <h3 style="margin-top: 0; color: #666;">Preview: ${section}</h3>
+                        ${previewContent}
+                    </div>
+                </body>
+                </html>
+            `;
+
+            document.getElementById('previewFrame').srcdoc = previewHtml;
+        }
+
+        function openFullPreview() {
+            const schoolSlug = /*[[${school.slug}]]*/ 'school-slug';
+            window.open(`/${schoolSlug}`, '_blank');
+        }
+    </script>
+</body>
+
+</html>

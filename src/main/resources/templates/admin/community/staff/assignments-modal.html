@@ -1,0 +1,364 @@
+<!-- Staff Assignments Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title">
+            <i class="fas fa-chalkboard-teacher me-2"></i>
+            Teacher Assignments - <span th:text="${staff.user.firstName + ' ' + staff.user.lastName}"></span>
+        </h5>
+        <button type="button" class="btn-close" onclick="closeModal('staffAssignmentModal')" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+
+    <div class="modal-body">
+        <!-- Flash Messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${info}" class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <span th:text="${info}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="staff-summary mb-4">
+            <div class="d-flex align-items-center">
+                <div class="avatar-circle me-3">
+                    <span th:text="${#strings.substring(staff.user.firstName, 0, 1)}">A</span>
+                </div>
+                <div>
+                    <h5 class="mb-0" th:text="${staff.user.firstName + ' ' + staff.user.lastName}">Staff Name</h5>
+                    <small class="text-muted" th:text="${staff.staffId}">STF001</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Class Teacher Assignment -->
+            <div class="col-md-6">
+                <div class="assignment-section">
+                    <h6 class="section-title">
+                        <i class="fas fa-users me-2"></i>Class Teacher Assignment
+                    </h6>
+
+                    <form id="classTeacherForm"
+                        th:hx-post="@{/admin/community/staff/{staffId}/assign-class-htmx(staffId=${staff.id})}"
+                        hx-target="#staff-cards-content" hx-swap="outerHTML"
+                        hx-on::before-request="console.log('=== HTMX BEFORE REQUEST ===', event.detail); console.log('URL:', event.detail.requestConfig.path); console.log('Method:', event.detail.requestConfig.verb);"
+                        hx-on::after-request="console.log('=== HTMX AFTER REQUEST ===', event.detail); console.log('Status:', event.detail.xhr.status); console.log('Response:', event.detail.xhr.responseText); closeModal('staffAssignmentModal')"
+                        hx-on::response-error="console.log('=== HTMX ERROR ===', event.detail); console.log('Error Status:', event.detail.xhr.status); console.log('Error Response:', event.detail.xhr.responseText);"
+                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                        action="javascript:void(0);"
+                        onsubmit="console.log('=== FORM SUBMIT EVENT ==='); event.preventDefault(); return false;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <div class="mb-3 track-selection">
+                            <label for="classTeacherTrackId" class="form-label">
+                                <i class="fas fa-route me-1"></i>Select Track
+                            </label>
+                            <select class="form-select form-select-sm" id="classTeacherTrackId"
+                                onchange="loadAssignmentClassesByTrack('classTeacher')">
+                                <option value="">Choose a track...</option>
+                                <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 class-selection">
+                            <label for="classTeacherClassId" class="form-label">
+                                <i class="fas fa-school me-1"></i>Select Class
+                            </label>
+                            <select class="form-select form-select-sm" id="classTeacherClassId" name="assignedClassId"
+                                disabled>
+                                <option value="">First select a track...</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-2"></i>Assign as Class Teacher
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Current Class Assignments -->
+                    <div class="current-assignments mt-3" th:if="${!#lists.isEmpty(currentClassAssignments)}">
+                        <h6 class="assignments-title">Current Class Assignments</h6>
+                        <div th:each="assignment : ${currentClassAssignments}" class="assignment-item">
+                            <div class="assignment-info">
+                                <span class="assignment-name"
+                                    th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"></span>
+                                <small class="assignment-year"
+                                    th:text="${assignment.academicSession.sessionName + ' - ' + assignment.term.termName}"></small>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-xs"
+                                th:data-assignment-id="${assignment.id}"
+                                th:data-assignment-info="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
+                                onclick="removeClassAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                title="Remove Assignment">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject Teacher Assignment -->
+            <div class="col-md-6">
+                <div class="assignment-section">
+                    <h6 class="section-title">
+                        <i class="fas fa-book me-2"></i>Subject Teacher Assignment
+                    </h6>
+
+                    <form id="subjectTeacherForm"
+                        th:hx-post="@{/admin/community/staff/{staffId}/assign-subject-htmx(staffId=${staff.id})}"
+                        hx-target="#staff-cards-content" hx-swap="outerHTML"
+                        hx-on::before-request="console.log('Subject teacher form submitting...', event.detail)"
+                        hx-on::after-request="console.log('Subject teacher form response received...', event.detail); closeModal('staffAssignmentModal')"
+                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                        action="javascript:void(0);"
+                        onsubmit="console.log('=== SUBJECT FORM SUBMIT EVENT ==='); event.preventDefault(); return false;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <div class="mb-3 track-selection">
+                            <label for="subjectTeacherTrackId" class="form-label">
+                                <i class="fas fa-route me-1"></i>Select Track
+                            </label>
+                            <select class="form-select form-select-sm" id="subjectTeacherTrackId"
+                                onchange="loadAssignmentClassesByTrack('subjectTeacher')">
+                                <option value="">Choose a track...</option>
+                                <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 class-selection">
+                            <label for="subjectTeacherClassId" class="form-label">
+                                <i class="fas fa-school me-1"></i>Select Class
+                            </label>
+                            <select class="form-select form-select-sm" id="subjectTeacherClassId" name="assignedClassId"
+                                onchange="loadAssignmentSubjectsByClass()" required disabled>
+                                <option value="">First select a track...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 subject-selection">
+                            <label for="subjectId" class="form-label">
+                                <i class="fas fa-book me-1"></i>Select Subject
+                            </label>
+                            <select class="form-select form-select-sm" id="subjectId" name="subjectId" required
+                                disabled>
+                                <option value="">First select a class...</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                <i class="fas fa-plus me-2"></i>Assign as Subject Teacher
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Current Subject Assignments -->
+                    <div class="current-assignments mt-3" th:if="${!#lists.isEmpty(currentSubjectAssignments)}">
+                        <h6 class="assignments-title">Current Subject Assignments</h6>
+                        <div th:each="assignment : ${currentSubjectAssignments}" class="assignment-item">
+                            <div class="assignment-info">
+                                <span class="assignment-name" th:text="${assignment.subject.subjectName}"></span>
+                                <small class="assignment-details"
+                                    th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"></small>
+                                <small class="assignment-year"
+                                    th:text="${assignment.academicSession.sessionName + ' - ' + assignment.term.termName}"></small>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-xs"
+                                th:data-assignment-id="${assignment.id}"
+                                th:data-assignment-info="${assignment.subject.subjectName + ' in ' + (assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
+                                onclick="removeSubjectAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                title="Remove Assignment">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="academic-year-info">
+                    <small class="text-muted">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        Academic Session: <strong th:text="${currentSession.sessionName}"></strong> |
+                        Term: <strong th:text="${currentTerm.termName}"></strong>
+                    </small>
+                </div>
+
+                <!-- Debug Test Button -->
+                <div class="mt-2">
+                    <button type="button" class="btn btn-info btn-sm" hx-get="/admin/community/staff"
+                        hx-target="#debug-test-result" onclick="console.log('=== DEBUG TEST BUTTON CLICKED ===')">
+                        Test HTMX Connection
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm"
+                        th:hx-post="@{/admin/community/staff/{staffId}/test-route(staffId=${staff.id})}"
+                        hx-target="#debug-test-result" onclick="console.log('=== ROUTE TEST BUTTON CLICKED ===')"
+                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                        Test Route
+                    </button>
+                    <div id="debug-test-result" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('staffAssignmentModal')">
+            <i class="fas fa-times me-2"></i>Close
+        </button>
+    </div>
+</div>
+
+<script>
+    // Debug HTMX and form functionality
+    console.log('=== ASSIGNMENTS MODAL SCRIPT LOADED ===');
+    console.log('HTMX available:', typeof htmx !== 'undefined');
+    console.log('jQuery available:', typeof $ !== 'undefined');
+
+    // Add event listeners when DOM is ready
+    // Run immediately when script is loaded
+    (function () {
+        console.log('=== MODAL SCRIPT EXECUTING ===');
+
+        // Manually process HTMX for the modal content to ensure bindings work
+        const modalContent = document.getElementById('staffAssignmentModal');
+        if (modalContent && typeof htmx !== 'undefined') {
+            console.log('Processing HTMX for modal content');
+            htmx.process(modalContent);
+        }
+
+        // Test if forms exist
+        const classForm = document.querySelector('form[hx-post*="assign-class-htmx"]');
+        const subjectForm = document.querySelector('form[hx-post*="assign-subject-htmx"]');
+
+        console.log('Class form found:', !!classForm);
+        console.log('Subject form found:', !!subjectForm);
+
+        if (classForm) {
+            console.log('Class form action:', classForm.getAttribute('hx-post'));
+            // Add direct submit listener for debugging
+            classForm.addEventListener('submit', function (e) {
+                console.log('=== NATIVE FORM SUBMIT ===');
+                // We don't prevent default here because we want HTMX to handle it
+                // But if HTMX isn't handling it, the browser might try a standard submit
+            });
+        }
+        if (subjectForm) {
+            console.log('Subject form action:', subjectForm.getAttribute('hx-post'));
+        }
+    })();
+
+    // Dynamic loading functions for staff assignments
+    function loadClassesByTrack(assignmentType) {
+        console.log('=== LOADING CLASSES BY TRACK ===', assignmentType);
+        const trackSelect = document.getElementById(assignmentType + 'TrackId');
+        const classSelect = document.getElementById(assignmentType + 'ClassId');
+        const subjectSelect = document.getElementById('subjectId');
+
+        const trackId = trackSelect.value;
+        console.log('Selected track ID:', trackId);
+
+        if (!trackId) {
+            classSelect.innerHTML = '<option value="">First select a track...</option>';
+            classSelect.disabled = true;
+            if (subjectSelect) {
+                subjectSelect.innerHTML = '<option value="">First select a class...</option>';
+                subjectSelect.disabled = true;
+            }
+            return;
+        }
+
+        // Show loading state
+        classSelect.innerHTML = '<option value="">Loading classes...</option>';
+        classSelect.disabled = true;
+
+        // Load classes for selected track
+        const url = `/admin/community/staff/classes-by-track/${trackId}`;
+        console.log('Fetching classes from:', url);
+
+        fetch(url)
+            .then(response => {
+                console.log('Classes response status:', response.status);
+                return response.json();
+            })
+            .then(classes => {
+                console.log('Classes loaded:', classes);
+                classSelect.innerHTML = '<option value="">Choose a class...</option>';
+                classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = cls.className + (cls.gradeLevel ? ' (' + cls.gradeLevel + ')' : '');
+                    classSelect.appendChild(option);
+                });
+                classSelect.disabled = false;
+
+                // Reset subject dropdown if it exists
+                if (subjectSelect) {
+                    subjectSelect.innerHTML = '<option value="">First select a class...</option>';
+                    subjectSelect.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading classes:', error);
+                classSelect.innerHTML = '<option value="">Error loading classes</option>';
+            });
+    }
+
+    function loadSubjectsByClass() {
+        console.log('=== LOADING SUBJECTS BY CLASS ===');
+        const classSelect = document.getElementById('subjectTeacherClassId');
+        const subjectSelect = document.getElementById('subjectId');
+
+        const classId = classSelect.value;
+        console.log('Selected class ID:', classId);
+
+        if (!classId) {
+            subjectSelect.innerHTML = '<option value="">First select a class...</option>';
+            subjectSelect.disabled = true;
+            return;
+        }
+
+        // Show loading state
+        subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';
+        subjectSelect.disabled = true;
+
+        // Load subjects for selected class
+        const url = `/admin/community/staff/subjects-by-class/${classId}`;
+        console.log('Fetching subjects from:', url);
+
+        fetch(url)
+            .then(response => {
+                console.log('Subjects response status:', response.status);
+                return response.json();
+            })
+            .then(subjects => {
+                console.log('Subjects loaded:', subjects);
+                subjectSelect.innerHTML = '<option value="">Choose a subject...</option>';
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject.id;
+                    option.textContent = subject.subjectName + (subject.subjectCode ? ' (' + subject.subjectCode + ')' : '');
+                    subjectSelect.appendChild(option);
+                });
+                subjectSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error loading subjects:', error);
+                subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
+            });
+    }
+</script>

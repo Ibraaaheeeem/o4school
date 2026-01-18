@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <!-- School Header Component -->
+    <!-- School Header Component -->
+    <header th:fragment="school-header" class="school-header">
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+            rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+        <style>
+            :root {
+                --header-bg: rgba(255, 255, 255, 0.9);
+                --header-blur: 16px;
+                --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%, #db2777 100%);
+                --brand-gradient: linear-gradient(135deg, #1e293b 0%, #4338ca 100%);
+                --text-main: #0f172a;
+                --text-muted: #64748b;
+                --glass-border: rgba(226, 232, 240, 0.8);
+                --accent-color: #4f46e5;
+            }
+
+            .school-header {
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                background: var(--header-bg);
+                backdrop-filter: blur(var(--header-blur));
+                -webkit-backdrop-filter: blur(var(--header-blur));
+                border-bottom: 1px solid var(--glass-border);
+                padding: 0.6rem 0;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                font-family: 'Inter', sans-serif;
+                box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+            }
+
+            .header-container {
+                max-width: 1440px;
+                margin: 0 auto;
+                padding: 0 1.5rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 1.5rem;
+            }
+
+            /* Combined Brand Container */
+            .brand-container {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.4rem 0.8rem;
+                background: rgba(248, 250, 252, 0.8);
+                border-radius: 16px;
+                border: 1px solid rgba(226, 232, 240, 0.5);
+                transition: all 0.3s ease;
+                text-decoration: none;
+            }
+
+            .brand-container:hover {
+                background: #ffffff;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+                transform: translateY(-1px);
+            }
+
+            .logo-wrapper {
+                position: relative;
+                width: 44px;
+                height: 44px;
+                flex-shrink: 0;
+            }
+
+            .school-logo {
+                width: 100%;
+                height: 100%;
+                border-radius: 12px;
+                object-fit: cover;
+                border: 2px solid white;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .logo-placeholder {
+                width: 100%;
+                height: 100%;
+                border-radius: 12px;
+                background: var(--brand-gradient);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+                color: white;
+                box-shadow: 0 4px 10px rgba(67, 56, 202, 0.2);
+            }
+
+            .brand-details {
+                display: flex;
+                flex-direction: column;
+                gap: 0.1rem;
+            }
+
+            .brand-name-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .school-name {
+                font-family: 'Outfit', sans-serif;
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: var(--text-main);
+                margin: 0;
+                line-height: 1;
+                letter-spacing: -0.02em;
+            }
+
+            .brand-badge {
+                padding: 0.2rem 0.5rem;
+                background: var(--brand-gradient);
+                color: white;
+                font-size: 0.65rem;
+                font-weight: 800;
+                border-radius: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                box-shadow: 0 2px 5px rgba(67, 56, 202, 0.2);
+            }
+
+            .school-tagline {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                margin: 0;
+                font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 180px;
+            }
+
+            .header-center {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .nav-pill {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem 1rem;
+                background: rgba(79, 70, 229, 0.06);
+                color: var(--accent-color);
+                text-decoration: none;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                transition: all 0.2s ease;
+                border: 1px solid rgba(79, 70, 229, 0.1);
+            }
+
+            .nav-pill:hover {
+                background: rgba(79, 70, 229, 0.1);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+            }
+
+            .section-indicator {
+                padding: 0.5rem 1rem;
+                background: #f8fafc;
+                color: #475569;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                border: 1px solid #e2e8f0;
+            }
+
+            .header-right {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                flex-shrink: 0;
+            }
+
+            .user-profile {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.35rem;
+                padding-right: 1rem;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+                transition: all 0.2s ease;
+            }
+
+            .user-avatar {
+                width: 34px;
+                height: 34px;
+                background: var(--brand-gradient);
+                color: white;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 0.85rem;
+                box-shadow: 0 3px 8px rgba(67, 56, 202, 0.2);
+            }
+
+            .user-details {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .user-name {
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: var(--text-main);
+                line-height: 1.2;
+            }
+
+            .user-role-text {
+                font-size: 0.65rem;
+                color: var(--text-muted);
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+
+            .logout-btn {
+                width: 38px;
+                height: 38px;
+                border-radius: 12px;
+                background: #fff1f2;
+                color: #e11d48;
+                border: 1px solid #ffe4e6;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                font-size: 1rem;
+            }
+
+            .logout-btn:hover {
+                background: #ffe4e6;
+                color: #be123c;
+                transform: scale(1.05);
+                box-shadow: 0 4px 12px rgba(225, 29, 72, 0.1);
+            }
+
+            /* Mobile Optimizations */
+            @media (max-width: 768px) {
+                .header-container {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    padding: 0 1rem;
+                    gap: 0.5rem;
+                }
+
+                .header-center {
+                    display: none !important;
+                }
+
+                .brand-container {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    align-items: center !important;
+                    padding: 0;
+                    gap: 0.5rem;
+                    background: transparent;
+                    border: none;
+                    flex-shrink: 0;
+                }
+
+                .brand-container:hover {
+                    transform: none;
+                    box-shadow: none;
+                }
+
+                .school-tagline,
+                .user-details,
+                .brand-badge {
+                    display: none !important;
+                }
+
+                .logo-wrapper {
+                    width: 32px;
+                    height: 32px;
+                }
+
+                .school-name {
+                    font-size: 1rem;
+                    white-space: nowrap;
+                }
+
+                .header-right {
+                    flex: 1;
+                    display: flex !important;
+                    flex-direction: row !important;
+                    align-items: center !important;
+                    justify-content: flex-end !important;
+                    gap: 0.5rem;
+                }
+
+                .user-profile {
+                    padding: 0;
+                    border: none;
+                    background: transparent;
+                }
+
+                .user-avatar {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                }
+
+                .logout-form {
+                    margin-left: 0.5rem;
+                }
+
+                .logout-btn {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                }
+            }
+        </style>
+
+
+
+        <div class="header-container">
+            <!-- Combined Brand Container -->
+            <!-- Combined Brand Container -->
+            <a href="/" class="brand-container">
+                <!-- Platform Branding (Default) -->
+                <img th:if="${school == null}" src="/images/header-logo.svg" alt="4School"
+                    style="height: 40px; width: auto;">
+
+                <!-- School Branding -->
+                <th:block th:if="${school != null}">
+                    <img src="/images/header-logo.svg" alt="4School" style="height: 40px; width: auto;">
+                    <div class="brand-details"
+                        style="border-left: 1px solid #e2e8f0; padding-left: 1rem; margin-left: 0.5rem;">
+                        <div class="brand-name-wrapper">
+                            <h1 class="school-name" th:text="${school.name}">School Name</h1>
+                            <span class="brand-badge">PRO</span>
+                        </div>
+                        <p class="school-tagline" th:text="${school.schoolMotto ?: 'Excellence in Education'}">
+                            Excellence
+                            in Education</p>
+                    </div>
+                </th:block>
+            </a>
+
+            <!-- Center: Navigation Breadcrumb -->
+            <div class="header-center" sec:authorize="isAuthenticated()">
+                <div class="breadcrumb-nav" id="dashboardNav" style="display: none;">
+                    <a href="/admin/dashboard" class="nav-pill" id="dashboardLink">
+                        <i class="fas fa-arrow-left"></i>
+                        <span id="dashboardText">Dashboard</span>
+                    </a>
+                </div>
+                <div class="current-section" id="currentSection" style="display: none;">
+                    <div class="section-indicator">
+                        <span id="sectionName"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right side: User Profile and Logout -->
+            <div class="header-right" sec:authorize="isAuthenticated()">
+                <div class="user-profile">
+                    <div class="user-avatar" th:text="${#strings.substring(user?.firstName ?: 'U', 0, 1)}">U</div>
+                    <div class="user-details">
+                        <span class="user-name" th:text="${user?.fullName ?: 'User'}">User Name</span>
+                        <span class="user-role-text" th:text="${userRole ?: 'Member'}">Role</span>
+                    </div>
+                </div>
+                <form th:action="@{/auth/logout}" method="post" class="logout-form">
+                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <button type="submit" class="logout-btn" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- Dashboard Navigation Script & Financial History Management -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const currentPath = window.location.pathname;
+                const dashboardNav = document.getElementById('dashboardNav');
+                const dashboardLink = document.getElementById('dashboardLink');
+                const dashboardText = document.getElementById('dashboardText');
+                const currentSection = document.getElementById('currentSection');
+                const sectionName = document.getElementById('sectionName');
+
+                // Function to set section info
+                function setSectionInfo(sectionText) {
+                    if (sectionName) sectionName.textContent = sectionText;
+                    if (currentSection) currentSection.style.display = 'block';
+                }
+
+                // Check if we're on a sub-route and show appropriate dashboard link
+                if (currentPath.startsWith('/admin/') && currentPath !== '/admin/dashboard') {
+                    dashboardLink.href = '/admin/dashboard';
+                    dashboardText.textContent = 'Admin Dashboard';
+                    dashboardNav.style.display = 'flex';
+
+                    if (currentPath.includes('/financial')) setSectionInfo('Financials');
+                    else if (currentPath.includes('/school-setup')) setSectionInfo('Setup');
+                    else if (currentPath.includes('/community')) setSectionInfo('Community');
+                    else if (currentPath.includes('/academic')) setSectionInfo('Academics');
+                } else if (currentPath.startsWith('/system-admin/') && currentPath !== '/system-admin/dashboard') {
+                    dashboardLink.href = '/system-admin/dashboard';
+                    dashboardText.textContent = 'System Dashboard';
+                    dashboardNav.style.display = 'flex';
+                    setSectionInfo('System Admin');
+                } else if (currentPath.startsWith('/parent/') && currentPath !== '/parent/dashboard') {
+                    dashboardLink.href = '/parent/dashboard';
+                    dashboardText.textContent = 'Parent Portal';
+                    dashboardNav.style.display = 'flex';
+                    setSectionInfo('Details');
+                } else if (currentPath.startsWith('/staff/') && currentPath !== '/staff/dashboard') {
+                    dashboardLink.href = '/staff/dashboard';
+                    dashboardText.textContent = 'Staff Portal';
+                    dashboardNav.style.display = 'flex';
+                    setSectionInfo('Details');
+                }
+            });
+
+            // Admin Routes History Management
+            (function () {
+                const PREFIXES = [
+                    '/admin/financial',
+                    '/admin/school-setup',
+                    '/admin/community',
+                    '/admin/academic',
+                    '/admin/assessments',
+                    '/admin/assessment',
+                    '/admin/reports'
+                ];
+
+                function getPath(url) {
+                    if (!url) return '';
+                    try {
+                        const resolved = new URL(url, window.location.origin + window.location.pathname);
+                        return resolved.pathname.replace(/\/$/, '');
+                    } catch (e) {
+                        if (typeof url === 'string') return url.split('?')[0].split('#')[0].replace(/\/$/, '');
+                        return '';
+                    }
+                }
+
+                function isAdminRoute(url) {
+                    const p = getPath(url);
+                    return PREFIXES.some(prefix => p.endsWith(prefix) || p.includes(prefix + '/'));
+                }
+
+                function isHtmxElement(el) {
+                    if (!el) return false;
+                    return el.hasAttribute('hx-get') ||
+                        el.hasAttribute('hx-post') ||
+                        el.hasAttribute('hx-put') ||
+                        el.hasAttribute('hx-delete') ||
+                        el.hasAttribute('hx-patch') ||
+                        el.hasAttribute('hx-trigger') ||
+                        el.hasAttribute('hx-boost') ||
+                        el.closest('[hx-get], [hx-post], [hx-put], [hx-delete], [hx-patch], [hx-boost]');
+                }
+
+                document.addEventListener('click', function (e) {
+                    const a = e.target.closest('a');
+                    if (!a || !a.href || a.target === '_blank' || isHtmxElement(a)) return;
+
+                    const current = window.location.pathname;
+                    const target = a.href;
+
+                    if (isAdminRoute(current) && isAdminRoute(target)) {
+                        const targetUrl = new URL(a.href, window.location.href);
+                        if (targetUrl.origin === window.location.origin) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            window.location.replace(a.href);
+                        }
+                    }
+                }, true);
+
+                const _push = history.pushState;
+                history.pushState = function (s, t, u) {
+                    const current = window.location.pathname;
+                    if (isAdminRoute(current) && isAdminRoute(u)) {
+                        return history.replaceState(s, t, u);
+                    }
+                    return _push.apply(history, arguments);
+                };
+
+                document.addEventListener('submit', function (e) {
+                    const f = e.target;
+                    if (f.method.toLowerCase() === 'get' && !isHtmxElement(f)) {
+                        const action = f.getAttribute('action') || window.location.pathname;
+                        if (isAdminRoute(window.location.pathname) && isAdminRoute(action)) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            const params = new URLSearchParams(new FormData(f));
+                            const url = action + (action.includes('?') ? '&' : '?') + params.toString();
+                            window.location.replace(url);
+                        }
+                    }
+                }, true);
+            })();
+        </script>
+    </header>
+
+</body>
+
+</html>

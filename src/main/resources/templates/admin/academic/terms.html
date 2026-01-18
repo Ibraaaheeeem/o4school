@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Terms</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Academic Sidebar -->
+        <div th:replace="~{fragments/academic-sidebar :: academic-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Academic Terms</h1>
+                    <p>Manage terms for <strong th:text="${academicSession.sessionName}">2024-2025 Academic
+                            Session</strong></p>
+                    <nav class="breadcrumb">
+                        <a th:href="@{/admin/academic/sessions}">Academic Sessions</a>
+                        <span>/</span>
+                        <span th:text="${academicSession.sessionName}">2024-2025</span>
+                        <span>/</span>
+                        <span>Terms</span>
+                    </nav>
+                </div>
+                <button class="btn btn-primary"
+                    th:hx-get="@{/admin/academic/sessions/{sessionId}/terms/new/modal(sessionId=${academicSession.id})}"
+                    hx-target="#termModal .modal-dialog" hx-swap="innerHTML"
+                    onclick="setTimeout(() => openModal('termModal'), 100)">
+                    <i class="fas fa-plus me-2"></i>New Term
+                </button>
+            </div>
+
+            <!-- Session Info Card -->
+            <div class="session-info-card">
+                <div class="session-details">
+                    <h3 th:text="${academicSession.sessionName}">2024-2025 Academic Session</h3>
+                    <p class="session-year" th:text="${academicSession.sessionYear}">2024-2025</p>
+                    <div class="session-dates">
+                        <span><strong>Session Period:</strong>
+                            <span th:text="${#temporals.format(academicSession.startDate, 'MMM dd, yyyy')}">Sep 15,
+                                2024</span>
+                            <span th:if="${academicSession.endDate != null}">
+                                - <span th:text="${#temporals.format(academicSession.endDate, 'MMM dd, yyyy')}">Jul 30,
+                                    2025</span>
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms List -->
+            <div class="terms-container" id="terms-list-container">
+                <th:block th:fragment="terms-list-content">
+                    <div class="terms-grid" th:if="${!#lists.isEmpty(terms)}">
+                        <div th:each="term : ${terms}" class="term-card"
+                            th:classappend="${term.isCurrentTerm ? 'current-term' : ''}">
+                            <div class="term-header">
+                                <div class="term-info">
+                                    <h3 th:text="${term.termName}">First Term</h3>
+                                    <span th:if="${term.isCurrentTerm}" class="badge badge-success">Current Term</span>
+                                    <span th:unless="${term.isCurrentTerm}" class="badge badge-secondary"
+                                        th:text="${term.status}">Planned</span>
+                                </div>
+                                <div class="term-actions">
+                                    <button class="btn btn-sm btn-outline"
+                                        th:hx-get="@{/admin/academic/terms/{id}/modal(id=${term.id})}"
+                                        hx-target="#termModal .modal-dialog" hx-swap="innerHTML"
+                                        onclick="setTimeout(() => openModal('termModal'), 100)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger"
+                                        th:hx-post="@{/admin/academic/terms/delete/{id}(id=${term.id})}"
+                                        hx-target="#response-container" hx-swap="innerHTML"
+                                        hx-confirm="Are you sure you want to delete this term?"
+                                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                                        onclick="setTimeout(() => window.location.reload(), 1500)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="term-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Start Date:</span>
+                                    <span class="detail-value"
+                                        th:text="${#temporals.format(term.startDate, 'MMM dd, yyyy')}">Sep 15,
+                                        2024</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">End Date:</span>
+                                    <span class="detail-value"
+                                        th:text="${term.endDate != null ? #temporals.format(term.endDate, 'MMM dd, yyyy') : 'Ongoing'}">Dec
+                                        20, 2024</span>
+                                </div>
+                                <div class="detail-item" th:if="${term.description}">
+                                    <span class="detail-label">Description:</span>
+                                    <span class="detail-value" th:text="${term.description}">First academic term</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Duration:</span>
+                                    <span class="detail-value">
+                                        <span th:if="${term.endDate != null}"
+                                            th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(term.startDate, term.endDate)}">95</span>
+                                        <span th:unless="${term.endDate != null}">-</span> days
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="empty-state" th:if="${#lists.isEmpty(terms)}">
+                        <div class="empty-icon">📚</div>
+                        <h3>No Terms Created</h3>
+                        <p>Create terms to organize your academic session into manageable periods.</p>
+                        <button class="btn btn-primary"
+                            th:hx-get="@{/admin/academic/sessions/{sessionId}/terms/new/modal(sessionId=${academicSession.id})}"
+                            hx-target="#termModal .modal-dialog" hx-swap="innerHTML"
+                            onclick="setTimeout(() => openModal('termModal'), 100)">
+                            Create First Term
+                        </button>
+                    </div>
+                </th:block>
+            </div>
+
+            <!-- Response Container -->
+            <div id="response-container"></div>
+        </div>
+    </main>
+
+    <!-- Term Modal -->
+    <div id="termModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <script>
+        // Modal functions
+        window.openModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+            }
+        };
+
+        window.closeModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+    </script>
+</body>
+
+</html>

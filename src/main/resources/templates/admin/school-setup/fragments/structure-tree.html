@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <div th:fragment="structure-tree-fragment" id="structure-tree-container">
+        <div class="alert alert-success" th:if="${success}">
+            <span th:text="${success}"></span>
+        </div>
+        <div class="alert alert-danger" th:if="${error}">
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- Tree View -->
+        <div class="structure-tree">
+            <div th:each="track : ${tracks}" class="tree-item level-track">
+                <div class="tree-header" onclick="toggleTreeFromHeader(this)" style="cursor: pointer;">
+                    <span class="tree-toggle" onclick="event.stopPropagation(); toggleTree(this)">▶</span>
+                    <span class="tree-title" th:text="${track.name}">Track Name</span>
+                    <span class="tree-meta" th:text="${track.departments.size() + ' Departments'}">0 Departments</span>
+                    <div class="tree-actions" onclick="event.stopPropagation();">
+                        <button class="action-btn" th:data-id="${track.id}" th:data-name="${track.name}"
+                            th:data-description="${track.description}"
+                            onclick="openModalFromData(this, 'trackModal')">Edit</button>
+                        <button class="action-btn" th:data-track-id="${track.id}"
+                            onclick="openModalFromData(this, 'deptModal')">+ Dept</button>
+
+                        <button class="action-btn delete"
+                            th:hx-post="@{/admin/school-setup/academic-structure/track/delete(id=${track.id})}"
+                            hx-confirm="Delete this track?" hx-target="#structure-tree-container"
+                            hx-swap="outerHTML">Delete</button>
+                    </div>
+                </div>
+
+                <div class="tree-children">
+                    <div th:each="dept : ${track.departments}" class="tree-item level-dept">
+                        <div class="tree-header" onclick="toggleTreeFromHeader(this)" style="cursor: pointer;">
+                            <span class="tree-toggle" onclick="event.stopPropagation(); toggleTree(this)">▶</span>
+                            <span class="tree-title" th:text="${dept.name}">Dept Name</span>
+                            <span class="tree-meta" th:text="${dept.classes.size() + ' Classes'}">0 Classes</span>
+                            <div class="tree-actions" onclick="event.stopPropagation();">
+                                <button class="action-btn" th:data-id="${dept.id}" th:data-name="${dept.name}"
+                                    th:data-description="${dept.description}" th:data-track-id="${track.id}"
+                                    onclick="openModalFromData(this, 'deptModal')">Edit</button>
+                                <button class="action-btn" th:data-department-id="${dept.id}"
+                                    onclick="openModalFromData(this, 'classModal')">+ Class</button>
+
+                                <button class="action-btn delete"
+                                    th:hx-post="@{/admin/school-setup/academic-structure/department/delete(id=${dept.id})}"
+                                    hx-confirm="Delete this department?" hx-target="#structure-tree-container"
+                                    hx-swap="outerHTML">Delete</button>
+                            </div>
+                        </div>
+
+                        <div class="tree-children">
+                            <div th:each="cls : ${dept.classes}" class="level-class">
+                                <span class="tree-title" th:text="${cls.className}">Class Name</span>
+                                <span class="tree-meta" th:text="${'Capacity: ' + cls.maxCapacity}">Capacity: 30</span>
+                                <div class="tree-actions" style="opacity: 1; margin-left: auto;">
+                                    <button class="action-btn" th:data-id="${cls.id}"
+                                        th:data-class-name="${cls.className}" th:data-max-capacity="${cls.maxCapacity}"
+                                        th:data-department-id="${dept.id}"
+                                        onclick="openModalFromData(this, 'classModal')">Edit</button>
+
+                                    <button class="action-btn delete"
+                                        th:hx-post="@{/admin/school-setup/academic-structure/class/delete(id=${cls.id})}"
+                                        hx-confirm="Delete this class?" hx-target="#structure-tree-container"
+                                        hx-swap="outerHTML">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

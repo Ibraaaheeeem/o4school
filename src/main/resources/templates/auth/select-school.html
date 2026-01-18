@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Select School</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body class="auth-body">
+    <div class="auth-container">
+        <!-- School Branding -->
+        <div class="auth-header">
+            <div class="school-brand">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+            </div>
+        </div>
+
+        <!-- School Selection Form -->
+        <div class="auth-card">
+            <div class="card-header">
+                <h2>Select School</h2>
+                <p>You have access to multiple schools. Please select one to continue.</p>
+            </div>
+
+            <!-- Error Messages -->
+            <div th:if="${param.error}" class="alert alert-error">
+                <span th:if="${param.error[0] == 'invalid_school'}">Invalid school selection. Please try again.</span>
+                <span th:unless="${param.error[0] == 'invalid_school'}">An error occurred. Please try again.</span>
+            </div>
+
+            <form th:action="@{/select-school}" method="post" class="auth-form">
+                <div class="form-group">
+                    <label for="schoolId">Select School</label>
+                    <select id="schoolId" name="schoolId" required class="form-input">
+                        <option value="">Choose a school...</option>
+                        <option th:each="school : ${userSchools}" th:value="${school.id}" th:text="${school.name}">
+                            School Name
+                        </option>
+                    </select>
+                </div>
+
+                <button type="submit" class="auth-btn primary">
+                    <span>Continue</span>
+                    <i class="btn-icon">→</i>
+                </button>
+            </form>
+
+            <!-- Alternative Actions -->
+            <div class="auth-links">
+                <p>Need help?
+                    <a href="#" class="link-secondary">Contact Support</a>
+                </p>
+                <p>
+                <form th:action="@{/auth/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="link-secondary"
+                        style="background: none; border: none; padding: 0; cursor: pointer; font: inherit; text-decoration: underline;">Logout</button>
+                </form>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

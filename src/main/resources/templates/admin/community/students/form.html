@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit ? 'Edit Student' : 'Enroll New Student'} + ' - 4School Management System'">Enroll Student
+    </title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/community.css}">
+    <style>
+        .photo-upload-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .current-photo,
+        .photo-preview {
+            text-align: center;
+        }
+
+        .passport-preview {
+            width: 120px;
+            height: 150px;
+            object-fit: cover;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .photo-label {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .photo-upload {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .file-input {
+            margin-bottom: 8px;
+        }
+
+        .file-upload-help {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
+        .student-avatar-large {
+            width: 120px;
+            height: 150px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+            .photo-upload-container {
+                flex-direction: column;
+            }
+
+            .passport-preview,
+            .student-avatar-large {
+                width: 100px;
+                height: 125px;
+            }
+        }
+
+        .admission-input-wrapper {
+            display: flex;
+            align-items: stretch;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .admission-input-wrapper:focus-within {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .admission-prefix {
+            background: #f3f4f6;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            color: #6b7280;
+            font-weight: 600;
+            border-right: 1px solid #d1d5db;
+            font-size: 0.875rem;
+            user-select: none;
+        }
+
+        .admission-input-wrapper .form-input {
+            border: none !important;
+            border-radius: 0 !important;
+            flex: 1;
+            margin-bottom: 0 !important;
+            padding: 8px 12px;
+        }
+
+        .last-admission-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 th:text="${isEdit ? 'Edit Student' : 'Enroll New Student'}">Enroll Student</h1>
+                    <p>Enter student details and academic information</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <a th:href="@{/admin/community/students}" class="btn btn-outline">← Back to Students</a>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <form th:action="@{/admin/community/students/save}" method="post" class="student-form"
+                    enctype="multipart/form-data">
+                    <input type="hidden" name="id" th:value="${isEdit and student != null ? student.id : ''}">
+
+                    <!-- Personal Information Section -->
+                    <div class="form-section">
+                        <h3>Personal Information</h3>
+                        <div class="form-grid">
+                            <!-- Passport Photo Upload -->
+                            <div class="form-group full-width">
+                                <label for="passportPhoto">Passport Photograph</label>
+                                <div class="photo-upload-container">
+                                    <div class="current-photo">
+                                        <img th:if="${isEdit and studentDto?.passportPhotoUrl != null and !#strings.isEmpty(studentDto.passportPhotoUrl)}"
+                                            th:src="${studentDto.passportPhotoUrl}" alt="Current passport photo"
+                                            class="passport-preview">
+                                        <div th:unless="${isEdit and studentDto?.passportPhotoUrl != null and !#strings.isEmpty(studentDto.passportPhotoUrl)}"
+                                            class="student-avatar-large">
+                                            <span
+                                                th:text="${userDto != null and !#strings.isEmpty(userDto.firstName) ? #strings.substring(userDto.firstName, 0, 1) : '?'}">?</span>
+                                        </div>
+                                        <p class="photo-label"
+                                            th:text="${isEdit and studentDto?.passportPhotoUrl != null and !#strings.isEmpty(studentDto.passportPhotoUrl) ? 'Current Photo' : 'Default Avatar'}">
+                                            Default Avatar</p>
+                                    </div>
+                                    <div class="photo-upload">
+                                        <input type="file" id="passportPhoto" name="passportPhoto"
+                                            accept="image/jpeg,image/jpg,image/png,image/gif"
+                                            class="form-input file-input" onchange="previewPassportPhoto(this)">
+                                        <div class="file-upload-help">
+                                            <small>Upload a passport-style photograph (JPEG, PNG, GIF - Max 5MB)</small>
+                                        </div>
+                                        <div id="photoPreview" class="photo-preview" style="display: none;">
+                                            <img id="previewImage" alt="Photo preview" class="passport-preview">
+                                            <p class="photo-label">New Photo Preview</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" th:value="${userDto.firstName}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" th:value="${userDto.lastName}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="middleName">Middle Name</label>
+                                <input type="text" id="middleName" name="middleName" th:value="${userDto.middleName}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="dateOfBirth">Date of Birth *</label>
+                                <input type="date" id="dateOfBirth" name="dateOfBirth" th:value="${userDto.dateOfBirth}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="gender">Gender</label>
+                                <select id="gender" name="gender" class="form-select">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male" th:selected="${userDto.gender == 'Male'}">Male</option>
+                                    <option value="Female" th:selected="${userDto.gender == 'Female'}">Female
+                                    </option>
+                                    <option value="Other" th:selected="${userDto.gender == 'Other'}">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" th:value="${userDto.email}"
+                                    class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Academic Information Section -->
+                    <div class="form-section">
+                        <h3>Academic Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="admissionNumber">Admission Number</label>
+                                <div class="admission-input-wrapper">
+                                    <span class="admission-prefix" th:text="${admissionPrefix}">ADM</span>
+                                    <input type="text" id="admissionNumberPart" class="form-input"
+                                        th:value="${(student?.admissionNumber ?: (studentDto?.admissionNumber ?: '')).replaceFirst('^' + admissionPrefix, '')}"
+                                        placeholder="Leave blank to auto-generate"
+                                        oninput="updateFullAdmissionNumber()">
+                                </div>
+                                <input type="hidden" id="admissionNumber" name="admissionNumber"
+                                    th:value="${student != null ? student.admissionNumber : (studentDto != null ? studentDto.admissionNumber : '')}">
+                                <span class="last-admission-hint" th:if="${lastAdmissionNumber != null}">
+                                    Last assigned: <strong th:text="${lastAdmissionNumber}">ADM001</strong>
+                                </span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="previousSchool">Previous School</label>
+                                <input type="text" id="previousSchool" name="previousSchool"
+                                    th:value="${studentDto.previousSchool}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="transportationMethod">Transportation Method</label>
+                                <select id="transportationMethod" name="transportationMethod" class="form-select">
+                                    <option value="">Select Transportation</option>
+                                    <option value="School Bus"
+                                        th:selected="${studentDto.transportationMethod == 'School Bus'}">School Bus
+                                    </option>
+                                    <option value="Private Car"
+                                        th:selected="${studentDto.transportationMethod == 'Private Car'}">Private Car
+                                    </option>
+                                    <option value="Public Transport"
+                                        th:selected="${studentDto.transportationMethod == 'Public Transport'}">Public
+                                        Transport</option>
+                                    <option value="Walking"
+                                        th:selected="${studentDto.transportationMethod == 'Walking'}">
+                                        Walking</option>
+                                    <option value="Other" th:selected="${studentDto.transportationMethod == 'Other'}">
+                                        Other
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Special Needs Section -->
+                    <div class="form-section">
+                        <h3>Special Needs & Medical Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="hasSpecialNeeds"
+                                        th:checked="${studentDto.hasSpecialNeeds}">
+                                    Has Special Needs
+                                </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="isNew" th:checked="${studentDto.isNew}">
+                                    Is New Student
+                                </label>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="specialNeedsDescription">Special Needs Description</label>
+                                <textarea id="specialNeedsDescription" name="specialNeedsDescription"
+                                    th:text="${studentDto.specialNeedsDescription}" class="form-input" rows="3"
+                                    placeholder="Describe any special needs, medical conditions, or accommodations required"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Information Section -->
+                    <div class="form-section">
+                        <h3>Address Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="addressLine1">Address Line 1</label>
+                                <input type="text" id="addressLine1" name="addressLine1"
+                                    th:value="${userDto.addressLine1}" class="form-input">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="addressLine2">Address Line 2</label>
+                                <input type="text" id="addressLine2" name="addressLine2"
+                                    th:value="${userDto.addressLine2}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="city">City</label>
+                                <input type="text" id="city" name="city" th:value="${userDto.city}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="state">State</label>
+                                <input type="text" id="state" name="state" th:value="${userDto.state}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="postalCode">Postal Code</label>
+                                <input type="text" id="postalCode" name="postalCode" th:value="${userDto.postalCode}"
+                                    class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <a th:href="@{/admin/community/students}" class="btn btn-outline">Cancel</a>
+                        <button type="submit" class="btn btn-primary"
+                            th:text="${isEdit ? 'Update Student' : 'Enroll Student'}">Enroll Student</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function previewPassportPhoto(input) {
+            const preview = document.getElementById('photoPreview');
+            const previewImage = document.getElementById('previewImage');
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size must be less than 5MB');
+                    input.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Please select a valid image file (JPEG, PNG, or GIF)');
+                    input.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImage.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+        function updateFullAdmissionNumber() {
+            const part = document.getElementById('admissionNumberPart').value;
+            const prefix = "[[${admissionPrefix}]]";
+            const hiddenInput = document.getElementById('admissionNumber');
+
+            if (part.trim() === '') {
+                hiddenInput.value = '';
+            } else {
+                hiddenInput.value = prefix + part;
+            }
+        }
+    </script>
+</body>
+
+</html>

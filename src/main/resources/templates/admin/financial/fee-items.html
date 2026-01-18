@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>4School - Fee Items</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/financial.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Financial Sidebar -->
+        <div th:replace="~{fragments/financial-sidebar :: financial-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Fee Items</h1>
+                    <p>Create and manage fee items for your school.</p>
+                </div>
+                <button class="btn btn-primary" hx-get="/admin/financial/fee-items/new/modal"
+                    hx-target="#feeItemModal .modal-dialog" hx-swap="innerHTML"
+                    hx-on:htmx:after-request="openModal('feeItemModal')">
+                    <i class="fas fa-plus me-2"></i>Add Fee Item
+                </button>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="categoryFilter">Category:</label>
+                        <select id="categoryFilter" class="form-select" onchange="filterFeeItems()">
+                            <option value="">All Categories</option>
+                            <option th:each="category : ${feeCategories}" th:value="${category}" th:text="${category}"
+                                th:selected="${selectedCategory == category}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="searchInput">Search:</label>
+                        <div class="search-input-container">
+                            <input type="text" id="searchInput" class="form-input" placeholder="Search fee items..."
+                                th:value="${search}">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-outline" onclick="clearFilters()">Clear</button>
+                        <button class="btn btn-primary" onclick="filterFeeItems()">Filter</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fee Items List -->
+            <div class="fee-items-container" id="feeItemsList" th:fragment="feeItemsList(swapOob)"
+                th:attr="hx-swap-oob=${swapOob == true ? 'true' : null}">
+                <div class="fee-items-grid" th:if="${!#lists.isEmpty(feeItems)}">
+                    <div th:each="feeItem : ${feeItems}" class="fee-item-card">
+                        <div class="fee-item-header">
+                            <div class="fee-item-info">
+                                <h3 th:text="${feeItem.name}">Tuition Fee</h3>
+                                <div class="fee-item-meta">
+                                    <span class="fee-category-badge" th:text="${feeItem.feeCategory}"
+                                        th:class="'badge badge-' + ${#strings.toLowerCase(feeItem.feeCategory)}">TUITION</span>
+                                    <span th:if="${feeItem.isMandatory}" class="badge badge-danger">Mandatory</span>
+                                    <span th:if="${feeItem.recurrenceType}" class="frequency-indicator"
+                                        th:classappend="'frequency-' + ${#strings.toLowerCase(#strings.replace(feeItem.recurrenceType.name(), '_', '-'))}"
+                                        th:text="${#strings.replace(feeItem.recurrenceType.name(), '_', ' ')}">ONE
+                                        TIME</span>
+                                </div>
+                            </div>
+                            <div class="fee-item-actions">
+                                <button class="btn btn-sm btn-outline"
+                                    th:hx-get="@{/admin/financial/fee-items/{id}/modal(id=${feeItem.id})}"
+                                    hx-target="#feeItemModal .modal-dialog" hx-swap="innerHTML"
+                                    hx-on:htmx:after-request="openModal('feeItemModal')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" th:data-id="${feeItem.id}"
+                                    onclick="deleteFeeItem(this.getAttribute('data-id'))">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="fee-item-details">
+                            <div class="fee-amount">
+                                <span class="amount-label">Amount:</span>
+                                <span class="amount-value">₦<span
+                                        th:text="${#numbers.formatDecimal(feeItem.amount, 0, 'COMMA', 2, 'POINT')}">50,000.00</span></span>
+                            </div>
+                            <div class="fee-description" th:if="${feeItem.description}">
+                                <p th:text="${feeItem.description}">Annual tuition fee for academic year</p>
+                            </div>
+
+                            <!-- Assigned Classes Section -->
+                            <div class="assigned-classes-section">
+                                <div class="assigned-classes-header">
+                                    <span class="classes-label">Assigned Classes:</span>
+                                    <button class="btn btn-sm btn-outline"
+                                        th:hx-get="@{/admin/financial/fee-items/{id}/classes/modal(id=${feeItem.id})}"
+                                        hx-target="#classAssignmentModal .modal-dialog" hx-swap="innerHTML"
+                                        hx-on:htmx:after-request="openModal('classAssignmentModal')">
+                                        <i class="fas fa-plus"></i> Manage Classes
+                                    </button>
+                                </div>
+                                <div class="assigned-classes-list" th:if="${!#lists.isEmpty(feeItem.classFeeItems)}">
+                                    <span th:each="classFeeItem, iterStat : ${feeItem.classFeeItems}"
+                                        th:if="${classFeeItem.isActive}" class="class-badge">
+                                        <span th:text="${classFeeItem.schoolClass.className}">Class 1A</span>
+                                        <span th:if="${classFeeItem.customAmount}" class="custom-amount"
+                                            th:text="'(₦' + ${#numbers.formatDecimal(classFeeItem.customAmount, 0, 'COMMA', 2, 'POINT')} + ')'">
+                                            (₦45,000.00)
+                                        </span>
+                                    </span>
+                                </div>
+                                <div class="no-classes"
+                                    th:if="${#lists.isEmpty(feeItem.classFeeItems) or #lists.isEmpty(feeItem.classFeeItems.?[isActive])}">
+                                    <span class="text-muted">No classes assigned</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="empty-state" th:if="${#lists.isEmpty(feeItems)}">
+                    <div class="empty-icon">💳</div>
+                    <h3>No Fee Items</h3>
+                    <p>Create your first fee item to get started.</p>
+                    <button class="btn btn-primary" hx-get="/admin/financial/fee-items/new/modal"
+                        hx-target="#feeItemModal .modal-dialog" hx-swap="innerHTML"
+                        hx-on:htmx:after-request="openModal('feeItemModal')">
+                        Create Fee Item
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Fee Item Modal -->
+    <div id="feeItemModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Class Assignment Modal -->
+    <div id="classAssignmentModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <script>
+        // Ensure modal functions are available
+        document.addEventListener('DOMContentLoaded', function () {
+            // Modal functions (fallback if community.js doesn't load)
+            if (typeof window.openModal === 'undefined') {
+                window.openModal = function (modalId) {
+                    const modal = document.getElementById(modalId);
+                    if (modal) {
+                        modal.classList.add('active');
+                    }
+                };
+            }
+
+            if (typeof window.closeModal === 'undefined') {
+                window.closeModal = function (modalId) {
+                    const modal = document.getElementById(modalId);
+                    if (modal) {
+                        modal.classList.remove('active');
+                    }
+                };
+            }
+        });
+
+        // Filter functions
+        function filterFeeItems() {
+            const category = document.getElementById('categoryFilter').value;
+            const search = document.getElementById('searchInput').value;
+
+            const params = new URLSearchParams();
+            if (category) params.append('category', category);
+            if (search) params.append('search', search);
+
+            window.location.replace('/admin/financial/fee-items?' + params.toString());
+        }
+
+        function clearFilters() {
+            window.location.replace('/admin/financial/fee-items');
+        }
+
+        // Delete fee item
+        // Delete fee item
+        window.deleteFeeItem = function (feeItemId) {
+            if (confirm('Are you sure you want to delete this fee item?')) {
+                htmx.ajax('POST', `/admin/financial/fee-items/delete/${feeItemId}`, {
+                    target: '#feeItemsList',
+                    swap: 'outerHTML'
+                });
+            }
+        };
+
+        // HTMX event handlers
+
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                filterFeeItems();
+            }
+        });
+
+        // Global HTMX Configuration for CSRF
+        document.body.addEventListener('htmx:configRequest', function (evt) {
+            const csrfMeta = document.querySelector('meta[name="_csrf"]');
+            const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+
+            if (csrfMeta && csrfHeaderMeta) {
+                evt.detail.headers[csrfHeaderMeta.getAttribute('content')] = csrfMeta.getAttribute('content');
+            }
+        });
+    </script>
+</body>
+
+</html>

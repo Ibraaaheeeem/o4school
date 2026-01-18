@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Academic Management</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Academic Sidebar -->
+        <div th:replace="~{fragments/academic-sidebar :: academic-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Academic Calendar & Timetable</h1>
+                    <p>Manage academic sessions, school calendar events, and daily timetables.</p>
+                </div>
+            </div>
+
+            <!-- Academic Overview Cards -->
+            <div class="dashboard-grid">
+                <div class="dashboard-card academic-card">
+                    <div class="card-icon">🎓</div>
+                    <h3>Current Academic Session</h3>
+                    <p class="card-number" th:text="${currentSession != null ? currentSession.sessionName : 'Not Set'}">
+                        2024-2025</p>
+                    <p class="card-description"
+                        th:text="${currentSession != null ? currentSession.sessionYear : 'No active session'}">Academic
+                        Year</p>
+                    <div class="card-actions">
+                        <a th:href="@{/admin/academic/sessions}" class="card-link">Manage Sessions</a>
+                    </div>
+                </div>
+
+                <div class="dashboard-card academic-card">
+                    <div class="card-icon">📅</div>
+                    <h3>School Calendar</h3>
+                    <p class="card-number" th:text="${#lists.size(upcomingEvents)}">0</p>
+                    <p class="card-description">Upcoming events</p>
+                    <div class="card-actions">
+                        <a th:href="@{/admin/academic/calendar}" class="card-link">View Calendar</a>
+                        <button class="btn btn-primary btn-sm" hx-get="/admin/academic/calendar/new/modal"
+                            hx-target="#calendarModal .modal-dialog" hx-swap="innerHTML"
+                            onclick="setTimeout(() => openModal('calendarModal'), 100)">
+                            + Add Event
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card academic-card">
+                    <div class="card-icon">🕐</div>
+                    <h3>School Timetable</h3>
+                    <p class="card-number">-</p>
+                    <p class="card-description">Daily schedule</p>
+                    <div class="card-actions">
+                        <a th:href="@{/admin/academic/timetable}" class="card-link">View Timetable</a>
+                        <button class="btn btn-primary btn-sm" hx-get="/admin/academic/timetable/new/modal"
+                            hx-target="#timetableModal .modal-dialog" hx-swap="innerHTML"
+                            onclick="setTimeout(() => openModal('timetableModal'), 100)">
+                            + Add Period
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Section -->
+            <div class="quick-actions-section">
+                <h3>Quick Actions</h3>
+                <div class="quick-actions-grid">
+                    <button class="quick-action-card" hx-get="/admin/academic/sessions/new/modal"
+                        hx-target="#sessionModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('sessionModal'), 100)">
+                        <div class="action-icon">🎓</div>
+                        <span>New Academic Session</span>
+                    </button>
+                    <button class="quick-action-card" hx-get="/admin/academic/calendar/new/modal"
+                        hx-target="#calendarModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('calendarModal'), 100)">
+                        <div class="action-icon">📅</div>
+                        <span>Add Calendar Event</span>
+                    </button>
+                    <button class="quick-action-card" hx-get="/admin/academic/timetable/new/modal"
+                        hx-target="#timetableModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('timetableModal'), 100)">
+                        <div class="action-icon">🕐</div>
+                        <span>Add Timetable Period</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upcoming Events -->
+            <div class="upcoming-events" th:if="${!#lists.isEmpty(upcomingEvents)}">
+                <h3>Upcoming Events</h3>
+                <div class="events-list">
+                    <div th:each="event : ${upcomingEvents}" class="event-item">
+                        <div class="event-date">
+                            <span class="day" th:text="${#temporals.format(event.startDate, 'dd')}">15</span>
+                            <span class="month" th:text="${#temporals.format(event.startDate, 'MMM')}">Dec</span>
+                        </div>
+                        <div class="event-details">
+                            <h4 th:text="${event.eventName}">First Term Examination</h4>
+                            <p th:text="${event.description}">Mid-term examination period</p>
+                            <span class="event-type" th:text="${event.eventType}"
+                                th:class="'badge badge-' + ${#strings.toLowerCase(event.eventType)}">EXAM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Containers -->
+    <div id="sessionModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <div id="calendarModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <div id="timetableModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <script>
+        // Modal functions for academic management
+        window.openModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+            }
+        };
+
+        window.closeModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        // HTMX event handlers
+        document.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                // Refresh the page to update data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+
+</html>

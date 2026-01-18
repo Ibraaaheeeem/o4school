@@ -1,0 +1,224 @@
+<!-- Fee Item Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit ? 'Edit Fee Item' : 'New Fee Item'}">New Fee Item</h3>
+        <button class="close-modal" onclick="closeModal('feeItemModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/financial/fee-items/save-htmx" hx-target="#response-container" hx-swap="innerHTML"
+        class="modal-form"
+        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+        <input type="hidden" name="id" th:value="${isEdit ? feeItem.id : ''}">
+
+        <div class="modal-body">
+            <!-- Response Container -->
+            <div id="response-container"></div>
+
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h4>Basic Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="name">Fee Item Name *</label>
+                        <input type="text" id="name" name="name" class="form-input" th:value="${feeItem.name}"
+                            placeholder="e.g., Tuition Fee, Registration Fee" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount (₦) *</label>
+                        <input type="number" id="amount" name="amount" class="form-input" th:value="${feeItem.amount}"
+                            placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="feeCategory">Category *</label>
+                        <select id="feeCategory" name="feeCategory" class="form-input" required>
+                            <option value="">Select Category</option>
+                            <option th:each="category : ${feeCategories}" th:value="${category}" th:text="${category}"
+                                th:selected="${isEdit && feeItem.feeCategory == category}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="academicSession">Academic Session *</label>
+                        <select id="academicSession" name="academicSessionId" class="form-input" required>
+                            <option value="">Select Session</option>
+                            <option th:each="acadSession : ${academicSessions}" th:value="${acadSession.id}"
+                                th:text="${acadSession.sessionName + ' (' + acadSession.sessionYear + ')'}"
+                                th:selected="${isEdit && feeItem.academicSession?.id == acadSession.id}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="term">Term *</label>
+                        <select id="term" name="termId" class="form-input" required>
+                            <option value="">Select Term</option>
+                            <option th:each="term : ${terms}" th:value="${term.id}" th:text="${term.termName}"
+                                th:selected="${isEdit && feeItem.term?.id == term.id}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-input" rows="3"
+                        th:text="${feeItem.description}" placeholder="Brief description of this fee item"></textarea>
+                </div>
+            </div>
+
+            <!-- Eligibility Criteria -->
+            <div class="form-section">
+                <h4>Eligibility Criteria</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Gender Eligibility</label>
+                        <div class="segmented-control gender-control">
+                            <div class="segmented-control-option">
+                                <input type="radio" name="genderEligibility" id="gender_male" value="MALE"
+                                    th:checked="${feeItem.genderEligibility?.name() == 'MALE'}">
+                                <label for="gender_male"><i class="fas fa-mars"></i> Boys</label>
+                            </div>
+                            <div class="segmented-control-option">
+                                <input type="radio" name="genderEligibility" id="gender_all" value="ALL"
+                                    th:checked="${feeItem.genderEligibility == null || feeItem.genderEligibility?.name() == 'ALL'}">
+                                <label for="gender_all"><i class="fas fa-venus-mars"></i> All</label>
+                            </div>
+                            <div class="segmented-control-option">
+                                <input type="radio" name="genderEligibility" id="gender_female" value="FEMALE"
+                                    th:checked="${feeItem.genderEligibility?.name() == 'FEMALE'}">
+                                <label for="gender_female"><i class="fas fa-venus"></i> Girls</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Student Status</label>
+                        <div class="segmented-control status-control">
+                            <div class="segmented-control-option">
+                                <input type="radio" name="studentStatusEligibility" id="status_new" value="NEW"
+                                    th:checked="${feeItem.studentStatusEligibility?.name() == 'NEW'}">
+                                <label for="status_new"><i class="fas fa-user-plus"></i> New</label>
+                            </div>
+                            <div class="segmented-control-option">
+                                <input type="radio" name="studentStatusEligibility" id="status_all" value="ALL"
+                                    th:checked="${feeItem.studentStatusEligibility == null || feeItem.studentStatusEligibility?.name() == 'ALL'}">
+                                <label for="status_all"><i class="fas fa-users"></i> All</label>
+                            </div>
+                            <div class="segmented-control-option">
+                                <input type="radio" name="studentStatusEligibility" id="status_returning"
+                                    value="RETURNING"
+                                    th:checked="${feeItem.studentStatusEligibility?.name() == 'RETURNING'}">
+                                <label for="status_returning"><i class="fas fa-user-check"></i> Returning</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Discount -->
+            <div class="form-section">
+                <h4>Staff Discount</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="staffDiscountType">Discount Type</label>
+                        <select id="staffDiscountType" name="staffDiscountType" class="form-input"
+                            onchange="toggleDiscountAmount()">
+                            <option value="NONE"
+                                th:selected="${feeItem.staffDiscountType == null || feeItem.staffDiscountType.name() == 'NONE'}">
+                                None</option>
+                            <option value="PERCENTAGE"
+                                th:selected="${feeItem.staffDiscountType != null && feeItem.staffDiscountType.name() == 'PERCENTAGE'}">
+                                Percentage (%)</option>
+                            <option value="FLAT_AMOUNT"
+                                th:selected="${feeItem.staffDiscountType != null && feeItem.staffDiscountType.name() == 'FLAT_AMOUNT'}">
+                                Flat Amount (₦)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="staffDiscountAmountGroup" style="display: none;">
+                        <label for="staffDiscountAmount">Discount Value</label>
+                        <input type="number" id="staffDiscountAmount" name="staffDiscountAmount" class="form-input"
+                            th:value="${feeItem.staffDiscountAmount}" step="0.01" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fee Settings -->
+            <div class="form-section">
+                <h4>Fee Settings</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="isMandatory" value="true" th:checked="${feeItem.isMandatory}">
+                            <span class="checkmark"></span>
+                            Mandatory Fee
+                        </label>
+                        <small class="form-help">Required for all students in applicable classes</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="isRecurring" value="true" th:checked="${feeItem.isRecurring}"
+                                onchange="toggleRecurrenceType()">
+                            <span class="checkmark"></span>
+                            Recurring Fee
+                        </label>
+                        <small class="form-help">Fee that repeats at regular intervals</small>
+                    </div>
+                </div>
+
+                <div class="form-group" id="recurrenceTypeGroup" style="display: none;">
+                    <label for="recurrenceType">Recurrence Type</label>
+                    <select id="recurrenceType" name="recurrenceType" class="form-input">
+                        <option value="">Select Recurrence</option>
+                        <option th:each="type : ${recurrenceTypes}" th:value="${type}" th:text="${type}"
+                            th:selected="${isEdit && feeItem.recurrenceType == type}">
+                        </option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('feeItemModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+                <span th:text="${isEdit ? 'Update Fee Item' : 'Create Fee Item'}">Create Fee Item</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleRecurrenceType() {
+        const isRecurring = document.querySelector('input[name="isRecurring"]').checked;
+        const recurrenceGroup = document.getElementById('recurrenceTypeGroup');
+        const recurrenceSelect = document.getElementById('recurrenceType');
+
+        if (isRecurring) {
+            recurrenceGroup.style.display = 'block';
+            recurrenceSelect.required = true;
+        } else {
+            recurrenceGroup.style.display = 'none';
+            recurrenceSelect.required = false;
+            recurrenceSelect.value = '';
+        }
+    }
+
+    function toggleDiscountAmount() {
+        const type = document.getElementById('staffDiscountType').value;
+        const group = document.getElementById('staffDiscountAmountGroup');
+        const input = document.getElementById('staffDiscountAmount');
+
+        if (type === 'NONE') {
+            group.style.display = 'none';
+            input.required = false;
+        } else {
+            group.style.display = 'block';
+            input.required = true;
+        }
+    }
+
+    // Initialize recurrence type visibility and discount visibility
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleRecurrenceType();
+        toggleDiscountAmount();
+    });
+</script>

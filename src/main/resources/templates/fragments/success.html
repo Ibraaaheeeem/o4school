@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="success-message" class="success-response">
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${message}">Success!</span>
+        </div>
+        <script>
+            // Close modal and refresh page after short delay
+            setTimeout(() => {
+                if (window.closeModal) {
+                    // Close all possible modals
+                    window.closeModal('staffModal');
+                    window.closeModal('studentModal');
+                    window.closeModal('parentModal');
+                }
+                // Refresh page to update counts
+                window.location.reload();
+            }, 1500);
+        </script>
+    </div>
+</body>
+</html>

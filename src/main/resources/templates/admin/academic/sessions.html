@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Academic Sessions</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Academic Sidebar -->
+        <div th:replace="~{fragments/academic-sidebar :: academic-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Academic Sessions</h1>
+                    <p>Manage academic years and sessions for your school.</p>
+                </div>
+                <button class="btn btn-primary" hx-get="/admin/academic/sessions/new/modal"
+                    hx-target="#sessionModal .modal-dialog" hx-swap="innerHTML"
+                    onclick="setTimeout(() => openModal('sessionModal'), 100)">
+                    <i class="fas fa-plus me-2"></i>New Academic Session
+                </button>
+            </div>
+
+            <!-- Sessions List -->
+            <div class="sessions-container">
+                <div class="sessions-grid" th:if="${!#lists.isEmpty(academicSessions)}">
+                    <div th:each="academicSession : ${academicSessions}" class="session-card"
+                        th:classappend="${academicSession.isCurrentSession ? 'current-session' : ''}">
+                        <div class="session-header">
+                            <div class="session-info">
+                                <h3 th:text="${academicSession.sessionName}">2024-2025 Academic Session</h3>
+                                <p class="session-year" th:text="${academicSession.sessionYear}">2024-2025</p>
+                                <span th:if="${academicSession.isCurrentSession}" class="badge badge-success">Current
+                                    Session</span>
+                                <span th:unless="${academicSession.isCurrentSession}" class="badge badge-secondary"
+                                    th:text="${academicSession.status}">Active</span>
+                            </div>
+                            <div class="session-actions">
+                                <a class="btn btn-sm btn-primary"
+                                    th:href="@{/admin/academic/sessions/{id}/terms(id=${academicSession.id})}">
+                                    <i class="fas fa-calendar-week me-1"></i>Terms
+                                </a>
+                                <button class="btn btn-sm btn-outline"
+                                    th:hx-get="@{/admin/academic/sessions/{id}/modal(id=${academicSession.id})}"
+                                    hx-target="#sessionModal .modal-dialog" hx-swap="innerHTML"
+                                    onclick="setTimeout(() => openModal('sessionModal'), 100)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="session-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Start Date:</span>
+                                <span class="detail-value"
+                                    th:text="${#temporals.format(academicSession.startDate, 'MMM dd, yyyy')}">Sep 15,
+                                    2024</span>
+                            </div>
+                            <div class="detail-item" th:if="${academicSession.endDate}">
+                                <span class="detail-label">End Date:</span>
+                                <span class="detail-value"
+                                    th:text="${#temporals.format(academicSession.endDate, 'MMM dd, yyyy')}">Jul 30,
+                                    2025</span>
+                            </div>
+                            <div class="detail-item" th:if="${academicSession.notes}">
+                                <span class="detail-label">Notes:</span>
+                                <span class="detail-value" th:text="${academicSession.notes}">Regular academic
+                                    session</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="empty-state" th:if="${#lists.isEmpty(academicSessions)}">
+                    <div class="empty-icon">🎓</div>
+                    <h3>No Academic Sessions</h3>
+                    <p>Create your first academic session to get started.</p>
+                    <button class="btn btn-primary" hx-get="/admin/academic/sessions/new/modal"
+                        hx-target="#sessionModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('sessionModal'), 100)">
+                        Create Academic Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Session Modal -->
+    <div id="sessionModal" class="modal">
+        <div class="modal-dialog">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <script>
+        // Modal functions
+        window.openModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+            }
+        };
+
+        window.closeModal = function (modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        // HTMX event handlers
+        document.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+
+</html>

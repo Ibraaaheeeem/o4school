@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit ? 'Edit Parent' : 'Add New Parent'} + ' - 4School Management System'">Add Parent</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 th:text="${isEdit ? 'Edit Parent/Guardian' : 'Add New Parent/Guardian'}">Add Parent/Guardian
+                    </h1>
+                    <p>Enter parent or guardian details and preferences</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <a th:href="@{/admin/community/parents}" class="btn btn-outline">← Back to Parents</a>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <form th:action="@{/admin/community/parents/save}" method="post" class="parent-form">
+                    <input type="hidden" name="id" th:value="${isEdit ? parent.id : ''}">
+
+                    <!-- Personal Information Section -->
+                    <div class="form-section">
+                        <h3>Personal Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" th:value="${userDto.firstName}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" th:value="${userDto.lastName}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="middleName">Middle Name</label>
+                                <input type="text" id="middleName" name="middleName" th:value="${userDto.middleName}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" th:value="${userDto.email}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="phoneNumber">Phone Number *</label>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" th:value="${userDto.phoneNumber}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="dateOfBirth">Date of Birth</label>
+                                <input type="date" id="dateOfBirth" name="dateOfBirth" th:value="${userDto.dateOfBirth}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="gender">Gender</label>
+                                <select id="gender" name="gender" class="form-select">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male" th:selected="${userDto.gender == 'Male'}">Male</option>
+                                    <option value="Female" th:selected="${userDto.gender == 'Female'}">Female</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Relationship Information Section -->
+                    <div class="form-section">
+                        <h3>Relationship Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="relationshipType">Relationship Type *</label>
+                                <select id="relationshipType" name="relationshipType" class="form-select" required>
+                                    <option value="">Select Relationship</option>
+                                    <option value="father" th:selected="${parent.relationshipType == 'father'}">Father
+                                    </option>
+                                    <option value="mother" th:selected="${parent.relationshipType == 'mother'}">Mother
+                                    </option>
+                                    <option value="guardian" th:selected="${parent.relationshipType == 'guardian'}">
+                                        Guardian</option>
+                                    <option value="grandfather"
+                                        th:selected="${parent.relationshipType == 'grandfather'}">Grandfather</option>
+                                    <option value="grandmother"
+                                        th:selected="${parent.relationshipType == 'grandmother'}">Grandmother</option>
+                                    <option value="uncle" th:selected="${parent.relationshipType == 'uncle'}">Uncle
+                                    </option>
+                                    <option value="aunt" th:selected="${parent.relationshipType == 'aunt'}">Aunt
+                                    </option>
+                                    <option value="other" th:selected="${parent.relationshipType == 'other'}">Other
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="isPrimaryContact"
+                                        th:checked="${parentDto.isPrimaryContact}">
+                                    Primary Contact
+                                </label>
+                                <small class="help-text">Main contact for school communications</small>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="isEmergencyContact"
+                                        th:checked="${parentDto.isEmergencyContact}">
+                                    Emergency Contact
+                                </label>
+                                <small class="help-text">Can be contacted in case of emergencies</small>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="isFinanciallyResponsible"
+                                        th:checked="${parentDto.isFinanciallyResponsible}">
+                                    Financially Responsible
+                                </label>
+                                <small class="help-text">Responsible for school fees and payments</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Communication Preferences Section -->
+                    <div class="form-section">
+                        <h3>Communication Preferences</h3>
+                        <div class="form-grid">
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="receiveAcademicUpdates"
+                                        th:checked="${parentDto.receiveAcademicUpdates}">
+                                    Receive Academic Updates
+                                </label>
+                                <small class="help-text">Grades, assignments, and academic progress</small>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="receiveFinancialUpdates"
+                                        th:checked="${parentDto.receiveFinancialUpdates}">
+                                    Receive Financial Updates
+                                </label>
+                                <small class="help-text">Fee notifications and payment reminders</small>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="receiveDisciplinaryUpdates"
+                                        th:checked="${parentDto.receiveDisciplinaryUpdates}">
+                                    Receive Disciplinary Updates
+                                </label>
+                                <small class="help-text">Behavioral issues and disciplinary actions</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Information Section -->
+                    <div class="form-section">
+                        <h3>Address Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="addressLine1">Address Line 1</label>
+                                <input type="text" id="addressLine1" name="addressLine1"
+                                    th:value="${userDto.addressLine1}" class="form-input">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="addressLine2">Address Line 2</label>
+                                <input type="text" id="addressLine2" name="addressLine2"
+                                    th:value="${userDto.addressLine2}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="city">City</label>
+                                <input type="text" id="city" name="city" th:value="${userDto.city}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="state">State</label>
+                                <input type="text" id="state" name="state" th:value="${userDto.state}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="postalCode">Postal Code</label>
+                                <input type="text" id="postalCode" name="postalCode" th:value="${userDto.postalCode}"
+                                    class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <a th:href="@{/admin/community/parents}" class="btn btn-outline">Cancel</a>
+                        <button type="submit" class="btn btn-primary"
+                            th:text="${isEdit ? 'Update Parent' : 'Add Parent'}">Add Parent</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

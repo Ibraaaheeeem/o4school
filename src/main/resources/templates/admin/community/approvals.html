@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Pending Approvals</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+
+    <style>
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 1rem;
+        }
+
+        .user-table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .user-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-staff,
+        .status-teacher {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .status-parent {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-student {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-school_admin {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .verify-badge {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .verify-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .verify-pending {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-action {
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-decoration: none;
+        }
+
+        .btn-approve {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+        }
+
+        .btn-reminder {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-reminder:hover {
+            background: #2563eb;
+        }
+
+        .btn-delete {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #475569;
+        }
+
+        .btn-hard-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-hard-delete:hover {
+            background: #dc2626;
+        }
+
+        .btn-restore {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-restore:hover {
+            background: #059669;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: #64748b;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <div class="dashboard-layout setup-layout">
+        <aside th:replace="~{fragments/community-sidebar :: community-sidebar}"></aside>
+
+        <main class="main-content setup-content">
+            <div class="setup-header">
+                <h1>Platform User Management</h1>
+                <p>Manage all users associated with your school community</p>
+            </div>
+
+            <div class="content-body">
+                <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+                <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+                <!-- Role Filter -->
+                <div
+                    style="margin-bottom: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <form method="get" action="/admin/community/approvals" id="filterForm">
+                        <input type="hidden" name="tab" th:value="${activeTab}">
+                        <input type="hidden" name="page" value="0">
+
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <span style="font-weight: 600; color: #475569;">Filter by Roles:</span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                                <div th:each="role : ${availableRoles}"
+                                    style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <input type="checkbox" name="roleFilters" th:id="${'role_' + role}"
+                                        th:value="${role}" th:checked="${#lists.contains(selectedRoles, role)}"
+                                        onchange="document.getElementById('filterForm').submit()">
+                                    <label th:for="${'role_' + role}" th:text="${role}"
+                                        style="font-size: 0.9rem; color: #1e293b; cursor: pointer;"></label>
+                                </div>
+                            </div>
+                            <div th:if="${!#lists.isEmpty(selectedRoles)}" style="margin-top: 0.5rem;">
+                                <a th:href="@{/admin/community/approvals(tab=${activeTab})}"
+                                    style="font-size: 0.85rem; color: #3b82f6; text-decoration: none;">
+                                    <i class="fas fa-times-circle"></i> Clear all filters
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab" th:classappend="${activeTab == 'pending' ? 'active' : ''}"
+                        onclick="switchTab('pending')">Pending Approvals</div>
+                    <div class="tab" th:classappend="${activeTab == 'active' ? 'active' : ''}"
+                        onclick="switchTab('active')">Active Users</div>
+                    <div class="tab" th:classappend="${activeTab == 'inactive' ? 'active' : ''}"
+                        onclick="switchTab('inactive')">Inactive Users</div>
+                </div>
+
+                <!-- Pending Approvals Tab -->
+                <div id="pending-tab" class="tab-content" th:classappend="${activeTab == 'pending' ? 'active' : ''}">
+                    <div th:if="${#lists.isEmpty(users.?[isPendingApproval])}" class="empty-state"
+                        style="text-align: center; padding: 3rem;">
+                        <i class="fas fa-user-clock" style="font-size: 3rem; color: #cbd5e1;"></i>
+                        <p style="margin-top: 1rem; color: #64748b;">No pending registration requests matching filters.
+                        </p>
+                    </div>
+
+                    <table th:if="${!#lists.isEmpty(users.?[isPendingApproval])}" class="user-table">
+                        <thead>
+                            <tr>
+                                <th>User Details</th>
+                                <th>Role</th>
+                                <th>Details</th>
+                                <th>Registration Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="u : ${users}" th:if="${u.isPendingApproval}">
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${u.fullName}">Name</div>
+                                    <div style="font-size: 0.8rem; color: #64748b;">
+                                        <span th:text="${u.email}">email</span>
+                                        <span th:if="${!u.isVerified}"
+                                            class="verify-badge verify-pending">Unverified</span>
+                                        <span th:if="${u.isVerified}"
+                                            class="verify-badge verify-success">Verified</span>
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.phoneNumber}">phone
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge" th:classappend="${'status-' + u.roleName.toLowerCase()}"
+                                        th:text="${u.roleName}">Role</span>
+                                </td>
+                                <td th:text="${u.details}">Details</td>
+                                <td th:text="${#temporals.format(u.registrationDate, 'dd MMM yyyy')}">Date</td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <form th:action="@{/admin/community/approvals/approve/{id}(id=${u.roleId})}"
+                                            method="post">
+                                            <button type="submit" class="btn-action btn-approve">Approve</button>
+                                        </form>
+                                        <form th:action="@{/admin/community/approvals/reject/{id}(id=${u.roleId})}"
+                                            method="post" onsubmit="return confirm('Reject this request?')">
+                                            <button type="submit" class="btn-action btn-reject">Reject</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Active Users Tab -->
+                <div id="active-tab" class="tab-content" th:classappend="${activeTab == 'active' ? 'active' : ''}">
+                    <div th:if="${#lists.isEmpty(users.?[isActive && !isPendingApproval])}" class="empty-state"
+                        style="text-align: center; padding: 3rem;">
+                        <i class="fas fa-users" style="font-size: 3rem; color: #cbd5e1;"></i>
+                        <p style="margin-top: 1rem; color: #64748b;">No active users matching filters.</p>
+                    </div>
+
+                    <table th:if="${!#lists.isEmpty(users.?[isActive && !isPendingApproval])}" class="user-table">
+                        <thead>
+                            <tr>
+                                <th>User Details</th>
+                                <th>Role</th>
+                                <th>Details</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="u : ${users}" th:if="${u.isActive && !u.isPendingApproval}">
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${u.fullName}">Name</div>
+                                    <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.email}">email</div>
+                                    <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.phoneNumber}">phone
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge" th:classappend="${'status-' + u.roleName.toLowerCase()}"
+                                        th:text="${u.roleName}">Role</span>
+                                </td>
+                                <td>
+                                    <div th:text="${u.details}">Details</div>
+                                    <div th:id="'wallet-section-' + ${u.parentId}" th:fragment="wallet-section">
+                                        <!-- Virtual Account Button for Parents -->
+                                        <div th:if="${u.roleName == 'PARENT' && !u.hasWallet}"
+                                            style="margin-top: 0.5rem;">
+                                            <form
+                                                th:action="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                method="post"
+                                                th:hx-post="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                th:hx-target="'#wallet-section-' + ${u.parentId}" hx-swap="outerHTML"
+                                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                <button type="submit" class="btn-action btn-reminder"
+                                                    style="background: #8b5cf6;">
+                                                    <i class="fas fa-wallet"></i> Create Virtual Account
+                                                </button>
+                                            </form>
+                                        </div>
+                                        <div th:if="${u.roleName == 'PARENT' && u.hasWallet}"
+                                            style="margin-top: 0.5rem; background: #f0fdf4; border: 1px solid #dcfce7; padding: 0.6rem; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                            <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                                th:title="${u.accountName}">
+                                                <span th:text="${u.accountName}">Account Name</span>
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                <div
+                                                    style="font-size: 0.7rem; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; text-transform: uppercase; letter-spacing: 0.025em; white-space: nowrap;">
+                                                    <i class="fas fa-university"></i> <span th:text="${u.bankName}">Bank
+                                                        Name</span>
+                                                </div>
+                                                <div
+                                                    style="font-size: 0.9rem; color: #1e293b; font-family: 'Courier New', Courier, monospace; font-weight: 700; letter-spacing: 0.05em;">
+                                                    <span th:text="${u.accountNumber}">0123456789</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span th:if="${u.isVerified}" class="verify-badge verify-success">Verified</span>
+                                    <span th:if="${!u.isVerified}" class="verify-badge verify-pending">Unverified</span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <form th:if="${!u.isVerified}"
+                                            th:action="@{/admin/community/users/send-reminder/{id}(id=${u.userId})}"
+                                            method="post">
+                                            <button type="submit" class="btn-action btn-reminder" title="Send Reminder">
+                                                <i class="fas fa-bell"></i>
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/admin/community/users/soft-delete/{id}(id=${u.roleId})}"
+                                            method="post"
+                                            onsubmit="return confirm('Are you sure you want to deactivate this user?')">
+                                            <button type="submit" class="btn-action btn-delete" title="Deactivate">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Inactive Users Tab -->
+                <div id="inactive-tab" class="tab-content" th:classappend="${activeTab == 'inactive' ? 'active' : ''}">
+                    <div th:if="${#lists.isEmpty(users.?[!isActive && !isPendingApproval])}" class="empty-state"
+                        style="text-align: center; padding: 3rem;">
+                        <i class="fas fa-user-slash" style="font-size: 3rem; color: #cbd5e1;"></i>
+                        <p style="margin-top: 1rem; color: #64748b;">No inactive users matching filters.</p>
+                    </div>
+
+                    <table th:if="${!#lists.isEmpty(users.?[!isActive && !isPendingApproval])}" class="user-table">
+                        <thead>
+                            <tr>
+                                <th>User Details</th>
+                                <th>Role</th>
+                                <th>Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="u : ${users}" th:if="${!u.isActive && !u.isPendingApproval}">
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${u.fullName}">Name</div>
+                                    <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.email}">email</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge" th:classappend="${'status-' + u.roleName.toLowerCase()}"
+                                        th:text="${u.roleName}">Role</span>
+                                </td>
+                                <td th:text="${u.details}">Details</td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <form th:action="@{/admin/community/users/restore/{id}(id=${u.roleId})}"
+                                            method="post">
+                                            <button type="submit" class="btn-action btn-restore" title="Restore">
+                                                <i class="fas fa-user-plus"></i> Restore
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/admin/community/users/hard-delete/{id}(id=${u.roleId})}"
+                                            method="post"
+                                            onsubmit="return confirm('PERMANENTLY delete this user record? This cannot be undone.')">
+                                            <button type="submit" class="btn-action btn-hard-delete"
+                                                title="Hard Delete">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div th:if="${totalPages > 1}"
+                    style="margin-top: 2rem; display: flex; justify-content: center; gap: 0.5rem; align-items: center;">
+                    <a th:if="${currentPage > 0}"
+                        th:href="@{/admin/community/approvals(page=${currentPage - 1}, tab=${activeTab}, roleFilters=${selectedRoles})}"
+                        style="padding: 0.5rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 6px; text-decoration: none; color: #475569;">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+
+                    <span style="color: #64748b; font-size: 0.9rem;">
+                        Page <span th:text="${currentPage + 1}">1</span> of <span th:text="${totalPages}">1</span>
+                    </span>
+
+                    <a th:if="${currentPage < totalPages - 1}"
+                        th:href="@{/admin/community/approvals(page=${currentPage + 1}, tab=${activeTab}, roleFilters=${selectedRoles})}"
+                        style="padding: 0.5rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 6px; text-decoration: none; color: #475569;">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+
+                <!-- Export Section -->
+                <div
+                    style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1rem;">
+                    <h3 style="font-size: 1.1rem; font-weight: 600; color: #1e293b;">Export Data</h3>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <a th:href="@{/admin/community/users/export/all(tab=${activeTab}, roleFilters=${selectedRoles})}"
+                            class="btn-action btn-reminder" style="background: #475569; padding: 0.6rem 1.2rem;">
+                            <i class="fas fa-file-export"></i> Export Current List (CSV)
+                        </a>
+                        <a th:href="@{/admin/community/users/export/parents}" class="btn-action btn-reminder"
+                            style="background: #059669; padding: 0.6rem 1.2rem;">
+                            <i class="fas fa-file-invoice"></i> Export Parents with Wallets (CSV)
+                        </a>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #64748b;">
+                        <i class="fas fa-info-circle"></i> Exports will include all records matching your current
+                        filters across all pages.
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', tabName);
+            url.searchParams.set('page', '0'); // Reset to first page on tab switch
+            window.location.replace(url.toString());
+        }
+    </script>
+</body>
+
+</html>

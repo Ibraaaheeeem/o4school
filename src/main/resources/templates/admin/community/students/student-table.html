@@ -1,0 +1,96 @@
+<!-- Student Table Fragment -->
+<div th:fragment="student-table-content" id="student-table-content">
+    <div class="alert alert-success" th:if="${success}">
+        <span th:text="${success}"></span>
+    </div>
+    <div class="alert alert-danger" th:if="${error}">
+        <span th:text="${error}"></span>
+    </div>
+
+    <table class="data-table" th:if="${!studentPage.content.empty}">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Admission Number</th>
+                <th>Status</th>
+                <th>Class Assignments</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="student : ${studentPage.content}">
+                <td>
+                    <div class="user-info">
+                        <strong th:text="${student.user.fullName}">John Doe</strong>
+                        <small th:text="${student.user.email}">john@example.com</small>
+                    </div>
+                </td>
+                <td th:text="${student.admissionNumber ?: 'N/A'}">ADM2024001</td>
+                <td>
+                    <span class="badge badge-success"
+                        th:if="${student.academicStatus.name() == 'ENROLLED'}">Enrolled</span>
+                    <span class="badge badge-warning"
+                        th:if="${student.academicStatus.name() == 'SUSPENDED'}">Suspended</span>
+                    <span class="badge badge-info"
+                        th:if="${student.academicStatus.name() == 'GRADUATED'}">Graduated</span>
+                </td>
+                <td>
+                    <div class="class-assignments">
+                        <div th:if="${student.classEnrollments.empty}" class="no-assignments">
+                            <span class="text-muted">No class assignments</span>
+                        </div>
+                        <div th:unless="${student.classEnrollments.empty}" class="assignments-list">
+                            <div th:each="enrollment : ${student.classEnrollments}" th:if="${enrollment.isActive}"
+                                class="assignment-item">
+                                <div class="assignment-info">
+                                    <strong
+                                        th:text="${enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : 'No Track'}">Track
+                                        Name</strong>
+                                    <span th:text="${enrollment.schoolClass.className}">Class Name</span>
+                                    <small th:text="${enrollment.academicSession.sessionYear}">2024-2025</small>
+                                </div>
+                                <button class="btn btn-xs btn-danger" th:data-assignment-id="${enrollment.id}"
+                                    th:data-assignment-info="${(enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : '') + ' - ' + enrollment.schoolClass.className}"
+                                    onclick="confirmDeleteAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)">
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline"
+                            th:hx-get="@{/admin/community/students/{id}/modal(id=${student.id})}"
+                            hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+                            th:onclick="'setTimeout(() => openModal(\'studentModal\'), 100)'">
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-info"
+                            th:hx-get="@{/admin/community/students/{id}/assign-class/modal(id=${student.id})}"
+                            hx-target="#studentClassModal .modal-dialog" hx-swap="innerHTML"
+                            th:onclick="'setTimeout(() => openModal(\'studentClassModal\'), 100)'">
+                            Assign Class
+                        </button>
+                        <button class="btn btn-sm btn-danger" th:data-student-id="${student.id}"
+                            th:data-student-name="${student.user.fullName}"
+                            onclick="confirmDelete(this.dataset.studentId, this.dataset.studentName)">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="empty-state" th:if="${studentPage.content.empty}">
+        <div class="empty-icon">🎓</div>
+        <h3>No Students Found</h3>
+        <p>Start by enrolling your first student to the system.</p>
+        <button class="btn btn-primary" hx-get="/admin/community/students/new/modal"
+            hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+            hx-on::after-request="openModal('studentModal')">
+            Enroll First Student
+        </button>
+    </div>
+</div>

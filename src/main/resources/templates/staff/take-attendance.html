@@ -1,0 +1,275 @@
+<th:block th:fragment="attendance-content">
+    <style>
+        .student-attendance-card {
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .student-attendance-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .student-attendance-card.present {
+            background: #f0fdf4;
+            border-color: var(--success-color);
+        }
+
+        .student-attendance-card.present .card-icon {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .student-attendance-card.absent {
+            background: #fef2f2;
+            border-color: var(--danger-color);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .present .status-indicator {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .absent .status-indicator {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .attendance-footer {
+            position: sticky;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 -1.5rem -1.5rem -1.5rem;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            z-index: 10;
+        }
+    </style>
+
+    <div class="attendance-container" style="padding: 1.5rem; position: relative; min-height: 100%;">
+        <!-- Header -->
+        <div class="section-header" style="margin-bottom: 2rem;">
+            <div>
+                <h2 class="section-title">Take Attendance</h2>
+                <p style="color: var(--text-muted); margin-top: 0.25rem;">
+                    <span th:text="${schoolClass.className}">Class</span> •
+                    <span id="currentDateDisplay">Today</span>
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <label for="attendanceDate" style="font-weight: 600; color: var(--text-main);">Date:</label>
+                <input type="date" id="attendanceDate" th:value="${attendanceDate}"
+                    onchange="changeAttendanceDate(this.value)"
+                    style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: inherit;">
+            </div>
+        </div>
+
+        <!-- Student Grid -->
+        <div class="dashboard-grid"
+            style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 5rem;">
+            <div th:each="student : ${students}" class="dashboard-card student-attendance-card"
+                th:classappend="${existingAttendance.containsKey(student.id) && existingAttendance.get(student.id).status.name() == 'PRESENT' ? 'present' : 'absent'}"
+                th:data-student-id="${student.id}" onclick="toggleAttendance(this)"
+                style="padding: 1.5rem; align-items: center; text-align: center;">
+
+                <div class="status-indicator">
+                    <i class="fas"
+                        th:classappend="${existingAttendance.containsKey(student.id) && existingAttendance.get(student.id).status.name() == 'PRESENT' ? 'fa-check' : 'fa-times'}"></i>
+                </div>
+
+                <div
+                    style="width: 70px; height: 70px; border-radius: 50%; overflow: hidden; margin-bottom: 1rem; border: 3px solid var(--border-color);">
+                    <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
+                        style="width: 100%; height: 100%; object-fit: cover;"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div th:unless="${student.passportPhotoUrl}"
+                        style="width: 100%; height: 100%; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 1.5rem;"
+                        th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                    <div th:if="${student.passportPhotoUrl}"
+                        style="display: none; width: 100%; height: 100%; background: var(--bg-hover); align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 1.5rem;"
+                        th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                </div>
+
+                <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-main);"
+                    th:text="${student.user.firstName}">First Name</h4>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0;"
+                    th:text="${student.user.lastName}">Last Name</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="attendance-footer">
+            <div style="display: flex; gap: 2rem; align-items: center;">
+                <div>
+                    <span
+                        style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Present</span>
+                    <span id="presentCount"
+                        style="font-size: 1.5rem; font-weight: 700; color: var(--success-color);">0</span>
+                </div>
+                <div>
+                    <span
+                        style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Absent</span>
+                    <span id="absentCount"
+                        style="font-size: 1.5rem; font-weight: 700; color: var(--danger-color);">0</span>
+                </div>
+                <div>
+                    <span
+                        style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Total</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);"
+                        th:text="${#lists.size(students)}">0</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="action-btn"
+                    style="background: white; border: 1px solid var(--border-color); color: var(--text-main);"
+                    onclick="goBackToClassDetails()">
+                    Cancel
+                </button>
+                <button type="button" class="action-btn" style="background: var(--primary-color); color: white;"
+                    onclick="submitAttendance()">
+                    <i class="fas fa-save"></i> Save Attendance
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        (function () {
+            const classId = /*[[${classId}]]*/ null;
+
+            window.toggleAttendance = function (card) {
+                const isPresent = card.classList.contains('present');
+                const icon = card.querySelector('.status-indicator i');
+
+                if (isPresent) {
+                    card.classList.remove('present');
+                    card.classList.add('absent');
+                    icon.classList.remove('fa-check');
+                    icon.classList.add('fa-times');
+                } else {
+                    card.classList.remove('absent');
+                    card.classList.add('present');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-check');
+                }
+                updateSummary();
+            };
+
+            window.updateSummary = function () {
+                const total = document.querySelectorAll('.student-attendance-card').length;
+                const present = document.querySelectorAll('.student-attendance-card.present').length;
+                const absent = total - present;
+
+                document.getElementById('presentCount').textContent = present;
+                document.getElementById('absentCount').textContent = absent;
+            };
+
+            window.changeAttendanceDate = function (date) {
+                // Use generic loadSubView if available, else fallback
+                const url = `/staff/classes/${classId}/attendance/take?date=${date}`;
+                const contentArea = document.getElementById('class-detail-content');
+
+                contentArea.innerHTML = `
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading date...</p>
+                    </div>
+                `;
+
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        contentArea.innerHTML = html;
+                        // Re-execute scripts
+                        contentArea.querySelectorAll('script').forEach(oldScript => {
+                            const newScript = document.createElement('script');
+                            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                            oldScript.parentNode.replaceChild(newScript, oldScript);
+                        });
+                    });
+            };
+
+            window.submitAttendance = async function () {
+                const date = document.getElementById('attendanceDate').value;
+                const attendanceData = {};
+
+                document.querySelectorAll('.student-attendance-card').forEach(card => {
+                    const studentId = card.getAttribute('data-student-id');
+                    const isPresent = card.classList.contains('present');
+                    attendanceData[studentId] = isPresent ? 'PRESENT' : 'ABSENT';
+                });
+
+                try {
+                    const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+                    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+
+                    const response = await fetch(`/staff/classes/${classId}/attendance/save`, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({ date: date, attendance: attendanceData })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        // Show success message
+                        const btn = document.querySelector('button[onclick="submitAttendance()"]');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                        btn.style.background = 'var(--success-color)';
+
+                        setTimeout(() => {
+                            goBackToClassDetails();
+                        }, 1000);
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('An error occurred while saving attendance.');
+                }
+            };
+
+            window.goBackToClassDetails = function () {
+                const activeClassCard = document.querySelector('.class-card.active');
+                if (activeClassCard && typeof loadClassDetails === 'function') {
+                    loadClassDetails(activeClassCard);
+                    // Switch to attendance tab after reload
+                    setTimeout(() => {
+                        const tab = document.querySelector('.tab-btn[data-tab="attendance"]');
+                        if (tab) tab.click();
+                    }, 800);
+                } else {
+                    window.location.reload();
+                }
+            };
+
+            // Initial summary update
+            updateSummary();
+        })();
+    </script>
+</th:block>

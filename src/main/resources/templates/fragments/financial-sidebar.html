@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <aside th:fragment="financial-sidebar" class="setup-sidebar">
+        <div class="sidebar-header">
+            <h3>Financial Management</h3>
+        </div>
+        <nav class="setup-nav">
+            <a th:href="@{/admin/financial}" class="nav-item">
+                <span class="icon">📊</span>
+                Overview
+            </a>
+            <a th:href="@{/admin/financial/fee-items}" class="nav-item">
+                <span class="icon">💳</span>
+                Fee Items & Class Assignment
+            </a>
+            <a th:href="@{/admin/financial/optional-fees}" class="nav-item">
+                <span class="icon">🔒</span>
+                Optional Fees Management
+            </a>
+            <a th:href="@{/admin/financial/payments}" class="nav-item">
+                <span class="icon">💰</span>
+                Payments
+            </a>
+        </nav>
+
+        <div class="setup-progress-widget">
+            <h4>Financial Stats</h4>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${financialStats?.feeItems ?: 0}">0</span>
+                    <span class="stat-label">Fee Items</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${financialStats?.classFeeItems ?: 0}">0</span>
+                    <span class="stat-label">Assignments</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${paymentStats?.totalPayments ?: 0}">0</span>
+                    <span class="stat-label">Payments</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

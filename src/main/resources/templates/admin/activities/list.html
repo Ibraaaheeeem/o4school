@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Activities</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <style>
+        .activity-filters {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .activity-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #007bff;
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .activity-time {
+            font-size: 0.875rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .activity-description {
+            color: #555;
+            margin: 0.25rem 0;
+        }
+
+        .activity-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .activity-icon {
+            font-size: 1.25rem;
+            margin-right: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.875rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .pagination .current {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="welcome-section">
+                <h1>Activity Logs</h1>
+                <p class="welcome-text">Monitor all system activities and user actions</p>
+            </div>
+
+            <!-- Activity Statistics -->
+            <div class="stats-grid" th:if="${activityStats != null and !activityStats.isEmpty()}">
+                <div class="stat-card" th:each="stat : ${activityStats}">
+                    <div class="stat-number" th:text="${stat.value}">0</div>
+                    <div class="stat-label" th:text="${#strings.replace(stat.key.name(), '_', ' ')}">Activity Type</div>
+                </div>
+            </div>
+
+            <!-- Migration Notice (show only if no activities exist) -->
+            <div th:if="${activitiesPage.isEmpty()}" class="migration-notice"
+                style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="color: #856404; margin: 0 0 0.5rem 0;">📋 Activity Logging System</h4>
+                <p style="color: #856404; margin: 0 0 1rem 0;">
+                    The activity logging system is now active and will track all future activities.
+                    You can optionally migrate some historical data from existing records.
+                </p>
+                <button onclick="migrateHistoricalActivities()" class="btn btn-warning" id="migrate-btn">
+                    Migrate Historical Data
+                </button>
+                <div id="migration-status" style="margin-top: 0.5rem;"></div>
+            </div>
+
+            <!-- Filters -->
+            <div class="activity-filters">
+                <form method="get" th:action="@{/admin/activities}">
+                    <div class="filter-group">
+                        <label for="type">Activity Type:</label>
+                        <select name="type" id="type" onchange="this.form.submit()">
+                            <option value="">All Types</option>
+                            <option th:each="type : ${activityTypes}" th:value="${type.name()}"
+                                th:text="${#strings.replace(type.name(), '_', ' ')}"
+                                th:selected="${type.name() == selectedType}">
+                                Activity Type
+                            </option>
+                        </select>
+
+                        <label for="role">User Role:</label>
+                        <select name="role" id="role" onchange="this.form.submit()">
+                            <option value="">All Roles</option>
+                            <option value="SYSTEM_ADMIN" th:selected="${selectedRole == 'SYSTEM_ADMIN'}">System Admin
+                            </option>
+                            <option value="SCHOOL_ADMIN" th:selected="${selectedRole == 'SCHOOL_ADMIN'}">School Admin
+                            </option>
+                            <option value="TEACHER" th:selected="${selectedRole == 'TEACHER'}">Teacher</option>
+                            <option value="STAFF" th:selected="${selectedRole == 'STAFF'}">Staff</option>
+                            <option value="PARENT" th:selected="${selectedRole == 'PARENT'}">Parent</option>
+                            <option value="STUDENT" th:selected="${selectedRole == 'STUDENT'}">Student</option>
+                        </select>
+
+                        <button type="button" onclick="clearFilters()" class="btn btn-secondary">Clear Filters</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Activity List -->
+            <div class="activity-list">
+                <div th:if="${activitiesPage.isEmpty()}" class="no-activities">
+                    <p>No activities found matching your criteria.</p>
+                </div>
+
+                <div th:each="activity : ${activitiesPage.content}" class="activity-item">
+                    <div class="activity-header">
+                        <div style="flex: 1;">
+                            <h4 class="activity-title">
+                                <span class="activity-icon"
+                                    th:text="${getActivityIcon(activity.activityType)}">📋</span>
+                                <span th:text="${activity.title}">Activity Title</span>
+                            </h4>
+                            <p class="activity-description" th:if="${activity.description}"
+                                th:text="${activity.description}">
+                                Activity description
+                            </p>
+                        </div>
+                        <div class="activity-time"
+                            th:text="${#temporals.format(activity.createdAt, 'MMM dd, yyyy HH:mm')}">
+                            Time
+                        </div>
+                    </div>
+
+                    <div class="activity-meta">
+                        <span><strong>User:</strong> <span th:text="${activity.userName}">User Name</span></span>
+                        <span><strong>Role:</strong> <span th:text="${activity.userRole}">Role</span></span>
+                        <span th:if="${activity.targetUserName}">
+                            <strong>Target:</strong> <span th:text="${activity.targetUserName}">Target User</span>
+                        </span>
+                        <span th:if="${activity.entityType}">
+                            <strong>Entity:</strong> <span th:text="${activity.entityType}">Entity Type</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" th:if="${activitiesPage.totalPages > 1}">
+                <a th:if="${activitiesPage.hasPrevious()}"
+                    th:href="@{/admin/activities(page=${currentPage - 1}, type=${selectedType}, role=${selectedRole})}">
+                    Previous
+                </a>
+
+                <span th:each="i : ${#numbers.sequence(0, activitiesPage.totalPages - 1)}"
+                    th:class="${i == currentPage} ? 'current' : ''">
+                    <a th:if="${i != currentPage}"
+                        th:href="@{/admin/activities(page=${i}, type=${selectedType}, role=${selectedRole})}"
+                        th:text="${i + 1}">1</a>
+                    <span th:if="${i == currentPage}" th:text="${i + 1}">1</span>
+                </span>
+
+                <a th:if="${activitiesPage.hasNext()}"
+                    th:href="@{/admin/activities(page=${currentPage + 1}, type=${selectedType}, role=${selectedRole})}">
+                    Next
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function clearFilters() {
+            window.location.href = '/admin/activities';
+        }
+
+        function migrateHistoricalActivities() {
+            const btn = document.getElementById('migrate-btn');
+            const status = document.getElementById('migration-status');
+
+            btn.disabled = true;
+            btn.textContent = 'Migrating...';
+            status.innerHTML = '<div style="color: #007bff;">⏳ Migrating historical activities...</div>';
+
+            fetch('/admin/system/migrate-activities', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        status.innerHTML = '<div style="color: #28a745;">✅ ' + data.message + '</div>';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        status.innerHTML = '<div style="color: #dc3545;">❌ ' + data.message + '</div>';
+                        btn.disabled = false;
+                        btn.textContent = 'Retry Migration';
+                    }
+                })
+                .catch(error => {
+                    status.innerHTML = '<div style="color: #dc3545;">❌ Migration failed: ' + error.message + '</div>';
+                    btn.disabled = false;
+                    btn.textContent = 'Retry Migration';
+                });
+        }
+
+        function getActivityIcon(activityType) {
+            const icons = {
+                'USER_LOGIN': '🔐',
+                'USER_LOGOUT': '🔐',
+                'STUDENT_ENROLLED': '👨‍🎓',
+                'STUDENT_UPDATED': '👨‍🎓',
+                'STAFF_HIRED': '👨‍🏫',
+                'STAFF_UPDATED': '👨‍🏫',
+                'PARENT_ADDED': '👨‍👩‍👧‍👦',
+                'PARENT_UPDATED': '👨‍👩‍👧‍👦',
+                'PAYMENT_RECEIVED': '💰',
+                'INVOICE_GENERATED': '💰',
+                'GRADE_ENTERED': '📝',
+                'ASSIGNMENT_CREATED': '📝',
+                'CLASS_CREATED': '📚',
+                'SUBJECT_CREATED': '📚',
+                'EXAM_CREATED': '📊',
+                'EXAM_SCHEDULED': '📊',
+                'NOTIFICATION_SENT': '📧',
+                'MESSAGE_SENT': '📧',
+                'ANNOUNCEMENT_POSTED': '📢',
+                'SYSTEM_BACKUP': '⚙️',
+                'SYSTEM_MAINTENANCE': '⚙️',
+                'SECURITY_ALERT': '🚨'
+            };
+            return icons[activityType] || '📋';
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Financial Management</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/financial.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Financial Sidebar -->
+        <div th:replace="~{fragments/financial-sidebar :: financial-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Financial Management</h1>
+                    <p>Manage school fees, fee items, and financial settings.</p>
+                </div>
+            </div>
+
+            <!-- Financial Overview Cards -->
+            <div class="financial-overview">
+                <div class="overview-cards">
+                    <div class="overview-card financial-card">
+                        <div class="card-icon">💰</div>
+                        <div class="card-number" th:text="${financialStats.feeItems}">0</div>
+                        <div class="card-description">Fee Items</div>
+                        <div class="card-actions">
+                            <a th:href="@{/admin/financial/fee-items}" class="card-link">Manage Fee Items</a>
+                        </div>
+                    </div>
+
+                    <!-- Wallet Section -->
+                    <div id="wallet-section" class="overview-card financial-card" th:fragment="wallet-section">
+                        <div th:if="${success}" class="alert alert-success" th:text="${success}"
+                            style="margin-bottom: 15px; font-size: 0.85rem; padding: 8px; background: #d1e7dd; color: #0f5132; border-radius: 6px;">
+                        </div>
+                        <div th:if="${error}" class="alert alert-danger" th:text="${error}"
+                            style="margin-bottom: 15px; font-size: 0.85rem; padding: 8px; background: #f8d7da; color: #842029; border-radius: 6px;">
+                        </div>
+
+                        <div th:if="${wallet != null}">
+                            <div class="card-icon">🏦</div>
+                            <div class="card-number" th:text="${wallet.accountNumber}"
+                                style="font-size: 1.5rem; letter-spacing: 1px;">0000000000</div>
+                            <div class="card-description">
+                                <strong th:text="${wallet.bankName}">Bank Name</strong><br />
+                                <span th:text="${wallet.accountName}" style="font-size: 0.8rem; color: #6b7280;">Account
+                                    Name</span>
+                            </div>
+                            <div class="card-actions" style="margin-top: 10px;">
+                                <span class="badge"
+                                    style="background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Active
+                                    Wallet</span>
+                            </div>
+                        </div>
+
+                        <div th:if="${wallet == null}">
+                            <div class="card-icon">💳</div>
+                            <div class="card-number" style="font-size: 1.25rem; color: #6b7280;">No Payment Account
+                            </div>
+                            <div class="card-description">Create a virtual account to receive payments.</div>
+
+                            <form th:hx-post="@{/admin/financial/create-wallet}" hx-target="#wallet-section"
+                                hx-swap="outerHTML" hx-indicator="#wallet-loading" style="margin-top: 15px;"
+                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                <div style="margin-bottom: 10px;">
+                                    <select name="preferredBank" class="form-select"
+                                        style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 0.9rem;">
+                                        <option th:each="provider : ${providers}" th:value="${provider.providerSlug}"
+                                            th:text="${provider.bankName}">Bank Name</option>
+                                        <option th:if="${providers == null || #lists.isEmpty(providers)}"
+                                            value="wema-bank">Wema
+                                            Bank</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary"
+                                    style="width: 100%; padding: 8px; font-size: 0.9rem; background: #9333ea; border: none;">
+                                    Create School Account
+                                </button>
+                            </form>
+                            <div id="wallet-loading" class="htmx-indicator"
+                                style="font-size: 0.75rem; color: #6b7280; margin-top: 8px; text-align: center;">
+                                <i class="fas fa-spinner fa-spin"></i> Creating account...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions-section">
+                <h2>Quick Actions</h2>
+                <div class="quick-actions-grid">
+                    <a th:href="@{/admin/financial/fee-items}" class="quick-action-card">
+                        <div class="action-icon">💳</div>
+                        <h3>Fee Items & Class Assignment</h3>
+                        <p>Create fee items and assign them to classes with custom amounts.</p>
+                    </a>
+
+                    <a href="#" class="quick-action-card disabled">
+                        <div class="action-icon">📊</div>
+                        <h3>Fee Reports</h3>
+                        <p>Generate financial reports and analytics.</p>
+                        <span class="coming-soon">Coming Soon</span>
+                    </a>
+
+                    <a th:href="@{/admin/financial/payments}" class="quick-action-card">
+                        <div class="action-icon">💸</div>
+                        <h3>Payment Management</h3>
+                        <p>Track student payments and outstanding fees.</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</body>
+
+</html>

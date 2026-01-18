@@ -1,0 +1,575 @@
+<!-- Student Modal Form -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit != null and isEdit ? 'Edit Student' : 'Enroll New Student'}">Enroll Student</h3>
+        <button class="close-modal" onclick="closeModal('studentModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/community/students/save-htmx" hx-target="#student-cards-container" hx-swap="innerHTML"
+        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+        hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('studentModal'); } else { alert('Error saving student. Please try again.'); }"
+        hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form">
+
+        <input type="hidden" name="id" th:value="${isEdit != null and isEdit and student != null ? student.id : ''}">
+
+        <div class="modal-body">
+            <!-- Personal Information Section -->
+            <div class="form-section">
+                <h4>Personal Information</h4>
+
+                <!-- Passport Photo Upload -->
+                <div class="form-group full-width">
+                    <label for="passportPhoto">Passport Photograph</label>
+                    <div class="photo-upload-container">
+                        <div class="current-photo">
+                            <img th:if="${isEdit and studentDto?.passportPhotoUrl != null and !#strings.isEmpty(studentDto.passportPhotoUrl)}"
+                                th:src="${studentDto.passportPhotoUrl}" alt="Current passport photo"
+                                class="passport-preview">
+                            <div th:unless="${isEdit and studentDto?.passportPhotoUrl != null and !#strings.isEmpty(studentDto.passportPhotoUrl)}"
+                                class="student-avatar-large">
+                                <span
+                                    th:text="${userDto != null and !#strings.isEmpty(userDto.firstName) ? #strings.substring(userDto.firstName, 0, 1) : '?'}">?</span>
+                            </div>
+                            <p class="photo-label"
+                                th:text="${isEdit and studentDto?.passportPhotoUrl != null and !#strings.isEmpty(studentDto.passportPhotoUrl) ? 'Current Photo' : 'Default Avatar'}">
+                                Default Avatar</p>
+                        </div>
+                        <div class="photo-upload">
+                            <div class="photo-upload-actions">
+                                <input type="file" id="passportPhoto" name="passportPhoto"
+                                    accept="image/jpeg,image/jpg,image/png,image/gif" class="form-input file-input"
+                                    onchange="uploadPassportPhoto(this)">
+                                <button type="button" class="btn btn-sm btn-outline camera-btn" onclick="startCamera()">
+                                    <i class="fas fa-camera"></i> Take Photo
+                                </button>
+                            </div>
+
+                            <input type="hidden" id="passportPhotoUrl" name="passportPhotoUrl"
+                                th:value="${studentDto?.passportPhotoUrl ?: ''}">
+
+                            <div class="file-upload-help">
+                                <small>Upload or take a passport-style photograph (JPEG, PNG, GIF - Max 5MB)</small>
+                            </div>
+
+                            <!-- Camera Preview Container -->
+                            <div id="cameraContainer" class="camera-container" style="display: none;">
+                                <video id="cameraVideo" autoplay playsinline class="camera-video"></video>
+                                <div class="camera-controls">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="capturePhoto()">
+                                        <i class="fas fa-camera"></i> Capture
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline" onclick="stopCamera()">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="uploadProgress" class="upload-progress" style="display: none;">
+                                <div class="progress-bar">
+                                    <div class="progress-fill"></div>
+                                </div>
+                                <small>Uploading...</small>
+                            </div>
+                            <div id="photoPreview" class="photo-preview" style="display: none;">
+                                <img id="previewImage" alt="Photo preview" class="passport-preview">
+                                <p class="photo-label">New Photo Preview</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName"
+                            th:value="${userDto != null ? userDto.firstName : ''}" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName"
+                            th:value="${userDto != null ? userDto.lastName : ''}" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="middleName">Middle Name</label>
+                        <input type="text" id="middleName" name="middleName"
+                            th:value="${userDto != null ? userDto.middleName : ''}" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth *</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth"
+                            th:value="${userDto != null ? userDto.dateOfBirth : ''}" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" class="form-select">
+                            <option value="">Select Gender</option>
+                            <option value="Male" th:selected="${userDto != null and userDto.gender == 'Male'}">
+                                Male</option>
+                            <option value="Female" th:selected="${userDto != null and userDto.gender == 'Female'}">
+                                Female</option>
+                            <option value="Other" th:selected="${userDto != null and userDto.gender == 'Other'}">
+                                Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber"
+                            th:value="${userDto != null ? userDto.phoneNumber : ''}" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Information Section -->
+            <div class="form-section">
+                <h4>Academic Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="admissionNumber">Admission Number</label>
+                        <div class="admission-input-wrapper">
+                            <span class="admission-prefix" th:text="${admissionPrefix}">ADM</span>
+                            <input type="text" id="admissionNumberPart" class="form-input"
+                                th:value="${(student?.admissionNumber ?: (studentDto?.admissionNumber ?: '')).replaceFirst('^' + admissionPrefix, '')}"
+                                placeholder="Leave blank to auto-generate" oninput="updateFullAdmissionNumber()">
+                        </div>
+                        <input type="hidden" id="admissionNumber" name="admissionNumber"
+                            th:value="${student != null ? student.admissionNumber : (studentDto != null ? studentDto.admissionNumber : '')}">
+                        <span class="last-admission-hint" th:if="${lastAdmissionNumber != null}">
+                            Last assigned: <strong th:text="${lastAdmissionNumber}">ADM001</strong>
+                        </span>
+                    </div>
+                    <div class="form-group">
+                        <label for="currentGradeLevel">Current Grade Level</label>
+                        <input type="text" id="currentGradeLevel" name="currentGradeLevel"
+                            th:value="${studentDto != null ? studentDto.currentGradeLevel : ''}" class="form-input"
+                            placeholder="e.g., Grade 10, JSS 1">
+                    </div>
+                    <div class="form-group">
+                        <label for="previousSchool">Previous School</label>
+                        <input type="text" id="previousSchool" name="previousSchool"
+                            th:value="${studentDto != null ? studentDto.previousSchool : ''}" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="transportationMethod">Transportation Method</label>
+                        <select id="transportationMethod" name="transportationMethod" class="form-select">
+                            <option value="">Select Transportation</option>
+                            <option value="School Bus"
+                                th:selected="${studentDto != null and studentDto.transportationMethod == 'School Bus'}">
+                                School Bus</option>
+                            <option value="Private Car"
+                                th:selected="${studentDto != null and studentDto.transportationMethod == 'Private Car'}">
+                                Private Car</option>
+                            <option value="Public Transport"
+                                th:selected="${studentDto != null and studentDto.transportationMethod == 'Public Transport'}">
+                                Public Transport
+                            </option>
+                            <option value="Walking"
+                                th:selected="${studentDto != null and studentDto.transportationMethod == 'Walking'}">
+                                Walking
+                            </option>
+                            <option value="Other"
+                                th:selected="${studentDto != null and studentDto.transportationMethod == 'Other'}">Other
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="hasSpecialNeeds"
+                                th:checked="${studentDto != null and studentDto.hasSpecialNeeds}">
+                            Has Special Needs
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="isNew"
+                                th:checked="${studentDto != null ? studentDto.isNew : true}">
+                            Is New Student
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="specialNeedsDescription">Special Needs Description</label>
+                    <textarea id="specialNeedsDescription" name="specialNeedsDescription"
+                        th:text="${studentDto != null ? studentDto.specialNeedsDescription : ''}" class="form-input"
+                        rows="2" placeholder="Describe any special needs or accommodations"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('studentModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary"
+                th:text="${isEdit != null and isEdit ? 'Update Student' : 'Enroll Student'}">Enroll Student</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .photo-upload-container {
+        display: flex;
+        gap: 15px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+
+    .current-photo,
+    .photo-preview {
+        text-align: center;
+    }
+
+    .passport-preview {
+        width: 80px;
+        height: 100px;
+        object-fit: cover;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .photo-label {
+        margin-top: 5px;
+        font-size: 0.8rem;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .photo-upload {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .file-input {
+        margin-bottom: 5px;
+    }
+
+    .file-upload-help {
+        color: #666;
+        font-size: 0.75rem;
+        margin-bottom: 8px;
+    }
+
+    .student-avatar-large {
+        width: 80px;
+        height: 100px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: bold;
+        border-radius: 6px;
+        text-transform: uppercase;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .upload-progress {
+        margin-top: 8px;
+        text-align: center;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 4px;
+        background-color: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        width: 0%;
+        transition: width 0.3s ease;
+        animation: progress-animation 1.5s infinite;
+    }
+
+    @keyframes progress-animation {
+        0% {
+            width: 0%;
+        }
+
+        50% {
+            width: 70%;
+        }
+
+        100% {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .photo-upload-container {
+            flex-direction: column;
+        }
+
+        .passport-preview,
+        .student-avatar-large {
+            width: 70px;
+            height: 85px;
+        }
+    }
+
+    .photo-upload-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .camera-btn {
+        white-space: nowrap;
+    }
+
+    .camera-container {
+        margin-top: 15px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #000;
+        position: relative;
+        max-width: 320px;
+    }
+
+    .camera-video {
+        width: 100%;
+        display: block;
+    }
+
+    .camera-controls {
+        padding: 10px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        background: #f9fafb;
+    }
+
+    .admission-input-wrapper {
+        display: flex;
+        align-items: stretch;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        overflow: hidden;
+        transition: border-color 0.2s;
+    }
+
+    .admission-input-wrapper:focus-within {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .admission-prefix {
+        background: #f3f4f6;
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        color: #6b7280;
+        font-weight: 600;
+        border-right: 1px solid #d1d5db;
+        font-size: 0.875rem;
+        user-select: none;
+    }
+
+    .admission-input-wrapper .form-input {
+        border: none !important;
+        border-radius: 0 !important;
+        flex: 1;
+        margin-bottom: 0 !important;
+        padding: 8px 12px;
+    }
+
+    .last-admission-hint {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 4px;
+        display: block;
+    }
+</style>
+
+<script>
+    function uploadPassportPhoto(input) {
+        const preview = document.getElementById('photoPreview');
+        const previewImage = document.getElementById('previewImage');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const passportPhotoUrlInput = document.getElementById('passportPhotoUrl');
+
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                input.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select a valid image file (JPEG, PNG, or GIF)');
+                input.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+
+            // Show upload progress
+            uploadProgress.style.display = 'block';
+            preview.style.display = 'none';
+
+            // Create FormData for upload
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Upload the file
+            fetch('/admin/community/upload-passport-photo', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': "[[${_csrf.token}]]"
+                },
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    uploadProgress.style.display = 'none';
+
+                    if (data.success) {
+                        // Store the photo URL in hidden input
+                        passportPhotoUrlInput.value = data.photoUrl;
+
+                        // Show preview
+                        previewImage.src = data.photoUrl;
+                        preview.style.display = 'block';
+
+                        // Show success message briefly
+                        const successMsg = document.createElement('div');
+                        successMsg.textContent = 'Photo uploaded successfully!';
+                        successMsg.style.cssText = 'color: green; font-size: 0.8rem; margin-top: 5px;';
+                        uploadProgress.parentNode.appendChild(successMsg);
+                        setTimeout(() => successMsg.remove(), 3000);
+                    } else {
+                        alert('Upload failed: ' + data.error);
+                        input.value = '';
+                    }
+                })
+                .catch(error => {
+                    uploadProgress.style.display = 'none';
+                    alert('Upload failed: ' + error.message);
+                    input.value = '';
+                });
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    let cameraStream = null;
+
+    function startCamera() {
+        const video = document.getElementById('cameraVideo');
+        const container = document.getElementById('cameraContainer');
+        const photoPreview = document.getElementById('photoPreview');
+
+        // Hide preview if showing
+        photoPreview.style.display = 'none';
+
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: "user"
+            },
+            audio: false
+        })
+            .then(stream => {
+                cameraStream = stream;
+                video.srcObject = stream;
+                container.style.display = 'block';
+                video.play();
+            })
+            .catch(err => {
+                console.error("Error accessing camera: ", err);
+                alert("Could not access camera. Please ensure you have given permission.");
+            });
+    }
+
+    function stopCamera() {
+        const container = document.getElementById('cameraContainer');
+        const video = document.getElementById('cameraVideo');
+
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+
+        video.srcObject = null;
+        container.style.display = 'none';
+    }
+
+    function capturePhoto() {
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert canvas to blob
+        canvas.toBlob(blob => {
+            const file = new File([blob], "captured_photo.jpg", { type: "image/jpeg" });
+
+            // Create a mock input object to reuse uploadPassportPhoto logic
+            const mockInput = {
+                files: [file],
+                value: 'captured_photo.jpg'
+            };
+
+            // Stop camera and upload
+            stopCamera();
+            uploadPassportPhoto(mockInput);
+        }, 'image/jpeg', 0.9);
+    }
+
+    // Ensure camera stops when modal is closed
+    const originalCloseModal = window.closeModal;
+    window.closeModal = function (modalId) {
+        if (modalId === 'studentModal') {
+            stopCamera();
+        }
+        if (originalCloseModal) {
+            originalCloseModal(modalId);
+        }
+    };
+    function updateFullAdmissionNumber() {
+        const part = document.getElementById('admissionNumberPart').value;
+        const prefix = "[[${admissionPrefix}]]";
+        const hiddenInput = document.getElementById('admissionNumber');
+
+        if (part.trim() === '') {
+            hiddenInput.value = '';
+        } else {
+            hiddenInput.value = prefix + part;
+        }
+    }
+
+    // Debug logs for passport photo
+    console.log("Student Modal Loaded");
+    console.log("isEdit:", "[[${isEdit}]]");
+    const photoUrl = "[[${studentDto?.passportPhotoUrl ?: ''}]]";
+    console.log("Passport Photo URL:", photoUrl);
+    console.log("User First Name:", "[[${userDto?.firstName ?: ''}]]");
+
+    const imgElement = document.querySelector('.current-photo img');
+    const avatarElement = document.querySelector('.student-avatar-large');
+    console.log("Image element found:", !!imgElement);
+    console.log("Avatar element found:", !!avatarElement);
+    if (imgElement) console.log("Image src:", imgElement.src);
+</script>

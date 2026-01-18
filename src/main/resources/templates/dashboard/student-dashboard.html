@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Student Dashboard</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <div class="dashboard-container role-student">
+        <div class="welcome-section">
+            <div class="welcome-text">
+                <h1>Welcome back, <span sec:authentication="name">Student</span>!</h1>
+                <p>Student Dashboard • <span
+                        th:text="${#dates.format(#dates.createNow(), 'EEEE, MMMM dd, yyyy')}">Date</span></p>
+            </div>
+            <div class="welcome-stats">
+                <div class="stat-badge">
+                    <span class="value" th:text="${subjectCount ?: 0}">0</span>
+                    <span class="label">Subjects</span>
+                </div>
+                <div class="stat-badge">
+                    <span class="value" th:text="${averageGrade ?: 'N/A'}">N/A</span>
+                    <span class="label">Avg. Grade</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">My Subjects</span>
+                    <div class="card-icon"><i class="fas fa-book"></i></div>
+                </div>
+                <div class="card-value" th:text="${subjectCount ?: 0}">0</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Enrolled Subjects</span>
+                </div>
+                <span class="card-link">
+                    View Subjects <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">Assignments</span>
+                    <div class="card-icon"><i class="fas fa-pen-fancy"></i></div>
+                </div>
+                <div class="card-value" th:text="${pendingAssignments ?: 0}">0</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Pending Submissions</span>
+                </div>
+                <span class="card-link">
+                    View Assignments <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">Average Grade</span>
+                    <div class="card-icon"><i class="fas fa-graduation-cap"></i></div>
+                </div>
+                <div class="card-value" th:text="${averageGrade ?: 'N/A'}">N/A</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Current Semester</span>
+                </div>
+                <span class="card-link">
+                    View Report Card <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">Upcoming Exams</span>
+                    <div class="card-icon"><i class="fas fa-clock"></i></div>
+                </div>
+                <div class="card-value" th:text="${upcomingExams ?: 0}">0</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Scheduled Exams</span>
+                </div>
+                <span class="card-link">
+                    View Schedule <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+        </div>
+
+        <!-- Your Academic Activity Widget -->
+        <div class="content-panel">
+            <div class="section-header">
+                <h2 class="section-title">Academic Activity</h2>
+            </div>
+            <div th:replace="~{fragments/activity-widget :: user-activity-widget}" th:attr="data-user-id=${user?.id}">
+            </div>
+        </div>
+    </div>
+
+    <!-- Include activity widget script -->
+    <div th:replace="~{fragments/activity-widget :: activity-widget-script}"></div>
+    <script th:src="@{/js/dashboard-tabs.js}"></script>
+</body>
+
+</html>

@@ -1,0 +1,104 @@
+<!-- Parent Modal Form -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit ? 'Edit Parent/Guardian' : 'Add New Parent/Guardian'}">Add Parent</h3>
+        <button class="close-modal" onclick="closeModal('parentModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/community/parents/save-htmx" hx-target="#parent-cards-container" hx-swap="innerHTML"
+        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+        hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('parentModal'); } else { alert('Error saving parent. Please try again.'); }"
+        hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form">
+
+        <input type="hidden" name="id" th:value="${isEdit ? parent.id : ''}">
+
+        <div class="modal-body">
+            <!-- Personal Information Section -->
+            <div class="form-section">
+                <h4>Personal Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" th:value="${userDto.firstName}"
+                            class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" th:value="${userDto.lastName}"
+                            class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number *</label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" th:value="${userDto.phoneNumber}"
+                            class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" th:value="${userDto.email}" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information Section -->
+            <div class="form-section">
+                <h4>Contact Information</h4>
+                <div class="form-grid">
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="isPrimaryContact" th:checked="${parentDto.isPrimaryContact}">
+                            Primary Contact
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="isEmergencyContact"
+                                th:checked="${parentDto.isEmergencyContact}">
+                            Emergency Contact
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="isFinanciallyResponsible"
+                                th:checked="${parentDto.isFinanciallyResponsible}">
+                            Financially Responsible
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Communication Preferences Section -->
+            <div class="form-section">
+                <h4>Communication Preferences</h4>
+                <div class="form-grid">
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="receiveAcademicUpdates"
+                                th:checked="${parentDto.receiveAcademicUpdates}">
+                            Academic Updates
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="receiveFinancialUpdates"
+                                th:checked="${parentDto.receiveFinancialUpdates}">
+                            Financial Updates
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" name="receiveDisciplinaryUpdates"
+                                th:checked="${parentDto.receiveDisciplinaryUpdates}">
+                            Disciplinary Updates
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('parentModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary" th:text="${isEdit ? 'Update Parent' : 'Add Parent'}">Add
+                Parent</button>
+        </div>
+    </form>
+</div>

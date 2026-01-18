@@ -1,0 +1,222 @@
+<!-- Timetable Entry Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit ? 'Edit Timetable Entry' : 'New Timetable Entry'}">New Timetable Entry</h3>
+        <button class="close-modal" onclick="closeModal('timetableModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/academic/timetable/save-htmx" hx-target="#response-container" hx-swap="innerHTML"
+        class="modal-form" th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+        <input type="hidden" name="id" th:value="${isEdit ? timetableEntry.id : ''}">
+
+        <div class="modal-body">
+            <!-- Response Container -->
+            <div id="response-container"></div>
+
+            <!-- Schedule Information -->
+            <div class="form-section">
+                <h4>Schedule Information</h4>
+                <!-- Days Selection (Full Width) -->
+                <div class="form-group days-selection-group" th:if="${!isEdit}">
+                    <label>Days of Week *</label>
+                    <div class="checkbox-group">
+                        <div th:each="day : ${daysOfWeek}" class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="daysOfWeek" th:value="${day}">
+                                <span class="checkmark"></span>
+                                <span th:text="${day}">Monday</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="selected-days-preview" id="selectedDaysPreview" style="display: none;">
+                        <i class="fas fa-calendar-check"></i>
+                        <strong>Selected days:</strong> <span id="selectedDaysList"></span>
+                    </div>
+                    <div class="quick-select-buttons">
+                        <button type="button" class="btn btn-sm btn-outline quick-select-btn"
+                            onclick="selectWeekdays()">
+                            <i class="fas fa-business-time"></i> Weekdays
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline quick-select-btn" onclick="selectWeekend()">
+                            <i class="fas fa-home"></i> Weekend
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline quick-select-btn" onclick="selectAllDays()">
+                            <i class="fas fa-calendar"></i> All Days
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline quick-select-btn" onclick="clearAllDays()">
+                            <i class="fas fa-times"></i> Clear All
+                        </button>
+                    </div>
+                    <small class="form-help">Select one or more days for this time period</small>
+                </div>
+
+                <!-- Single Day Selection for Edit Mode -->
+                <div class="form-group" th:if="${isEdit}">
+                    <label for="dayOfWeek">Day of Week *</label>
+                    <select id="dayOfWeek" name="dayOfWeek" class="form-input" required>
+                        <option value="">Select Day</option>
+                        <option th:each="day : ${daysOfWeek}" th:value="${day}" th:text="${day}"
+                            th:selected="${isEdit && timetableEntry.dayOfWeek == day}">
+                        </option>
+                    </select>
+                    <small class="form-help">When editing, you can only change one day at a time</small>
+                </div>
+
+                <!-- Time Range (Compact Layout) -->
+                <div class="time-range-group">
+                    <div class="form-group">
+                        <label for="startTime">Start Time *</label>
+                        <input type="time" id="startTime" name="startTime" class="form-input time-input"
+                            th:value="${isEdit ? #temporals.format(timetableEntry.startTime, 'HH:mm') : ''}" required>
+                    </div>
+                    <div class="time-separator">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="form-group">
+                        <label for="endTime">End Time *</label>
+                        <input type="time" id="endTime" name="endTime" class="form-input time-input"
+                            th:value="${isEdit ? #temporals.format(timetableEntry.endTime, 'HH:mm') : ''}" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Information -->
+            <div class="form-section">
+                <h4>Activity Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="activityName">Activity Name *</label>
+                        <input type="text" id="activityName" name="activityName" class="form-input"
+                            th:value="${timetableEntry.activityName}"
+                            placeholder="e.g., Mathematics, Morning Assembly, Break" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="activityType">Activity Type *</label>
+                        <select id="activityType" name="activityType" class="form-input" required>
+                            <option value="">Select Activity Type</option>
+                            <option th:each="type : ${activityTypes}" th:value="${type}" th:text="${type}"
+                                th:selected="${isEdit && timetableEntry.activityType == type}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="isBreak" value="true" th:checked="${timetableEntry.isBreak}">
+                        <span class="checkmark"></span>
+                        Break Period
+                    </label>
+                    <small class="form-help">Check if this is a break or non-academic period</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-input" rows="2"
+                        th:text="${timetableEntry.description}"
+                        placeholder="Additional details about this activity"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('timetableModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+                <span th:text="${isEdit ? 'Update Entry' : 'Create Entry'}">Create Entry</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Quick select functions for days of week
+    function selectWeekdays() {
+        const weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+        const checkboxes = document.querySelectorAll('input[name="daysOfWeek"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = weekdays.includes(checkbox.value);
+        });
+        updateSelectedDaysPreview();
+    }
+
+    function selectWeekend() {
+        const weekend = ['SATURDAY', 'SUNDAY'];
+        const checkboxes = document.querySelectorAll('input[name="daysOfWeek"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = weekend.includes(checkbox.value);
+        });
+        updateSelectedDaysPreview();
+    }
+
+    function selectAllDays() {
+        const checkboxes = document.querySelectorAll('input[name="daysOfWeek"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSelectedDaysPreview();
+    }
+
+    function clearAllDays() {
+        const checkboxes = document.querySelectorAll('input[name="daysOfWeek"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelectedDaysPreview();
+    }
+
+    function updateSelectedDaysPreview() {
+        const checkedBoxes = document.querySelectorAll('input[name="daysOfWeek"]:checked');
+        const preview = document.getElementById('selectedDaysPreview');
+        const daysList = document.getElementById('selectedDaysList');
+
+        if (checkedBoxes.length > 0) {
+            const selectedDays = Array.from(checkedBoxes).map(cb => {
+                // Convert enum values to readable format
+                return cb.value.charAt(0) + cb.value.slice(1).toLowerCase();
+            });
+            daysList.textContent = selectedDays.join(', ');
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    // Form validation and event listeners
+    document.addEventListener('DOMContentLoaded', function () {
+        // Add change listeners to checkboxes
+        const checkboxes = document.querySelectorAll('input[name="daysOfWeek"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedDaysPreview);
+        });
+
+        // Form validation
+        const form = document.querySelector('.modal-form');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                const isEdit = document.querySelector('input[name="id"]').value !== '';
+                if (!isEdit) {
+                    const checkedDays = document.querySelectorAll('input[name="daysOfWeek"]:checked');
+                    if (checkedDays.length === 0) {
+                        e.preventDefault();
+
+                        // Add visual feedback for error
+                        const formGroup = document.querySelector('.checkbox-group').closest('.form-group');
+                        formGroup.classList.add('has-error');
+
+                        // Remove error class after 3 seconds
+                        setTimeout(() => {
+                            formGroup.classList.remove('has-error');
+                        }, 3000);
+
+                        alert('Please select at least one day of the week.');
+                        return false;
+                    }
+                }
+            });
+        }
+
+        // Initialize preview on load
+        updateSelectedDaysPreview();
+    });
+</script>

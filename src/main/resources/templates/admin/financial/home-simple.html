@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>4School - Financial Management</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+</head>
+
+<body>
+    <h1>Financial Management</h1>
+    <p>Fee Items: <span th:text="${financialStats.feeItems}">0</span></p>
+    <p>Class Fee Items: <span th:text="${financialStats.classFeeItems}">0</span></p>
+    <p>Active Classes: <span th:text="${financialStats.activeClasses}">0</span></p>
+</body>
+
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <aside th:fragment="assessment-sidebar" class="setup-sidebar">
+        <div class="sidebar-header">
+            <h3>Assessment Management</h3>
+        </div>
+        <nav class="setup-nav">
+            <a th:href="@{/admin/assessments}" class="nav-item"
+                th:classappend="${requestURI == '/admin/assessments' ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-chart-pie"></i></span>
+                Overview
+            </a>
+            <a th:href="@{/admin/assessments/examinations}" class="nav-item"
+                th:classappend="${requestURI.startsWith('/admin/assessments/examinations') and !requestURI.contains('/questions') ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-file-alt"></i></span>
+                Examinations
+            </a>
+
+            <a th:href="@{/admin/assessments/scoring-schemes}" class="nav-item"
+                th:classappend="${requestURI.startsWith('/admin/assessments/scoring-schemes') ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-balance-scale"></i></span>
+                Scoring Schemes
+            </a>
+
+            <a href="#" class="nav-item" th:classappend="${requestURI.contains('/questions') ? 'active' : ''}"
+                onclick="event.preventDefault(); alert('Please navigate to Question Bank from an examination card by clicking \'Manage Questions\'.');">
+                <span class="icon"><i class="fas fa-question-circle"></i></span>
+                Question Bank
+            </a>
+
+            <a th:href="@{/admin/assessments/reports}" class="nav-item"
+                th:classappend="${requestURI.startsWith('/admin/assessments/reports') ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-chart-line"></i></span>
+                Reports
+            </a>
+
+            <!-- Examination Filters (only show on examinations page) -->
+            <div th:if="${showFilters}" class="sidebar-filters">
+                <div class="filter-section">
+                    <h5 class="filter-title">
+                        <i class="fas fa-filter"></i>
+                        Filters
+                    </h5>
+
+                    <!-- Active Filters Display -->
+                    <div class="active-filters-sidebar" id="sidebarActiveFilters">
+                        <div class="filter-breadcrumb-sidebar">
+                            <div class="breadcrumb-chips-sidebar" id="sidebarBreadcrumbChips">
+                                <span class="breadcrumb-chip-sidebar default">All Examinations</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Academic Period Filters -->
+                    <div class="filter-category-sidebar">
+                        <h6 class="filter-subtitle">
+                            <i class="fas fa-calendar-alt"></i>
+                            Academic Period
+                        </h6>
+                        <div class="chip-container-sidebar">
+                            <div class="chip-group-sidebar" id="sidebarSessionChips">
+                                <div class="chip-label-sidebar">Session:</div>
+                                <div class="chips-wrapper">
+                                    <div class="chip-sidebar all-chip" data-type="session" data-value=""
+                                        th:classappend="${selectedSession == null or selectedSession == '' ? ' active' : ''}"
+                                        onclick="handleSidebarSessionChip(this)">
+                                        All Sessions
+                                    </div>
+                                    <div th:each="academicSession : ${academicSessions}"
+                                        class="chip-sidebar session-chip" th:data-type="session"
+                                        th:data-value="${academicSession.sessionYear}"
+                                        th:data-id="${academicSession.id}" th:text="${academicSession.sessionName}"
+                                        th:title="${academicSession.sessionName + ' (' + academicSession.sessionYear + ')'}"
+                                        th:classappend="${selectedSession == academicSession.sessionYear ? ' active' : ''}"
+                                        onclick="handleSidebarSessionChip(this)">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chip-group-sidebar" id="sidebarTermChips">
+                                <div class="chip-label-sidebar">Term:</div>
+                                <div class="chips-wrapper">
+                                    <div class="chip-sidebar all-chip active" data-type="term" data-value=""
+                                        onclick="handleSidebarChip(this)">
+                                        All Terms
+                                    </div>
+                                    <div th:each="term : ${terms}" class="chip-sidebar term-chip" th:data-type="term"
+                                        th:data-value="${term}" th:text="${term}"
+                                        th:classappend="${selectedTerm == term ? ' active' : ''}"
+                                        onclick="handleSidebarChip(this)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Academic Structure Filters -->
+                    <div class="filter-category-sidebar">
+                        <h6 class="filter-subtitle">
+                            <i class="fas fa-sitemap"></i>
+                            Academic Structure
+                        </h6>
+                        <div class="chip-container-sidebar">
+                            <div class="chip-group-sidebar" id="sidebarTrackChips">
+                                <div class="chip-label-sidebar">Track:</div>
+                                <div class="chips-wrapper">
+                                    <div class="chip-sidebar all-chip active" data-type="track" data-value=""
+                                        onclick="handleSidebarHierarchicalChip(this, 'track')">
+                                        All Tracks
+                                    </div>
+                                    <div th:each="track : ${educationTracks}" class="chip-sidebar track-chip"
+                                        th:data-type="track" th:data-value="${track.id}" th:text="${track.name}"
+                                        onclick="handleSidebarHierarchicalChip(this, 'track')">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chip-group-sidebar" id="sidebarDepartmentChips" style="display: none;">
+                                <div class="chip-label-sidebar">Department:</div>
+                                <div class="chips-wrapper">
+                                    <div class="chip-sidebar all-chip active" data-type="department" data-value=""
+                                        onclick="handleSidebarHierarchicalChip(this, 'department')">
+                                        All Departments
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chip-group-sidebar" id="sidebarClassChips" style="display: none;">
+                                <div class="chip-label-sidebar">Class:</div>
+                                <div class="chips-wrapper">
+                                    <div class="chip-sidebar all-chip active" data-type="class" data-value=""
+                                        onclick="handleSidebarHierarchicalChip(this, 'class')">
+                                        All Classes
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chip-group-sidebar" id="sidebarSubjectChips" style="display: none;"
+                                th:if="${hideSubjectFilter != true}">
+                                <div class="chip-label-sidebar">Subject:</div>
+                                <div class="chips-wrapper">
+                                    <div class="chip-sidebar all-chip active" data-type="subject" data-value=""
+                                        onclick="handleSidebarHierarchicalChip(this, 'subject')">
+                                        All Subjects
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Examination Type Filters -->
+                    <div class="filter-category-sidebar" th:if="${hideExamTypeFilter != true}">
+                        <h6 class="filter-subtitle">
+                            <i class="fas fa-clipboard-list"></i>
+                            Examination Type
+                        </h6>
+                        <div class="chip-container-sidebar">
+                            <div class="chip-group-sidebar" id="sidebarExamTypeChips">
+                                <div class="chips-wrapper">
+                                    <div class="chip-sidebar all-chip active" data-type="examType" data-value=""
+                                        onclick="handleSidebarChip(this)">
+                                        All Types
+                                    </div>
+                                    <div th:each="type : ${examTypes}" class="chip-sidebar exam-type-chip"
+                                        th:data-type="examType" th:data-value="${type}" th:text="${type}"
+                                        th:classappend="${selectedExamType == type ? ' active' : ''}"
+                                        onclick="handleSidebarChip(this)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Actions -->
+                    <div class="filter-actions-sidebar">
+                        <button class="btn-sidebar btn-outline-sidebar" onclick="handleClearAllSidebarFilters()">
+                            <i class="fas fa-times"></i>
+                            Clear All
+                        </button>
+                        <button class="btn-sidebar btn-primary-sidebar" onclick="handleApplySidebarFilters()">
+                            <i class="fas fa-filter"></i>
+                            Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+        </nav>
+
+        <div class="setup-progress-widget">
+            <h4>Assessment Stats</h4>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${assessmentStats?.totalExaminations ?: 0}">0</span>
+                    <span class="stat-label">Examinations</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${assessmentStats?.publishedExaminations ?: 0}">0</span>
+                    <span class="stat-label">Published</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Activate Account</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body class="auth-body">
+    <div class="auth-container">
+        <!-- School Branding -->
+        <div class="auth-header">
+            <div class="school-brand">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+            </div>
+        </div>
+
+        <!-- Auth Card -->
+        <div class="auth-card">
+            <!-- Initial Step: Email Form or OTP Form -->
+            <div th:if="${email == null}">
+                <div th:replace="~{auth/fragments/auth-steps :: email-form}" th:with="type=${type}"></div>
+            </div>
+            <div th:if="${email != null}">
+                <div th:replace="~{auth/fragments/auth-steps :: otp-form}" th:with="type=${type}, email=${email}"></div>
+            </div>
+
+            <!-- Alternative Actions -->
+            <div class="auth-links">
+                <p>Back to
+                    <a th:href="@{/login}" class="link-secondary">Sign In</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${isEdit ? 'Edit Staff' : 'Add New Staff'} + ' - 4School Management System'">Add Staff</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 th:text="${isEdit ? 'Edit Staff Member' : 'Add New Staff Member'}">Add Staff Member</h1>
+                    <p>Enter staff member details and employment information</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <a th:href="@{/admin/community/staff}" class="btn btn-outline">← Back to Staff List</a>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <form th:action="@{/admin/community/staff/save}" method="post" class="staff-form">
+                    <input type="hidden" name="id" th:value="${isEdit ? staff.id : ''}">
+
+                    <!-- Personal Information Section -->
+                    <div class="form-section">
+                        <h3>Personal Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" th:value="${userDto.firstName}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" th:value="${userDto.lastName}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="middleName">Middle Name</label>
+                                <input type="text" id="middleName" name="middleName" th:value="${userDto.middleName}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" th:value="${userDto.email}"
+                                    class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="phoneNumber">Phone Number *</label>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" th:value="${userDto.phoneNumber}"
+                                    class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="dateOfBirth">Date of Birth</label>
+                                <input type="date" id="dateOfBirth" name="dateOfBirth" th:value="${userDto.dateOfBirth}"
+                                    class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+    </main>
+</body>
+
+</html>
+<!-- Employment Information Section -->
+<div class="form-section">
+    <h3>Employment Information</h3>
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="designation">Designation *</label>
+            <select id="designation" name="designation" class="form-select" required>
+                <option value="">Select Designation</option>
+                <option value="Teacher" th:selected="${staff.designation == 'Teacher'}">Teacher</option>
+                <option value="Principal" th:selected="${staff.designation == 'Principal'}">Principal</option>
+                <option value="Vice Principal" th:selected="${staff.designation == 'Vice Principal'}">Vice Principal
+                </option>
+                <option value="Head Teacher" th:selected="${staff.designation == 'Head Teacher'}">Head Teacher</option>
+                <option value="Librarian" th:selected="${staff.designation == 'Librarian'}">Librarian</option>
+                <option value="Accountant" th:selected="${staff.designation == 'Accountant'}">Accountant</option>
+                <option value="Secretary" th:selected="${staff.designation == 'Secretary'}">Secretary</option>
+                <option value="Security" th:selected="${staff.designation == 'Security'}">Security</option>
+                <option value="Cleaner" th:selected="${staff.designation == 'Cleaner'}">Cleaner</option>
+                <option value="Driver" th:selected="${staff.designation == 'Driver'}">Driver</option>
+                <option value="Other" th:selected="${staff.designation == 'Other'}">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="department">Department</label>
+            <input type="text" id="department" name="department" th:value="${staff.department}" class="form-input"
+                placeholder="e.g., Mathematics, Science, Administration">
+        </div>
+        <div class="form-group">
+            <label for="employmentType">Employment Type</label>
+            <select id="employmentType" name="employmentType" class="form-select">
+                <option value="full_time" th:selected="${staff.employmentType == 'full_time'}">Full Time</option>
+                <option value="part_time" th:selected="${staff.employmentType == 'part_time'}">Part Time</option>
+                <option value="contract" th:selected="${staff.employmentType == 'contract'}">Contract</option>
+                <option value="temporary" th:selected="${staff.employmentType == 'temporary'}">Temporary</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="highestDegree">Highest Degree</label>
+            <input type="text" id="highestDegree" name="highestDegree" th:value="${staff.highestDegree}"
+                class="form-input" placeholder="e.g., B.Ed, M.Sc, PhD">
+        </div>
+        <div class="form-group">
+            <label for="yearsOfExperience">Years of Experience</label>
+            <input type="number" id="yearsOfExperience" name="yearsOfExperience" th:value="${staff.yearsOfExperience}"
+                class="form-input" min="0">
+        </div>
+    </div>
+
+    <div class="form-grid">
+        <div class="form-group checkbox-group">
+            <label>
+                <input type="checkbox" name="isClassTeacher" th:checked="${staff.isClassTeacher}">
+                Is Class Teacher
+            </label>
+        </div>
+        <div class="form-group checkbox-group">
+            <label>
+                <input type="checkbox" name="isSubjectTeacher" th:checked="${staff.isSubjectTeacher}">
+                Is Subject Teacher
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Bank Information Section -->
+<div class="form-section">
+    <h3>Bank Information (Optional)</h3>
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="bankName">Bank Name</label>
+            <input type="text" id="bankName" name="bankName" th:value="${staff.bankName}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="accountName">Account Name</label>
+            <input type="text" id="accountName" name="accountName" th:value="${staff.accountName}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="accountNumber">Account Number</label>
+            <input type="text" id="accountNumber" name="accountNumber" th:value="${staff.accountNumber}"
+                class="form-input">
+        </div>
+    </div>
+</div>
+
+<!-- Address Information Section -->
+<div class="form-section">
+    <h3>Address Information</h3>
+    <div class="form-grid">
+        <div class="form-group full-width">
+            <label for="addressLine1">Address Line 1</label>
+            <input type="text" id="addressLine1" name="addressLine1" th:value="${userDto.addressLine1}"
+                class="form-input">
+        </div>
+        <div class="form-group full-width">
+            <label for="addressLine2">Address Line 2</label>
+            <input type="text" id="addressLine2" name="addressLine2" th:value="${userDto.addressLine2}"
+                class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" th:value="${userDto.city}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="state">State</label>
+            <input type="text" id="state" name="state" th:value="${userDto.state}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="postalCode">Postal Code</label>
+            <input type="text" id="postalCode" name="postalCode" th:value="${userDto.postalCode}" class="form-input">
+        </div>
+    </div>
+</div>
+
+<!-- Form Actions -->
+<div class="form-actions">
+    <a th:href="@{/admin/community/staff}" class="btn btn-outline">Cancel</a>
+    <button type="submit" class="btn btn-primary" th:text="${isEdit ? 'Update Staff' : 'Add Staff'}">Add Staff</button>
+</div>
+</form>
+</div>
+</div>
+</main>
+</body>
+
+</html>

@@ -1,0 +1,80 @@
+<!-- Academic Session Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit ? 'Edit Academic Session' : 'New Academic Session'}">New Academic Session</h3>
+        <button class="close-modal" onclick="closeModal('sessionModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/academic/sessions/save-htmx" hx-target="#response-container" hx-swap="innerHTML"
+        class="modal-form" th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+        <input type="hidden" name="id" th:value="${isEdit ? academicSession.id : ''}">
+
+        <div class="modal-body">
+            <!-- Response Container -->
+            <div id="response-container"></div>
+
+            <!-- Session Information -->
+            <div class="form-section">
+                <h4>Session Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="sessionName">Session Name *</label>
+                        <input type="text" id="sessionName" name="sessionName" class="form-input"
+                            th:value="${academicSession.sessionName}" placeholder="e.g., 2024-2025 Academic Session"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionYear">Session Year *</label>
+                        <input type="text" id="sessionYear" name="sessionYear" class="form-input"
+                            th:value="${academicSession.sessionYear}" placeholder="e.g., 2024-2025" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Information -->
+            <div class="form-section">
+                <h4>Session Dates</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="startDate">Start Date *</label>
+                        <input type="date" id="startDate" name="startDate" class="form-input"
+                            th:value="${academicSession.startDate}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" name="endDate" class="form-input"
+                            th:value="${academicSession.endDate}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Settings -->
+            <div class="form-section">
+                <h4>Session Settings</h4>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="isCurrentSession" value="true"
+                            th:checked="${academicSession.isCurrentSession}">
+                        <span class="checkmark"></span>
+                        Set as Current Academic Session
+                    </label>
+                    <small class="form-help">Only one session can be current at a time</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" class="form-input" rows="3" th:text="${academicSession.notes}"
+                        placeholder="Additional notes about this academic session"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('sessionModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+                <span th:text="${isEdit ? 'Update Session' : 'Create Session'}">Create Session</span>
+            </button>
+        </div>
+    </form>
+</div>

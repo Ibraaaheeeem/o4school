@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${school.name} + ' Payouts - 4School System Admin'">School Payouts</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <style>
+        .financial-container {
+            padding: 2rem;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+        }
+
+        .history-card,
+        .record-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+
+        .btn-submit {
+            background: #4f46e5;
+            color: white;
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover {
+            background: #4338ca;
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="financial-container">
+            <div class="header-actions">
+                <div>
+                    <a th:href="@{/system-admin/financial/reimbursements}"
+                        style="color: #4f46e5; text-decoration: none; font-size: 0.875rem;">← Back to Schools</a>
+                    <h1 th:text="${school.name} + ' Reimbursements'">School Name</h1>
+                </div>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+            <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+            <!-- Filter Summary -->
+            <div th:if="${selectedSessionId != null || selectedTermId != null}"
+                style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.875rem;">
+                <i class="fas fa-filter" style="color: #3b82f6;"></i>
+                <strong>Filtered View:</strong>
+                <span th:if="${selectedSessionName != null}"
+                    th:text="'Academic Session: ' + ${selectedSessionName}"></span>
+                <span th:if="${selectedSessionName != null && selectedTermName != null}"> | </span>
+                <span th:if="${selectedTermName != null}" th:text="'Term: ' + ${selectedTermName}"></span>
+                <a href="#" onclick="clearFilters()" style="margin-left: 1rem; color: #3b82f6; text-decoration: none;">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            </div>
+
+            <!-- Filters -->
+            <div
+                style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Academic Session</label>
+                        <select id="academicSessionId" class="form-control" onchange="updateFilters()">
+                            <option value="">All Sessions</option>
+                            <option th:each="acadSession : ${academicSessions}" th:value="${acadSession.id}"
+                                th:text="${acadSession.sessionYear}"
+                                th:selected="${selectedSessionId != null && selectedSessionId == acadSession.id}">
+                                Session
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Term</label>
+                        <select id="termId" class="form-control" onchange="updateFilters()">
+                            <option value="">All Terms</option>
+                            <option th:each="term : ${terms}" th:value="${term.id}" th:text="${term.termName}"
+                                th:selected="${selectedTermId != null && selectedTermId == term.id}">
+                                Term
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" class="btn-submit" onclick="clearFilters()"
+                            style="width: auto; padding: 0.5rem 1.5rem;">Clear Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-card" style="background: #f0f9ff; border: 1px solid #bae6fd;">
+                    <div class="stat-label" style="color: #0369a1;">Paystack Account Balance</div>
+                    <div class="stat-value" style="color: #0284c7;"
+                        th:text="'₦' + ${#numbers.formatDecimal(paystackBalance, 0, 'COMMA', 2, 'POINT')}">₦0.00</div>
+                    <p style="font-size: 0.75rem; color: #0369a1; margin-top: 0.5rem;">Available for payouts</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Term Auto Settlements (SUCCESS)</div>
+                    <div class="stat-value" style="color: #059669;"
+                        th:text="'₦' + ${#numbers.formatDecimal(totalSettled, 0, 'COMMA', 2, 'POINT')}">₦0.00</div>
+                    <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;"
+                        th:if="${selectedSessionName != null || selectedTermName != null}">
+                        <span th:if="${selectedSessionName != null}" th:text="'For ' + ${selectedSessionName}"></span>
+                        <span th:if="${selectedTermName != null}" th:text="' - ' + ${selectedTermName}"></span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Term Reimbursed</div>
+                    <div class="stat-value"
+                        th:text="'₦' + ${#numbers.formatDecimal(totalReimbursed, 0, 'COMMA', 2, 'POINT')}">₦0.00</div>
+                    <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;"
+                        th:text="${reimbursements.size()} + ' payout(s) for this term'"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Term Pending Payout</div>
+                    <div class="stat-value" style="color: #d97706;"
+                        th:text="'₦' + ${#numbers.formatDecimal(pendingAmount, 0, 'COMMA', 2, 'POINT')}">₦0.00</div>
+                    <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
+                        <span th:if="${pendingAmount > 0}" style="color: #d97706;">Requires payout</span>
+                        <span th:if="${pendingAmount == 0}" style="color: #059669;">Fully settled</span>
+                    </div>
+
+                    <!-- Paystack Payout Button -->
+                    <div th:if="${pendingAmount > 0}" style="margin-top: 1rem;">
+                        <form th:if="${bankAccount != null && bankAccount.recipientCode != null}"
+                            th:action="@{/system-admin/financial/reimbursements/payout}" method="post"
+                            onsubmit="return confirm('Are you sure you want to initiate a Paystack payout of ₦' + [[${#numbers.formatDecimal(pendingAmount, 0, 'COMMA', 2, 'POINT')}]] + '?')">
+                            <input type="hidden" name="schoolId" th:value="${school.id}">
+                            <input type="hidden" name="amount" th:value="${pendingAmount}">
+                            <input type="hidden" name="academicSessionId" th:value="${selectedSessionId}">
+                            <input type="hidden" name="termId" th:value="${selectedTermId}">
+                            <button type="submit" class="btn-submit"
+                                style="background: #059669; font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-paper-plane"></i> Payout via Paystack
+                            </button>
+                        </form>
+                        <div th:if="${bankAccount == null || bankAccount.recipientCode == null}"
+                            style="font-size: 0.7rem; color: #dc2626; font-style: italic;">
+                            Generate recipient code to enable Paystack payout
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lifetime Overview -->
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1rem; color: #374151; margin-bottom: 1rem;">Lifetime Overview (All Terms)</h3>
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); opacity: 0.85;">
+                    <div class="stat-card" style="padding: 1rem; border-left: 4px solid #059669;">
+                        <div class="stat-label" style="font-size: 0.75rem;">Lifetime Settled</div>
+                        <div class="stat-value" style="font-size: 1.1rem;"
+                            th:text="'₦' + ${#numbers.formatDecimal(lifetimeSettled, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                        </div>
+                    </div>
+                    <div class="stat-card" style="padding: 1rem; border-left: 4px solid #6b7280;">
+                        <div class="stat-label" style="font-size: 0.75rem;">Lifetime Reimbursed</div>
+                        <div class="stat-value" style="font-size: 1.1rem;"
+                            th:text="'₦' + ${#numbers.formatDecimal(lifetimeReimbursed, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                        </div>
+                    </div>
+                    <div class="stat-card" style="padding: 1rem; border-left: 4px solid #d97706;">
+                        <div class="stat-label" style="font-size: 0.75rem;">Lifetime Pending</div>
+                        <div class="stat-value" style="font-size: 1.1rem; color: #d97706;"
+                            th:text="'₦' + ${#numbers.formatDecimal(lifetimePending, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                        </div>
+
+                        <!-- Lifetime Paystack Payout Button -->
+                        <div th:if="${lifetimePending > 0}" style="margin-top: 0.5rem;">
+                            <form th:if="${bankAccount != null && bankAccount.recipientCode != null}"
+                                th:action="@{/system-admin/financial/reimbursements/payout}" method="post"
+                                onsubmit="return confirm('Are you sure you want to initiate a LIFETIME Paystack payout of ₦' + [[${#numbers.formatDecimal(lifetimePending, 0, 'COMMA', 2, 'POINT')}]] + '?')">
+                                <input type="hidden" name="schoolId" th:value="${school.id}">
+                                <input type="hidden" name="amount" th:value="${lifetimePending}">
+                                <!-- No session/term for lifetime payout -->
+                                <button type="submit" class="btn-submit"
+                                    style="background: #d97706; font-size: 0.7rem; padding: 0.4rem;">
+                                    <i class="fas fa-history"></i> Payout Lifetime Balance
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Settlements Section -->
+            <div th:if="${totalManualSettled > 0}"
+                style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; display: flex; align-items: flex-start; gap: 1rem;">
+                <div
+                    style="background: #e2e8f0; color: #475569; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <div style="flex-grow: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0; color: #334155; font-size: 0.9rem;">Manual Settlements (Excluded from
+                            Payouts)</h4>
+                        <span class="badge" style="background: #e2e8f0; color: #475569;">MANUAL ENTRY</span>
+                    </div>
+                    <p style="margin: 0.25rem 0 0.75rem; color: #64748b; font-size: 0.8rem;">
+                        These settlements were logged manually and are <strong>not included</strong> in the pending
+                        payout calculation.
+                        Term Manual Total: <strong
+                            th:text="'₦' + ${#numbers.formatDecimal(totalManualSettled, 0, 'COMMA', 2, 'POINT')}">₦0.00</strong>
+                    </p>
+
+                    <div style="overflow-x: auto;">
+                        <table
+                            style="width: 100%; font-size: 0.75rem; border-collapse: collapse; background: white; border-radius: 4px;">
+                            <thead>
+                                <tr style="background: #f1f5f9; border-bottom: 1px solid #e2e8f0;">
+                                    <th style="padding: 0.5rem; text-align: left;">Date</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Reference</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Payer</th>
+                                    <th style="padding: 0.5rem; text-align: right;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="s : ${manualSettlements}" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 0.5rem;"
+                                        th:text="${#temporals.format(s.transactionDate, 'MMM dd, HH:mm')}">Date</td>
+                                    <td style="padding: 0.5rem; font-family: monospace;" th:text="${s.reference}">REF
+                                    </td>
+                                    <td style="padding: 0.5rem;" th:text="${s.payerEmail}">Payer</td>
+                                    <td style="padding: 0.5rem; text-align: right; font-weight: 600; color: #475569;"
+                                        th:text="'₦' + ${#numbers.formatDecimal(s.amount, 0, 'COMMA', 2, 'POINT')}">
+                                        ₦0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unassigned Settlements Alert -->
+            <div th:if="${unassignedSettled > 0}"
+                style="background: #fff7ed; border: 1px solid #ffedd5; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem;">
+                <div
+                    style="background: #ffedd5; color: #9a3412; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; color: #9a3412; font-size: 0.9rem;">Unassigned Settlements Found</h4>
+                    <p style="margin: 0.25rem 0 0; color: #c2410c; font-size: 0.8rem;">
+                        There are <strong
+                            th:text="'₦' + ${#numbers.formatDecimal(unassignedSettled, 0, 'COMMA', 2, 'POINT')}">₦0.00</strong>
+                        in settlements not linked to any academic session or term.
+                        These are included in the <strong>Lifetime Overview</strong> but not in the <strong>Term
+                            Settlements</strong>.
+                    </p>
+
+                    <!-- Detailed list of unassigned settlements -->
+                    <div style="margin-top: 1rem; overflow-x: auto;">
+                        <table
+                            style="width: 100%; font-size: 0.75rem; border-collapse: collapse; background: white; border-radius: 4px;">
+                            <thead>
+                                <tr style="background: #fff7ed; border-bottom: 1px solid #ffedd5;">
+                                    <th style="padding: 0.5rem; text-align: left;">Date</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Reference</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Channel</th>
+                                    <th style="padding: 0.5rem; text-align: right;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="s : ${unassignedSettlements}" style="border-bottom: 1px solid #fff7ed;">
+                                    <td style="padding: 0.5rem;"
+                                        th:text="${#temporals.format(s.transactionDate, 'MMM dd, HH:mm')}">Date</td>
+                                    <td style="padding: 0.5rem; font-family: monospace;" th:text="${s.reference}">REF
+                                    </td>
+                                    <td style="padding: 0.5rem;" th:text="${s.paymentChannel}">Channel</td>
+                                    <td style="padding: 0.5rem; text-align: right; font-weight: 600;"
+                                        th:text="'₦' + ${#numbers.formatDecimal(s.amount, 0, 'COMMA', 2, 'POINT')}">
+                                        ₦0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <div class="history-card">
+                    <h3>Payout History</h3>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Reference</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Recorded By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="r : ${reimbursements}">
+                                <td th:text="${#temporals.format(r.reimbursementDate, 'MMM dd, yyyy')}">Date</td>
+                                <td th:text="${r.reference}" style="font-family: monospace;">REF</td>
+                                <td th:text="'₦' + ${#numbers.formatDecimal(r.amount, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                                </td>
+                                <td><span class="badge badge-success" th:text="${r.status}">SUCCESS</span></td>
+                                <td
+                                    th:text="${r.recordedBy != null ? r.recordedBy.firstName + ' ' + r.recordedBy.lastName : 'System'}">
+                                    Admin</td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(reimbursements)}">
+                                <td colspan="5" style="text-align: center; color: #6b7280; padding: 2rem;">No payout
+                                    history found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="record-card">
+                    <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #f3f4f6;">
+                        <h3>School Bank Details</h3>
+                        <div th:if="${bankAccount != null}">
+                            <div style="font-size: 0.875rem; color: #374151; margin-top: 1rem;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Bank:</strong> <span
+                                        th:text="${bankAccount.bankName}">Bank Name</span></div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Account Number:</strong> <span
+                                        th:text="${bankAccount.accountNumber}">0000000000</span></div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Account Name:</strong> <span
+                                        th:text="${bankAccount.accountName}">Account Name</span></div>
+                                <div style="margin-bottom: 1rem;">
+                                    <strong>Recipient Code:</strong>
+                                    <span th:if="${bankAccount.recipientCode != null}"
+                                        th:text="${bankAccount.recipientCode}"
+                                        style="font-family: monospace; background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 4px;">RCP_xxx</span>
+                                    <span th:if="${bankAccount.recipientCode == null}"
+                                        style="color: #991b1b; font-style: italic;">Not Generated</span>
+                                </div>
+
+                                <form th:if="${bankAccount.recipientCode == null}"
+                                    th:action="@{/system-admin/financial/reimbursements/generate-recipient}"
+                                    method="post">
+                                    <input type="hidden" name="bankAccountId" th:value="${bankAccount.id}">
+                                    <input type="hidden" name="schoolId" th:value="${school.id}">
+                                    <button type="submit" class="btn-submit" style="background: #059669;">Generate
+                                        Recipient Code</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div th:if="${bankAccount == null}"
+                            style="padding: 1rem; background: #fff7ed; border: 1px solid #ffedd5; border-radius: 8px; color: #9a3412; font-size: 0.875rem; margin-top: 1rem;">
+                            <i class="fas fa-exclamation-triangle"></i> No bank account details found for this school.
+                        </div>
+                    </div>
+
+                    <h3>Record New Payout</h3>
+                    <form th:action="@{/system-admin/financial/reimbursements/record}" method="post">
+                        <input type="hidden" name="schoolId" th:value="${school.id}">
+
+                        <div class="form-group">
+                            <label>Amount (₦)</label>
+                            <input type="number" name="amount" step="0.01" class="form-control"
+                                th:value="${pendingAmount}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Reference / Receipt No.</label>
+                            <input type="text" name="reference" class="form-control" required
+                                placeholder="e.g. PAY-2023-001">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" name="date" class="form-control"
+                                th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Academic Session</label>
+                            <select name="academicSessionId" class="form-control">
+                                <option value="">Select Session</option>
+                                <option th:each="s : ${academicSessions}" th:value="${s.id}" th:text="${s.sessionYear}"
+                                    th:selected="${selectedSessionId != null && selectedSessionId == s.id}">
+                                    Session</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Term</label>
+                            <select name="termId" class="form-control">
+                                <option value="">Select Term</option>
+                                <option th:each="t : ${terms}" th:value="${t.id}" th:text="${t.termName}"
+                                    th:selected="${selectedTermId != null && selectedTermId == t.id}">
+                                    Term</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea name="notes" class="form-control" rows="3"
+                                th:placeholder="'Reimbursement for ' + ${selectedSessionName != null ? (selectedSessionName + ' ') : ''} + ${selectedTermName != null ? (selectedTermName + ' ') : ''} + 'settlements'"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-submit">Record Payout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        function updateFilters() {
+            const sessionId = document.getElementById('academicSessionId').value;
+            const termId = document.getElementById('termId').value;
+            const schoolId = /*[[${school.id}]]*/ '';
+
+            const params = new URLSearchParams();
+            if (sessionId) params.set('academicSessionId', sessionId);
+            if (termId) params.set('termId', termId);
+
+            const url = `/system-admin/financial/reimbursements/school/${schoolId}` +
+                (params.toString() ? '?' + params.toString() : '');
+            window.location.href = url;
+        }
+
+        function clearFilters() {
+            const schoolId = /*[[${school.id}]]*/ '';
+            window.location.href = `/system-admin/financial/reimbursements/school/${schoolId}`;
+        }
+    </script>
+</body>
+
+</html>

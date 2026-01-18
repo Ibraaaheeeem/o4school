@@ -1,0 +1,130 @@
+<!-- Student Cards Fragment -->
+<div th:fragment="student-cards-content" id="student-cards-content">
+    <div class="alert alert-success" th:if="${success}">
+        <span th:text="${success}"></span>
+    </div>
+    <div class="alert alert-danger" th:if="${error}">
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="student-cards-grid" th:if="${!studentPage.content.empty}">
+        <div th:each="student : ${studentPage.content}" class="student-card">
+            <div class="student-card-header">
+                <div class="student-avatar">
+                    <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
+                        th:alt="${student.user.fullName + ' passport photo'}" class="passport-photo"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span th:unless="${student.passportPhotoUrl}" class="default-avatar"
+                        th:text="${!#strings.isEmpty(student.user.fullName) ? #strings.substring(student.user.fullName, 0, 1) : '?'}">J</span>
+                    <span th:if="${student.passportPhotoUrl}" class="default-avatar" style="display: none;"
+                        th:text="${!#strings.isEmpty(student.user.fullName) ? #strings.substring(student.user.fullName, 0, 1) : '?'}">J</span>
+                </div>
+                <div class="student-info">
+                    <h3 th:text="${student.user.fullName}">John Doe</h3>
+                    <p class="student-email" th:text="${student.user.email}">john@example.com</p>
+                    <p class="admission-number">
+                        <strong>Admission number:</strong> <span
+                            th:text="${student.admissionNumber ?: 'N/A'}">ADM2024001</span>
+                    </p>
+                </div>
+                <div class="student-status">
+                    <span class="badge badge-success"
+                        th:if="${student.academicStatus.name() == 'ENROLLED'}">Enrolled</span>
+                    <span class="badge badge-warning"
+                        th:if="${student.academicStatus.name() == 'SUSPENDED'}">Suspended</span>
+                    <span class="badge badge-info"
+                        th:if="${student.academicStatus.name() == 'GRADUATED'}">Graduated</span>
+                </div>
+            </div>
+
+            <div class="student-card-body">
+                <div class="class-assignments-section">
+                    <h4>Classes</h4>
+                    <div th:if="${student.classEnrollments.empty}" class="no-assignments">
+                        <p class="text-muted">No class assignments</p>
+                    </div>
+                    <div th:unless="${student.classEnrollments.empty}" class="assignments-grid">
+                        <div th:each="enrollment : ${student.classEnrollments}" th:if="${enrollment.isActive}"
+                            class="assignment-card">
+                            <div class="assignment-details">
+                                <div class="track-name"
+                                    th:text="${enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : 'No Track'}">
+                                    Track Name</div>
+                                <div class="class-name" th:text="${enrollment.schoolClass.className}">Class Name</div>
+                            </div>
+                            <button class="remove-assignment-btn" th:data-assignment-id="${enrollment.id}"
+                                th:data-assignment-info="${(enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : '') + ' - ' + enrollment.schoolClass.className}"
+                                onclick="confirmDeleteAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                title="Remove assignment">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="student-card-footer">
+                <div class="card-actions">
+                    <button class="btn btn-sm btn-outline"
+                        th:hx-get="@{/admin/community/students/{id}/modal(id=${student.id})}"
+                        hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+                        th:onclick="'setTimeout(() => openModal(\'studentModal\'), 100)'">
+                        <i class="icon-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-info"
+                        th:hx-get="@{/admin/community/students/{id}/assign-class/modal(id=${student.id})}"
+                        hx-target="#studentClassModal .modal-dialog" hx-swap="innerHTML"
+                        th:onclick="'setTimeout(() => openModal(\'studentClassModal\'), 100)'">
+                        <i class="icon-plus"></i> Assign Class
+                    </button>
+                    <button class="btn btn-sm btn-danger" th:data-student-id="${student.id}"
+                        th:data-student-name="${student.user.fullName}"
+                        onclick="confirmDelete(this.dataset.studentId, this.dataset.studentName)">
+                        <i class="icon-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="empty-state" th:if="${studentPage.content.empty}">
+        <div class="empty-icon">🎓</div>
+        <h3>No Students Found</h3>
+        <p>Start by enrolling your first student to the system.</p>
+        <button class="btn btn-primary" hx-get="/admin/community/students/new/modal"
+            hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+            hx-on::after-request="openModal('studentModal')">
+            Enroll First Student
+        </button>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container" th:if="${studentPage.totalPages > 1}">
+        <div class="pagination-info">
+            Showing <span th:text="${studentPage.number * studentPage.size + 1}">1</span> to
+            <span
+                th:text="${(studentPage.number + 1) * studentPage.size > studentPage.totalElements ? studentPage.totalElements : (studentPage.number + 1) * studentPage.size}">20</span>
+            of <span th:text="${studentPage.totalElements}">100</span> entries
+        </div>
+        <div class="pagination">
+            <a th:if="${studentPage.hasPrevious()}" href="javascript:void(0)"
+                th:attr="hx-get=@{/admin/community/students(page=${studentPage.number - 1}, size=${studentPage.size})}"
+                hx-target="#student-cards-container" hx-swap="innerHTML" hx-include="#filterForm" hx-replace-url="true"
+                class="pagination-link">Previous</a>
+
+            <th:block th:each="i : ${#numbers.sequence(0, studentPage.totalPages - 1)}"
+                th:if="${i >= studentPage.number - 2 && i <= studentPage.number + 2}">
+                <a th:if="${i != studentPage.number}" href="javascript:void(0)"
+                    th:attr="hx-get=@{/admin/community/students(page=${i}, size=${studentPage.size})}"
+                    hx-target="#student-cards-container" hx-swap="innerHTML" hx-include="#filterForm"
+                    hx-replace-url="true" th:text="${i + 1}" class="pagination-link"></a>
+                <span th:if="${i == studentPage.number}" th:text="${i + 1}" class="pagination-link active"></span>
+            </th:block>
+
+            <a th:if="${studentPage.hasNext()}" href="javascript:void(0)"
+                th:attr="hx-get=@{/admin/community/students(page=${studentPage.number + 1}, size=${studentPage.size})}"
+                hx-target="#student-cards-container" hx-swap="innerHTML" hx-include="#filterForm" hx-replace-url="true"
+                class="pagination-link">Next</a>
+        </div>
+    </div>
+</div>

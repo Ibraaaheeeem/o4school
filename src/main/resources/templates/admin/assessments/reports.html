@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <title>4School - Assessment Reports</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <div th:replace="~{fragments/assessment-sidebar :: assessment-sidebar}"></div>
+
+        <div class="setup-content" id="reportsContainer">
+            <div th:fragment="reports-content">
+                <div class="setup-header animate-fade-in">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <div>
+                            <h1>Assessment Reports</h1>
+                            <p>Manage student scores and generate termly reports.</p>
+                        </div>
+                        <div
+                            class="header-actions d-flex align-items-center gap-3 w-100 justify-content-end position-relative">
+                            <!-- Update Assessment Button (Centered) -->
+                            <button class="btn btn-primary position-absolute start-50 translate-middle-x"
+                                onclick="saveAssessment()" style="z-index: 10;">
+                                <i class="fas fa-save me-2"></i> Update Assessment
+                            </button>
+
+                            <!-- Import Scores Button (Far Right) -->
+                            <button class="btn btn-outline-primary" onclick="openImportModal()">
+                                <i class="fas fa-download me-2"></i> Import Scores
+                            </button>
+
+                            <!-- Student Selection Dropdown -->
+                            <div class="student-selector" th:style="${students == null ? 'display: none;' : ''}">
+                                <label for="studentSelect" class="me-2">Select Student:</label>
+                                <select id="studentSelect" class="form-control glass-input"
+                                    onchange="loadStudentData()">
+                                    <option value="">Choose a student...</option>
+                                    <option th:each="student : ${students}" th:value="${student.id}"
+                                        th:text="${student.user.fullName + ' (' + student.admissionNumber + ')'}"
+                                        th:selected="${selectedStudentId == student.id}">
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="no-selection-msg text-muted"
+                                th:style="${students != null ? 'display: none;' : ''}">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Select Class & Session in sidebar to see students
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reports-grid">
+                    <!-- Empty State -->
+                    <div id="emptyState" class="glass-card-premium animate-slide-up reports-empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h3 class="empty-state-title">No Student Selected</h3>
+                        <p class="empty-state-text">Please select a student from the dropdown above to view and manage
+                            their assessment reports.</p>
+                    </div>
+
+                    <!-- Redesigned Assessment Card -->
+                    <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
+                        <!-- Student Profile Header -->
+                        <div class="student-profile-header">
+                            <div class="student-avatar-large" id="studentAvatar">
+                                JS
+                            </div>
+                            <div class="student-info-main">
+                                <h2 id="studentNameHeader">Student Name</h2>
+                                <div class="student-info-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-id-card"></i>
+                                        <span id="studentAdmissionMeta">ADM-001</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-layer-group"></i>
+                                        <span id="studentTrackMeta">Track Name</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-school"></i>
+                                        <span id="studentClassMeta">Class Name</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="header-actions ms-auto">
+                                <button id="editModeBtn" class="btn btn-outline-primary" onclick="toggleEditMode()">
+                                    <i class="fas fa-edit me-2"></i> Edit Mode
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-0">
+                            <!-- Tab Navigation -->
+                            <div class="px-4 pt-4">
+                                <div class="report-tabs">
+                                    <button class="report-tab active" onclick="switchTab('academic')">
+                                        <i class="fas fa-book"></i> Academic Scores
+                                    </button>
+                                    <button class="report-tab" onclick="switchTab('behavioral')">
+                                        <i class="fas fa-user-check"></i> Behavioral
+                                    </button>
+                                    <button class="report-tab" onclick="switchTab('comments')">
+                                        <i class="fas fa-comment-alt"></i> Comments & Attendance
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tab Contents -->
+                            <div id="academicTab" class="tab-content active">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h4 class="m-0"><i class="fas fa-list-ol me-2 text-primary"></i>Subject Performance
+                                    </h4>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table glass-table table-hover">
+                                        <thead>
+                                            <tr id="tableHeaderRow">
+                                                <!-- Dynamic Headers -->
+                                            </tr>
+                                        </thead>
+                                        <tbody id="assessmentTableBody">
+                                            <!-- Dynamic Rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div id="behavioralTab" class="tab-content">
+                                <div class="behavioral-header mb-4">
+                                    <h4 class="mb-2"><i class="fas fa-heart me-2 text-danger"></i>Behavioral Assessment
+                                    </h4>
+                                    <p class="text-muted mb-0">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
+                                        Excellent)</p>
+                                </div>
+                                <div class="behavior-assessment-container">
+                                    <div id="behaviorContainer" class="behavioral-traits-grid"></div>
+                                </div>
+                            </div>
+
+                            <div id="commentsTab" class="tab-content">
+                                <!-- Attendance Section -->
+                                <div class="attendance-section mb-5">
+                                    <div class="section-header mb-4">
+                                        <h4 class="section-title">
+                                            <div class="title-icon-wrapper">
+                                                <i class="fas fa-calendar-check"></i>
+                                            </div>
+                                            Attendance Record
+                                        </h4>
+                                        <p class="section-subtitle">Track student's attendance for this term</p>
+                                    </div>
+
+                                    <div class="attendance-card">
+                                        <div class="attendance-content">
+                                            <div class="attendance-info">
+                                                <div class="attendance-icon">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </div>
+                                                <div class="attendance-details">
+                                                    <label class="attendance-label">Total Days Present</label>
+                                                    <p class="attendance-description">Enter the number of days the
+                                                        student was present this term</p>
+                                                </div>
+                                            </div>
+                                            <div class="attendance-input-wrapper">
+                                                <div class="attendance-input-group">
+                                                    <input type="number" id="attendanceInput" class="attendance-input"
+                                                        min="0" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Comments Section -->
+                                <div class="comments-section">
+                                    <div class="row g-4">
+                                        <div class="col-12">
+                                            <div class="comment-box">
+                                                <h4><i class="fas fa-user-tie text-info"></i>Class Teacher's Remark</h4>
+                                                <textarea id="classTeacherComment" class="form-control glass-input"
+                                                    rows="5"
+                                                    placeholder="Enter detailed observation about the student's academic and social progress..."></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="comment-box">
+                                                <h4><i class="fas fa-user-shield text-warning"></i>Head Teacher's Remark
+                                                </h4>
+                                                <textarea id="headTeacherComment" class="form-control glass-input"
+                                                    rows="5"
+                                                    placeholder="Enter final recommendation or approval notes..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer Actions -->
+                            <div class="p-4 border-top bg-light" id="footerActions" style="display: none;">
+                                <div class="d-flex flex-column align-items-center gap-3">
+                                    <div class="text-muted small">
+                                        <i class="fas fa-info-circle me-1"></i> Changes are not saved until you click
+                                        "Update Assessment"
+                                    </div>
+                                    <button class="btn btn-xl btn-primary shadow-sm" onclick="saveAssessment()">
+                                        <i class="fas fa-save me-2"></i> Update Assessment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-dialog glass-card" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-download me-2"></i>Import Scores</h3>
+                <button class="close-btn" onclick="closeModal('importModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label class="fw-bold mb-1">Target Component</label>
+                    <select id="importComponent" class="form-control glass-input">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="fw-bold mb-1">Source Examinations</label>
+                    <div id="sourceExamsContainer" class="d-flex flex-column gap-2 mb-2">
+                        <!-- Dynamic Rows -->
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary dashed-border w-100" onclick="addSourceExamRow()">
+                        <i class="fas fa-plus me-1"></i> Add Source Exam
+                    </button>
+                </div>
+
+                <div id="formulaConfig" style="display: none;">
+                    <div class="form-group mb-3">
+                        <label class="fw-bold mb-1">Divisor</label>
+                        <input type="number" id="importDivisor" class="form-control glass-input" value="1" min="0.1"
+                            step="0.1">
+                        <small class="text-muted">Final Score = (Sum of Weighted Sources) / Divisor</small>
+                    </div>
+                </div>
+
+                <div class="import-scope-toggle mt-3 p-3 bg-light rounded">
+                    <label class="d-flex align-items-center mb-0" style="cursor: pointer;">
+                        <input type="checkbox" id="importAllStudents" class="me-2" style="width: 18px; height: 18px;">
+                        <span class="fw-bold">Import for all students in this class</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('importModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="executeImport()">Start Import</button>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        let currentStudentData = null;
+        let isEditMode = false;
+        let filterState = {
+            sessionId: /*[[${selectedSessionId ?: ''}]]*/ '',
+            termId: /*[[${selectedTermId ?: ''}]]*/ '',
+            session: /*[[${selectedSession ?: ''}]]*/ '',
+            term: /*[[${selectedTerm ?: ''}]]*/ '',
+            track: /*[[${selectedTrackId ?: ''}]]*/ '',
+            department: /*[[${selectedDepartmentId ?: ''}]]*/ '',
+            class: /*[[${selectedClassId ?: ''}]]*/ ''
+        };
+
+        // --- Tab Switching ---
+        window.switchTab = function (tabId) {
+            // Update buttons
+            document.querySelectorAll('.report-tab').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('onclick').includes(tabId)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        };
+
+        // --- Sidebar Handlers ---
+        window.handleSidebarSessionChip = async function (element) {
+            const params = new URLSearchParams(window.location.search);
+            const value = element.getAttribute('data-value');
+            const sessionId = element.getAttribute('data-id');
+
+            if (value) {
+                params.set('sessionYear', value);
+                filterState.session = value;
+            } else {
+                params.delete('sessionYear');
+                filterState.session = '';
+            }
+
+            if (sessionId) {
+                params.set('sessionId', sessionId);
+                filterState.sessionId = sessionId;
+            } else {
+                params.delete('sessionId');
+                filterState.sessionId = '';
+            }
+
+            // Fetch and update terms for the selected session
+            if (sessionId) {
+                try {
+                    const response = await fetch(`/admin/assessments/reports/api/sessions/${sessionId}/terms`);
+                    if (response.ok) {
+                        const terms = await response.json();
+                        updateTermChips(terms);
+                    }
+                } catch (error) {
+                    console.error('Error fetching terms:', error);
+                }
+            } else {
+                // Reset to default terms if no session selected
+                const defaultTerms = [
+                    { name: 'First Term', isCurrent: 'false' },
+                    { name: 'Second Term', isCurrent: 'false' },
+                    { name: 'Third Term', isCurrent: 'false' }
+                ];
+                updateTermChips(defaultTerms);
+            }
+
+            loadReportsWithFilters(params);
+
+            // Load students if we have class selected
+            if (filterState.class) {
+                loadStudentsForClass(filterState.class);
+            }
+        };
+
+        // Function to update term chips dynamically
+        function updateTermChips(terms) {
+            const termChipsWrapper = document.querySelector('#sidebarTermChips .chips-wrapper');
+            if (!termChipsWrapper) return;
+
+            // Keep the "All Terms" chip
+            const allTermsChip = termChipsWrapper.querySelector('.all-chip');
+            termChipsWrapper.innerHTML = '';
+            if (allTermsChip) {
+                termChipsWrapper.appendChild(allTermsChip);
+            }
+
+            // Add term chips
+            terms.forEach(term => {
+                const chip = document.createElement('div');
+                chip.className = 'chip-sidebar term-chip';
+                chip.setAttribute('data-type', 'term');
+                chip.setAttribute('data-value', term.id);
+                chip.setAttribute('data-name', term.name);
+                chip.textContent = term.name;
+                chip.onclick = function () { handleSidebarChip(this); };
+
+                // Mark current term as active if no term is currently selected
+                if (term.isCurrent === 'true' && !filterState.termId) {
+                    chip.classList.add('active');
+                    filterState.termId = term.id;
+                    // Also update URL parameters
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('termId', term.id);
+                    window.history.replaceState({}, '', `/admin/assessments/reports?${params.toString()}`);
+                }
+
+                termChipsWrapper.appendChild(chip);
+            });
+        }
+
+        window.handleSidebarChip = function (element) {
+            const params = new URLSearchParams(window.location.search);
+            const type = element.getAttribute('data-type');
+            const value = element.getAttribute('data-value');
+
+            if (type === 'session') {
+                if (value) {
+                    params.set('sessionId', value);
+                    filterState.sessionId = value;
+                } else {
+                    params.delete('sessionId');
+                    filterState.sessionId = '';
+                }
+
+                // Clear term selection when session changes
+                params.delete('termId');
+                filterState.termId = '';
+
+                // Load terms for the selected session
+                if (value) {
+                    loadTermsForSession(value);
+                }
+            } else if (type === 'term') {
+                if (value) {
+                    params.set('termId', value);
+                    filterState.termId = value;
+                } else {
+                    params.delete('termId');
+                    filterState.termId = '';
+                }
+            }
+
+            loadReportsWithFilters(params);
+
+            // Load students if term is selected and we have class
+            if (type === 'term' && filterState.class) {
+                loadStudentsForClass(filterState.class);
+            }
+        };
+
+        // Function to load terms for a selected session
+        async function loadTermsForSession(sessionId) {
+            try {
+                const response = await fetch(`/admin/assessments/reports/api/sessions/${sessionId}/terms`);
+                if (response.ok) {
+                    const terms = await response.json();
+                    updateTermChips(terms);
+                }
+            } catch (error) {
+                console.error('Error fetching terms:', error);
+            }
+        }
+
+        // Function to load students for a selected class
+        async function loadStudentsForClass(classId) {
+            const studentSelect = document.getElementById('studentSelect');
+            if (!studentSelect) return;
+
+            const sessionId = filterState.sessionId;
+            const termId = filterState.termId;
+
+            if (!classId) {
+                studentSelect.innerHTML = '<option value="">Choose a student...</option>';
+                return;
+            }
+
+            try {
+                // Show loading state
+                studentSelect.innerHTML = '<option value="">Loading students...</option>';
+                studentSelect.disabled = true;
+
+                console.log('loadStudentsForClass: classId=', classId, 'sessionId=', sessionId, 'termId=', termId);
+
+                let url = `/admin/assessments/reports/api/classes/${classId}/students`;
+                const params = new URLSearchParams();
+                if (sessionId) params.append('sessionId', sessionId);
+                if (termId) params.append('termId', termId);
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                console.log('loadStudentsForClass: fetch URL=', url, 'status=', response.status);
+                if (response.ok) {
+                    const students = await response.json();
+                    console.log('loadStudentsForClass: received', students.length, 'students');
+
+                    // Clear and populate dropdown
+                    studentSelect.innerHTML = '<option value="">Choose a student...</option>';
+                    students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.id;
+                        option.textContent = `${student.name} (${student.admissionNumber})`;
+                        studentSelect.appendChild(option);
+                    });
+
+                    // Show/hide student selector based on whether we have students
+                    const studentSelector = document.querySelector('.student-selector');
+                    const noSelectionMsg = document.querySelector('.no-selection-msg');
+                    console.log('loadStudentsForClass: studentSelector exists=', !!studentSelector, 'noSelectionMsg exists=', !!noSelectionMsg);
+
+                    if (students.length > 0) {
+                        if (studentSelector) studentSelector.style.display = 'block';
+                        if (noSelectionMsg) noSelectionMsg.style.display = 'none';
+                    } else {
+                        if (studentSelector) studentSelector.style.display = 'none';
+                        if (noSelectionMsg) noSelectionMsg.style.display = 'block';
+                    }
+                } else {
+                    console.error('Failed to load students');
+                    studentSelect.innerHTML = '<option value="">Error loading students</option>';
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+                studentSelect.innerHTML = '<option value="">Error loading students</option>';
+            } finally {
+                studentSelect.disabled = false;
+            }
+        }
+
+        window.handleSidebarHierarchicalChip = async function (element, level) {
+            const params = new URLSearchParams(window.location.search);
+            const value = element.getAttribute('data-value');
+            const type = element.getAttribute('data-type');
+
+            if (value) {
+                params.set(type + 'Id', value);
+                filterState[type] = value;
+            } else {
+                params.delete(type + 'Id');
+                filterState[type] = '';
+            }
+
+            if (level === 'track') {
+                params.delete('departmentId');
+                params.delete('classId');
+                filterState.department = '';
+                filterState.class = '';
+                await loadChildChips('track', value, 'sidebarDepartmentChips', 'department');
+                document.getElementById('sidebarClassChips').style.display = 'none';
+            } else if (level === 'department') {
+                params.delete('classId');
+                filterState.class = '';
+                await loadChildChips('department', value, 'sidebarClassChips', 'class');
+            }
+
+            updateSidebarBreadcrumb();
+            loadReportsWithFilters(params);
+
+            // Load students when class is selected and we have session/term
+            if (level === 'class' && value) {
+                await loadStudentsForClass(value);
+            }
+        };
+
+        async function loadChildChips(parentType, parentId, containerId, childType) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (!parentId) {
+                container.style.display = 'none';
+                return;
+            }
+
+            try {
+                let url = '';
+                if (parentType === 'track') url = `/admin/assessments/api/tracks/${parentId}/departments`;
+                else if (parentType === 'department') url = `/admin/assessments/api/departments/${parentId}/classes`;
+
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    const wrapper = container.querySelector('.chips-wrapper');
+                    const allChip = wrapper.querySelector('.all-chip');
+                    wrapper.innerHTML = '';
+                    wrapper.appendChild(allChip);
+
+                    data.forEach(item => {
+                        const chip = document.createElement('div');
+                        chip.className = `chip-sidebar ${childType}-chip`;
+                        chip.setAttribute('data-type', childType);
+                        chip.setAttribute('data-value', item.id);
+                        chip.textContent = item.name;
+                        chip.onclick = function () { handleSidebarHierarchicalChip(this, childType); };
+                        wrapper.appendChild(chip);
+                    });
+                    container.style.display = data.length > 0 ? 'block' : 'none';
+                }
+            } catch (error) {
+                console.error(`Error loading ${childType} chips:`, error);
+            }
+        }
+
+        async function loadReportsWithFilters(params) {
+            try {
+                const container = document.getElementById('reportsContainer');
+                container.classList.add('loading');
+                const url = `/admin/assessments/reports/filter?${params.toString()}`;
+                const response = await fetch(url);
+
+                if (response.ok) {
+                    const html = await response.text();
+                    container.innerHTML = html;
+                    window.history.replaceState({}, '', `/admin/assessments/reports?${params.toString()}`);
+                    updateFilterStateFromUrl();
+
+                    // Load students if we have a class selected
+                    if (filterState.class) {
+                        await loadStudentsForClass(filterState.class);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading reports:', error);
+            } finally {
+                document.getElementById('reportsContainer').classList.remove('loading');
+            }
+        }
+
+        function updateFilterStateFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            filterState.sessionId = urlParams.get('sessionId') || '';
+            filterState.termId = urlParams.get('termId') || '';
+            filterState.session = urlParams.get('sessionYear') || '';
+            filterState.term = urlParams.get('term') || '';
+            filterState.track = urlParams.get('trackId') || '';
+            filterState.department = urlParams.get('departmentId') || '';
+            filterState.class = urlParams.get('classId') || '';
+
+            updateSidebarActiveChips();
+            updateSidebarBreadcrumb();
+        }
+
+        function updateSidebarActiveChips() {
+            Object.keys(filterState).forEach(type => {
+                const value = filterState[type];
+                document.querySelectorAll(`[data-type="${type}"]`).forEach(chip => {
+                    chip.classList.toggle('active', chip.getAttribute('data-value') === value.toString());
+                });
+            });
+        }
+
+        function updateSidebarBreadcrumb() {
+            const breadcrumbChips = document.getElementById('sidebarBreadcrumbChips');
+            if (!breadcrumbChips) return;
+            breadcrumbChips.innerHTML = '';
+            const activeParts = [];
+
+            if (filterState.session) {
+                const chip = document.querySelector(`[data-type="session"][data-value="${filterState.session}"]`);
+                if (chip) activeParts.push({ text: chip.textContent.trim(), color: 'session' });
+            }
+            if (filterState.term) activeParts.push({ text: filterState.term, color: 'term' });
+            if (filterState.track) {
+                const chip = document.querySelector(`[data-type="track"][data-value="${filterState.track}"]`);
+                if (chip) activeParts.push({ text: chip.textContent.trim(), color: 'track' });
+            }
+            if (filterState.department) {
+                const chip = document.querySelector(`[data-type="department"][data-value="${filterState.department}"]`);
+                if (chip) activeParts.push({ text: chip.textContent.trim(), color: 'department' });
+            }
+            if (filterState.class) {
+                const chip = document.querySelector(`[data-type="class"][data-value="${filterState.class}"]`);
+                if (chip) activeParts.push({ text: chip.textContent.trim(), color: 'class' });
+            }
+
+            if (activeParts.length === 0) {
+                breadcrumbChips.innerHTML = '<span class="breadcrumb-chip-sidebar default">All Reports</span>';
+            } else {
+                activeParts.forEach((part, index) => {
+                    const chip = document.createElement('span');
+                    chip.className = `breadcrumb-chip-sidebar ${part.color}`;
+                    chip.textContent = part.text;
+                    breadcrumbChips.appendChild(chip);
+                    if (index < activeParts.length - 1) {
+                        const sep = document.createElement('span');
+                        sep.className = 'breadcrumb-separator';
+                        sep.textContent = ' > ';
+                        breadcrumbChips.appendChild(sep);
+                    }
+                });
+            }
+        }
+
+        window.handleClearAllSidebarFilters = function () {
+            loadReportsWithFilters(new URLSearchParams());
+        };
+
+        window.handleApplySidebarFilters = function () {
+            loadReportsWithFilters(new URLSearchParams(window.location.search));
+        };
+
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function () {
+            updateFilterStateFromUrl();
+
+            // Load terms for the selected session on page load
+            if (filterState.session) {
+                const sessionChip = document.querySelector(`.session-chip[data-value="${filterState.session}"]`);
+                if (sessionChip) {
+                    const sessionId = sessionChip.getAttribute('data-id');
+                    if (sessionId) {
+                        try {
+                            const response = await fetch(`/admin/assessments/reports/api/sessions/${sessionId}/terms`);
+                            if (response.ok) {
+                                const terms = await response.json();
+                                updateTermChips(terms);
+                            }
+                        } catch (error) {
+                            console.error('Error fetching terms on page load:', error);
+                        }
+                    }
+                }
+            }
+
+            // Load students if we have class selected on page load
+            if (filterState.class && filterState.session) {
+                await loadStudentsForClass(filterState.class);
+            }
+        });
+
+
+        async function loadStudentData() {
+            const studentId = document.getElementById('studentSelect').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('sessionId') || filterState.sessionId;
+            const termId = urlParams.get('termId') || filterState.termId;
+            const classId = urlParams.get('classId') || filterState.class;
+
+            console.log('loadStudentData called with:', { studentId, sessionId, termId, classId });
+
+            if (!studentId) {
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            // Validate required parameters
+            if (!sessionId || !termId || !classId) {
+                console.error('Missing required parameters:', { sessionId, termId, classId });
+                alert('Please select session, term, and class before viewing student data');
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            try {
+                const url = `/admin/assessments/reports/student-data?studentId=${studentId}&classId=${classId}&sessionId=${sessionId}&termId=${termId}`;
+                console.log('Fetching URL:', url);
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.error('Response not OK:', response.status, response.statusText);
+                    throw new Error('Failed to load data');
+                }
+
+                currentStudentData = await response.json();
+                console.log('Received currentStudentData:', currentStudentData);
+
+                // Update UI
+                document.getElementById('studentNameHeader').textContent = currentStudentData.studentName;
+                document.getElementById('studentAdmissionMeta').textContent = currentStudentData.admissionNumber;
+                document.getElementById('studentClassMeta').textContent = currentStudentData.className;
+                document.getElementById('studentTrackMeta').textContent = currentStudentData.trackName;
+
+                // Avatar
+                const names = currentStudentData.studentName.split(' ');
+                const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0][0].toUpperCase();
+                document.getElementById('studentAvatar').textContent = initials;
+
+                // Fields
+                document.getElementById('attendanceInput').value = currentStudentData.attendance || 0;
+                document.getElementById('classTeacherComment').value = currentStudentData.classTeacherComment || '';
+                document.getElementById('headTeacherComment').value = currentStudentData.headTeacherComment || '';
+
+                renderAssessmentTable();
+                renderBehavioralAssessment();
+
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('assessmentCard').style.display = 'block';
+
+                isEditMode = false;
+                updateEditModeUI();
+                initializeEditButton(); // Ensure edit button is properly initialized
+                switchTab('academic');
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                alert('Error loading student data: ' + error.message);
+            }
+        }
+
+        async function loadStudentDataOld() {
+            const studentId = document.getElementById('studentSelect').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            const classId = urlParams.get('classId');
+            const session = urlParams.get('sessionYear');
+            const term = urlParams.get('term');
+
+            if (!studentId || !classId || !session || !term) {
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/assessments/reports/student-data?studentId=${studentId}&classId=${classId}&session=${session}&term=${term}`);
+                currentStudentData = await response.json();
+
+                // Populate Student Profile Header
+                document.getElementById('studentNameHeader').textContent = currentStudentData.studentName;
+                document.getElementById('studentAdmissionMeta').textContent = currentStudentData.admissionNumber;
+                document.getElementById('studentClassMeta').textContent = currentStudentData.className;
+                document.getElementById('studentTrackMeta').textContent = currentStudentData.trackName;
+
+                // Generate Avatar Initials
+                const names = currentStudentData.studentName.split(' ');
+                const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0][0].toUpperCase();
+                document.getElementById('studentAvatar').textContent = initials;
+
+                // Populate fields
+                document.getElementById('attendanceInput').value = currentStudentData.attendance || 0;
+                document.getElementById('classTeacherComment').value = currentStudentData.classTeacherComment || '';
+                document.getElementById('headTeacherComment').value = currentStudentData.headTeacherComment || '';
+
+                renderAssessmentTable();
+                renderBehavioralAssessment();
+                updateEditModeUI();
+
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('assessmentCard').style.display = 'block';
+
+                // Reset to first tab
+                switchTab('academic');
+            } catch (error) {
+                console.error('Error loading student data:', error);
+            }
+        }
+
+        function renderAssessmentTable() {
+            console.log('Admin renderAssessmentTable called, isEditMode:', isEditMode);
+            console.log('currentStudentData:', currentStudentData);
+
+            let headerRow = document.getElementById('tableHeaderRow');
+            if (!headerRow) {
+                const tbody = document.getElementById('assessmentTableBody');
+                if (tbody) {
+                    const table = tbody.closest('table');
+                    if (table) headerRow = table.querySelector('thead tr');
+                }
+            }
+
+            if (!headerRow) {
+                console.error("Table header row not found!");
+                return;
+            }
+
+            const tbody = document.getElementById('assessmentTableBody');
+            if (!tbody) {
+                console.error("Table body not found!");
+                return;
+            }
+
+            if (!currentStudentData || !currentStudentData.subjects) {
+                console.log("No student data or subjects available");
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No student data available</td></tr>';
+                return;
+            }
+
+            console.log('Student has', currentStudentData.subjects.length, 'subjects');
+
+            // 1. Determine all unique components across all subjects for this student
+            const components = new Set();
+            let hasAnyScheme = false;
+
+            currentStudentData.subjects.forEach((s, index) => {
+                console.log(`Subject ${index + 1}: ${s.subjectName}, scoringScheme:`, s.scoringScheme);
+                if (s.scoringScheme) {
+                    hasAnyScheme = true;
+                    try {
+                        const scheme = JSON.parse(s.scoringScheme);
+                        console.log(`Parsed scheme for ${s.subjectName}:`, scheme);
+                        scheme.forEach(item => {
+                            const displayName = item.alias || item.name;
+                            console.log(`Adding component: ${displayName}`);
+                            components.add(displayName);
+                        });
+                    } catch (e) {
+                        console.error("Error parsing scheme for subject", s.subjectName, e);
+                    }
+                } else {
+                    console.log(`No scoring scheme for ${s.subjectName}`);
+                }
+            });
+
+            // If no scheme found, create a default scheme
+            if (components.size === 0) {
+                console.log('No components found, using defaults');
+                components.add('CA 1');
+                components.add('CA 2');
+                components.add('Exam');
+
+                // Create a default scheme for all subjects if none exists
+                if (!hasAnyScheme) {
+                    console.log('Creating default scheme for all subjects');
+                    const defaultScheme = [
+                        { name: 'CA 1', alias: 'CA 1', max: 20 },
+                        { name: 'CA 2', alias: 'CA 2', max: 20 },
+                        { name: 'Exam', alias: 'Exam', max: 60 }
+                    ];
+                    const defaultSchemeJson = JSON.stringify(defaultScheme);
+
+                    // Apply default scheme to all subjects
+                    currentStudentData.subjects.forEach(s => {
+                        if (!s.scoringScheme) {
+                            s.scoringScheme = defaultSchemeJson;
+                            console.log(`Applied default scheme to ${s.subjectName}`);
+                        }
+                    });
+                }
+            }
+
+            const componentList = Array.from(components);
+            console.log('Final components:', componentList);
+
+            // 2. Build Header
+            headerRow.innerHTML = '<th style="width: 30%;">Subject</th>';
+            componentList.forEach(c => {
+                const th = document.createElement('th');
+                th.className = 'text-center';
+                th.textContent = c;
+                headerRow.appendChild(th);
+            });
+            headerRow.innerHTML += `
+                <th class="text-center" style="width: 80px;">Total</th>
+                <th class="text-center" style="width: 80px;">Grade</th>
+                <th class="text-center" style="width: 100px;">Remark</th>
+            `;
+
+            // 3. Build Body
+            tbody.innerHTML = '';
+            let inputCount = 0;
+            currentStudentData.subjects.forEach(s => {
+                console.log('Processing subject:', s.subjectName);
+                const tr = document.createElement('tr');
+
+                // Subject Name
+                let rowHtml = `
+                    <td>
+                        <div class="fw-bold text-dark">${s.subjectName}</div>
+                    </td>
+                `;
+
+                let scheme = [];
+                try {
+                    scheme = s.scoringScheme ? JSON.parse(s.scoringScheme) : [];
+                    console.log(`Scheme for ${s.subjectName}:`, scheme);
+                } catch (e) {
+                    console.error(`Error parsing scheme for ${s.subjectName}:`, e);
+                }
+
+                let total = 0;
+
+                // Dynamic Component Inputs
+                componentList.forEach(c => {
+                    const schemeItem = scheme.find(item => (item.alias || item.name) === c);
+                    console.log(`Looking for component ${c} in scheme:`, schemeItem);
+
+                    let value = 0;
+                    let max = 100;
+
+                    if (schemeItem) {
+                        max = schemeItem.max;
+                        const displayName = schemeItem.alias || schemeItem.name;
+
+                        // Check if we have scores in the dynamic map
+                        if (s.scores && s.scores[displayName] !== undefined) {
+                            value = s.scores[displayName];
+                            console.log(`Found score for ${s.subjectName} - ${displayName}: ${value}`);
+                        } else {
+                            // Fallback to legacy fields
+                            if (displayName.toLowerCase().includes('ca 1') || displayName.toLowerCase().includes('continuous assessment 1')) value = s.ca1;
+                            else if (displayName.toLowerCase().includes('ca 2')) value = s.ca2;
+                            else if (displayName.toLowerCase().includes('exam')) value = s.exam;
+                            console.log(`Using legacy score for ${s.subjectName} - ${displayName}: ${value}`);
+                        }
+                    } else {
+                        console.log(`No scheme item found for component ${c}, adding empty cell`);
+                        rowHtml += `<td class="text-center text-muted bg-light">-</td>`;
+                        return;
+                    }
+
+                    // Only add to total if value is greater than 0 (entered score)
+                    if (value > 0) {
+                        total += value;
+                    }
+                    inputCount++;
+
+                    const disabledAttr = isEditMode ? '' : 'disabled';
+                    // Show empty string for 0 values (unentered scores)
+                    const displayValue = value > 0 ? value : '';
+                    console.log(`Creating input for ${s.subjectName} - ${c}, disabled: ${!isEditMode}, value: ${value}, max: ${max}`);
+
+                    rowHtml += `
+                    <td>
+                        <div class="d-flex align-items-center justify-content-center gap-2">
+                            <input type="number" class="form-control glass-input text-center score-input" 
+                                   style="min-width: 70px; max-width: 90px;"
+                                   data-subject-id="${s.subjectId}" 
+                                   data-component="${c}"
+                                   data-max="${max}"
+                                   value="${displayValue}" min="0" max="${max}" 
+                                   ${disabledAttr}
+                                   oninput="validateScoreInput(this)"
+                                   onchange="updateRowTotal(this)"
+                                   placeholder="0">
+                            <span class="text-muted fw-bold" style="font-size: 0.9rem;">/ ${max}</span>
+                        </div>
+                    </td>
+                `;
+                });
+
+                rowHtml += `
+                    <td class="text-center fw-bold row-total">${s.total}</td>
+                    <td class="text-center"><span class="badge bg-primary row-grade">${s.grade}</span></td>
+                    <td class="text-center"><span class="badge bg-light text-dark border row-remark">${s.remark}</span></td>
+                `;
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+
+            console.log('Total score inputs created:', inputCount);
+
+            // Verify inputs were actually created
+            setTimeout(() => {
+                const createdInputs = document.querySelectorAll('.score-input');
+                console.log('Score inputs found in DOM after creation:', createdInputs.length);
+            }, 100);
+        }
+
+        // Validation function for score inputs
+        function validateScoreInput(input) {
+            const max = parseInt(input.getAttribute('data-max'));
+            const value = parseFloat(input.value);
+
+            if (input.value === '') {
+                // Empty input is allowed
+                input.classList.remove('is-invalid');
+                return;
+            }
+
+            if (isNaN(value) || value < 0) {
+                input.value = '';
+                input.classList.add('is-invalid');
+                showValidationMessage(input, 'Score must be a positive number');
+                return;
+            }
+
+            if (value > max) {
+                input.value = max;
+                input.classList.add('is-invalid');
+                showValidationMessage(input, `Score cannot exceed ${max}`);
+                setTimeout(() => {
+                    input.classList.remove('is-invalid');
+                }, 2000);
+                return;
+            }
+
+            input.classList.remove('is-invalid');
+        }
+
+        // Show validation message
+        function showValidationMessage(input, message) {
+            // Remove any existing validation message
+            const existingMessage = input.parentElement.querySelector('.validation-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            // Create and show new validation message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'validation-message text-danger small position-absolute';
+            messageDiv.style.cssText = 'top: 100%; left: 0; z-index: 1000; white-space: nowrap;';
+            messageDiv.textContent = message;
+
+            input.parentElement.style.position = 'relative';
+            input.parentElement.appendChild(messageDiv);
+
+            // Remove message after 3 seconds
+            setTimeout(() => {
+                if (messageDiv.parentElement) {
+                    messageDiv.remove();
+                }
+            }, 3000);
+        }
+
+        function updateRowTotal(input) {
+            const tr = input.closest('tr');
+            const inputs = tr.querySelectorAll('.score-input');
+            let total = 0;
+
+            inputs.forEach(inp => {
+                const value = parseFloat(inp.value);
+                // Only add to total if the input has a value (not empty)
+                if (!isNaN(value) && inp.value.trim() !== '') {
+                    total += value;
+                }
+            });
+
+            tr.querySelector('.row-total').textContent = total;
+
+            let grade = 'F';
+            let remark = 'Fail';
+            let badgeClass = 'bg-danger';
+
+            if (total >= 70) { grade = 'A'; remark = 'Excellent'; badgeClass = 'bg-success'; }
+            else if (total >= 60) { grade = 'B'; remark = 'Very Good'; badgeClass = 'bg-primary'; }
+            else if (total >= 50) { grade = 'C'; remark = 'Good'; badgeClass = 'bg-info text-dark'; }
+            else if (total >= 45) { grade = 'D'; remark = 'Fair'; badgeClass = 'bg-warning text-dark'; }
+            else if (total >= 40) { grade = 'E'; remark = 'Pass'; badgeClass = 'bg-secondary'; }
+
+            const gradeBadge = tr.querySelector('.row-grade');
+            gradeBadge.textContent = grade;
+            gradeBadge.className = `badge ${badgeClass} row-grade`;
+
+            const remarkBadge = tr.querySelector('.row-remark');
+            remarkBadge.textContent = remark;
+            remarkBadge.className = `badge bg-light text-dark border row-remark`;
+        }
+
+        function renderBehavioralAssessment() {
+            const container = document.getElementById('behaviorContainer');
+            container.innerHTML = '';
+
+            const traits = [
+                { key: 'fluency', label: 'Fluency', icon: 'fa-comment-dots', color: '#3b82f6' },
+                { key: 'handwriting', label: 'Handwriting', icon: 'fa-pen-nib', color: '#8b5cf6' },
+                { key: 'game', label: 'Game/Sports', icon: 'fa-volleyball-ball', color: '#10b981' },
+                { key: 'initiative', label: 'Initiative', icon: 'fa-lightbulb', color: '#f59e0b' },
+                { key: 'criticalThinking', label: 'Critical Thinking', icon: 'fa-brain', color: '#ec4899' },
+                { key: 'punctuality', label: 'Punctuality', icon: 'fa-clock', color: '#06b6d4' },
+                { key: 'attentiveness', label: 'Attentiveness', icon: 'fa-eye', color: '#6366f1' },
+                { key: 'neatness', label: 'Neatness', icon: 'fa-broom', color: '#14b8a6' },
+                { key: 'selfDiscipline', label: 'Self Discipline', icon: 'fa-user-shield', color: '#ef4444' },
+                { key: 'politeness', label: 'Politeness', icon: 'fa-smile', color: '#f97316' }
+            ];
+
+            traits.forEach(trait => {
+                const value = currentStudentData[trait.key] || 0;
+
+                let buttonsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    const activeClass = i === value ? 'active' : '';
+                    const disabledAttr = !isEditMode ? 'disabled' : '';
+                    buttonsHtml += `<button type="button" class="behavior-score-btn ${activeClass}" 
+                                    ${disabledAttr}
+                                    onclick="selectBehavior(this, '${trait.key}', ${i})">${i}</button>`;
+                }
+
+                const traitCard = document.createElement('div');
+                traitCard.className = 'behavioral-trait-card';
+                traitCard.innerHTML = `
+                    <div class="trait-info">
+                        <div class="trait-icon-wrapper" style="background: ${trait.color}15; color: ${trait.color};">
+                            <i class="fas ${trait.icon}"></i>
+                        </div>
+                        <span class="trait-name">${trait.label}</span>
+                    </div>
+                    <div class="trait-rating">
+                        <div class="rating-buttons">
+                            ${buttonsHtml}
+                        </div>
+                        <input type="hidden" id="behavior_${trait.key}" value="${value}">
+                    </div>
+                `;
+                container.appendChild(traitCard);
+            });
+        }
+
+        window.selectBehavior = function (btn, key, value) {
+            const ratingButtons = btn.parentElement;
+            ratingButtons.querySelectorAll('.behavior-score-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            document.getElementById(`behavior_${key}`).value = value;
+        };
+
+        async function saveAssessment() {
+            const studentId = document.getElementById('studentSelect').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            const session = urlParams.get('sessionYear');
+            const term = urlParams.get('term');
+
+            console.log('Saving assessment for student:', studentId);
+
+            // Gather Scores
+            const scores = [];
+            const rows = document.querySelectorAll('#assessmentTableBody tr');
+            rows.forEach(row => {
+                const firstInput = row.querySelector('.score-input');
+                if (!firstInput) return;
+
+                const subjectId = firstInput.dataset.subjectId; // Keep as UUID string
+                const subjectScores = {};
+
+                row.querySelectorAll('.score-input').forEach(input => {
+                    const componentName = input.dataset.component;
+                    const val = parseInt(input.value) || 0;
+                    subjectScores[componentName] = val;
+                });
+
+                // For backward compatibility, we still send ca1, ca2, exam if they exist in the map
+                let ca1 = 0, ca2 = 0, exam = 0;
+                Object.keys(subjectScores).forEach(key => {
+                    const k = key.toLowerCase();
+                    if (k.includes('ca 1') || k.includes('continuous assessment 1')) ca1 = subjectScores[key];
+                    else if (k.includes('ca 2')) ca2 = subjectScores[key];
+                    else if (k.includes('exam')) exam = subjectScores[key];
+                });
+
+                console.log('Adding score for subject:', subjectId, subjectScores);
+
+                scores.push({
+                    subjectId: subjectId, // Keep as UUID string, don't parse as int
+                    ca1: ca1,
+                    ca2: ca2,
+                    exam: exam,
+                    scores: subjectScores
+                });
+            });
+
+            // Gather Other Data
+            const requestData = {
+                studentId: studentId, // Keep as UUID string, don't parse as int
+                session: session,
+                term: term,
+                scores: scores,
+                attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
+                classTeacherComment: document.getElementById('classTeacherComment').value,
+                headTeacherComment: document.getElementById('headTeacherComment').value,
+                // Behavior
+                fluency: parseInt(document.getElementById('behavior_fluency').value) || 0,
+                handwriting: parseInt(document.getElementById('behavior_handwriting').value) || 0,
+                game: parseInt(document.getElementById('behavior_game').value) || 0,
+                initiative: parseInt(document.getElementById('behavior_initiative').value) || 0,
+                criticalThinking: parseInt(document.getElementById('behavior_criticalThinking').value) || 0,
+                punctuality: parseInt(document.getElementById('behavior_punctuality').value) || 0,
+                attentiveness: parseInt(document.getElementById('behavior_attentiveness').value) || 0,
+                neatness: parseInt(document.getElementById('behavior_neatness').value) || 0,
+                selfDiscipline: parseInt(document.getElementById('behavior_selfDiscipline').value) || 0,
+                politeness: parseInt(document.getElementById('behavior_politeness').value) || 0
+            };
+
+            console.log('Sending request data:', requestData);
+
+            try {
+                // Get CSRF token
+                const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                headers[header] = token;
+
+                const response = await fetch('/admin/assessments/reports/save', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Assessment updated successfully!');
+                    // Optionally reload the student data to reflect changes
+                    loadStudentData();
+                } else {
+                    alert('Error: ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving assessment:', error);
+                alert('Error saving assessment: ' + error.message);
+            }
+        }
+
+        // --- Import Modal Logic ---
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            const select = document.getElementById('importComponent');
+            select.innerHTML = '';
+
+            // Get components from table header
+            const headers = document.querySelectorAll('#tableHeaderRow th');
+            headers.forEach((th, index) => {
+                if (index > 0 && index < headers.length - 3) { // Skip Subject, Total, Grade, Remark
+                    const option = document.createElement('option');
+                    option.value = th.textContent;
+                    option.textContent = th.textContent;
+                    select.appendChild(option);
+                }
+            });
+
+            // Reset Source Exams
+            document.getElementById('sourceExamsContainer').innerHTML = '';
+            addSourceExamRow(); // Add first row by default
+
+            modal.classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function addSourceExamRow() {
+            const container = document.getElementById('sourceExamsContainer');
+            const rowId = Date.now();
+
+            const row = document.createElement('div');
+            row.className = 'source-exam-row d-flex gap-2 align-items-center animate-in';
+            row.id = `source-row-${rowId}`;
+            row.innerHTML = `
+                <div class="flex-grow-1">
+                    <select class="form-control glass-input exam-type-select">
+                        <option value="Assignment">Assignment</option>
+                        <option value="Continuous Assessment">Continuous Assessment</option>
+                        <option value="Mid-Term Test">Mid-Term Test</option>
+                        <option value="End-of-Term Examination">End-of-Term Examination</option>
+                    </select>
+                </div>
+                <div class="factor-input-wrapper" style="width: 100px; display: none;">
+                    <input type="number" class="form-control glass-input factor-input" placeholder="Factor" value="1" step="0.1">
+                </div>
+                <button class="btn btn-link text-danger p-0 remove-source-btn" onclick="removeSourceExamRow('${rowId}')" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            container.appendChild(row);
+            updateImportUIState();
+        }
+
+        function removeSourceExamRow(rowId) {
+            const row = document.getElementById(`source-row-${rowId}`);
+            if (row) row.remove();
+            updateImportUIState();
+        }
+
+        function updateImportUIState() {
+            const rows = document.querySelectorAll('.source-exam-row');
+            const formulaConfig = document.getElementById('formulaConfig');
+
+            if (rows.length > 1) {
+                // Multiple sources: Show factors and divisor
+                document.querySelectorAll('.factor-input-wrapper').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.remove-source-btn').forEach(el => el.style.display = 'block');
+                formulaConfig.style.display = 'block';
+            } else {
+                // Single source: Hide factors and divisor (Auto-scale mode)
+                document.querySelectorAll('.factor-input-wrapper').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.remove-source-btn').forEach(el => el.style.display = 'none');
+                formulaConfig.style.display = 'none';
+            }
+        }
+
+        async function executeImport() {
+            const studentId = document.getElementById('studentSelect').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            const classId = urlParams.get('classId');
+            const session = urlParams.get('sessionYear');
+            const term = urlParams.get('term');
+
+            const componentName = document.getElementById('importComponent').value;
+            const importAll = document.getElementById('importAllStudents').checked;
+            const divisor = parseFloat(document.getElementById('importDivisor').value) || 1.0;
+
+            // Gather sources
+            const sources = [];
+            document.querySelectorAll('.source-exam-row').forEach(row => {
+                const examType = row.querySelector('.exam-type-select').value;
+                const factor = parseFloat(row.querySelector('.factor-input').value) || 1.0;
+                sources.push({ examType, factor });
+            });
+
+            if (sources.length === 0) {
+                alert("Please add at least one source examination.");
+                return;
+            }
+
+            const requestData = {
+                classId: parseInt(classId),
+                session: session,
+                term: term,
+                componentName: componentName,
+                sources: sources,
+                divisor: divisor,
+                studentId: importAll ? null : parseInt(studentId)
+            };
+
+            const btn = document.querySelector('#importModal .btn-primary');
+            const originalText = btn.textContent;
+            btn.textContent = 'Importing...';
+            btn.disabled = true;
+
+            try {
+                // Get CSRF token
+                const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                headers[header] = token;
+
+                const response = await fetch('/admin/assessments/reports/import', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestData)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    closeModal('importModal');
+                    loadStudentData(); // Refresh
+                } else {
+                    alert('Import failed: ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error importing:', error);
+                alert('Error importing scores');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // --- Edit Mode Functions ---
+        window.toggleEditMode = function () {
+            console.log('Admin toggleEditMode called, current isEditMode:', isEditMode);
+            console.log('currentStudentData at toggle:', currentStudentData);
+
+            // Check if we have student data loaded
+            if (!currentStudentData) {
+                console.error('No student data loaded, cannot toggle edit mode');
+                alert('Please select a student first');
+                return;
+            }
+
+            isEditMode = !isEditMode;
+            console.log('Admin new isEditMode:', isEditMode);
+
+            // First render the table with the new edit mode state
+            renderAssessmentTable();
+            renderBehavioralAssessment();
+
+            // Then update the UI elements
+            updateEditModeUI();
+        };
+
+        function updateEditModeUI() {
+            console.log('Admin updateEditModeUI called, isEditMode:', isEditMode);
+            const btn = document.getElementById('editModeBtn');
+            const footer = document.getElementById('footerActions');
+            const attendanceInput = document.getElementById('attendanceInput');
+            const classTeacherComment = document.getElementById('classTeacherComment');
+            const headTeacherComment = document.getElementById('headTeacherComment');
+
+            if (!btn) {
+                console.error('Edit mode button not found');
+                return;
+            }
+
+            if (isEditMode) {
+                btn.innerHTML = '<i class="fas fa-times me-2"></i> Cancel Edit';
+                btn.className = 'btn btn-outline-danger';
+                if (footer) footer.style.display = 'block';
+                if (attendanceInput) attendanceInput.disabled = false;
+                if (classTeacherComment) classTeacherComment.disabled = false;
+                if (headTeacherComment) headTeacherComment.disabled = false;
+
+                // Enable all score inputs
+                const scoreInputs = document.querySelectorAll('.score-input');
+                console.log('Admin: Found score inputs:', scoreInputs.length);
+                scoreInputs.forEach(input => {
+                    input.disabled = false;
+                    console.log('Enabled score input:', input);
+                });
+
+                // Enable behavioral score buttons
+                const behaviorButtons = document.querySelectorAll('.behavior-score-btn');
+                console.log('Admin: Found behavior buttons:', behaviorButtons.length);
+                behaviorButtons.forEach(btn => {
+                    btn.disabled = false;
+                });
+            } else {
+                btn.innerHTML = '<i class="fas fa-edit me-2"></i> Edit Mode';
+                btn.className = 'btn btn-outline-primary';
+                if (footer) footer.style.display = 'none';
+                if (attendanceInput) attendanceInput.disabled = true;
+                if (classTeacherComment) classTeacherComment.disabled = true;
+                if (headTeacherComment) headTeacherComment.disabled = true;
+
+                // Disable all score inputs
+                const scoreInputs = document.querySelectorAll('.score-input');
+                console.log('Admin: Disabling score inputs:', scoreInputs.length);
+                scoreInputs.forEach(input => {
+                    input.disabled = true;
+                });
+
+                // Disable behavioral score buttons
+                document.querySelectorAll('.behavior-score-btn').forEach(btn => {
+                    btn.disabled = true;
+                });
+            }
+        }
+
+        // Ensure edit mode button works after dynamic content loading
+        function initializeEditButton() {
+            const editBtn = document.getElementById('editModeBtn');
+            if (editBtn) {
+                // Remove any existing event listeners and add a new one
+                editBtn.onclick = function (e) {
+                    e.preventDefault();
+                    console.log('Edit button clicked');
+                    toggleEditMode();
+                };
+                console.log('Edit button initialized');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateFilterStateFromUrl();
+            initializeEditButton();
+        });
+
+        // Save Assessment Function
+        async function saveAssessment() {
+            if (!currentStudentData) {
+                alert('Please select a student first');
+                return;
+            }
+
+            if (!filterState.sessionId || !filterState.termId) {
+                alert('Please select both session and term');
+                return;
+            }
+
+            try {
+                // Collect all score data
+                const scores = [];
+                const scoreInputs = document.querySelectorAll('.score-input');
+
+                // Group inputs by subject
+                const subjectScores = {};
+                scoreInputs.forEach(input => {
+                    const subjectId = input.getAttribute('data-subject-id');
+                    const component = input.getAttribute('data-component');
+                    // Only process if input has a value (not empty)
+                    const rawValue = input.value.trim();
+                    const value = rawValue === '' ? null : parseFloat(rawValue);
+
+                    if (!subjectScores[subjectId]) {
+                        subjectScores[subjectId] = { subjectId: subjectId, scores: {} };
+                    }
+
+                    if (component === 'ca1' || component === 'ca2' || component === 'exam') {
+                        // Only set if value is not null (has been entered)
+                        if (value !== null) {
+                            subjectScores[subjectId][component] = value;
+                        }
+                    } else {
+                        // Only set if value is not null (has been entered)
+                        if (value !== null) {
+                            subjectScores[subjectId].scores[component] = value;
+                        }
+                    }
+                });
+
+                // Convert to array
+                Object.values(subjectScores).forEach(subjectScore => {
+                    scores.push({
+                        subjectId: subjectScore.subjectId,
+                        ca1: subjectScore.ca1 !== undefined ? subjectScore.ca1 : null,
+                        ca2: subjectScore.ca2 !== undefined ? subjectScore.ca2 : null,
+                        exam: subjectScore.exam !== undefined ? subjectScore.exam : null,
+                        scores: subjectScore.scores || {}
+                    });
+                });
+
+                // Collect behavioral scores
+                const behavioralScores = {};
+                const behaviorButtons = document.querySelectorAll('.behavior-score-btn.active');
+                behaviorButtons.forEach(btn => {
+                    const trait = btn.getAttribute('data-trait');
+                    const score = parseInt(btn.getAttribute('data-score'));
+                    behavioralScores[trait] = score;
+                });
+
+                // Prepare request data
+                const requestData = {
+                    studentId: currentStudentData.studentId,
+                    sessionId: filterState.sessionId,
+                    termId: filterState.termId,
+                    scores: scores,
+                    attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
+                    fluency: behavioralScores.fluency || 0,
+                    handwriting: behavioralScores.handwriting || 0,
+                    game: behavioralScores.game || 0,
+                    initiative: behavioralScores.initiative || 0,
+                    criticalThinking: behavioralScores.criticalThinking || 0,
+                    punctuality: behavioralScores.punctuality || 0,
+                    attentiveness: behavioralScores.attentiveness || 0,
+                    neatness: behavioralScores.neatness || 0,
+                    selfDiscipline: behavioralScores.selfDiscipline || 0,
+                    politeness: behavioralScores.politeness || 0,
+                    classTeacherComment: document.getElementById('classTeacherComment').value || null,
+                    headTeacherComment: document.getElementById('headTeacherComment').value || null
+                };
+
+                console.log('Saving assessment data:', requestData);
+
+                // Get CSRF token
+                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+                const response = await fetch('/admin/assessments/reports/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Assessment saved successfully!');
+
+                    // Exit edit mode
+                    isEditMode = false;
+                    updateEditModeUI();
+                } else {
+                    const error = await response.text();
+                    console.error('Save failed:', error);
+                    alert('Failed to save assessment. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error saving assessment:', error);
+                alert('An error occurred while saving. Please try again.');
+            }
+        }
+    </script>
+</body>
+
+</html>

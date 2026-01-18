@@ -1,0 +1,109 @@
+<!-- Calendar Event Modal -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3 th:text="${isEdit ? 'Edit Calendar Event' : 'New Calendar Event'}">New Calendar Event</h3>
+        <button class="close-modal" onclick="closeModal('calendarModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/academic/calendar/save-htmx" hx-target="#response-container" hx-swap="innerHTML"
+        class="modal-form" th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+        <input type="hidden" name="id" th:value="${isEdit ? calendarEvent.id : ''}">
+
+        <div class="modal-body">
+            <!-- Response Container -->
+            <div id="response-container"></div>
+
+            <!-- Event Information -->
+            <div class="form-section">
+                <h4>Event Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="eventName">Event Name *</label>
+                        <input type="text" id="eventName" name="eventName" class="form-input"
+                            th:value="${calendarEvent.eventName}" placeholder="e.g., First Term Examination" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionId">Academic Session *</label>
+                        <select id="sessionId" name="sessionId" class="form-input" required>
+                            <option value="">Select Academic Session</option>
+                            <option th:each="academicSession : ${academicSessions}" th:value="${academicSession.id}"
+                                th:text="${academicSession.sessionName}"
+                                th:selected="${isEdit && calendarEvent.session.id == academicSession.id}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventType">Event Type *</label>
+                        <select id="eventType" name="eventType" class="form-input" required>
+                            <option value="">Select Event Type</option>
+                            <option th:each="type : ${eventTypes}" th:value="${type}" th:text="${type}"
+                                th:selected="${isEdit && calendarEvent.eventType == type}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Information -->
+            <div class="form-section">
+                <h4>Event Dates</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="startDate">Start Date *</label>
+                        <input type="date" id="startDate" name="startDate" class="form-input"
+                            th:value="${calendarEvent.startDate}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" name="endDate" class="form-input"
+                            th:value="${calendarEvent.endDate}">
+                        <small class="form-help">Leave empty for single-day events</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Settings -->
+            <div class="form-section">
+                <h4>Event Settings</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="isHoliday" value="true"
+                                th:checked="${calendarEvent.isHoliday}">
+                            <span class="checkmark"></span>
+                            Holiday Period
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="isExamPeriod" value="true"
+                                th:checked="${calendarEvent.isExamPeriod}">
+                            <span class="checkmark"></span>
+                            Examination Period
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="color">Event Color</label>
+                        <input type="color" id="color" name="color" class="form-input"
+                            th:value="${calendarEvent.color ?: '#3b82f6'}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-input" rows="3"
+                        th:text="${calendarEvent.description}"
+                        placeholder="Additional details about this event"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('calendarModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+                <span th:text="${isEdit ? 'Update Event' : 'Create Event'}">Create Event</span>
+            </button>
+        </div>
+    </form>
+</div>

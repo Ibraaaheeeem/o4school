@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <!-- Message -->
+    <div th:if="${message}" th:replace="~{fragments/success :: success-message}"></div>
+    <div th:if="${error}" th:replace="~{fragments/error :: error-message}"></div>
+
+    <!-- OOB Update for the list -->
+    <!-- The hx-swap-oob="true" attribute will be merged into the fragment's root element -->
+    <div th:replace="~{admin/financial/class-assignment-modal-basic :: assignedClassesList}" hx-swap-oob="true"></div>
+    <div th:replace="~{admin/financial/fee-items :: feeItemsList(swapOob=true)}"></div>
+</body>
+
+</html>

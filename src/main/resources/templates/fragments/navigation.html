@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <!-- Navigation Scripts Fragment -->
+    <div th:fragment="navigation-scripts">
+        <!-- Include navigation manager -->
+        <script src="/js/navigation-manager.js"></script>
+        
+        <!-- HTMX Configuration for proper history management -->
+        <script>
+            // Configure HTMX to work with our navigation manager
+            document.addEventListener('DOMContentLoaded', function() {
+                // Add data attributes to identify content areas
+                const contentSelectors = [
+                    '.content-container',
+                    '#main-content', 
+                    '#content-area',
+                    '#page-content',
+                    '.page-content',
+                    '[data-content-area]'
+                ];
+                
+                contentSelectors.forEach(selector => {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => {
+                        if (!el.hasAttribute('data-content-area')) {
+                            el.setAttribute('data-content-area', 'true');
+                        }
+                    });
+                });
+                
+                // Mark pagination links as content replacement
+                document.querySelectorAll('a[href*="page="], a[href*="search="], a[href*="filter="]').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        if (window.markAsContentReplacement) {
+                            window.markAsContentReplacement();
+                        }
+                    });
+                });
+                
+                // Mark filter forms as content replacement
+                document.querySelectorAll('form[data-filter-form], .filter-form').forEach(form => {
+                    form.addEventListener('submit', function(e) {
+                        if (window.markAsContentReplacement) {
+                            window.markAsContentReplacement();
+                        }
+                    });
+                });
+            });
+        </script>
+    </div>
+
+    <!-- Content Area Wrapper Fragment -->
+    <div th:fragment="content-wrapper(content)" class="content-container" data-content-area="true">
+        <div th:replace="${content}"></div>
+    </div>
+
+    <!-- Filter Form Fragment -->
+    <form th:fragment="filter-form(action, method)" 
+          th:action="${action}" 
+          th:method="${method ?: 'get'}"
+          class="filter-form"
+          data-filter-form="true"
+          hx-get="${action}"
+          hx-target="[data-content-area]"
+          hx-replace-content="true"
+          hx-push-url="false">
+        <!-- Form content will be inserted here -->
+    </form>
+
+    <!-- Pagination Fragment -->
+    <div th:fragment="pagination(page, totalPages, baseUrl)" class="pagination-container">
+        <div class="pagination" th:if="${totalPages > 1}">
+            <!-- Previous button -->
+            <a th:if="${page > 0}" 
+               th:href="${baseUrl + '?page=' + (page - 1)}"
+               class="pagination-link"
+               hx-get="${baseUrl + '?page=' + (page - 1)}"
+               hx-target="[data-content-area]"
+               hx-replace-content="true"
+               hx-push-url="false">
+                ← Previous
+            </a>
+            
+            <!-- Page numbers -->
+            <span th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}"
+                  th:if="${pageNum >= (page - 2) && pageNum <= (page + 2)}">
+                <a th:if="${pageNum != page}"
+                   th:href="${baseUrl + '?page=' + pageNum}"
+                   th:text="${pageNum + 1}"
+                   class="pagination-link"
+                   hx-get="${baseUrl + '?page=' + pageNum}"
+                   hx-target="[data-content-area]"
+                   hx-replace-content="true"
+                   hx-push-url="false">
+                </a>
+                <span th:if="${pageNum == page}" 
+                      th:text="${pageNum + 1}" 
+                      class="pagination-current">
+                </span>
+            </span>
+            
+            <!-- Next button -->
+            <a th:if="${page < totalPages - 1}" 
+               th:href="${baseUrl + '?page=' + (page + 1)}"
+               class="pagination-link"
+               hx-get="${baseUrl + '?page=' + (page + 1)}"
+               hx-target="[data-content-area]"
+               hx-replace-content="true"
+               hx-push-url="false">
+                Next →
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Form Fragment -->
+    <div th:fragment="search-form(placeholder)" class="search-container">
+        <div class="search-input-container">
+            <input type="text" 
+                   id="searchInput" 
+                   th:placeholder="${placeholder ?: 'Search...'}"
+                   class="search-input"
+                   autocomplete="off">
+            <button type="button" 
+                    onclick="debouncedSearch()" 
+                    class="search-button">
+                🔍
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Link Fragment -->
+    <a th:fragment="nav-link(href, text, isNewPage)" 
+       th:href="${href}"
+       th:text="${text}"
+       th:onclick="${isNewPage ? 'markAsNewPage()' : 'markAsContentReplacement()'}"
+       class="nav-link">
+    </a>
+
+</body>
+</html>

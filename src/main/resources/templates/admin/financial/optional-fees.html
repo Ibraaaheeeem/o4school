@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Optional Fees</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/financial.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Financial Sidebar -->
+        <div th:replace="~{fragments/financial-sidebar :: financial-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <!-- Global Loading Indicator -->
+            <div id="global-loading" class="page-loading" style="display: none;">
+                <i class="fas fa-spinner fa-spin spinner"></i>
+                <span>Loading...</span>
+            </div>
+
+            <div class="setup-header">
+                <div>
+                    <h1>🔒 Optional Fees Management</h1>
+                    <p>Freeze or unfreeze optional fee selections for parents</p>
+                </div>
+                <div class="setup-actions">
+                    <button class="btn btn-primary" onclick="openApplyFeeModal();">
+                        <i class="fas fa-plus"></i> Apply Fee to Student
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid" style="margin-bottom: 24px; display: flex; gap: 16px; flex-wrap: wrap;">
+                <div class="stat-card" style="flex: 1; min-width: 200px;">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="stat-details">
+                        <div class="stat-value" th:text="${stats.total}">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                </div>
+                <div class="stat-card" style="flex: 1; min-width: 200px;">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="stat-details">
+                        <div class="stat-value" th:text="${stats.locked}">0</div>
+                        <div class="stat-label">Locked</div>
+                    </div>
+                </div>
+                <div class="stat-card" style="flex: 1; min-width: 200px;">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <i class="fas fa-unlock"></i>
+                    </div>
+                    <div class="stat-details">
+                        <div class="stat-value" th:text="${stats.unlocked}">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <label for="sessionFilter">Academic Session:</label>
+                        <select id="sessionFilter" class="form-select">
+                            <option value="">Select Session</option>
+                            <option th:each="academicSession : ${academicSessions}" th:value="${academicSession.id}"
+                                th:text="${academicSession.sessionName}"
+                                th:selected="${selectedSessionId == academicSession.id}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="termFilter">Term:</label>
+                        <select id="termFilter" class="form-select">
+                            <option value="">All Terms</option>
+                            <option th:each="term : ${terms}" th:value="${term.id}" th:text="${term.termName}"
+                                th:selected="${selectedTermId == term.id}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="searchInput">Search:</label>
+                        <div class="search-input-container">
+                            <input type="text" id="searchInput" class="form-input"
+                                placeholder="Search student or fee..." th:value="${search}">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-outline" onclick="clearFilters()">Clear</button>
+                        <button class="btn btn-primary" onclick="applyFilters()">Filter</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Optional Fees Table -->
+            <div class="table-container" style="margin-top: 24px;">
+                <table class="data-table" th:if="${!#lists.isEmpty(studentOptionalFees)}">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Fee Name</th>
+                            <th>Class</th>
+                            <th>Amount</th>
+                            <th>Session</th>
+                            <th>Term</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="studentFee : ${studentOptionalFees}" th:id="'fee-row-' + ${studentFee.id}">
+                            <td>
+                                <div style="font-weight: 600;"
+                                    th:text="${studentFee.student.user.firstName + ' ' + studentFee.student.user.lastName}">
+                                    Student Name</div>
+                                <div style="font-size: 0.85rem; color: #6b7280;"
+                                    th:text="${studentFee.student.admissionNumber}">Admission Number</div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600;" th:text="${studentFee.classFeeItem.feeItem.name}">Fee
+                                    Name</div>
+                                <div style="font-size: 0.85rem; color: #6b7280;"
+                                    th:text="${studentFee.classFeeItem.feeItem.description}">Description</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-info"
+                                    th:text="${studentFee.classFeeItem.schoolClass.className}">Class 1A</span>
+                            </td>
+                            <td>
+                                <span style="font-weight: 600;">₦<span
+                                        th:text="${#numbers.formatDecimal(studentFee.classFeeItem.effectiveAmount, 0, 'COMMA', 2, 'POINT')}">0.00</span></span>
+                            </td>
+                            <td th:text="${studentFee.academicSession?.sessionName ?: 'N/A'}">2023/2024</td>
+                            <td th:text="${studentFee.term?.termName ?: 'All Terms'}">First Term</td>
+                            <td>
+                                <span th:if="${studentFee.isLocked}" class="badge badge-danger"
+                                    th:id="'status-' + ${studentFee.id}">
+                                    <i class="fas fa-lock"></i> Locked
+                                </span>
+                                <span th:unless="${studentFee.isLocked}" class="badge badge-success"
+                                    th:id="'status-' + ${studentFee.id}">
+                                    <i class="fas fa-unlock"></i> Active
+                                </span>
+                            </td>
+                            <td>
+                                <button th:if="${!studentFee.isLocked}" class="btn btn-sm btn-danger"
+                                    th:id="'btn-' + ${studentFee.id}"
+                                    th:attr="hx-post=@{/admin/financial/optional-fees/{id}/toggle-lock(id=${studentFee.id})},
+                                                 hx-vals='js:{locked: true}',
+                                                 hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'" hx-target="body"
+                                    hx-swap="none" hx-indicator="'#loading-' + ${studentFee.id}"
+                                    hx-on:htmx:before-request="showButtonLoading(event)"
+                                    hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
+                                    title="Lock this fee selection">
+                                    <span class="btn-content">
+                                        <i class="fas fa-lock"></i> Lock
+                                    </span>
+                                    <span class="btn-loading" style="display: none;">
+                                        <i class="fas fa-spinner fa-spin"></i> Locking...
+                                    </span>
+                                </button>
+                                <button th:if="${studentFee.isLocked}" class="btn btn-sm btn-success"
+                                    th:id="'btn-' + ${studentFee.id}"
+                                    th:attr="hx-post=@{/admin/financial/optional-fees/{id}/toggle-lock(id=${studentFee.id})},
+                                                 hx-vals='js:{locked: false}',
+                                                 hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'" hx-target="body"
+                                    hx-swap="none" hx-indicator="'#loading-' + ${studentFee.id}"
+                                    hx-on:htmx:before-request="showButtonLoading(event)"
+                                    hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
+                                    title="Unlock this fee selection">
+                                    <span class="btn-content">
+                                        <i class="fas fa-unlock"></i> Unlock
+                                    </span>
+                                    <span class="btn-loading" style="display: none;">
+                                        <i class="fas fa-spinner fa-spin"></i> Unlocking...
+                                    </span>
+                                </button>
+                                <!-- Loading indicator -->
+                                <div th:id="'loading-' + ${studentFee.id}" class="htmx-indicator"
+                                    style="display: none;">
+                                    <i class="fas fa-spinner fa-spin text-primary"></i>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="empty-state" th:if="${#lists.isEmpty(studentOptionalFees)}">
+                    <div class="empty-icon">📋</div>
+                    <h3>No Student Optional Fees Found</h3>
+                    <p>No student optional fee selections found for the selected filters.</p>
+                    <p style="margin-top: 12px; color: #6b7280;">Students need to opt-in to optional fees from their
+                        parent dashboard first.</p>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div
+                style="margin-top: 24px; padding: 16px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 8px;">
+                <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 1rem;">
+                    <i class="fas fa-info-circle"></i> How It Works
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; color: #1e3a8a;">
+                    <li><strong>Active:</strong> Student can still modify their selection from parent dashboard</li>
+                    <li><strong>Locked:</strong> Student cannot change their selection. The fee is fixed in their bill
+                    </li>
+                    <li>Locking is useful when you want to prevent changes before generating invoices</li>
+                    <li>Only students who have opted-in to optional fees will appear in this list</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- Include HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+
+
+    <script>
+        function applyFilters() {
+            // Show global loading
+            showGlobalLoading();
+
+            const sessionId = document.getElementById('sessionFilter').value;
+            const termId = document.getElementById('termFilter').value;
+            const search = document.getElementById('searchInput').value;
+
+            const params = new URLSearchParams();
+            if (sessionId) params.append('academicSessionId', sessionId);
+            if (termId) params.append('termId', termId);
+            if (search) params.append('search', search);
+
+            window.location.replace('/admin/financial/optional-fees?' + params.toString());
+        }
+
+        function clearFilters() {
+            // Show global loading
+            showGlobalLoading();
+            window.location.replace('/admin/financial/optional-fees');
+        }
+
+        function showGlobalLoading() {
+            document.getElementById('global-loading').style.display = 'flex';
+        }
+
+        function hideGlobalLoading() {
+            document.getElementById('global-loading').style.display = 'none';
+        }
+
+        function showButtonLoading(event) {
+            const button = event.detail.elt;
+            const btnContent = button.querySelector('.btn-content');
+            const btnLoading = button.querySelector('.btn-loading');
+
+            if (btnContent && btnLoading) {
+                btnContent.style.display = 'none';
+                btnLoading.style.display = 'inline';
+                button.disabled = true;
+                button.style.opacity = '0.7';
+            }
+        }
+
+        function hideButtonLoading(event) {
+            const button = event.detail.elt;
+            const btnContent = button.querySelector('.btn-content');
+            const btnLoading = button.querySelector('.btn-loading');
+
+            if (btnContent && btnLoading) {
+                btnContent.style.display = 'inline';
+                btnLoading.style.display = 'none';
+                button.disabled = false;
+                button.style.opacity = '1';
+            }
+        }
+
+        function updateRowStatus(event) {
+            try {
+                const response = JSON.parse(event.detail.xhr.responseText);
+                if (response.success) {
+                    // Extract fee ID from the button that was clicked
+                    const button = event.detail.elt;
+                    const feeId = button.id.replace('btn-', '');
+
+                    // Update status badge
+                    const statusElement = document.getElementById('status-' + feeId);
+                    if (response.isLocked) {
+                        statusElement.innerHTML = '<i class="fas fa-lock"></i> Locked';
+                        statusElement.className = 'badge badge-danger';
+                        // Replace button with unlock button
+                        const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+                        button.outerHTML = `
+                            <button class="btn btn-sm btn-success" 
+                                    id="btn-${feeId}"
+                                    hx-post="/admin/financial/optional-fees/${feeId}/toggle-lock"
+                                    hx-vals='{"locked": false}' 
+                                    hx-headers='{"X-CSRF-TOKEN": "${csrfToken}"}'
+                                    hx-target="body" 
+                                    hx-swap="none"
+                                    hx-on:htmx:before-request="showButtonLoading(event)"
+                                    hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
+                                    title="Unlock this fee selection">
+                                <span class="btn-content">
+                                    <i class="fas fa-unlock"></i> Unlock
+                                </span>
+                                <span class="btn-loading" style="display: none;">
+                                    <i class="fas fa-spinner fa-spin"></i> Unlocking...
+                                </span>
+                            </button>
+                        `;
+                    } else {
+                        statusElement.innerHTML = '<i class="fas fa-unlock"></i> Active';
+                        statusElement.className = 'badge badge-success';
+                        // Replace button with lock button
+                        const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+                        button.outerHTML = `
+                            <button class="btn btn-sm btn-danger" 
+                                    id="btn-${feeId}"
+                                    hx-post="/admin/financial/optional-fees/${feeId}/toggle-lock"
+                                    hx-vals='{"locked": true}' 
+                                    hx-headers='{"X-CSRF-TOKEN": "${csrfToken}"}'
+                                    hx-target="body" 
+                                    hx-swap="none"
+                                    hx-on:htmx:before-request="showButtonLoading(event)"
+                                    hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
+                                    title="Lock this fee selection">
+                                <span class="btn-content">
+                                    <i class="fas fa-lock"></i> Lock
+                                </span>
+                                <span class="btn-loading" style="display: none;">
+                                    <i class="fas fa-spinner fa-spin"></i> Locking...
+                                </span>
+                            </button>
+                        `;
+                    }
+
+                    // Re-initialize HTMX for the new button
+                    htmx.process(document.getElementById('btn-' + feeId));
+
+                    // Update stats
+                    updateStats();
+
+                    // Show success message
+                    showNotification(response.message, 'success');
+                } else {
+                    showNotification(response.message || 'Error updating fee status', 'error');
+                }
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                showNotification('Error updating fee status', 'error');
+            }
+        }
+
+        function updateStats() {
+            // Count locked and unlocked items
+            const lockedCount = document.querySelectorAll('.badge-danger').length;
+            const totalCount = document.querySelectorAll('tbody tr').length;
+            const unlockedCount = totalCount - lockedCount;
+
+            // Update stat values
+            document.querySelector('.stat-value').textContent = totalCount;
+            document.querySelectorAll('.stat-value')[1].textContent = lockedCount;
+            document.querySelectorAll('.stat-value')[2].textContent = unlockedCount;
+        }
+
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+            `;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+
+        // Auto-reload terms when session changes
+        document.getElementById('sessionFilter').addEventListener('change', function () {
+            applyFilters();
+        });
+
+        // Hide global loading when page is fully loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            hideGlobalLoading();
+        });
+
+        // Show loading when navigating away
+        window.addEventListener('beforeunload', function () {
+            showGlobalLoading();
+        });
+
+        // Add CSS for notifications and loading states
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            
+            /* Loading button states */
+            .btn-loading {
+                transition: all 0.2s ease;
+            }
+            
+            .btn-content {
+                transition: all 0.2s ease;
+            }
+            
+            /* Spinner animation */
+            .fa-spin {
+                animation: fa-spin 1s infinite linear;
+            }
+            
+            @keyframes fa-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            /* Button loading state */
+            .btn:disabled {
+                cursor: not-allowed;
+                transition: opacity 0.2s ease;
+            }
+            
+            /* HTMX indicator */
+            .htmx-indicator {
+                display: none;
+                margin-left: 8px;
+            }
+            
+            .htmx-indicator.htmx-request {
+                display: inline-block;
+            }
+            
+            /* Loading overlay for entire page (optional) */
+            .page-loading {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255, 255, 255, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                font-size: 1.2rem;
+                color: #3b82f6;
+            }
+            
+            .page-loading .spinner {
+                margin-right: 12px;
+                font-size: 1.5rem;
+            }
+            
+            /* Modal styles */
+            .modal {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: rgba(0, 0, 0, 0.5) !important;
+                display: none !important;
+                justify-content: center !important;
+                align-items: center !important;
+                z-index: 10000 !important;
+            }
+            
+            .modal[style*="flex"] {
+                display: flex !important;
+            }
+            
+            .modal-content {
+                background: white;
+                border-radius: 12px;
+                width: 90%;
+                max-width: 500px;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+            
+            .modal-header {
+                padding: 20px 24px 16px;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .modal-header h3 {
+                margin: 0;
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #111827;
+            }
+            
+            .modal-close {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: #6b7280;
+                padding: 4px;
+                border-radius: 4px;
+                transition: all 0.2s;
+            }
+            
+            .modal-close:hover {
+                background: #f3f4f6;
+                color: #374151;
+            }
+            
+            .modal-body {
+                padding: 20px 24px;
+            }
+            
+            .modal-footer {
+                padding: 16px 24px 20px;
+                border-top: 1px solid #e5e7eb;
+                display: flex;
+                justify-content: flex-end;
+                gap: 12px;
+            }
+            
+            .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .form-group label {
+                display: block;
+                margin-bottom: 6px;
+                font-weight: 500;
+                color: #374151;
+            }
+            
+            .form-select, .form-input {
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: border-color 0.2s;
+            }
+            
+            .form-select:focus, .form-input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+            
+            .info-box {
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 8px;
+                padding: 12px;
+                display: flex;
+                gap: 8px;
+                font-size: 14px;
+                color: #1e40af;
+            }
+            
+            .info-box i {
+                margin-top: 2px;
+                flex-shrink: 0;
+            }
+            
+            /* Student search dropdown styles */
+            .form-group {
+                position: relative;
+            }
+            
+            .student-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-top: none;
+                border-radius: 0 0 6px 6px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            
+            .student-option {
+                padding: 12px;
+                cursor: pointer;
+                border-bottom: 1px solid #f3f4f6;
+                transition: background-color 0.2s;
+            }
+            
+            .student-option:hover {
+                background-color: #f9fafb;
+            }
+            
+            .student-option:last-child {
+                border-bottom: none;
+            }
+            
+            .student-name {
+                font-weight: 500;
+                color: #111827;
+            }
+            
+            .student-details {
+                font-size: 12px;
+                color: #6b7280;
+                margin-top: 2px;
+            }
+            
+            .selected-student {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 12px;
+                background: #f0f9ff;
+                border: 1px solid #0ea5e9;
+                border-radius: 6px;
+                margin-top: 8px;
+            }
+            
+            .clear-selection {
+                background: none;
+                border: none;
+                color: #6b7280;
+                cursor: pointer;
+                font-size: 18px;
+                padding: 0;
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s;
+            }
+            
+            .clear-selection:hover {
+                background: #e5e7eb;
+                color: #374151;
+            }
+            
+            .fee-info {
+                margin-top: 8px;
+                padding: 8px;
+                background: #f9fafb;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    <!-- Apply Fee to Student Modal -->
+    <div id="applyFeeModal" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 99999; justify-content: center; align-items: center;">
+        <div class="modal-content"
+            style="background: white; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div class="modal-header"
+                style="padding: 20px 24px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #111827;"><i
+                        class="fas fa-user-plus"></i> Apply Optional Fee to Student</h3>
+                <button class="modal-close" onclick="closeApplyFeeModal()"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280; padding: 4px; border-radius: 4px;">&times;</button>
+            </div>
+            <form id="applyFeeForm" onsubmit="applyFeeToStudent(event); return false;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="studentSearch">Search Student:</label>
+                        <input type="text" id="studentSearch" class="form-input"
+                            placeholder="Type student name or admission number..." oninput="filterStudents(this.value)"
+                            autocomplete="off">
+                        <div id="studentDropdown" class="student-dropdown" style="display: none;">
+                            <!-- Students will be populated here -->
+                        </div>
+                        <input type="hidden" id="selectedStudentId" name="studentId" required>
+                        <div id="selectedStudentDisplay" class="selected-student" style="display: none;">
+                            <span class="student-info"></span>
+                            <button type="button" class="clear-selection" onclick="clearStudentSelection()">×</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feeItemSelect">Select Optional Fee:</label>
+                        <select id="feeItemSelect" name="classFeeItemId" class="form-select" required disabled>
+                            <option value="">First select a student...</option>
+                        </select>
+                        <div class="fee-info" id="feeInfo" style="display: none;">
+                            <small class="text-muted">Fee details will appear here</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customAmount">Custom Amount (optional):</label>
+                        <input type="number" id="customAmount" name="customAmount" class="form-input" step="0.01"
+                            min="0" placeholder="Leave blank to use default amount">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notes (optional):</label>
+                        <textarea id="notes" name="notes" class="form-input" rows="3"
+                            placeholder="Reason for applying this fee..."></textarea>
+                    </div>
+
+                    <div class="info-box" style="margin-top: 16px;">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Note:</strong> Admin-applied fees are automatically locked and cannot be removed by
+                            parents.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeApplyFeeModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="applyFeeToStudent(event)">
+                        <span class="btn-content">
+                            <i class="fas fa-check"></i> Apply Fee
+                        </span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> Applying...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Modal functions
+        function openApplyFeeModal() {
+            const modal = document.getElementById('applyFeeModal');
+            if (modal) {
+                // Show modal with proper styling
+                modal.style.display = 'flex';
+                modal.style.position = 'fixed';
+                modal.style.top = '0';
+                modal.style.left = '0';
+                modal.style.width = '100vw';
+                modal.style.height = '100vh';
+                modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                modal.style.zIndex = '999999';
+                modal.style.justifyContent = 'center';
+                modal.style.alignItems = 'center';
+                modal.style.visibility = 'visible';
+                modal.style.opacity = '1';
+
+                // Reset modal content to original form
+                const modalContent = modal.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.style.backgroundColor = 'white';
+                    modalContent.style.border = 'none';
+                    modalContent.style.padding = '0';
+                    modalContent.style.fontSize = '14px';
+                    modalContent.style.color = 'black';
+                    modalContent.style.borderRadius = '12px';
+                    modalContent.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.3)';
+                    modalContent.style.maxWidth = '500px';
+                    modalContent.style.width = '90%';
+                    modalContent.style.maxHeight = '90vh';
+                    modalContent.style.overflowY = 'auto';
+                    modalContent.style.position = 'relative';
+                    modalContent.style.zIndex = '1000000';
+                    // Don't change innerHTML - keep the original form
+                }
+
+                // Move to body end
+                document.body.appendChild(modal);
+
+                // Add click to close
+                modal.onclick = function (e) {
+                    if (e.target === modal) {
+                        closeApplyFeeModal();
+                    }
+                };
+
+                // Load students and fees
+                loadStudentsAndFees();
+            }
+        }
+
+        function closeApplyFeeModal() {
+            const modal = document.getElementById('applyFeeModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            const form = document.getElementById('applyFeeForm');
+            if (form) {
+                form.reset();
+            }
+        }
+
+        function loadStudentsAndFees() {
+            console.log('Loading students...');
+            // Load students
+            fetch('/admin/financial/api/students', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    console.log('Students API response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(students => {
+                    console.log('Students loaded:', students);
+                    window.allStudents = students; // Store for filtering
+                    console.log('Students stored in window.allStudents:', window.allStudents);
+                })
+                .catch(error => {
+                    console.error('Error loading students:', error);
+                    showNotification('Error loading students: ' + error.message, 'error');
+                });
+        }
+
+        let filterTimeout;
+        function filterStudents(query) {
+            console.log('Filtering students with query:', query);
+            console.log('Available students:', window.allStudents);
+
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                const dropdown = document.getElementById('studentDropdown');
+
+                if (!query.trim()) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                if (!window.allStudents) {
+                    console.log('No students available, trying to load...');
+                    loadStudentsAndFees();
+                    return;
+                }
+
+                const filtered = window.allStudents.filter(student =>
+                    student.name.toLowerCase().includes(query.toLowerCase()) ||
+                    student.admissionNumber.toLowerCase().includes(query.toLowerCase())
+                );
+
+                console.log('Filtered students:', filtered);
+
+                if (filtered.length === 0) {
+                    dropdown.innerHTML = '<div class="student-option" style="color: #6b7280; font-style: italic;">No students found</div>';
+                } else {
+                    dropdown.innerHTML = filtered.map(student => `
+                        <div class="student-option" onclick="selectStudent('${student.id}', '${student.name}', '${student.admissionNumber}')">
+                            <div class="student-name">${student.name}</div>
+                            <div class="student-details">Admission: ${student.admissionNumber}</div>
+                        </div>
+                    `).join('');
+                }
+
+                dropdown.style.display = 'block';
+            }, 300);
+        }
+
+        function selectStudent(studentId, studentName, admissionNumber) {
+            // Hide dropdown
+            document.getElementById('studentDropdown').style.display = 'none';
+
+            // Clear search input
+            document.getElementById('studentSearch').value = '';
+
+            // Set hidden input
+            document.getElementById('selectedStudentId').value = studentId;
+
+            // Show selected student
+            const display = document.getElementById('selectedStudentDisplay');
+            display.querySelector('.student-info').textContent = `${studentName} (${admissionNumber})`;
+            display.style.display = 'flex';
+
+            // Load fees for this student
+            loadFeesForStudent(studentId);
+        }
+
+        function clearStudentSelection() {
+            document.getElementById('selectedStudentId').value = '';
+            document.getElementById('selectedStudentDisplay').style.display = 'none';
+            document.getElementById('studentSearch').value = '';
+
+            // Reset fee dropdown
+            const feeSelect = document.getElementById('feeItemSelect');
+            feeSelect.innerHTML = '<option value="">First select a student...</option>';
+            feeSelect.disabled = true;
+
+            document.getElementById('feeInfo').style.display = 'none';
+        }
+
+        function loadFeesForStudent(studentId) {
+            const feeSelect = document.getElementById('feeItemSelect');
+            feeSelect.innerHTML = '<option value="">Loading fees...</option>';
+            feeSelect.disabled = true;
+
+            fetch(`/admin/financial/api/student-fees/${studentId}`)
+                .then(response => response.json())
+                .then(fees => {
+                    if (fees.length === 0) {
+                        feeSelect.innerHTML = '<option value="">No available optional fees for this student</option>';
+                    } else {
+                        feeSelect.innerHTML = '<option value="">Choose a fee...</option>' +
+                            fees.map(fee => `
+                                <option value="${fee.id}" data-amount="${fee.amount}" data-class="${fee.className}" data-description="${fee.description}">
+                                    ${fee.name} - ₦${fee.amount} (${fee.className})
+                                </option>
+                            `).join('');
+                        feeSelect.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading student fees:', error);
+                    feeSelect.innerHTML = '<option value="">Error loading fees</option>';
+                    showNotification('Error loading fees for student', 'error');
+                });
+        }
+
+        // Add fee selection handler
+        document.addEventListener('DOMContentLoaded', function () {
+            const feeSelect = document.getElementById('feeItemSelect');
+            if (feeSelect) {
+                feeSelect.addEventListener('change', function () {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const feeInfo = document.getElementById('feeInfo');
+
+                    if (selectedOption.value && selectedOption.dataset.description) {
+                        feeInfo.innerHTML = `
+                            <strong>Class:</strong> ${selectedOption.dataset.class}<br>
+                            <strong>Amount:</strong> ₦${selectedOption.dataset.amount}<br>
+                            <strong>Description:</strong> ${selectedOption.dataset.description}
+                        `;
+                        feeInfo.style.display = 'block';
+                    } else {
+                        feeInfo.style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function (event) {
+            const dropdown = document.getElementById('studentDropdown');
+            const searchInput = document.getElementById('studentSearch');
+
+            if (dropdown && searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        function applyFeeToStudent(event) {
+            if (event) event.preventDefault();
+
+            const form = document.getElementById('applyFeeForm');
+            const studentId = document.getElementById('selectedStudentId').value;
+            const feeItemId = document.getElementById('feeItemSelect').value;
+
+            if (!studentId) {
+                showNotification('Please select a student', 'error');
+                return;
+            }
+
+            if (!feeItemId) {
+                showNotification('Please select a fee item', 'error');
+                return;
+            }
+
+            const formData = new FormData(form);
+            // Ensure the hidden student ID is included
+            formData.set('studentId', studentId);
+
+            const submitBtn = form.querySelector('button[onclick*="applyFeeToStudent"]');
+            const btnContent = submitBtn.querySelector('.btn-content');
+            const btnLoading = submitBtn.querySelector('.btn-loading');
+
+            // Show loading state
+            btnContent.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            submitBtn.disabled = true;
+
+            const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+            console.log('Sending request to /admin/financial/apply-optional-fee');
+            console.log('FormData:', Object.fromEntries(formData));
+
+            fetch('/admin/financial/apply-optional-fee', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [csrfHeader]: csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeApplyFeeModal();
+                        // Refresh the page to show the new fee
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showNotification(data.message || 'Error applying fee', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error applying fee:', error);
+                    showNotification('Error applying fee to student', 'error');
+                })
+                .finally(() => {
+                    // Hide loading state
+                    btnContent.style.display = 'inline';
+                    btnLoading.style.display = 'none';
+                    submitBtn.disabled = false;
+                });
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('applyFeeModal').addEventListener('click', function (event) {
+            if (event.target === this) {
+                closeApplyFeeModal();
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Staff Dashboard</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <div class="dashboard-container role-staff">
+        <div class="alert alert-warning" th:if="${isViewAs}"
+            style="margin-bottom: 20px; border-left: 5px solid #f59e0b; background-color: #fffbeb; color: #92400e; padding: 1rem; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-eye"></i>
+            <span><strong>Viewing as Admin:</strong> You are currently viewing the dashboard of <span
+                    th:text="${viewingAsName}">Staff Name</span>.</span>
+        </div>
+
+        <div class="welcome-section">
+            <div class="welcome-text">
+                <h1>Welcome back, <span sec:authentication="name">Staff</span>!</h1>
+                <p>Staff Dashboard • <span
+                        th:text="${#dates.format(#dates.createNow(), 'EEEE, MMMM dd, yyyy')}">Date</span></p>
+            </div>
+            <div class="welcome-stats">
+                <div class="stat-badge">
+                    <span class="value" th:text="${classCount ?: 0}">0</span>
+                    <span class="label">Classes</span>
+                </div>
+                <div class="stat-badge">
+                    <span class="value" th:text="${studentCount ?: 0}">0</span>
+                    <span class="label">Students</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <a href="/staff/classes" class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">My Classes</span>
+                    <div class="card-icon"><i class="fas fa-chalkboard"></i></div>
+                </div>
+                <div class="card-value" th:text="${classCount ?: 0}">0</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Assigned Classes</span>
+                </div>
+                <span class="card-link">
+                    View Classes <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">My Students</span>
+                    <div class="card-icon"><i class="fas fa-user-graduate"></i></div>
+                </div>
+                <div class="card-value" th:text="${studentCount ?: 0}">0</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Total Students</span>
+                </div>
+                <span class="card-link">
+                    View Students <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">Pending Tasks</span>
+                    <div class="card-icon"><i class="fas fa-tasks"></i></div>
+                </div>
+                <div class="card-value" th:text="${pendingTasks ?: 0}">0</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Tasks Due</span>
+                </div>
+                <span class="card-link">
+                    View Tasks <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <span class="card-title">Recent Grades</span>
+                    <div class="card-icon"><i class="fas fa-chart-bar"></i></div>
+                </div>
+                <div class="card-value" th:text="${recentGrades ?: 0}">0</div>
+                <div class="card-trend">
+                    <span class="trend-neutral">Entered this week</span>
+                </div>
+                <span class="card-link">
+                    Gradebook <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+        </div>
+
+        <!-- Your Recent Activity Widget -->
+        <div class="content-panel">
+            <div class="section-header">
+                <h2 class="section-title">Recent Activity</h2>
+            </div>
+            <div th:replace="~{fragments/activity-widget :: user-activity-widget}" th:attr="data-user-id=${user?.id}">
+            </div>
+        </div>
+    </div>
+
+    <!-- Include activity widget script -->
+    <div th:replace="~{fragments/activity-widget :: activity-widget-script}"></div>
+    <script th:src="@{/js/dashboard-tabs.js}"></script>
+</body>
+
+</html>

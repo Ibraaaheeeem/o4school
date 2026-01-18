@@ -1,0 +1,75 @@
+<!-- Staff Table Fragment -->
+<div th:fragment="staff-table-content" id="staff-table-content">
+    <div class="alert alert-success" th:if="${success}">
+        <span th:text="${success}"></span>
+    </div>
+    <div class="alert alert-danger" th:if="${error}">
+        <span th:text="${error}"></span>
+    </div>
+
+    <table class="data-table" th:if="${!staffPage.content.empty}">
+        <thead>
+            <tr>
+                <th>Staff ID</th>
+                <th>Name</th>
+                <th>Designation</th>
+                <th>Department</th>
+                <th>Contact</th>
+                <th>Hire Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="staff : ${staffPage.content}">
+                <td th:text="${staff.staffId}">STF001</td>
+                <td>
+                    <div class="user-info">
+                        <strong th:text="${staff.user.fullName}">John Doe</strong>
+                        <small th:text="${staff.user.email}">john@example.com</small>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-primary" th:text="${staff.designation}">Teacher</span>
+                </td>
+                <td th:text="${staff.department ?: 'N/A'}">Mathematics</td>
+                <td th:text="${staff.user.phoneNumber}">+234...</td>
+                <td th:text="${#temporals.format(staff.hireDate, 'MMM dd, yyyy')}">Jan 15, 2024</td>
+                <td>
+                    <span class="badge badge-success" th:if="${staff.employmentStatus == 'active'}">Active</span>
+                    <span class="badge badge-warning" th:if="${staff.employmentStatus == 'inactive'}">Inactive</span>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline" 
+                                th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}"
+                                hx-target="#staffModal .modal-dialog"
+                                hx-swap="innerHTML"
+                                th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'">
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" 
+                                th:data-staff-id="${staff.id}"
+                                th:data-staff-name="${staff.user.fullName}"
+                                onclick="confirmDelete(this.dataset.staffId, this.dataset.staffName)">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="empty-state" th:if="${staffPage.content.empty}">
+        <div class="empty-icon">👨‍🏫</div>
+        <h3>No Staff Members Found</h3>
+        <p>Start by adding your first staff member to the system.</p>
+        <button class="btn btn-primary" 
+                hx-get="/admin/community/staff/new/modal"
+                hx-target="#staffModal .modal-dialog"
+                hx-swap="innerHTML"
+                hx-on::after-request="openModal('staffModal')">
+            Add First Staff Member
+        </button>
+    </div>
+</div>
