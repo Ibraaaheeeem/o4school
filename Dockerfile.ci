@@ -1,8 +1,8 @@
 FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 # Install build essentials and dependencies
-# Base image already contains gcc, zlib-devel, etc.
-# RUN microdnf update -y && microdnf install -y findutils tar gzip gcc zlib-devel && microdnf clean all
+# We need findutils for xargs which gradlew uses
+RUN microdnf install -y findutils
 
 WORKDIR /app
 
@@ -19,6 +19,7 @@ RUN sed -i '/org.gradle.java.home/d' gradle.properties
 # 2. Ensure distributionUrl points to the official URL (in case local config was committed)
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
+RUN chmod +x gradlew
 RUN ./gradlew dependencies --no-daemon
 
 # Build native image
@@ -28,7 +29,6 @@ COPY . .
 RUN sed -i '/org.gradle.java.home/d' gradle.properties
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
-RUN chmod +x gradlew
 RUN ./gradlew nativeCompile --no-daemon
 
 FROM gcr.io/distroless/base-debian12:latest
