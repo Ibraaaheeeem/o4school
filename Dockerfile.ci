@@ -2,7 +2,7 @@ FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 # Install build essentials and dependencies
 # Using standard GLIBC builder to avoid package conflicts
-RUN microdnf install -y findutils tar gzip gcc zlib-devel
+RUN microdnf update -y && microdnf install -y findutils tar gzip gcc zlib-devel && microdnf clean all
 
 WORKDIR /app
 
