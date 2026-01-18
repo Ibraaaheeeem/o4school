@@ -1,8 +1,7 @@
 FROM ghcr.io/graalvm/native-image-community:21-muslib AS builder
 
 # Install build essentials and dependencies
-# We update to ensure we have the latest packages and avoid conflicts
-RUN microdnf update -y && microdnf install -y findutils tar gzip gcc zlib-devel
+RUN microdnf install -y findutils tar gzip gcc zlib-devel
 
 WORKDIR /app
 
