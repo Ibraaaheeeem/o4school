@@ -39,6 +39,8 @@ class SecurityConfig(
             .authorizeHttpRequests { requests ->
                 requests
                     .requestMatchers("/", "/login", "/register", "/activate-account", "/forgot-password", "/auth/**", "/error", "/css/**", "/js/**", "/images/**", "/paystack/webhooks", "/favicon.ico").permitAll()
+                    .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                    .requestMatchers("/actuator/**").hasRole("SYSTEM_ADMIN")
                     .requestMatchers("/h2-console/**").hasRole("SYSTEM_ADMIN")
                     .requestMatchers("/404", "/public/**", "/api/public/**").permitAll() // Allow public pages and APIs
                     .requestMatchers("/{slug:[a-zA-Z0-9-]+}").permitAll() // Allow school landing pages by slug
