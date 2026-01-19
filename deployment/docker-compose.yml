@@ -2,11 +2,14 @@ version: '3.8'
 
 services:
   app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
     image: ghcr.io/ibraaaheeeem/o4school:latest
     container_name: 4school_app
     restart: always
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     environment:
       - DB_URL=jdbc:postgresql://db:5432/j4school
       - DB_USERNAME=${DB_USERNAME}
@@ -28,6 +31,8 @@ services:
     image: postgres:15-alpine
     container_name: 4school_db
     restart: always
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_DB=j4school
       - POSTGRES_USER=${DB_USERNAME}
