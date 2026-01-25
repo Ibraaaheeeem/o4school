@@ -1,9 +1,10 @@
 package com.haneef._school.controller
 
+import com.haneef._school.entity.SettlementType
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.haneef._school.entity.Settlement
-import com.haneef._school.repository.ParentWalletRepository
+import com.haneef._school.repository.PaystackParentWalletRepository
 import com.haneef._school.repository.SettlementRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -22,7 +23,7 @@ import jakarta.servlet.http.HttpServletRequest
 @RequestMapping("/paystack/webhooks")
 class PaystackWebhookController(
     private val settlementRepository: SettlementRepository,
-    private val parentWalletRepository: ParentWalletRepository,
+    private val paystackParentWalletRepository: PaystackParentWalletRepository,
     private val academicSessionRepository: com.haneef._school.repository.AcademicSessionRepository,
     private val termRepository: com.haneef._school.repository.TermRepository,
     private val schoolRepository: com.haneef._school.repository.SchoolRepository,
@@ -92,7 +93,7 @@ class PaystackWebhookController(
         
         // Try to find wallet by customer code first (more reliable for dedicated accounts)
         var wallet = if (customerCode != null) {
-            parentWalletRepository.findByCustomerCode(customerCode)
+            paystackParentWalletRepository.findByCustomerCode(customerCode)
         } else {
             null
         }
@@ -100,7 +101,7 @@ class PaystackWebhookController(
         // Fallback: Try to find by dedicated account number if available in authorization (for bank transfers)
         if (wallet == null && authorization != null && authorization.has("receiver_bank_account_number")) {
              val receiverAccount = authorization.get("receiver_bank_account_number").asText()
-             wallet = parentWalletRepository.findByAccountNumber(receiverAccount)
+             wallet = paystackParentWalletRepository.findByAccountNumber(receiverAccount)
         }
         
         // Fallback: Try to find by email (less reliable if parent changed email)
@@ -116,7 +117,7 @@ class PaystackWebhookController(
 
             // Create Settlement
             val settlement = Settlement(
-                wallet = wallet,
+                paystackWallet = wallet,
                 amount = amount,
                 currency = currency,
                 reference = reference,
@@ -125,7 +126,8 @@ class PaystackWebhookController(
                 payerEmail = customerEmail,
                 rawPayload = rawPayload,
                 academicSession = currentSession,
-                term = currentTerm
+                term = currentTerm,
+                settlementType = SettlementType.PAYSTACK,
             ).apply {
                 schoolId = wallet.schoolId // Inherit school context
             }
@@ -134,7 +136,7 @@ class PaystackWebhookController(
             
             // Update Wallet Balance
             wallet.balance = wallet.balance.add(amount)
-            parentWalletRepository.save(wallet)
+            paystackParentWalletRepository.save(wallet)
             
             logger.info("Wallet balance updated. New Balance: ${wallet.balance}")
             

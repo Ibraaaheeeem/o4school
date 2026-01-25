@@ -59,7 +59,10 @@ class Parent(
     var paymentNotifications: MutableList<PaymentNotification> = mutableListOf()
 
     @OneToOne(mappedBy = "parent", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    var wallet: ParentWallet? = null
+    var paystackWallet: PaystackParentWallet? = null
+
+    @OneToOne(mappedBy = "parent", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    var squadWallet: SquadParentWallet? = null
 
     @Transient
     var totalBalance: java.math.BigDecimal = java.math.BigDecimal.ZERO

@@ -23,7 +23,7 @@
         <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
 
         <!-- Main Content Area -->
-        <div class="setup-content">
+        <div id="community-content" class="setup-content">
             <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h1>Community Overview</h1>
@@ -40,12 +40,7 @@
                         <p class="card-number" th:text="${staffCount}">0</p>
                         <p class="card-description">Teaching & non-teaching staff</p>
                         <div class="card-actions">
-                            <a th:href="@{/admin/community/staff}" class="card-link">Manage Staff</a>
-                            <button class="btn btn-primary btn-sm" hx-get="/admin/community/staff/new/home-modal"
-                                hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
-                                onclick="setTimeout(() => openModal('staffModal'), 100)">
-                                + Add Staff
-                            </button>
+                            <a th:href="@{/admin/community/overviews(tab='staff')}" class="card-link">Manage Staff</a>
                         </div>
                     </div>
 
@@ -55,7 +50,8 @@
                         <p class="card-number" th:text="${studentCount}">0</p>
                         <p class="card-description">Enrolled students</p>
                         <div class="card-actions">
-                            <a th:href="@{/admin/community/students}" class="card-link">Manage Students</a>
+                            <a th:href="@{/admin/community/overviews(tab='students')}" class="card-link">Manage
+                                Students</a>
                             <button class="btn btn-primary btn-sm" hx-get="/admin/community/students/new/home-modal"
                                 hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
                                 onclick="setTimeout(() => openModal('studentModal'), 100)">
@@ -70,7 +66,8 @@
                         <p class="card-number" th:text="${parentCount}">0</p>
                         <p class="card-description">Parents & guardians</p>
                         <div class="card-actions">
-                            <a th:href="@{/admin/community/parents}" class="card-link">Manage Parents</a>
+                            <a th:href="@{/admin/community/overviews(tab='parents')}" class="card-link">Manage
+                                Parents</a>
                             <button class="btn btn-primary btn-sm" hx-get="/admin/community/parents/new/home-modal"
                                 hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
                                 onclick="setTimeout(() => openModal('parentModal'), 100)">

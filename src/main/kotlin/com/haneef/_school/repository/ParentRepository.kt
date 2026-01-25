@@ -34,10 +34,10 @@ interface ParentRepository : JpaRepository<Parent, UUID>, SecureParentRepository
 
     fun findByUserId(userId: UUID): List<Parent>
     
-    @Query("SELECT p FROM Parent p LEFT JOIN FETCH p.wallet WHERE p.user.id = :userId")
+    @Query("SELECT p FROM Parent p LEFT JOIN FETCH p.paystackWallet LEFT JOIN FETCH p.squadWallet WHERE p.user.id = :userId")
     fun findByUserIdWithWallet(@Param("userId") userId: UUID): List<Parent>
     
-    @Query("SELECT p FROM Parent p LEFT JOIN FETCH p.wallet LEFT JOIN FETCH p.studentRelationships sr LEFT JOIN FETCH sr.student s LEFT JOIN FETCH s.user WHERE p.schoolId = :schoolId AND p.isActive = :isActive ORDER BY p.user.firstName")
+    @Query("SELECT p FROM Parent p LEFT JOIN FETCH p.paystackWallet LEFT JOIN FETCH p.squadWallet LEFT JOIN FETCH p.studentRelationships sr LEFT JOIN FETCH sr.student s LEFT JOIN FETCH s.user WHERE p.schoolId = :schoolId AND p.isActive = :isActive ORDER BY p.user.firstName")
     fun findBySchoolIdAndIsActiveWithRelationships(
         @Param("schoolId") schoolId: UUID,
         @Param("isActive") isActive: Boolean

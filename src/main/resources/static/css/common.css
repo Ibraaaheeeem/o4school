@@ -10,6 +10,8 @@ body {
     line-height: 1.6;
     color: #333;
     background-color: #f8f9fa;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 /* School Header Styles */
@@ -129,6 +131,7 @@ body {
         flex-direction: column;
         gap: 1rem;
         text-align: center;
+        padding: 0 1rem;
     }
 
     .header-left {

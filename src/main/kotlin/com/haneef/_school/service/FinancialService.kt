@@ -5,6 +5,13 @@ import com.haneef._school.entity.Student
 import com.haneef._school.repository.ClassFeeItemRepository
 import com.haneef._school.repository.InvoiceRepository
 import com.haneef._school.repository.SettlementRepository
+import com.haneef._school.dto.PaymentAnalyticsDto
+import com.haneef._school.dto.TrendPoint
+import com.haneef._school.entity.SettlementType
+import java.time.LocalDateTime
+import java.time.LocalDate
+
+
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -21,7 +28,9 @@ open class FinancialService(
     private val paymentDistributionService: PaymentDistributionService,
     private val userSchoolRoleRepository: com.haneef._school.repository.UserSchoolRoleRepository,
     private val studentOptionalFeeRepository: com.haneef._school.repository.StudentOptionalFeeRepository,
-    private val studentRepository: com.haneef._school.repository.StudentRepository
+    private val studentRepository: com.haneef._school.repository.StudentRepository,
+    private val schoolReimbursementRepository: com.haneef._school.repository.SchoolReimbursementRepository
+
 ) {
 
     @Transactional
@@ -34,12 +43,11 @@ open class FinancialService(
         notes: String? = null
     ): com.haneef._school.entity.Settlement {
         val parent = parentRepository.findById(parentId).orElseThrow { RuntimeException("Parent not found") }
-        val wallet = parent.wallet ?: throw RuntimeException("Parent has no virtual account")
+                
         val session = academicSessionRepository.findById(sessionId).orElseThrow { RuntimeException("Session not found") }
         val term = termId?.let { termRepository.findById(it).orElse(null) }
 
         val settlement = com.haneef._school.entity.Settlement(
-            wallet = wallet,
             amount = amount,
             reference = "MANUAL-${java.util.UUID.randomUUID().toString().substring(0, 8).uppercase()}",
             status = "success",
@@ -94,17 +102,29 @@ open class FinancialService(
             }
         }
 
-        // Add settlements from parent wallet for current session/term
-        if (parent.wallet != null) {
+        // Add settlements from parent wallets for current session/term
+        val wallets = listOfNotNull(parent.paystackWallet, parent.squadWallet)
+        
+        wallets.forEach { wallet ->
             val settlements = if (currentTerm != null) {
-                settlementRepository.findByWalletIdAndAcademicSessionIdAndTermId(
-                    parent.wallet!!.id!!,
-                    currentSession.id!!,
-                    currentTerm.id!!
-                )
+                if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                    settlementRepository.findByPaystackWalletIdAndAcademicSessionIdAndTermId(
+                        wallet.id!!, currentSession.id!!, currentTerm.id!!
+                    )
+                } else {
+                    settlementRepository.findBySquadWalletIdAndAcademicSessionIdAndTermId(
+                        wallet.id!!, currentSession.id!!, currentTerm.id!!
+                    )
+                }
             } else {
-                settlementRepository.findByWalletId(parent.wallet!!.id!!).filter {
-                    it.academicSession?.id == currentSession.id
+                if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                    settlementRepository.findByPaystackWalletId(wallet.id!!).filter {
+                        it.academicSession?.id == currentSession.id
+                    }
+                } else {
+                    settlementRepository.findBySquadWalletId(wallet.id!!).filter {
+                        it.academicSession?.id == currentSession.id
+                    }
                 }
             }
             settlements.forEach { settlement ->
@@ -264,26 +284,59 @@ open class FinancialService(
         
         // 1. Calculate Wallet Settlements for selected session/term
         var walletSettled = BigDecimal.ZERO
-        if (parent.wallet != null) {
+        val wallets = listOfNotNull(parent.paystackWallet, parent.squadWallet)
+        
+        wallets.forEach { wallet ->
             val settlements = if (selectedTerm != null) {
-                settlementRepository.findByWalletIdAndAcademicSessionIdAndTermId(
-                    parent.wallet!!.id!!,
-                    selectedSession.id!!,
-                    selectedTerm.id!!
-                )
+                if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                    settlementRepository.findByPaystackWalletIdAndAcademicSessionIdAndTermId(
+                        wallet.id!!, selectedSession.id!!, selectedTerm.id!!
+                    )
+                } else {
+                    settlementRepository.findBySquadWalletIdAndAcademicSessionIdAndTermId(
+                        wallet.id!!, selectedSession.id!!, selectedTerm.id!!
+                    )
+                }
             } else {
-                settlementRepository.findByWalletId(parent.wallet!!.id!!).filter { 
-                    it.academicSession?.id == selectedSession.id 
+                if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                    settlementRepository.findByPaystackWalletId(wallet.id!!).filter { 
+                        it.academicSession?.id == selectedSession.id 
+                    }
+                } else {
+                    settlementRepository.findBySquadWalletId(wallet.id!!).filter { 
+                        it.academicSession?.id == selectedSession.id 
+                    }
                 }
             }
             settlements.forEach { settlement ->
                 walletSettled = walletSettled.add(settlement.amount)
             }
         }
+
+        // Also include settlements found by email (Manual or Orphan) that were not counted via wallets
+        val parentEmail = parent.user.email
+        if (parentEmail != null) {
+            val emailSettlements = settlementRepository.findByPayerEmail(parentEmail)
+                .filter { 
+                    it.academicSession?.id == selectedSession.id && 
+                    (selectedTerm == null || it.term?.id == selectedTerm.id) 
+                }
+            
+            emailSettlements.forEach { settlement ->
+                // Check if this settlement is already linked to one of the parent's wallets
+                val isLinkedToPaystack = settlement.paystackWallet != null && wallets.any { it.id == settlement.paystackWallet?.id }
+                val isLinkedToSquad = settlement.squadWallet != null && wallets.any { it.id == settlement.squadWallet?.id }
+                
+                // Only add if NOT already counted (i.e., not linked to a known wallet)
+                if (!isLinkedToPaystack && !isLinkedToSquad) {
+                    walletSettled = walletSettled.add(settlement.amount)
+                }
+            }
+        }
         totalSettled = totalSettled.add(walletSettled)
 
         // 2. Prepare basic student data (Fees & Invoice Payments)
-        val children = parent.studentRelationships.map { it.student }
+        val children = parent.activeStudentRelationships.map { it.student }
         val studentDataList = mutableListOf<MutableMap<String, Any?>>()
         
         children.forEach { student ->
@@ -504,4 +557,52 @@ open class FinancialService(
             }
         }
     }
+
+    @Transactional(readOnly = true)
+    open fun getPaymentAnalytics(
+        schoolId: UUID,
+        startDate: LocalDate?,
+        endDate: LocalDate?,
+        sessionId: UUID?,
+        termId: UUID?
+    ): PaymentAnalyticsDto {
+        val startDateTime = startDate?.atStartOfDay()
+        val endDateTime = endDate?.atTime(23, 59, 59)
+
+        val settlements = settlementRepository.findByFilters(schoolId, sessionId, termId, startDateTime, endDateTime)
+        val reimbursements = schoolReimbursementRepository.findByFilters(schoolId, sessionId, termId, startDateTime, endDateTime)
+
+        val totalSettlements = settlements.sumOf { it.amount }
+        val totalReimbursements = reimbursements.sumOf { it.amount }
+        val totalManualPayments = settlements.filter { it.settlementType == SettlementType.MANUAL }.sumOf { it.amount }
+        val netRevenue = totalSettlements.subtract(totalReimbursements)
+
+        // Group by date for trends
+        val settlementTrend = settlements
+            .groupBy { it.transactionDate.toLocalDate() }
+            .map { (date, list) -> TrendPoint(date, list.sumOf { it.amount }) }
+            .sortedBy { it.date }
+
+        val reimbursementTrend = reimbursements
+            .groupBy { it.reimbursementDate.toLocalDate() }
+            .map { (date, list) -> TrendPoint(date, list.sumOf { it.amount }) }
+            .sortedBy { it.date }
+
+        return PaymentAnalyticsDto(
+            totalSettlements = totalSettlements,
+            totalReimbursements = totalReimbursements,
+            totalManualPayments = totalManualPayments,
+            netRevenue = netRevenue,
+            settlementTrend = settlementTrend,
+            reimbursementTrend = reimbursementTrend
+        )
+    }
+
+    @Transactional
+    open fun processSettlement(settlement: com.haneef._school.entity.Settlement) {
+        // Trigger payment distribution logic
+        // This distributes the settlement amount to student invoices based on parent's preference
+        paymentDistributionService.distributePaymentSequentially(settlement)
+    }
+
 }

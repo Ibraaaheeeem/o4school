@@ -8,80 +8,9 @@
     </div>
 
     <div class="parent-cards-grid" th:if="${!parentPage.content.empty}">
-        <div th:each="parent : ${parentPage.content}" class="parent-card">
-            <div class="parent-card-header">
-                <div class="parent-avatar">
-                    <span th:text="${#strings.substring(parent.user.fullName, 0, 1)}">J</span>
-                </div>
-                <div class="parent-info">
-                    <h3 th:text="${parent.user.fullName}">John Doe</h3>
-                    <p class="parent-email" th:text="${parent.user.email}">john@example.com</p>
-                    <p class="parent-phone" th:text="${parent.user.phoneNumber}">+234...</p>
-                </div>
-                <div class="parent-badges">
-                    <span class="badge badge-success" th:if="${parent.isPrimaryContact}">Primary</span>
-                    <span class="badge badge-warning" th:if="${parent.isEmergencyContact}">Emergency</span>
-                </div>
-            </div>
-
-
-
-            <div class="parent-card-body">
-
-                <!-- Children Assignments Section -->
-                <div class="children-assignments-section">
-                    <h4>👨‍👩‍👧‍👦 Children</h4>
-                    <div th:if="${parent?.studentRelationships == null or parent?.studentRelationships.empty}"
-                        class="no-assignments">
-                        <p class="text-muted">No children assigned</p>
-                    </div>
-                    <div th:unless="${parent?.studentRelationships == null or parent?.studentRelationships.empty}"
-                        class="assignments-grid">
-                        <div th:each="relationship : ${parent?.studentRelationships}" th:if="${relationship.isActive}"
-                            class="assignment-card">
-                            <div class="assignment-details">
-                                <div class="student-name" th:text="${relationship.student.user.fullName}">Student Name
-                                </div>
-                                <div class="relationship-type"
-                                    th:text="${#strings.capitalize(relationship.relationshipType)}">Biological</div>
-                            </div>
-                            <button class="remove-assignment-btn" th:data-assignment-id="${relationship.id}"
-                                th:data-assignment-info="${relationship.student.user.fullName + ' (' + #strings.capitalize(relationship.relationshipType) + ')'}"
-                                onclick="confirmDeleteParentAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
-                                title="Remove child assignment">
-                                ×
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="parent-card-footer">
-                <div class="card-actions">
-                    <button class="btn btn-sm btn-outline"
-                        th:hx-get="@{/admin/community/parents/{id}/modal(id=${parent?.id})}"
-                        hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
-                        th:onclick="'setTimeout(() => openModal(\'parentModal\'), 100)'">
-                        <i class="icon-edit"></i> Edit
-                    </button>
-                    <button class="btn btn-sm btn-info"
-                        th:hx-get="@{/admin/community/parents/{id}/assign-students/modal(id=${parent?.id})}"
-                        hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML"
-                        th:onclick="'setTimeout(() => openModal(\'parentStudentModal\'), 100)'">
-                        <i class="icon-plus"></i> Assign Students
-                    </button>
-                    <a class="btn btn-sm btn-warning" th:href="@{/parent/view-as/{id}(id=${parent?.id})}"
-                        target="_blank">
-                        <i class="icon-eye"></i> Dashboard
-                    </a>
-                    <button class="btn btn-sm btn-danger" th:data-parent-id="${parent?.id}"
-                        th:data-parent-name="${parent?.user?.fullName}"
-                        onclick="confirmDelete(this.dataset.parentId, this.dataset.parentName)">
-                        <i class="icon-trash"></i> Delete
-                    </button>
-                </div>
-            </div>
-        </div>
+        <th:block th:each="parent : ${parentPage.content}">
+            <div th:replace="~{:: single-parent-card}"></div>
+        </th:block>
     </div>
 
     <div class="empty-state" th:if="${parentPage.content.empty}">
@@ -121,6 +50,80 @@
                 th:attr="hx-get=@{/admin/community/parents(page=${parentPage.number + 1}, size=${parentPage.size})}"
                 hx-target="#parent-cards-container" hx-swap="innerHTML" hx-include="#filterForm" hx-replace-url="true"
                 class="pagination-link">Next</a>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="single-parent-card" 
+     th:id="'parent-card-' + ${parent?.id}" 
+     class="parent-card"
+     th:attr="hx-swap-oob=${isOob} ? 'true' : null">
+    <div class="parent-card-header">
+        <div class="parent-avatar">
+            <span th:text="${#strings.substring(parent.user.fullName, 0, 1)}">J</span>
+        </div>
+        <div class="parent-info">
+            <h3 th:text="${parent.user.fullName}">John Doe</h3>
+            <p class="parent-email" th:text="${parent.user.email}">john@example.com</p>
+            <p class="parent-phone" th:text="${parent.user.phoneNumber}">+234...</p>
+        </div>
+        <div class="parent-badges">
+            <span class="badge badge-success" th:if="${parent.isPrimaryContact}">Primary</span>
+            <span class="badge badge-warning" th:if="${parent.isEmergencyContact}">Emergency</span>
+        </div>
+    </div>
+
+    <div class="parent-card-body">
+
+        <!-- Children Assignments Section -->
+        <div class="children-assignments-section">
+            <h4>👨‍👩‍👧‍👦 Children</h4>
+            <div th:if="${parent?.studentRelationships == null or parent?.studentRelationships.empty}"
+                class="no-assignments">
+                <p class="text-muted">No children assigned</p>
+            </div>
+            <div th:unless="${parent?.studentRelationships == null or parent?.studentRelationships.empty}"
+                class="assignments-grid">
+                <div th:each="relationship : ${parent?.studentRelationships}" th:if="${relationship.isActive}"
+                    class="assignment-card">
+                    <div class="assignment-details">
+                        <div class="student-name" th:text="${relationship.student.user.fullName}">Student Name
+                        </div>
+                        <div class="relationship-type" th:text="${#strings.capitalize(relationship.relationshipType)}">
+                            Biological</div>
+                    </div>
+                    <button class="remove-assignment-btn" th:data-assignment-id="${relationship.id}"
+                        th:data-assignment-info="${relationship.student.user.fullName + ' (' + #strings.capitalize(relationship.relationshipType) + ')'}"
+                        onclick="confirmDeleteParentAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                        title="Remove child assignment">
+                        ×
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="parent-card-footer">
+        <div class="card-actions">
+            <button class="btn btn-sm btn-outline" th:hx-get="@{/admin/community/parents/{id}/modal(id=${parent?.id})}"
+                hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
+                th:onclick="'setTimeout(() => openModal(\'parentModal\'), 100)'">
+                <i class="icon-edit"></i> Edit
+            </button>
+            <button class="btn btn-sm btn-info"
+                th:hx-get="@{/admin/community/parents/{id}/assign-students/modal(id=${parent?.id})}"
+                hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML"
+                th:onclick="'setTimeout(() => openModal(\'parentStudentModal\'), 100)'">
+                <i class="icon-plus"></i> Assign Students
+            </button>
+            <a class="btn btn-sm btn-warning" th:href="@{/parent/view-as/{id}(id=${parent?.id})}" target="_blank">
+                <i class="icon-eye"></i> Dashboard
+            </a>
+            <button class="btn btn-sm btn-danger" th:data-parent-id="${parent?.id}"
+                th:data-parent-name="${parent?.user?.fullName}"
+                onclick="confirmDelete(this.dataset.parentId, this.dataset.parentName)">
+                <i class="icon-trash"></i> Delete
+            </button>
         </div>
     </div>
 </div>

@@ -6,23 +6,22 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "parent_wallets",
+    name = "squad_parent_wallets",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["parent_id"], name = "unique_parent_wallet")
+        UniqueConstraint(columnNames = ["parent_id"], name = "unique_squad_parent_wallet")
     ],
     indexes = [
-        Index(columnList = "parent_id", name = "idx_wallet_parent"),
-        Index(columnList = "account_number", name = "idx_wallet_account_number"),
-        Index(columnList = "customer_code", name = "idx_wallet_customer_code")
+        Index(columnList = "parent_id", name = "idx_squad_wallet_parent"),
+        Index(columnList = "account_number", name = "idx_squad_wallet_account_number")
     ]
 )
-class ParentWallet(
+class SquadParentWallet(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id", nullable = false)
     var parent: Parent,
     
-    @Column(name = "customer_code", nullable = false)
-    var customerCode: String,
+    @Column(name = "customer_identifier")
+    var customerIdentifier: String? = null,
     
     @Column(name = "account_number", unique = true)
     var accountNumber: String? = null,
@@ -33,20 +32,11 @@ class ParentWallet(
     @Column(name = "bank_name")
     var bankName: String? = null,
     
-    @Column(name = "bank_slug")
-    var bankSlug: String? = null,
-    
-    @Column(name = "bank_id")
-    var bankId: Int? = null,
-    
     @Column(name = "balance", nullable = false)
     var balance: BigDecimal = BigDecimal.ZERO,
     
     @Column(name = "currency", nullable = false)
     var currency: String = "NGN",
-    
-    @Column(name = "paystack_account_id")
-    var paystackAccountId: Long? = null,
     
     @Column(name = "assigned_at")
     var assignedAt: LocalDateTime? = null
@@ -54,7 +44,7 @@ class ParentWallet(
     
     constructor() : this(
         parent = Parent(),
-        customerCode = "",
+        customerIdentifier = "",
         accountNumber = "",
         accountName = "",
         bankName = ""
@@ -71,11 +61,4 @@ class ParentWallet(
             else -> DebtStatus.HIGH
         }
     }
-}
-
-enum class DebtStatus(val color: String, val label: String) {
-    CLEARED("#10B981", "Cleared"),      // Green
-    LOW("#3B82F6", "Low Debt"),         // Blue
-    MEDIUM("#F59E0B", "Medium Debt"),   // Amber
-    HIGH("#EF4444", "High Debt")        // Red
 }

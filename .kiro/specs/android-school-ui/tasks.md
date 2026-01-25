@@ -33,7 +33,7 @@
   - Add recent grades carousel and upcoming events timeline
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 6. Build student academic performance screens
+- [x] 6. Build student academic performance screens
   - Create grades overview screen with term/session filtering
   - Implement detailed subject performance with interactive charts
   - Build behavioral assessment display with radar charts
@@ -41,7 +41,7 @@
   - Create performance comparison and trend analysis views
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 7. Implement student timetable and attendance screens
+- [x] 7. Implement student timetable and attendance screens
   - Create weekly timetable view with current day highlighting
   - Build subject cards with time, location, and teacher information
   - Implement attendance calendar with status indicators

@@ -11,7 +11,6 @@ import com.haneef._school.repository.TermRepository
 import com.haneef._school.service.CustomUserDetails
 import com.haneef._school.service.CustomUserDetailsService
 import com.haneef._school.service.FinancialService
-import com.haneef._school.service.ParentWalletService
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication
@@ -33,7 +32,8 @@ class ParentDashboardController(
     private val parentRepository: ParentRepository,
     private val schoolRepository: SchoolRepository,
     private val financialService: FinancialService,
-    private val parentWalletService: ParentWalletService,
+    private val paystackParentWalletService: com.haneef._school.service.PaystackParentWalletService,
+    private val squadParentWalletService: com.haneef._school.service.SquadParentWalletService,
     private val paystackService: PaystackService,
     private val authorizationService: com.haneef._school.service.AuthorizationService,
     private val studentOptionalFeeRepository: com.haneef._school.repository.StudentOptionalFeeRepository,
@@ -45,7 +45,8 @@ class ParentDashboardController(
     private val attendanceRepository: com.haneef._school.repository.AttendanceRepository,
     private val educationTrackRepository: com.haneef._school.repository.EducationTrackRepository,
     private val parentStudentRepository: com.haneef._school.repository.ParentStudentRepository,
-    private val schoolClassRepository: com.haneef._school.repository.SchoolClassRepository
+    private val schoolClassRepository: com.haneef._school.repository.SchoolClassRepository,
+    private val squadService: com.haneef._school.service.SquadService
 ) {
 
     @GetMapping("/dashboard")
@@ -74,10 +75,8 @@ class ParentDashboardController(
         // If it's an HTMX request, return only the fragment
         if (request.getHeader("HX-Request") != null) {
             // If we were polling and the account is now ready, trigger a full page refresh
-            val wallet = parent.wallet
-            if (wallet != null && wallet.accountNumber != null) {
-                response.setHeader("HX-Refresh", "true")
-            }
+            // Return the updated fees section which contains the wallet cards
+            // The template logic will handle removing the polling attributes once the account number is present
             return "dashboard/parent-dashboard :: fees-overview-section"
         }
         
@@ -120,10 +119,12 @@ class ParentDashboardController(
         
         // Ensure wallet is loaded (it's a OneToOne, so it might be lazy)
         model.addAttribute("parent", parent)
-        model.addAttribute("wallet", parent.wallet)
+        model.addAttribute("paystackWallet", parent.paystackWallet)
+        model.addAttribute("squadWallet", parent.squadWallet)
+        model.addAttribute("wallet", parent.paystackWallet ?: parent.squadWallet)
         
         // Fetch available providers if wallet doesn't exist
-        if (parent.wallet == null) {
+        if (parent.paystackWallet == null && parent.squadWallet == null) {
             val providers = paystackService.getAvailableProviders()
             model.addAttribute("providers", providers)
         }
@@ -164,6 +165,11 @@ class ParentDashboardController(
     @PostMapping("/create-wallet")
     fun createWallet(
         @RequestParam(defaultValue = "wema-bank") preferredBank: String,
+        @RequestParam(defaultValue = "paystack") provider: String,
+        @RequestParam(required = false) bvn: String?,
+        @RequestParam(required = false) dob: String?,
+        @RequestParam(required = false) gender: String?,
+        @RequestParam(required = false) address: String?,
         model: Model, 
         authentication: Authentication,
         request: HttpServletRequest,
@@ -175,20 +181,83 @@ class ParentDashboardController(
         val parents = parentRepository.findByUserIdWithWallet(customUser.user.id!!)
         val parent = parents.firstOrNull() ?: return "redirect:/login"
         
+        // Get school information from session
+        val selectedSchoolId = request.session.getAttribute("selectedSchoolId") as? UUID
+        
         // Validate parent access - ensure parent belongs to user
         if (parent.user.id != customUser.user.id) {
             throw org.springframework.security.access.AccessDeniedException("Unauthorized access to parent data")
         }
         
-        val result = parentWalletService.createWalletForParent(parent, preferredBank)
+        val errorAttr = if (provider.equals("squad", ignoreCase = true)) "squadError" else "paystackError"
+        val successAttr = if (provider.equals("squad", ignoreCase = true)) "squadSuccess" else "paystackSuccess"
+
+        val result = if (provider.equals("squad", ignoreCase = true)) {
+            if (bvn.isNullOrBlank() || dob.isNullOrBlank() || gender.isNullOrBlank() || address.isNullOrBlank()) {
+                val errorMessage = "All fields (BVN, DOB, Gender, Address) are required for Squad account creation."
+                if (request.getHeader("HX-Request") != null) {
+                    model.addAttribute(errorAttr, errorMessage)
+                    // Reload dashboard data to render the fragment correctly
+                    populateDashboardModel(model, parent, selectedSchoolId)
+                    return "dashboard/parent-dashboard :: fees-overview-section"
+                }
+                redirectAttributes.addFlashAttribute(errorAttr, errorMessage)
+                return "redirect:/parent/dashboard"
+            }
+            squadParentWalletService.createWalletForParent(parent, bvn, dob, gender, address)
+        } else {
+            paystackParentWalletService.createWalletForParent(parent, preferredBank)
+        }
         
         if (result.isSuccess) {
-            redirectAttributes.addFlashAttribute("success", "Wallet created successfully! Your account number is being generated.")
+            val successMessage = "Wallet created successfully! Your account number is being generated."
+            if (request.getHeader("HX-Request") != null) {
+                model.addAttribute(successAttr, successMessage)
+                // Reload dashboard data to render the fragment correctly
+                populateDashboardModel(model, parent, selectedSchoolId)
+                return "dashboard/parent-dashboard :: fees-overview-section"
+            }
+            redirectAttributes.addFlashAttribute(successAttr, successMessage)
         } else {
-            redirectAttributes.addFlashAttribute("error", "Error creating wallet: ${result.exceptionOrNull()?.message}")
+            val errorMessage = "Error creating wallet: ${result.exceptionOrNull()?.message}"
+            if (request.getHeader("HX-Request") != null) {
+                model.addAttribute(errorAttr, errorMessage)
+                // Reload dashboard data to render the fragment correctly
+                populateDashboardModel(model, parent, selectedSchoolId)
+                return "dashboard/parent-dashboard :: fees-overview-section"
+            }
+            redirectAttributes.addFlashAttribute(errorAttr, errorMessage)
         }
         
         return "redirect:/parent/dashboard"
+    }
+
+    @PostMapping("/create-dynamic-account")
+    @org.springframework.web.bind.annotation.ResponseBody
+    fun createDynamicAccount(
+        @RequestParam amount: java.math.BigDecimal,
+        authentication: Authentication
+    ): Map<String, Any> {
+        val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+        val customUser = userDetails as CustomUserDetails
+        
+        val transactionRef = "DYN-${UUID.randomUUID().toString().substring(0, 12).uppercase()}"
+        val response = squadService.createDynamicVirtualAccount(transactionRef, amount, customUser.user.email!!)
+        
+        return if (response != null && response.success && response.data != null) {
+            mapOf(
+                "success" to true,
+                "accountNumber" to (response.data.accountNumber ?: ""),
+                "bankName" to (response.data.bankName ?: ""),
+                "accountName" to "Squad Virtual Account",
+                "expiresInSeconds" to 120 // 2 minutes
+            )
+        } else {
+            mapOf(
+                "success" to false,
+                "message" to (response?.message ?: "Failed to create dynamic account")
+            )
+        }
     }
     private val logger = org.slf4j.LoggerFactory.getLogger(ParentDashboardController::class.java)
 

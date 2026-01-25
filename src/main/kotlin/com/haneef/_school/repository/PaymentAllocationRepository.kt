@@ -29,7 +29,7 @@ interface PaymentAllocationRepository : JpaRepository<PaymentAllocation, UUID> {
     
     @Query("""
         SELECT pa FROM PaymentAllocation pa 
-        WHERE pa.settlement.wallet.parent.id = :parentId 
+        WHERE (pa.settlement.paystackWallet.parent.id = :parentId OR pa.settlement.squadWallet.parent.id = :parentId)
         AND (:sessionId IS NULL OR pa.settlement.academicSession.id = :sessionId)
         AND (:termId IS NULL OR pa.settlement.term.id = :termId)
         ORDER BY pa.allocationDate DESC, pa.allocationOrder ASC

@@ -4,7 +4,7 @@ plugins {
 	id 'org.springframework.boot' version '3.4.1'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'org.jetbrains.kotlin.plugin.jpa' version '2.1.0'
-	id 'org.graalvm.buildtools.native' version '0.10.3'
+	// id 'org.graalvm.buildtools.native' version '0.10.3'
 	id 'org.hibernate.orm' version '6.6.4.Final'
 }
 
@@ -18,27 +18,27 @@ java {
 	}
 }
 
-graalvmNative {
-    toolchainDetection = false
-    binaries {
-        main {
-            // javaLauncher = javaToolchains.launcherFor {
-            //    languageVersion = JavaLanguageVersion.of(21)
-            // }
-            // Increase memory for native image build to prevent OOM (Exit code 99)
-            // Dynamic memory allocation: 10GB for local (16GB RAM), 6GB for CI (Standard GitHub Runners have 7GB)
-            def isCi = System.getenv('CI') != null
-            def memory = isCi ? '6G' : '10G'
-            buildArgs.add("-J-Xmx${memory}")
-            
-            // Ensure headless mode is set
-            buildArgs.add('-Djava.awt.headless=true')
-            
-            // Fix for Jackson FromStringDeserializer error
-            buildArgs.add('--initialize-at-run-time=com.fasterxml.jackson.databind.deser.std.FromStringDeserializer$Std')
-        }
-    }
-}
+// graalvmNative {
+//     toolchainDetection = false
+//     binaries {
+//         main {
+//             // javaLauncher = javaToolchains.launcherFor {
+//             //    languageVersion = JavaLanguageVersion.of(21)
+//             // }
+//             // Increase memory for native image build to prevent OOM (Exit code 99)
+//             // Dynamic memory allocation: 10GB for local (16GB RAM), 6GB for CI (Standard GitHub Runners have 7GB)
+//             def isCi = System.getenv('CI') != null
+//             def memory = isCi ? '6G' : '10G'
+//             buildArgs.add("-J-Xmx${memory}")
+//             
+//             // Ensure headless mode is set
+//             buildArgs.add('-Djava.awt.headless=true')
+//             
+//             // Fix for Jackson FromStringDeserializer error
+//             buildArgs.add('--initialize-at-run-time=com.fasterxml.jackson.databind.deser.std.FromStringDeserializer$Std')
+//         }
+//     }
+// }
 
 configurations {
 	compileOnly {
@@ -88,6 +88,7 @@ kotlin {
 	}
 }
 
+
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         jvmTarget = "21"
@@ -116,10 +117,10 @@ sourceSets {
 }
 
 
-hibernate {
-    enhancement {
-        enableLazyInitialization = true
-        enableDirtyTracking = true
-        enableAssociationManagement = true
-    }
-}
+// hibernate {
+//     enhancement {
+//         enableLazyInitialization = true
+//         enableDirtyTracking = true
+//         enableAssociationManagement = true
+//     }
+// }

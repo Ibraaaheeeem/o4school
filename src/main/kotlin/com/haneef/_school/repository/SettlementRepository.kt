@@ -10,8 +10,10 @@ import java.util.UUID
 interface SettlementRepository : JpaRepository<Settlement, UUID> {
     fun findByReference(reference: String): Settlement?
     fun existsByReference(reference: String): Boolean
-    fun findByWalletId(walletId: UUID): List<Settlement>
-    fun findByWalletIdAndAcademicSessionIdAndTermId(walletId: UUID, sessionId: UUID, termId: UUID): List<Settlement>
+    fun findByPaystackWalletId(paystackWalletId: UUID): List<Settlement>
+    fun findBySquadWalletId(squadWalletId: UUID): List<Settlement>
+    fun findByPaystackWalletIdAndAcademicSessionIdAndTermId(paystackWalletId: UUID, sessionId: UUID, termId: UUID): List<Settlement>
+    fun findBySquadWalletIdAndAcademicSessionIdAndTermId(squadWalletId: UUID, sessionId: UUID, termId: UUID): List<Settlement>
     
     // Query by school using schoolId property from TenantAwareEntity
     fun findBySchoolId(schoolId: UUID): List<Settlement>
@@ -20,4 +22,9 @@ interface SettlementRepository : JpaRepository<Settlement, UUID> {
     fun findBySchoolIdAndAcademicSessionIdAndTermId(schoolId: UUID, sessionId: UUID?, termId: UUID?): List<Settlement>
     
     fun findBySchoolIdAndStatusAndReimbursed(schoolId: UUID, status: String, reimbursed: Boolean): List<Settlement>
+
+    @Query("SELECT s FROM Settlement s WHERE s.schoolId = :schoolId AND (:sessionId IS NULL OR s.academicSession.id = :sessionId) AND (:termId IS NULL OR s.term.id = :termId) AND (s.transactionDate >= COALESCE(:startDate, s.transactionDate)) AND (s.transactionDate <= COALESCE(:endDate, s.transactionDate))")
+    fun findByFilters(schoolId: UUID, sessionId: UUID?, termId: UUID?, startDate: java.time.LocalDateTime?, endDate: java.time.LocalDateTime?): List<Settlement>
+
+    fun findByPayerEmail(payerEmail: String): List<Settlement>
 }

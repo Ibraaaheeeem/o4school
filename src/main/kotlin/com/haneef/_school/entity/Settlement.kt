@@ -5,7 +5,7 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 enum class SettlementType {
-    AUTO, MANUAL
+    PAYSTACK, SQUAD, MANUAL
 }
 
 @Entity
@@ -13,13 +13,18 @@ enum class SettlementType {
     name = "settlements",
     indexes = [
         Index(columnList = "reference", name = "idx_settlement_reference"),
-        Index(columnList = "wallet_id", name = "idx_settlement_wallet")
+        Index(columnList = "paystack_wallet_id", name = "idx_settlement_paystack_wallet"),
+        Index(columnList = "squad_wallet_id", name = "idx_settlement_squad_wallet")
     ]
 )
 class Settlement(
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "wallet_id", nullable = false)
-    var wallet: ParentWallet,
+    @JoinColumn(name = "paystack_wallet_id")
+    var paystackWallet: PaystackParentWallet? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "squad_wallet_id")
+    var squadWallet: SquadParentWallet? = null,
 
     @Column(name = "amount", nullable = false)
     var amount: BigDecimal,
@@ -58,12 +63,11 @@ class Settlement(
 
     @Column(name = "settlement_type", nullable = true)
     @Enumerated(EnumType.STRING)
-    var settlementType: SettlementType? = SettlementType.AUTO
+    var settlementType: SettlementType? = SettlementType.MANUAL,
 
 ) : TenantAwareEntity() {
     
     constructor() : this(
-        wallet = ParentWallet(),
         amount = BigDecimal.ZERO,
         reference = "",
         status = ""

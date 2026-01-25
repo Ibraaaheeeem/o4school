@@ -9,14 +9,32 @@
                 th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                     <div class="form-group" style="grid-column: span 2;">
+                        <label for="parentSearch"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Search
+                            Parent</label>
+                        <div style="position: relative;">
+                            <input type="text" id="parentSearch" name="query" class="form-control"
+                                placeholder="Search by name, phone or email..."
+                                hx-get="/admin/financial/payments/manual/search-parents" hx-trigger="input delay:500ms"
+                                hx-target="#parentId" hx-indicator="#search-indicator"
+                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 1rem;">
+                            <div id="search-indicator" class="htmx-indicator"
+                                style="position: absolute; right: 10px; top: 10px;">
+                                <i class="fas fa-spinner fa-spin" style="color: #6b7280;"></i>
+                            </div>
+                        </div>
+
                         <label for="parentId"
                             style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Select
                             Parent</label>
                         <select name="parentId" id="parentId" required class="form-control"
                             style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
-                            <option value="">-- Select Parent --</option>
-                            <option th:each="parent : ${parents}" th:value="${parent.id}"
-                                th:text="${parent.user.fullName + ' (' + parent.user.phoneNumber + ')'}"></option>
+                            <th:block th:fragment="parentOptions">
+                                <option value="">-- Select Parent --</option>
+                                <option th:each="parent : ${parents}" th:value="${parent.id}"
+                                    th:text="${parent.user.fullName + ' (' + parent.user.phoneNumber + ')'}"></option>
+                            </th:block>
                         </select>
                     </div>
 

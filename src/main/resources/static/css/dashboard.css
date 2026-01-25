@@ -120,9 +120,13 @@
 /* Dashboard Grid */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2.5rem;
+}
+
+.dashboard-split-grid {
+    grid-template-columns: 2fr 1fr;
 }
 
 /* Dashboard Cards */
@@ -429,12 +433,36 @@
         flex: 1;
     }
 
-    .dashboard-grid {
+    .dashboard-grid,
+    .dashboard-split-grid {
         grid-template-columns: 1fr;
     }
 
     .tabs-nav {
         gap: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-container {
+        padding: 0 1rem;
+    }
+
+    .dashboard-grid,
+    .dashboard-split-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .welcome-text h1 {
+        font-size: 1.5rem;
+    }
+
+    .stat-badge {
+        padding: 0.5rem;
+    }
+
+    .stat-badge .value {
+        font-size: 1rem;
     }
 }
 

@@ -40,8 +40,9 @@ class CommunityController(
     private val subjectRepository: SubjectRepository,
     private val classSubjectRepository: ClassSubjectRepository,
     private val fileUploadService: com.haneef._school.service.FileUploadService,
-    private val parentWalletService: com.haneef._school.service.ParentWalletService,
-    private val parentWalletRepository: ParentWalletRepository,
+    private val paystackParentWalletService: com.haneef._school.service.PaystackParentWalletService,
+    private val squadParentWalletService: com.haneef._school.service.SquadParentWalletService,
+    private val paystackParentWalletRepository: com.haneef._school.repository.PaystackParentWalletRepository,
     private val financialServiceProvider: org.springframework.beans.factory.ObjectProvider<com.haneef._school.service.FinancialService>,
     private val activityLogService: com.haneef._school.service.ActivityLogService,
     private val schoolRepository: SchoolRepository,
@@ -79,21 +80,45 @@ class CommunityController(
         return "admin/community/home"
     }
 
+    @GetMapping("/overviews")
+    fun communityOverviews(
+        @RequestParam(defaultValue = "students") tab: String,
+        model: Model,
+        authentication: Authentication,
+        session: HttpSession
+    ): String {
+        val customUser = authentication.principal as CustomUserDetails
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+
+        val communityStats = getCommunityStats(selectedSchoolId)
+        
+        model.addAttribute("user", customUser.user)
+        model.addAttribute("activeTab", tab)
+        model.addAttribute("communityStats", communityStats)
+        model.addAttribute("isOob", false);
+        
+        return "admin/community/overviews"
+    }
+
     // Staff Management
     @GetMapping("/staff")
     fun staffList(
         model: Model,
         authentication: Authentication,
         session: HttpSession,
-        @RequestParam(defaultValue = "0") page: Int = 0,
-        @RequestParam(defaultValue = "12") size: Int = 12,
-        @RequestParam(required = false) search: String? = null,
-        @RequestParam(required = false) designation: String? = null,
-        @RequestHeader(value = "HX-Request", required = false) hxRequest: Boolean? = null
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "12") size: Int,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) designation: String?,
+        request: jakarta.servlet.http.HttpServletRequest
     ): String {
+        val hxRequest = request.getHeader("HX-Request") != null
+        val hxTarget = request.getHeader("HX-Target")
+        
         val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return if (hxRequest == true) "fragments/error :: error-message" else "redirect:/select-school"
+            ?: return if (hxRequest) "fragments/error :: error-message" else "redirect:/select-school"
 
         val pageable = PageRequest.of(page, size, Sort.by("user.firstName"))
         
@@ -134,10 +159,10 @@ class CommunityController(
         model.addAttribute("selectedDesignation", designation)
         model.addAttribute("communityStats", communityStats)
 
-        return if (hxRequest == true) {
-            "admin/community/staff/staff-cards :: staff-cards-content"
-        } else {
-            "admin/community/staff/list"
+        return when {
+            hxRequest == true && hxTarget == "tab-content" -> "admin/community/staff/list :: #community-content"
+            hxRequest == true && hxTarget != "community-content" -> "admin/community/staff/staff-cards :: staff-cards-content"
+            else -> "admin/community/staff/list"
         }
     }
 
@@ -598,15 +623,18 @@ class CommunityController(
         model: Model,
         authentication: Authentication,
         session: HttpSession,
-        @RequestParam(defaultValue = "0") page: Int = 0,
-        @RequestParam(defaultValue = "12") size: Int = 12,
-        @RequestParam(required = false) search: String? = null,
-        @RequestParam(required = false, name = "classId") classIds: List<UUID>? = null,
-        @RequestHeader(value = "HX-Request", required = false) hxRequest: Boolean? = null
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "12") size: Int,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false, name = "classId") classIds: List<UUID>?,
+        request: jakarta.servlet.http.HttpServletRequest
     ): String {
+        val hxRequest = request.getHeader("HX-Request") != null
+        val hxTarget = request.getHeader("HX-Target")
+        
         val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return if (hxRequest == true) "fragments/error :: error-message" else "redirect:/select-school"
+            ?: return if (hxRequest) "fragments/error :: error-message" else "redirect:/select-school"
 
         val pageable = PageRequest.of(page, size, Sort.by("user.firstName"))
         
@@ -650,10 +678,10 @@ class CommunityController(
         model.addAttribute("selectedClassIds", validClassIds ?: emptyList<UUID>())
         model.addAttribute("communityStats", communityStats)
 
-        return if (hxRequest == true) {
-            "admin/community/students/student-cards :: student-cards-content"
-        } else {
-            "admin/community/students/list"
+        return when {
+            hxRequest == true && hxTarget == "tab-content" -> "admin/community/students/list :: #community-content"
+            hxRequest == true && hxTarget != "community-content" -> "admin/community/students/student-cards :: student-cards-content"
+            else -> "admin/community/students/list"
         }
     }
 
@@ -831,6 +859,7 @@ class CommunityController(
         model.addAttribute("isEdit", true)
         model.addAttribute("communityStats", communityStats)
         
+
         return "admin/community/parents/modal-form"
     }
 
@@ -1032,14 +1061,17 @@ class CommunityController(
         model: Model,
         authentication: Authentication,
         session: HttpSession,
-        @RequestParam(defaultValue = "0") page: Int = 0,
-        @RequestParam(defaultValue = "12") size: Int = 12,
-        @RequestParam(required = false) search: String? = null,
-        @RequestHeader(value = "HX-Request", required = false) hxRequest: Boolean? = null
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "12") size: Int,
+        @RequestParam(required = false) search: String?,
+        request: jakarta.servlet.http.HttpServletRequest
     ): String {
+        val hxRequest = request.getHeader("HX-Request") != null
+        val hxTarget = request.getHeader("HX-Target")
+        
         val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return if (hxRequest == true) "fragments/error :: error-message" else "redirect:/select-school"
+            ?: return if (hxRequest) "fragments/error :: error-message" else "redirect:/select-school"
 
         val pageable = PageRequest.of(page, size, Sort.by("user.firstName"))
         
@@ -1071,10 +1103,10 @@ class CommunityController(
         model.addAttribute("search", search)
         model.addAttribute("communityStats", communityStats)
 
-        return if (hxRequest == true) {
-            "admin/community/parents/parent-cards :: parent-cards-content"
-        } else {
-            "admin/community/parents/list"
+        return when {
+            hxRequest == true && hxTarget == "tab-content" -> "admin/community/parents/list :: #community-content"
+            hxRequest == true && hxTarget != "community-content" -> "admin/community/parents/parent-cards :: parent-cards-content"
+            else -> "admin/community/parents/list"
         }
     }
 
@@ -1477,7 +1509,11 @@ class CommunityController(
         @ModelAttribute("userDto") userDto: UserDto,
         @RequestParam(required = false) id: UUID?,
         session: HttpSession,
-        model: Model
+        model: Model,
+        response: jakarta.servlet.http.HttpServletResponse,
+        authentication: Authentication,
+        request: jakarta.servlet.http.HttpServletRequest,
+        @RequestParam(required = false) search: String?
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "fragments/error :: error-message"
@@ -1515,6 +1551,20 @@ class CommunityController(
                 parentRepository.save(existingParent)
                 
                 model.addAttribute("success", "Parent updated successfully!")
+                
+                // Fetch updated parent with relationships for OOB update
+                val updatedParent = parentRepository.findById(id).orElseThrow()
+                // Ensure relationships are loaded (similar to assign modal)
+                val relationships = parentStudentRepository.findByParentIdWithStudentDetails(id)
+                updatedParent.studentRelationships = relationships.toMutableList()
+                
+                model.addAttribute("parent", updatedParent)
+                model.addAttribute("isOob", true)
+                
+                // Close modal via trigger
+                response.setHeader("HX-Trigger", "{\"closeModal\": \"parentModal\"}")
+                
+                return "admin/community/parents/parent-cards :: single-parent-card"
             } else {
                 // Check if user already exists by email
                 val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
@@ -1568,19 +1618,13 @@ class CommunityController(
                 }
                 
                 model.addAttribute("success", "Parent added successfully!")
+                
+                // For create, we reload the list and close modal
+                response.setHeader("HX-Trigger", "{\"parentUpdated\": \"\", \"closeModal\": \"parentModal\"}")
+                
+                // Return empty string or success message to clear modal form
+                return "fragments/common :: success-alert" 
             }
-
-            // Return updated parent list
-            val pageable = PageRequest.of(0, 12, Sort.by("user.firstName"))
-            val allParents = parentRepository.findBySchoolIdAndIsActiveWithRelationships(selectedSchoolId, true)
-            val pagedParents = allParents.take(12)
-            val parentPage = org.springframework.data.domain.PageImpl(pagedParents, pageable, allParents.size.toLong())
-            val communityStats = getCommunityStats(selectedSchoolId)
-            
-            model.addAttribute("parentPage", parentPage)
-            model.addAttribute("communityStats", communityStats)
-            
-            return "admin/community/parents/parent-cards :: parent-cards-content"
         } catch (e: Exception) {
             model.addAttribute("error", handleDatabaseError(e, "Error saving parent"))
             return "fragments/error :: error-message"
@@ -1840,9 +1884,7 @@ class CommunityController(
             val assignedStudentIds = currentAssignments.map { it.student.id }
             val availableStudents = try {
                 if (search.isNullOrBlank()) {
-                    studentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-                        .filter { it.id !in assignedStudentIds }
-                        .take(10) // Limit for modal display
+                    emptyList<Student>()
                 } else {
                     studentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
                         .filter { student ->
@@ -1862,7 +1904,8 @@ class CommunityController(
             model.addAttribute("currentAssignments", currentAssignments)
             model.addAttribute("availableStudents", availableStudents)
             model.addAttribute("search", search ?: "")
-
+            model.addAttribute("isOob", false);
+            
             return "admin/community/parents/assign-students-modal"
         } catch (e: Exception) {
             println("Error in getParentStudentAssignmentModal: ${e.message}")
@@ -1878,8 +1921,11 @@ class CommunityController(
         @RequestParam studentId: UUID,
         @RequestParam relationshipType: String,
         session: HttpSession,
-        model: Model
+        model: Model,
+        authentication: Authentication,
+        response: jakarta.servlet.http.HttpServletResponse
     ): String {
+        val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "fragments/error :: error-message"
 
@@ -1917,19 +1963,95 @@ class CommunityController(
                 model.addAttribute("success", "Parent successfully assigned to student")
             }
             
-            // Return updated parent list
-            val pageable = PageRequest.of(0, 20, Sort.by("user.firstName"))
-            val allParents = parentRepository.findBySchoolIdAndIsActiveWithRelationships(selectedSchoolId, true)
-            val pagedParents = allParents.take(20)
-            val parentPage = org.springframework.data.domain.PageImpl(pagedParents, pageable, allParents.size.toLong())
-            val communityStats = getCommunityStats(selectedSchoolId)
+            // Trigger update of parent list on client side
+            // response.setHeader("HX-Trigger", "parentUpdated") // Removed to prevent full list reload
             
-            model.addAttribute("parentPage", parentPage)
-            model.addAttribute("communityStats", communityStats)
+            // Reload modal data
+            val currentAssignments = parentStudentRepository.findByParentIdWithStudentDetails(parentId)
             
-            return "admin/community/parents/parent-cards :: parent-cards-content"
+            // Get available students (empty list as search is reset)
+            val availableStudents = emptyList<Student>()
+
+            // Reload parent to get updated relationships for OOB card update
+            val updatedParent = parentRepository.findById(parentId).orElseThrow()
+            // We need to ensure relationships are loaded. 
+            // Since we don't have a specific method for single parent with relationships, 
+            // and we are in a transaction/session, accessing .studentRelationships might work if lazy loading is active.
+            // But to be safe and consistent with the list view, we might need to manually populate it or trust the view to trigger it.
+            // Let's try passing the parent. The view 'single-parent-card' iterates over 'parent.studentRelationships'.
+            // If we just saved a relationship, we should make sure it's in the list.
+            // 'currentAssignments' contains the relationships. We can assign it to the parent object if it's mutable, or just pass it.
+            // But 'single-parent-card' expects 'parent.studentRelationships'.
+            // Let's rely on the fact that we can fetch the parent again. 
+            // Actually, 'currentAssignments' IS the list of relationships.
+            updatedParent.studentRelationships = currentAssignments.toMutableList()
+
+            model.addAttribute("user", customUser.user)
+            model.addAttribute("parent", updatedParent)
+            model.addAttribute("currentAssignments", currentAssignments)
+            model.addAttribute("availableStudents", availableStudents)
+            model.addAttribute("search", "")
+            model.addAttribute("isOob", true) // Enable OOB update for parent card
+            
+            // Return modal content to keep it open
+            return "admin/community/parents/assign-students-modal"
         } catch (e: Exception) {
             model.addAttribute("error", "Error assigning parent to student: ${e.message}")
+            return "fragments/error :: error-message"
+        }
+    }
+
+    @PostMapping("/parents/{parentId}/remove-student/{assignmentId}/modal")
+    fun removeParentFromStudentModal(
+        @PathVariable parentId: UUID,
+        @PathVariable assignmentId: UUID,
+        session: HttpSession,
+        model: Model,
+        authentication: Authentication,
+        response: jakarta.servlet.http.HttpServletResponse
+    ): String {
+        val customUser = authentication.principal as CustomUserDetails
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "fragments/error :: error-message"
+
+        try {
+            val parent = parentRepository.findById(parentId).orElseThrow()
+            val assignment = parentStudentRepository.findById(assignmentId).orElseThrow()
+            
+            // Security check
+            if (assignment.parent.id != parentId || assignment.schoolId != selectedSchoolId) {
+                model.addAttribute("error", "Unauthorized access")
+                return "fragments/error :: error-message"
+            }
+
+            assignment.isActive = false
+            parentStudentRepository.save(assignment)
+            
+            model.addAttribute("success", "Student removed successfully")
+
+            // Trigger update of parent list on client side
+            // response.setHeader("HX-Trigger", "parentUpdated") // Removed to prevent full list reload
+
+            // Reload modal data
+            val currentAssignments = parentStudentRepository.findByParentIdWithStudentDetails(parentId)
+            
+            // Get available students (empty list as search is reset)
+            val availableStudents = emptyList<Student>()
+
+            // Reload parent to get updated relationships for OOB card update
+            val updatedParent = parentRepository.findById(parentId).orElseThrow()
+            updatedParent.studentRelationships = currentAssignments.toMutableList()
+
+            model.addAttribute("user", customUser.user)
+            model.addAttribute("parent", updatedParent)
+            model.addAttribute("currentAssignments", currentAssignments)
+            model.addAttribute("availableStudents", availableStudents)
+            model.addAttribute("search", "")
+            model.addAttribute("isOob", true) // Enable OOB update for parent card
+            
+            return "admin/community/parents/assign-students-modal"
+        } catch (e: Exception) {
+            model.addAttribute("error", "Error removing student: ${e.message}")
             return "fragments/error :: error-message"
         }
     }
@@ -2306,17 +2428,33 @@ class CommunityController(
         @PathVariable parentId: UUID,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(required = false) search: String?,
+        @RequestParam(defaultValue = "paystack") provider: String,
+        @RequestParam(required = false) bvn: String?,
+        @RequestParam(required = false) dob: String?,
+        @RequestParam(required = false) gender: String?,
+        @RequestParam(required = false) address: String?,
         session: HttpSession,
         model: Model,
         authentication: Authentication,
-        redirectAttributes: RedirectAttributes
+        redirectAttributes: RedirectAttributes,
+        request: jakarta.servlet.http.HttpServletRequest
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
 
         try {
             val parent = parentRepository.findById(parentId).orElseThrow()
-            val result = parentWalletService.createWalletForParent(parent)
+            val result = if (provider.equals("squad", ignoreCase = true)) {
+                if (bvn.isNullOrBlank() || dob.isNullOrBlank() || gender.isNullOrBlank() || address.isNullOrBlank()) {
+                     model.addAttribute("error", "Missing required Squad fields (BVN, DOB, Gender, Address)")
+                     // We need to return the parent list fragment
+                     return parentList(model, authentication, session, page, 12, search, request)
+                        .let { "admin/community/parents/parent-cards :: parent-cards-content" }
+                }
+                squadParentWalletService.createWalletForParent(parent, bvn, dob, gender, address)
+            } else {
+                paystackParentWalletService.createWalletForParent(parent)
+            }
             
             if (result.isSuccess) {
                 model.addAttribute("success", "Wallet created successfully for ${parent.user.fullName}")
@@ -2328,7 +2466,7 @@ class CommunityController(
         }
 
         // Return the updated parent cards fragment
-        return parentList(model, authentication, session, page, 12, search, null)
+        return parentList(model, authentication, session, page, 12, search, request)
             .let { "admin/community/parents/parent-cards :: parent-cards-content" }
     }
 

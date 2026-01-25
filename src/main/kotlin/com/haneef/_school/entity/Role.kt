@@ -3,7 +3,7 @@ package com.haneef._school.entity
 import jakarta.persistence.*
 
 enum class UserStatus {
-    PENDING, ACTIVE, INACTIVE, SUSPENDED
+    PENDING, ACTIVE, INACTIVE, SUSPENDED, APPROVED
 }
 
 enum class UserRole {

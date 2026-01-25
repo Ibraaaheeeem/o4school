@@ -90,8 +90,10 @@ class RoleSelectionController(
             
             return "redirect:$targetUrl"
         }
-        
-        return "redirect:/admin/dashboard"
+        else {
+            return "redirect:/select-role?error=invalid_role"
+        }
+
     }
 
     @GetMapping("/select-role")

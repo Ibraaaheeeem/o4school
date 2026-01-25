@@ -11,29 +11,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style th:if="${school.primaryColor}">
         :root {
-            --primary-color: [[$ {
-                school.primaryColor
-            }
-
-            ]];
-
-            --primary-dark: [[$ {
-                school.primaryColor
-            }
-
-            ]]dd;
-
-            --primary-light: [[$ {
-                school.primaryColor
-            }
-
-            ]]1a;
-
-            --secondary-color: [[$ {
-                school.secondaryColor ?: '#0f172a'
-            }
-
-            ]];
+            --primary-color: [[${school.primaryColor}]];
+            --primary-dark: [[${school.primaryColor}]]dd;
+            --primary-light: [[${school.primaryColor}]]1a;
+            --secondary-color: [[${school.secondaryColor ?: '#0f172a'}]];
         }
     </style>
 </head>

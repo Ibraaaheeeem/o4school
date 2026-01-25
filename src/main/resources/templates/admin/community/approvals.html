@@ -208,10 +208,10 @@
     <!-- Include School Header -->
     <div th:replace="~{fragments/header :: school-header}"></div>
 
-    <div class="dashboard-layout setup-layout">
+    <main class="main-content setup-layout">
         <aside th:replace="~{fragments/community-sidebar :: community-sidebar}"></aside>
 
-        <main class="main-content setup-content">
+        <div id="community-content" class="setup-content">
             <div class="setup-header">
                 <h1>Platform User Management</h1>
                 <p>Manage all users associated with your school community</p>
@@ -348,36 +348,82 @@
                                 <td>
                                     <div th:text="${u.details}">Details</div>
                                     <div th:id="'wallet-section-' + ${u.parentId}" th:fragment="wallet-section">
-                                        <!-- Virtual Account Button for Parents -->
-                                        <div th:if="${u.roleName == 'PARENT' && !u.hasWallet}"
-                                            style="margin-top: 0.5rem;">
-                                            <form
-                                                th:action="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
-                                                method="post"
-                                                th:hx-post="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
-                                                th:hx-target="'#wallet-section-' + ${u.parentId}" hx-swap="outerHTML"
-                                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
-                                                <button type="submit" class="btn-action btn-reminder"
-                                                    style="background: #8b5cf6;">
-                                                    <i class="fas fa-wallet"></i> Create Virtual Account
-                                                </button>
-                                            </form>
-                                        </div>
-                                        <div th:if="${u.roleName == 'PARENT' && u.hasWallet}"
-                                            style="margin-top: 0.5rem; background: #f0fdf4; border: 1px solid #dcfce7; padding: 0.6rem; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                                            <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                                                th:title="${u.accountName}">
-                                                <span th:text="${u.accountName}">Account Name</span>
+                                        <!-- Paystack Wallet -->
+                                        <div th:if="${u.roleName == 'PARENT'}" style="margin-bottom: 0.5rem;">
+                                            <div th:if="${!u.hasPaystackWallet}">
+                                                <form
+                                                    th:action="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                    method="post"
+                                                    th:hx-post="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                    th:hx-target="'#wallet-section-' + ${u.parentId}"
+                                                    hx-swap="outerHTML"
+                                                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                    <input type="hidden" name="provider" value="paystack">
+                                                    <button type="submit" class="btn-action btn-reminder"
+                                                        style="background: #8b5cf6; width: 100%; justify-content: center;">
+                                                        <i class="fas fa-wallet"></i> Create Paystack Account
+                                                    </button>
+                                                </form>
                                             </div>
-                                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <div th:if="${u.hasPaystackWallet}"
+                                                style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 0.6rem; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                                 <div
-                                                    style="font-size: 0.7rem; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; text-transform: uppercase; letter-spacing: 0.025em; white-space: nowrap;">
-                                                    <i class="fas fa-university"></i> <span th:text="${u.bankName}">Bank
-                                                        Name</span>
+                                                    style="font-size: 0.7rem; color: #166534; font-weight: 600; text-transform: uppercase; margin-bottom: 0.2rem;">
+                                                    Paystack</div>
+                                                <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                                    th:title="${u.paystackAccountName}">
+                                                    <span th:text="${u.paystackAccountName}">Account Name</span>
                                                 </div>
+                                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <div
+                                                        style="font-size: 0.7rem; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
+                                                        <i class="fas fa-university"></i> <span
+                                                            th:text="${u.paystackBankName}">Bank</span>
+                                                    </div>
+                                                    <div
+                                                        style="font-size: 0.9rem; color: #1e293b; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                                                        <span th:text="${u.paystackAccountNumber}">0123456789</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Squad Wallet -->
+                                        <div th:if="${u.roleName == 'PARENT'}">
+                                            <div th:if="${!u.hasSquadWallet}">
+                                                <form
+                                                    th:action="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                    method="post"
+                                                    th:hx-post="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                    th:hx-target="'#wallet-section-' + ${u.parentId}"
+                                                    hx-swap="outerHTML"
+                                                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                    <input type="hidden" name="provider" value="squad">
+                                                    <button type="submit" class="btn-action btn-reminder"
+                                                        style="background: #ec4899; width: 100%; justify-content: center;">
+                                                        <i class="fas fa-wallet"></i> Create Squad Account
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            <div th:if="${u.hasSquadWallet}"
+                                                style="background: #fff1f2; border: 1px solid #fecdd3; padding: 0.6rem; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                                 <div
-                                                    style="font-size: 0.9rem; color: #1e293b; font-family: 'Courier New', Courier, monospace; font-weight: 700; letter-spacing: 0.05em;">
-                                                    <span th:text="${u.accountNumber}">0123456789</span>
+                                                    style="font-size: 0.7rem; color: #9f1239; font-weight: 600; text-transform: uppercase; margin-bottom: 0.2rem;">
+                                                    Squad</div>
+                                                <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                                    th:title="${u.squadAccountName}">
+                                                    <span th:text="${u.squadAccountName}">Account Name</span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <div
+                                                        style="font-size: 0.7rem; color: #9f1239; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
+                                                        <i class="fas fa-university"></i> <span
+                                                            th:text="${u.squadBankName}">Bank</span>
+                                                    </div>
+                                                    <div
+                                                        style="font-size: 0.9rem; color: #1e293b; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                                                        <span th:text="${u.squadAccountNumber}">0123456789</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -501,8 +547,8 @@
                     </p>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
     <script>
         function switchTab(tabName) {

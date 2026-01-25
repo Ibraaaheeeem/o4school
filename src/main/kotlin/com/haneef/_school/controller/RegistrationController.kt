@@ -98,8 +98,8 @@ class RegistrationController(
                 firstName = firstName,
                 lastName = lastName
             ).apply {
-                this.status = UserStatus.PENDING
-                this.approvalStatus = "pending"
+                this.status = if (role == "SCHOOL_ADMIN") UserStatus.APPROVED else UserStatus.PENDING
+                this.approvalStatus = "PENDING"
                 this.isVerified = false
                 this.emailVerified = false
                 this.otpCode = otp
@@ -108,23 +108,35 @@ class RegistrationController(
                 this.intendedSchoolSlug = schoolCode
             }
             userRepository.save(user)
+
+            if (role == "SCHOOL_ADMIN") {
+                val uniqueId = UUID.randomUUID().toString().substring(0, 8)
+                val school = School().apply {
+                    name = "My School"
+                    slug = "school-$uniqueId"
+                    phone = user.phoneNumber
+                    adminEmail = user.email ?: ""
+                    adminPhone = user.phoneNumber
+                    adminName = "${user.firstName ?: ""} ${user.lastName ?: ""}".trim()
+                }
+                schoolRepository.save(school)
+                val adminRole = roleRepository.findByName("SCHOOL_ADMIN")
+                    .orElseThrow { RuntimeException("Role SCHOOL_ADMIN not found") }
+
+                userSchoolRoleRepository.save(
+                    UserSchoolRole(
+                        user = user,
+                        schoolId = school.id,
+                        role = adminRole,
+                        isPrimary = true
+                    )
+                )
+            }
+
+            
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("error", handleDatabaseError(e, "Error during registration"))
             return "redirect:/auth/register"
-        }
-
-        // Ensure role exists in DB
-        val roleName = if (role == "SCHOOL_ADMIN") "SCHOOL_ADMIN" else role
-        val roleType = when (roleName) {
-            "SCHOOL_ADMIN" -> RoleType.SCHOOL_ADMIN
-            "STUDENT" -> RoleType.STUDENT
-            "PARENT" -> RoleType.PARENT
-            "STAFF" -> RoleType.STAFF
-            else -> RoleType.STAFF
-        }
-        
-        roleRepository.findByName(roleName).orElseGet {
-            roleRepository.save(Role(roleName, roleType, roleName))
         }
 
         // Send OTP

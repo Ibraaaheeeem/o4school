@@ -27,10 +27,20 @@ class PaystackService(
     private val objectMapper: ObjectMapper
 ) {
     private val logger = LoggerFactory.getLogger(PaystackService::class.java)
+    
+    init {
+        if (secretKey.isBlank()) {
+            logger.error("Paystack secret key is NOT configured!")
+        } else {
+            val maskedKey = if (secretKey.length > 10) secretKey.substring(0, 7) + "..." else "***"
+            logger.info("PaystackService initialized with key starting with: $maskedKey")
+        }
+    }
+
     private val restTemplate = RestTemplate().apply {
         val requestFactory = org.springframework.http.client.SimpleClientHttpRequestFactory()
-        requestFactory.setConnectTimeout(5000) // 5 seconds
-        requestFactory.setReadTimeout(5000) // 5 seconds
+        requestFactory.setConnectTimeout(15000) // 15 seconds
+        requestFactory.setReadTimeout(15000) // 15 seconds
         this.requestFactory = requestFactory
     }
 
@@ -58,7 +68,7 @@ class PaystackService(
             
             logger.info("Creating Paystack customer for email: $email")
             val response = restTemplate.postForEntity(url, request, String::class.java)
-            
+            logger.info("ErrorResponse $email: ${response.body}")
             if (response.statusCode == HttpStatus.OK || response.statusCode == HttpStatus.CREATED) {
                 val responseBody = objectMapper.readValue(response.body, PaystackCustomerResponse::class.java)
                 logger.info("Successfully created customer: ${responseBody.data?.customerCode}")

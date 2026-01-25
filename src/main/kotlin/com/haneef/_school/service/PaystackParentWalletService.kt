@@ -1,8 +1,8 @@
 package com.haneef._school.service
 
 import com.haneef._school.entity.Parent
-import com.haneef._school.entity.ParentWallet
-import com.haneef._school.repository.ParentWalletRepository
+import com.haneef._school.entity.PaystackParentWallet
+import com.haneef._school.repository.PaystackParentWalletRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,32 +15,32 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
 @Transactional
-class ParentWalletService(
-    private val parentWalletRepository: ParentWalletRepository,
+class PaystackParentWalletService(
+    private val paystackParentWalletRepository: PaystackParentWalletRepository,
     private val paystackService: PaystackService,
     private val walletAsyncService: WalletAsyncService
 ) {
 
-    private val logger = LoggerFactory.getLogger(ParentWalletService::class.java)
+    private val logger = LoggerFactory.getLogger(PaystackParentWalletService::class.java)
 
     /**
      * Get wallet for a parent
      */
-    fun getWalletByParentId(parentId: UUID): ParentWallet? {
-        return parentWalletRepository.findByParentId(parentId)
+    fun getWalletByParentId(parentId: UUID): PaystackParentWallet? {
+        return paystackParentWalletRepository.findByParentId(parentId)
     }
 
     /**
      * Check if parent has a wallet
      */
     fun hasWallet(parentId: UUID): Boolean {
-        return parentWalletRepository.existsByParentId(parentId)
+        return paystackParentWalletRepository.existsByParentId(parentId)
     }
 
     /**
      * Create wallet for a parent using Paystack
      */
-    fun createWalletForParent(parent: Parent, preferredBank: String = "wema-bank"): Result<ParentWallet> {
+    fun createWalletForParent(parent: Parent, preferredBank: String = "wema-bank"): Result<PaystackParentWallet> {
         try {
             // Check if wallet already exists
             if (hasWallet(parent.id!!)) {
@@ -67,6 +67,7 @@ class ParentWalletService(
 
             if (customerResponse == null || !customerResponse.status || customerResponse.data == null) {
                 logger.error("Failed to create Paystack customer")
+                logger.error(customerResponse.toString())
                 return Result.failure(Exception("Failed to create customer account: ${customerResponse?.message ?: "Unknown error"}"))
             }
 
@@ -74,7 +75,7 @@ class ParentWalletService(
             logger.info("Created Paystack customer: $customerCode")
 
             // Step 2: Save initial wallet to database (without account details)
-            val wallet = ParentWallet(
+            val wallet = PaystackParentWallet(
                 parent = parent,
                 customerCode = customerCode,
                 accountNumber = null,
@@ -84,14 +85,14 @@ class ParentWalletService(
                 schoolId = parent.schoolId
             }
 
-            val savedWallet = parentWalletRepository.save(wallet)
+            val savedWallet = paystackParentWalletRepository.save(wallet)
             logger.info("Initial wallet record created for parent: ${parent.id}")
 
             // Step 3: Trigger asynchronous account generation AFTER transaction commits
             val walletId = savedWallet.id!!
             TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
                 override fun afterCommit() {
-                    walletAsyncService.generateDedicatedAccount(walletId, preferredBank)
+                    walletAsyncService.generatePaystackAccount(walletId, preferredBank)
                 }
             })
 
@@ -106,21 +107,21 @@ class ParentWalletService(
     /**
      * Update wallet balance (this would typically be called by a webhook handler)
      */
-    fun updateWalletBalance(walletId: UUID, newBalance: java.math.BigDecimal): ParentWallet? {
-        val wallet = parentWalletRepository.findById(walletId).orElse(null) ?: return null
+    fun updateWalletBalance(walletId: UUID, newBalance: java.math.BigDecimal): PaystackParentWallet? {
+        val wallet = paystackParentWalletRepository.findById(walletId).orElse(null) ?: return null
         wallet.balance = newBalance
         wallet.updatedAt = LocalDateTime.now()
-        return parentWalletRepository.save(wallet)
+        return paystackParentWalletRepository.save(wallet)
     }
 
     /**
      * Deactivate wallet
      */
     fun deactivateWallet(walletId: UUID): Boolean {
-        val wallet = parentWalletRepository.findById(walletId).orElse(null) ?: return false
+        val wallet = paystackParentWalletRepository.findById(walletId).orElse(null) ?: return false
         wallet.isActive = false
         wallet.updatedAt = LocalDateTime.now()
-        parentWalletRepository.save(wallet)
+        paystackParentWalletRepository.save(wallet)
         return true
     }
 

@@ -34,11 +34,11 @@ class SecurityConfig(
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { csrf ->
-                csrf.ignoringRequestMatchers("/paystack/webhooks", "/h2-console/**")
+                csrf.ignoringRequestMatchers("/paystack/webhooks", "/squad/webhooks", "/h2-console/**")
             }
             .authorizeHttpRequests { requests ->
                 requests
-                    .requestMatchers("/", "/login", "/register", "/activate-account", "/forgot-password", "/auth/**", "/error", "/css/**", "/js/**", "/images/**", "/paystack/webhooks", "/favicon.ico").permitAll()
+                    .requestMatchers("/", "/login", "/register", "/activate-account", "/forgot-password", "/auth/**", "/error", "/css/**", "/js/**", "/images/**", "/paystack/webhooks", "/squad/webhooks", "/favicon.ico").permitAll()
                     .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                     .requestMatchers("/actuator/**").hasRole("SYSTEM_ADMIN")
                     .requestMatchers("/h2-console/**").hasRole("SYSTEM_ADMIN")
@@ -86,7 +86,7 @@ class SecurityConfig(
             .headers { headers ->
                 headers.frameOptions { it.sameOrigin() }
                 headers.contentSecurityPolicy { csp ->
-                    csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.quilljs.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.quilljs.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'")
+                    csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.quilljs.com https://unpkg.com https://checkout.squadco.com https://js.paystack.co https://*.paystack.com https://*.paystack.co https://*.cardinalcommerce.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.quilljs.com https://fonts.googleapis.com https://paystack.com https://*.paystack.com https://*.paystack.co; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://*.paystack.com https://*.paystack.co; connect-src 'self' https://checkout.squadco.com https://popup.squadco.com https://checkout.paystack.com https://*.paystack.com https://*.paystack.co https://*.cardinalcommerce.com; frame-src 'self' https://checkout.squadco.com https://popup.squadco.com https://checkout.paystack.com https://*.paystack.com https://*.paystack.co https://*.cardinalcommerce.com; form-action 'self' https://checkout.squadco.com https://*.paystack.com https://*.paystack.co https://*.cardinalcommerce.com")
                 }
                 headers.httpStrictTransportSecurity { hsts ->
                     hsts.includeSubDomains(true)

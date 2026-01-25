@@ -36,7 +36,8 @@ class FinancialController(
     private val termRepository: TermRepository,
     private val parentRepository: ParentRepository,
     private val studentRepository: StudentRepository,
-    private val parentWalletRepository: ParentWalletRepository,
+    private val paystackParentWalletRepository: PaystackParentWalletRepository,
+    private val squadParentWalletRepository: SquadParentWalletRepository,
     private val paymentDistributionService: PaymentDistributionService,
     private val financialService: FinancialService,
     private val invoiceRepository: InvoiceRepository,
@@ -794,6 +795,55 @@ class FinancialController(
         }
     }
 
+    @GetMapping("/analytics")
+    fun paymentAnalytics(
+        model: Model,
+        authentication: Authentication,
+        session: HttpSession,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) startDate: LocalDate?,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) endDate: LocalDate?,
+        @RequestParam(required = false) academicSessionId: UUID?,
+        @RequestParam(required = false) termId: UUID?
+    ): String {
+        val customUser = authentication.principal as CustomUserDetails
+        val selectedSchoolId = authorizationService.validateSchoolAccess(
+            session.getAttribute("selectedSchoolId") as? UUID
+        )
+
+        // Get dropdown data
+        val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
+        val currentSession = academicSessions.find { it.isCurrentSession } ?: academicSessions.firstOrNull()
+        val selectedSession = academicSessionId?.let { id -> academicSessions.find { it.id == id } } ?: currentSession
+
+        val terms = selectedSession?.let {
+            termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(it.id!!, true)
+        } ?: emptyList()
+        val currentTerm = terms.find { it.isCurrentTerm } ?: terms.firstOrNull()
+        val selectedTerm = termId?.let { id -> terms.find { it.id == id } } ?: currentTerm
+
+        // Get Analytics Data
+        val analyticsData = financialService.getPaymentAnalytics(
+            selectedSchoolId,
+            startDate,
+            endDate,
+            selectedSession?.id,
+            selectedTerm?.id
+        )
+
+        model.addAttribute("user", customUser.user)
+        model.addAttribute("school", schoolRepository.findById(selectedSchoolId).get())
+        model.addAttribute("analytics", analyticsData)
+        model.addAttribute("academicSessions", academicSessions)
+        model.addAttribute("terms", terms)
+        model.addAttribute("selectedSession", selectedSession)
+        model.addAttribute("selectedTerm", selectedTerm)
+        model.addAttribute("startDate", startDate)
+        model.addAttribute("endDate", endDate)
+
+        return "admin/financial/payment-analytics"
+    }
+
+
     @PostMapping("/optional-fees/{id}/toggle-lock")
     @ResponseBody
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
@@ -1229,8 +1279,13 @@ class FinancialController(
                 return mapOf("error" to "Unauthorized access to parent")
             }
             
-            val wallet = parentWalletRepository.findByParentId(parentId)
-            val allSettlements = wallet?.let { settlementRepository.findByWalletId(it.id!!) } ?: emptyList()
+            val paystackWallet = paystackParentWalletRepository.findByParentId(parentId)
+            val squadWallet = squadParentWalletRepository.findByParentId(parentId)
+            
+            val paystackSettlements = paystackWallet?.let { settlementRepository.findByPaystackWalletId(it.id!!) } ?: emptyList()
+            val squadSettlements = squadWallet?.let { settlementRepository.findBySquadWalletId(it.id!!) } ?: emptyList()
+            
+            val allSettlements = paystackSettlements + squadSettlements
             
             // Filter settlements by session and term if provided
             val filteredSettlements = if (sessionId != null && termId != null) {
@@ -1312,7 +1367,7 @@ class FinancialController(
                 return mapOf("error" to "Unauthorized access to settlement")
             }
 
-            val parent = settlement.wallet.parent
+            val parent = settlement.paystackWallet?.parent ?: settlement.squadWallet?.parent ?: throw RuntimeException("Settlement wallet not found")
             
             mapOf(
                 "id" to settlement.id,
@@ -1601,10 +1656,9 @@ class FinancialController(
         val totalAmount = allSettlements.sumOf { it.amount }
         
         // Get parents with wallets who made payments in the selected period
-        val parentsWithWallets = parentWalletRepository.findBySchoolId(schoolId)
-        val parentsWithPayments = parentsWithWallets.filter { wallet ->
-            allSettlements.any { it.wallet.id == wallet.id }
-        }.size
+        val parentsWithPayments = allSettlements.mapNotNull { 
+            it.paystackWallet?.parent?.id ?: it.squadWallet?.parent?.id 
+        }.distinct().size
         
         // Get expected fees
         val feeStats = financialService.getSchoolFeeStats(schoolId, sessionId, termId)
@@ -1654,18 +1708,22 @@ class FinancialController(
         if (!search.isNullOrBlank()) {
             val searchLower = search.lowercase()
             settlements = settlements.filter { settlement ->
-                val parentName = "${settlement.wallet.parent.user.firstName} ${settlement.wallet.parent.user.lastName}".lowercase()
+                val parent = settlement.paystackWallet?.parent ?: settlement.squadWallet?.parent
+                val parentName = if (parent != null) "${parent.user.firstName} ${parent.user.lastName}".lowercase() else ""
                 parentName.contains(searchLower) || settlement.reference.lowercase().contains(searchLower)
             }
         }
 
         // Map to data
         val paymentData = settlements.map { settlement ->
+            val parent = settlement.paystackWallet?.parent ?: settlement.squadWallet?.parent
+            val parentName = if (parent != null) "${parent.user.firstName} ${parent.user.lastName}" else "Unknown"
+            
             mapOf<String, Any?>(
                 "id" to settlement.id!!,
                 "date" to settlement.transactionDate,
                 "reference" to settlement.reference,
-                "parentName" to "${settlement.wallet.parent.user.firstName} ${settlement.wallet.parent.user.lastName}",
+                "parentName" to parentName,
                 "amount" to settlement.amount,
                 "channel" to settlement.paymentChannel,
                 "status" to settlement.status,
@@ -1693,23 +1751,33 @@ class FinancialController(
         }
         
         val paymentData = parents.map { parent ->
-            val wallet = parentWalletRepository.findByParentId(parent.id!!)
+            val paystackWallet = paystackParentWalletRepository.findByParentId(parent.id!!)
+            val squadWallet = squadParentWalletRepository.findByParentId(parent.id!!)
+            
+            val paystackSettlements: List<Settlement> = if (paystackWallet != null) {
+                settlementRepository.findByPaystackWalletId(paystackWallet.id!!)
+            } else {
+                emptyList()
+            }
+            val squadSettlements: List<Settlement> = if (squadWallet != null) {
+                settlementRepository.findBySquadWalletId(squadWallet.id!!)
+            } else {
+                emptyList()
+            }
+            val allSettlements = paystackSettlements + squadSettlements
             
             // Filter settlements by session and term if provided
-            val settlements = wallet?.let { w ->
-                val allSettlements = settlementRepository.findByWalletId(w.id!!)
-                if (sessionId != null && termId != null) {
-                    allSettlements.filter { settlement ->
-                        settlement.academicSession?.id == sessionId && settlement.term?.id == termId
-                    }
-                } else if (sessionId != null) {
-                    allSettlements.filter { settlement ->
-                        settlement.academicSession?.id == sessionId
-                    }
-                } else {
-                    allSettlements
+            val settlements = if (sessionId != null && termId != null) {
+                allSettlements.filter { settlement ->
+                    settlement.academicSession?.id == sessionId && settlement.term?.id == termId
                 }
-            } ?: emptyList()
+            } else if (sessionId != null) {
+                allSettlements.filter { settlement ->
+                    settlement.academicSession?.id == sessionId
+                }
+            } else {
+                allSettlements
+            }
             
             val totalPaid = settlements.sumOf { it.amount }
             val totalFees = calculateTotalFeesForParent(parent, sessionId, termId)
@@ -1866,13 +1934,42 @@ class FinancialController(
         }
     }
 
+    @GetMapping("/payments/manual/search-parents")
+    fun searchParentsForManualSettlement(
+        @RequestParam query: String,
+        session: HttpSession,
+        model: Model
+    ): String {
+        logger.info("Searching parents with query: $query")
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return ""
+
+        val allParents = parentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+            .filter { it.paystackWallet != null || it.squadWallet != null }
+        
+        val filteredParents = if (query.isBlank()) {
+            allParents
+        } else {
+            val lowerQuery = query.lowercase()
+            allParents.filter { parent ->
+                val fullName = "${parent.user.firstName} ${parent.user.lastName}".lowercase()
+                val phone = parent.user.phoneNumber?.lowercase() ?: ""
+                val email = parent.user.email?.lowercase() ?: ""
+                fullName.contains(lowerQuery) || phone.contains(lowerQuery) || email.contains(lowerQuery)
+            }
+        }.sortedBy { it.user.fullName }
+
+        model.addAttribute("parents", filteredParents)
+        return "admin/financial/manual-settlement-modal :: parentOptions"
+    }
+
     @GetMapping("/payments/manual/modal")
     fun getManualSettlementModal(model: Model, authentication: Authentication, session: HttpSession): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
         
         val parents = parentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            .filter { it.wallet != null }
+            .filter { it.paystackWallet != null || it.squadWallet != null }
             .sortedBy { it.user.fullName }
             
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)

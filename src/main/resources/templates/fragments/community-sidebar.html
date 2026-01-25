@@ -3,38 +3,121 @@
 
 <body>
     <aside th:fragment="community-sidebar" class="setup-sidebar">
+        <style>
+            @media (max-width: 768px) {
+                .setup-layout {
+                    flex-direction: column;
+                }
+
+                .setup-sidebar {
+                    position: sticky;
+                    top: 60px;
+                    /* Adjust based on header height */
+                    z-index: 99;
+                    width: 100%;
+                    height: auto;
+                    min-height: auto;
+                    border-right: none;
+                    border-bottom: 1px solid #eee;
+                    padding: 0;
+                    background: white;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                }
+
+                .sidebar-header,
+                .setup-progress-widget {
+                    display: none;
+                }
+
+                .setup-nav {
+                    display: flex;
+                    flex-wrap: wrap;
+                    /* Allow wrapping to show all tabs */
+                    justify-content: space-between;
+                    padding: 10px;
+                    gap: 5px;
+                }
+
+                .nav-item {
+                    flex: 1 1 auto;
+                    text-align: center;
+                    white-space: nowrap;
+                    padding: 8px 5px;
+                    font-size: 0.85rem;
+                    border-radius: 8px;
+                    background: #f8f9fa;
+                    margin-bottom: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .nav-item .icon {
+                    margin-right: 0;
+                    margin-bottom: 2px;
+                    font-size: 1.2rem;
+                }
+
+                .nav-item.active {
+                    background: var(--primary-color);
+                    color: white;
+                }
+
+                .setup-content {
+                    padding: 15px;
+                }
+            }
+        </style>
         <div class="sidebar-header">
             <h3>Community Management</h3>
         </div>
+
+        <!-- Loading Indicator -->
+        <div id="community-loader" class="htmx-indicator"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); z-index: 2000;">
+        </div>
+
         <nav class="setup-nav">
-            <a th:href="@{/admin/community}" th:classappend="${requestURI == '/admin/community' ? 'active' : ''}"
-                class="nav-item">
+            <a th:href="@{/admin/community}" hx-get="/admin/community" hx-target=".setup-layout"
+                hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#community-loader"
+                th:classappend="${requestURI == '/admin/community' ? 'active' : ''}" class="nav-item">
                 <span class="icon">📊</span>
                 Overview
             </a>
-            <a th:href="@{/admin/community/staff}"
-                th:classappend="${requestURI.contains('community/staff') ? 'active' : ''}" class="nav-item">
+            <a th:href="@{/admin/community/overviews(tab='staff')}" hx-get="/admin/community/overviews?tab=staff"
+                hx-target=".setup-layout" hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true"
+                hx-indicator="#community-loader"
+                th:classappend="${requestURI.contains('community/overviews') && activeTab == 'staff' ? 'active' : ''}"
+                class="nav-item">
                 <span class="icon">👨‍🏫</span>
                 Staff Management
             </a>
-            <a th:href="@{/admin/community/students}"
-                th:classappend="${requestURI.contains('community/students') ? 'active' : ''}" class="nav-item">
+            <a th:href="@{/admin/community/overviews(tab='students')}" hx-get="/admin/community/overviews?tab=students"
+                hx-target=".setup-layout" hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true"
+                hx-indicator="#community-loader"
+                th:classappend="${requestURI.contains('community/overviews') && activeTab == 'students' ? 'active' : ''}"
+                class="nav-item">
                 <span class="icon">🎓</span>
                 Student Management
             </a>
-            <a th:href="@{/admin/community/parents}"
-                th:classappend="${requestURI.contains('community/parents') ? 'active' : ''}" class="nav-item">
+            <a th:href="@{/admin/community/overviews(tab='parents')}" hx-get="/admin/community/overviews?tab=parents"
+                hx-target=".setup-layout" hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true"
+                hx-indicator="#community-loader"
+                th:classappend="${requestURI.contains('community/overviews') && activeTab == 'parents' ? 'active' : ''}"
+                class="nav-item">
                 <span class="icon">👨‍👩‍👧‍👦</span>
                 Parent Management
             </a>
-            <a th:href="@{/admin/community/approvals}"
+            <a th:href="@{/admin/community/approvals}" hx-get="/admin/community/approvals" hx-target=".setup-layout"
+                hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#community-loader"
                 th:classappend="${requestURI.contains('community/approvals') ? 'active' : ''}" class="nav-item">
                 <span class="icon">👥</span>
                 User Management
             </a>
         </nav>
 
-        <div class="setup-progress-widget" th:if="${communityStats != null}">
+        <div id="community-stats" class="setup-progress-widget" th:if="${communityStats != null}">
             <h4>Community Stats</h4>
             <div class="stats-grid">
                 <div class="stat-item">

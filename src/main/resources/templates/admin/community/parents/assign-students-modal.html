@@ -1,124 +1,216 @@
 <!-- Parent Student Assignment Modal -->
-<div class="modal-content">
-    <div class="modal-header">
-        <h3>Assign Parent to Students</h3>
-        <button class="close-modal" onclick="closeModal('parentStudentModal')">&times;</button>
+<div class="modal-content"
+    style="max-width: 500px; width: 100%; margin: 0 auto; border-radius: 12px; overflow: hidden; padding: 0 !important;">
+    <div class="modal-header" style="background: #f8fafc; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0;">
+        <div>
+            <h3 style="margin: 0; font-size: 1.25rem; color: #1e293b;">Assign Students</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: #64748b;">
+                Link students to <strong th:text="${parent.user.fullName}">Parent Name</strong>
+            </p>
+        </div>
+        <button class="close-modal" onclick="closeModal('parentStudentModal')"
+            style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; padding: 0.5rem; border-radius: 50%; transition: all 0.2s;">&times;</button>
     </div>
 
-    <div class="modal-body">
-        <div class="parent-info">
-            <h4>Parent: <span th:text="${parent.user.fullName}">Parent Name</span></h4>
-            <p class="parent-contact-info">
-                <span th:if="${parent.user.email}" th:text="${parent.user.email}">email@example.com</span>
-                <span th:if="${parent.user.phoneNumber}" th:text="' • ' + ${parent.user.phoneNumber}">• +234...</span>
-            </p>
+    <div class="modal-body" style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
+
+        <!-- Messages -->
+        <div th:if="${success}" class="alert alert-success"
+            style="padding: 0.75rem; margin-bottom: 1rem; border-radius: 8px; font-size: 0.9rem;">
+            <i class="fas fa-check-circle"></i> <span th:text="${success}">Success message</span>
+        </div>
+        <div th:if="${error}" class="alert alert-danger"
+            style="padding: 0.75rem; margin-bottom: 1rem; border-radius: 8px; font-size: 0.9rem;">
+            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}">Error message</span>
         </div>
 
         <!-- Current Assignments -->
-        <div class="form-section" th:if="${!currentAssignments.empty}">
-            <h5>Current Student Relationships</h5>
-            <div class="current-assignments">
-                <div th:each="assignment : ${currentAssignments}" class="assignment-item">
-                    <span th:text="${assignment.student.user.fullName}">Student Name</span>
-                    <span class="relationship-type"
-                        th:text="${#strings.capitalize(assignment.relationshipType)}">Biological</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Search Form -->
-        <div class="form-section">
-            <h5>Search and Assign Students</h5>
-            <div class="search-form">
-                <div class="form-group">
-                    <label for="studentSearch">Search Students</label>
-                    <input type="text" id="studentSearch" class="form-input" th:value="${search}"
-                        placeholder="Search by name, student ID, or admission number..." name="search">
-                    <button type="button" class="btn btn-sm btn-outline"
-                        th:hx-get="@{/admin/community/parents/{parentId}/assign-students/modal(parentId=${parent.id})}"
-                        hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML" hx-include="#studentSearch"
-                        style="margin-top: 0.5rem;">
-                        Search
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Available Students -->
-        <div class="form-section">
-            <h5>Available Students</h5>
-            <div th:if="${!availableStudents.empty}" class="students-list">
-                <div th:each="student : ${availableStudents}" class="student-item">
-                    <div class="student-info">
-                        <strong th:text="${student.user.fullName}">Student Name</strong>
-                        <small
-                            th:text="${student.studentId + ' - ' + (student.admissionNumber ?: 'No Admission Number')}">STU001
-                            - ADM2024001</small>
-                        <small th:text="${student.currentGradeLevel ?: 'No Grade Level'}">Grade 10</small>
+        <div th:if="${!currentAssignments.empty}" style="margin-bottom: 2rem;">
+            <h5
+                style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 0.75rem;">
+                Current Relationships</h5>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                <div th:each="assignment : ${currentAssignments}"
+                    style="background: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e2e8f0;">
+                    <div
+                        style="width: 24px; height: 24px; background: #cbd5e1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: #475569;">
+                        <span th:text="${#strings.substring(assignment.student.user.fullName, 0, 1)}">S</span>
                     </div>
-                    <button class="btn btn-sm btn-primary" th:data-student-id="${student.id}"
-                        th:data-student-name="${student.user.fullName}"
-                        onclick="showRelationshipForm(this.dataset.studentId, this.dataset.studentName)">
-                        Assign
+                    <div>
+                        <div style="font-size: 0.9rem; font-weight: 500; color: #334155;"
+                            th:text="${assignment.student.user.fullName}">Student Name</div>
+                        <div style="font-size: 0.75rem; color: #64748b;"
+                            th:text="${#strings.capitalize(assignment.relationshipType)}">Relationship</div>
+                    </div>
+                    <button class="btn btn-sm btn-icon"
+                        th:hx-post="@{/admin/community/parents/{parentId}/remove-student/{assignmentId}/modal(parentId=${parent.id},assignmentId=${assignment.id})}"
+                        hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML"
+                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                        style="margin-left: auto; background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px;">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
+        </div>
 
-            <div th:if="${availableStudents.empty}" class="empty-state">
-                <p th:if="${search}">No students found matching your search criteria.</p>
-                <p th:unless="${search}">All students are already assigned to this parent or no students exist.</p>
+        <!-- Search Section -->
+        <div style="margin-bottom: 1.5rem;">
+            <label for="studentSearch"
+                style="display: block; font-size: 0.9rem; font-weight: 500; color: #334155; margin-bottom: 0.5rem;">Find
+                Students</label>
+            <div style="position: relative;">
+                <i class="fas fa-search"
+                    style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                <input type="text" id="studentSearch" name="search" th:value="${search}" class="form-input"
+                    placeholder="Search by name, ID, or admission number..."
+                    style="padding-left: 2.5rem; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; height: 42px;"
+                    th:hx-get="@{/admin/community/parents/{parentId}/assign-students/modal(parentId=${parent.id})}"
+                    hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML"
+                    hx-trigger="keyup changed delay:500ms, search" hx-indicator="#search-indicator">
+                <div id="search-indicator" class="htmx-indicator"
+                    style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);">
+                    <div
+                        style="width: 16px; height: 16px; border: 2px solid #cbd5e1; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;">
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Relationship Assignment Form (Hidden by default) -->
-        <div id="relationshipForm" class="form-section" style="display: none;">
-            <h5>Assign Relationship</h5>
-            <form hx-post="/admin/community/parents/{parentId}/assign-student/modal"
-                th:hx-post="@{/admin/community/parents/{parentId}/assign-student/modal(parentId=${parent.id})}"
-                hx-target="#parent-cards-container" hx-swap="innerHTML"
-                hx-on::after-request="if(event.detail.successful) closeModal('parentStudentModal')"
-                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+        <!-- Available Students List -->
+        <div>
+            <h5
+                style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 0.75rem;">
+                Available Students</h5>
 
-                <input type="hidden" id="selectedStudentId" name="studentId">
+            <div th:if="${availableStudents.empty}"
+                style="text-align: center; padding: 2rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                <p style="color: #64748b; font-size: 0.9rem; margin: 0;" th:if="${search}">No students found matching
+                    "<span th:text="${search}"></span>"</p>
+                <p style="color: #64748b; font-size: 0.9rem; margin: 0;" th:unless="${search}">Type above to search for
+                    students to assign.</p>
+            </div>
 
-                <div class="form-group">
-                    <label>Assigning to: <strong id="selectedStudentName">Student Name</strong></label>
+            <div th:if="${!availableStudents.empty}" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div th:each="student : ${availableStudents}" class="student-selection-card"
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; transition: all 0.2s;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div
+                            style="width: 36px; height: 36px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600;">
+                            <span th:text="${#strings.substring(student.user.fullName, 0, 1)}">S</span>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #334155; font-size: 0.95rem;"
+                                th:text="${student.user.fullName}">Student Name</div>
+                            <div style="font-size: 0.8rem; color: #64748b;">
+                                <span th:text="${student.admissionNumber ?: 'No Adm No'}">ADM001</span> •
+                                <span th:text="${student.currentGradeLevel ?: 'No Grade'}">Grade 10</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline"
+                        style="border-color: #3b82f6; color: #3b82f6; background: white;"
+                        th:data-student-id="${student.id}" th:data-student-name="${student.user.fullName}"
+                        onclick="showRelationshipForm(this.dataset.studentId, this.dataset.studentName)">
+                        Select
+                    </button>
                 </div>
-
-                <div class="form-group">
-                    <label for="relationshipType">Relationship Type *</label>
-                    <select id="relationshipType" name="relationshipType" class="form-select" required>
-                        <option value="">Select Relationship</option>
-                        <option value="biological">Biological Parent</option>
-                        <option value="adoptive">Adoptive Parent</option>
-                        <option value="guardian">Legal Guardian</option>
-                        <option value="stepparent">Step Parent</option>
-                        <option value="grandparent">Grandparent</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-outline" onclick="hideRelationshipForm()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Assign Relationship</button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
 
-    <div class="modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal('parentStudentModal')">Close</button>
+        <!-- Relationship Assignment Form (Overlay) -->
+        <div id="relationshipForm"
+            style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 10; padding: 1.5rem;">
+            <div style="height: 100%; display: flex; flex-direction: column;">
+                <div style="margin-bottom: 1.5rem;">
+                    <button type="button" onclick="hideRelationshipForm()"
+                        style="background: none; border: none; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; padding: 0;">
+                        <i class="fas fa-arrow-left"></i> Back to search
+                    </button>
+                </div>
+
+                <h4 style="margin: 0 0 1.5rem; color: #1e293b;">Assign Relationship</h4>
+
+                <form hx-post="/admin/community/parents/{parentId}/assign-student/modal"
+                    th:hx-post="@{/admin/community/parents/{parentId}/assign-student/modal(parentId=${parent.id})}"
+                    hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML"
+                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                    style="flex: 1; display: flex; flex-direction: column;">
+
+                    <input type="hidden" id="selectedStudentId" name="studentId">
+
+                    <div
+                        style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #e2e8f0;">
+                        <span
+                            style="display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 0.25rem;">Student</span>
+                        <strong id="selectedStudentName" style="font-size: 1.1rem; color: #334155;">Student
+                            Name</strong>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <label for="relationshipType"
+                            style="display: block; font-size: 0.9rem; font-weight: 500; color: #334155; margin-bottom: 0.5rem;">Relationship
+                            to Student *</label>
+                        <select id="relationshipType" name="relationshipType" class="form-select" required
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+                            <option value="">Select Relationship...</option>
+                            <option value="biological">Biological Parent</option>
+                            <option value="adoptive">Adoptive Parent</option>
+                            <option value="guardian">Legal Guardian</option>
+                            <option value="stepparent">Step Parent</option>
+                            <option value="grandparent">Grandparent</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-top: auto; display: flex; gap: 1rem;">
+                        <button type="button" class="btn btn-outline" onclick="hideRelationshipForm()"
+                            style="flex: 1; padding: 0.75rem;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="flex: 2; padding: 0.75rem;">Confirm
+                            Assignment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Override parent modal-dialog styles to fix 'box in a box' issue */
+    #parentStudentModal .modal-dialog {
+        max-width: 500px !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    .student-selection-card:hover {
+        border-color: #93c5fd !important;
+        background-color: #f8fafc !important;
+    }
+</style>
 
 <script>
     function showRelationshipForm(studentId, studentName) {
         document.getElementById('selectedStudentId').value = studentId;
         document.getElementById('selectedStudentName').textContent = studentName;
-        document.getElementById('relationshipForm').style.display = 'block';
 
-        // Scroll to the form
-        document.getElementById('relationshipForm').scrollIntoView({ behavior: 'smooth' });
+        const form = document.getElementById('relationshipForm');
+        form.style.display = 'block';
+
+        // Focus on select for better UX
+        setTimeout(() => {
+            document.getElementById('relationshipType').focus();
+        }, 100);
     }
 
     function hideRelationshipForm() {
@@ -126,4 +218,13 @@
         document.getElementById('selectedStudentId').value = '';
         document.getElementById('relationshipType').value = '';
     }
+
+    // Auto-focus search input when modal opens
+    setTimeout(() => {
+        const searchInput = document.getElementById('studentSearch');
+        if (searchInput) searchInput.focus();
+    }, 100);
 </script>
+<th:block th:if="${isOob}">
+    <div th:replace="~{admin/community/parents/parent-cards :: single-parent-card(parent=${parent})}"></div>
+</th:block>

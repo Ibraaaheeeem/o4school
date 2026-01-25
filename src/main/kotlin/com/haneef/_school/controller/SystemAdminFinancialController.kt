@@ -54,7 +54,7 @@ class SystemAdminFinancialController(
                 currentTerm?.id
             ).filter { it.status.equals("success", ignoreCase = true) }
             
-            val termAutoSettlements = termSettlements.filter { it.settlementType == SettlementType.AUTO }
+            val termAutoSettlements = termSettlements.filter { it.settlementType != SettlementType.MANUAL }
             
             // Get reimbursements for current term
             val termReimbursements = schoolReimbursementRepository.findBySchoolIdAndAcademicSessionIdAndTermIdOrderByReimbursementDateDesc(
@@ -67,7 +67,7 @@ class SystemAdminFinancialController(
             val allSettlements = settlementRepository.findBySchoolId(school.id!!)
                 .filter { it.status.equals("success", ignoreCase = true) }
             
-            val allAutoSettlements = allSettlements.filter { it.settlementType == SettlementType.AUTO }
+            val allAutoSettlements = allSettlements.filter { it.settlementType != SettlementType.MANUAL }
             
             val allReimbursements = schoolReimbursementRepository.findBySchoolIdOrderByReimbursementDateDesc(school.id!!)
                 .filter { it.status == "COMPLETED" }
@@ -154,7 +154,7 @@ class SystemAdminFinancialController(
             selectedTerm?.id
         ).filter { it.status.equals("success", ignoreCase = true) }
         
-        val autoSettlements = filteredSettlements.filter { it.settlementType == SettlementType.AUTO }
+        val autoSettlements = filteredSettlements.filter { it.settlementType != SettlementType.MANUAL }
         val manualSettlements = filteredSettlements.filter { it.settlementType == SettlementType.MANUAL }
         
         val reimbursements = schoolReimbursementRepository.findBySchoolIdAndAcademicSessionIdAndTermIdOrderByReimbursementDateDesc(
@@ -169,7 +169,7 @@ class SystemAdminFinancialController(
         
         // Lifetime totals for this school
         val allSettlements = settlementRepository.findBySchoolId(schoolId).filter { it.status.equals("success", ignoreCase = true) }
-        val allAutoSettlements = allSettlements.filter { it.settlementType == SettlementType.AUTO }
+        val allAutoSettlements = allSettlements.filter { it.settlementType != SettlementType.MANUAL }
         val allManualSettlements = allSettlements.filter { it.settlementType == SettlementType.MANUAL }
         
         val allReimbursements = schoolReimbursementRepository.findBySchoolIdOrderByReimbursementDateDesc(schoolId).filter { it.status == "COMPLETED" }

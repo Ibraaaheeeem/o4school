@@ -41,8 +41,15 @@ class DataInitializationService(
     private val settlementRepository: SettlementRepository
 ) : CommandLineRunner {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private lateinit var environment: org.springframework.core.env.Environment
+
     @Transactional
     override fun run(vararg args: String) {
+        if (environment.activeProfiles.contains("test")) {
+            println("Skipping DataInitializationService in test profile")
+            return
+        }
         initializeRoles()
         initializeSchool()
         initializeSchoolStructure()
@@ -887,7 +894,7 @@ class DataInitializationService(
         var updated = false
         settlements.forEach { settlement ->
             if (settlement.settlementType == null) {
-                settlement.settlementType = SettlementType.AUTO
+                settlement.settlementType = SettlementType.MANUAL
                 settlementRepository.save(settlement)
                 updated = true
             }
