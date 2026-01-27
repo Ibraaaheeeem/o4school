@@ -109,7 +109,7 @@
                         <div
                             style="font-size: 0.85rem; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
                             Current Assignments</div>
-                        <div th:each="assignment : ${currentClassAssignments}"
+                        <div th:each="assignment : ${currentClassAssignments}" class="modal-assignment-item"
                             style="background: #f7fafc; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
                             <div style="flex: 1;">
                                 <div style="font-weight: 500; color: #2d3748; margin-bottom: 0.25rem;"
@@ -119,8 +119,9 @@
                                     th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></small>
                             </div>
                             <button type="button" th:data-assignment-id="${assignment.id}"
+                                th:data-staff-id="${staff.id}"
                                 th:data-assignment-info="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
-                                onclick="removeClassAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                onclick="removeClassAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
                                 style="background: #fed7d7; color: #c53030; border: none; border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;"
                                 onmouseover="this.style.background='#fc8181'"
                                 onmouseout="this.style.background='#fed7d7'">
@@ -203,7 +204,7 @@
                         <div
                             style="font-size: 0.85rem; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
                             Current Assignments</div>
-                        <div th:each="assignment : ${currentSubjectAssignments}"
+                        <div th:each="assignment : ${currentSubjectAssignments}" class="modal-assignment-item"
                             style="background: #f7fafc; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
                             <div style="flex: 1;">
                                 <div style="font-weight: 500; color: #2d3748; margin-bottom: 0.25rem;"
@@ -215,8 +216,9 @@
                                     th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></small>
                             </div>
                             <button type="button" th:data-assignment-id="${assignment.id}"
+                                th:data-staff-id="${staff.id}"
                                 th:data-assignment-info="${assignment.subject.subjectName + ' in ' + (assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
-                                onclick="removeSubjectAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                onclick="removeSubjectAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
                                 style="background: #fed7d7; color: #c53030; border: none; border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;"
                                 onmouseover="this.style.background='#fc8181'"
                                 onmouseout="this.style.background='#fed7d7'">
@@ -226,20 +228,18 @@
                     </div>
                 </div>
             </div>
+
+            <div class="modal-footer"
+                style="background: #f8f9fa; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px; padding: 1.25rem 2rem;">
+                <button type="button" class="btn" onclick="closeModal('staffAssignmentModal')"
+                    style="background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; padding: 0.6rem 1.5rem; font-weight: 500;">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+            </div>
         </div>
-    </div>
-
-    <div class="modal-footer"
-        style="background: #f8f9fa; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px; padding: 1.25rem 2rem;">
-        <button type="button" class="btn" onclick="closeModal('staffAssignmentModal')"
-            style="background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; padding: 0.6rem 1.5rem; font-weight: 500;">
-            <i class="fas fa-times me-2"></i>Close
-        </button>
-    </div>
-</div>
 
 
-<!-- OOB Update for Staff Card (only included when isOob is true) -->
-<th:block th:if="${isOob}">
-    <div th:replace="~{admin/community/staff/staff-card-single :: single-staff-card}"></div>
-</th:block>
+        <!-- OOB Update for Staff Card (only included when isOob is true) -->
+        <th:block th:if="${isOob}">
+            <div th:replace="~{admin/community/staff/staff-card-single :: single-staff-card}"></div>
+        </th:block>

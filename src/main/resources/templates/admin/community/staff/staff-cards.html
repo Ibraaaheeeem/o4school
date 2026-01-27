@@ -8,7 +8,7 @@
     </div>
 
     <div class="staff-cards-grid" th:if="${!staffPage.content.empty}">
-        <div th:each="staff : ${staffPage.content}" class="staff-card">
+        <div th:each="staff : ${staffPage.content}" th:attr="id=${'staff-card-' + staff.id}" class="staff-card">
             <div class="staff-card-header">
                 <div class="staff-avatar">
                     <span th:text="${#strings.substring(staff.user.fullName, 0, 1)}">J</span>
@@ -47,8 +47,9 @@
                                     </div>
                                 </div>
                                 <button class="remove-assignment-btn" th:data-assignment-id="${classAssignment.id}"
+                                    th:data-staff-id="${staff.id}"
                                     th:data-assignment-info="'Class Teacher: ' + ${classAssignment.schoolClass.className}"
-                                    onclick="removeClassAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                    onclick="removeClassAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
                                     title="Remove class teacher assignment">
                                     ×
                                 </button>
@@ -73,8 +74,9 @@
                                     </div>
                                 </div>
                                 <button class="remove-assignment-btn" th:data-assignment-id="${subjectAssignment.id}"
+                                    th:data-staff-id="${staff.id}"
                                     th:data-assignment-info="'Subject Teacher: ' + ${subjectAssignment.subject.subjectName} + ' in ' + ${subjectAssignment.schoolClass.className}"
-                                    onclick="removeSubjectAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                    onclick="removeSubjectAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
                                     title="Remove subject teacher assignment">
                                     ×
                                 </button>

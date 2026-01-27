@@ -708,3 +708,199 @@ window.loadAssignmentSubjectsByClass = function () {
             subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
         });
 };
+// In-place assignment removal functions (no page reload)
+window.removeClassAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
+    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers[csrfHeader] = csrfToken;
+
+        fetch(`/admin/community/staff/remove-class-assignment/${assignmentId}`, {
+            method: 'POST',
+            headers: headers
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                    if (btn) {
+                        const card = btn.closest('.assignment-card');
+                        if (card) {
+                            card.style.opacity = '0';
+                            setTimeout(() => card.remove(), 300);
+                        }
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error removing assignment');
+            });
+    }
+};
+
+window.removeSubjectAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
+    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers[csrfHeader] = csrfToken;
+
+        fetch(`/admin/community/staff/remove-subject-assignment/${assignmentId}`, {
+            method: 'POST',
+            headers: headers
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                    if (btn) {
+                        const card = btn.closest('.assignment-card');
+                        if (card) {
+                            card.style.opacity = '0';
+                            setTimeout(() => card.remove(), 300);
+                        }
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error removing assignment');
+            });
+    }
+};
+
+// In-place assignment removal functions (no page reload)
+window.removeClassAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
+    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers[csrfHeader] = csrfToken;
+
+        fetch(`/admin/community/staff/remove-class-assignment/${assignmentId}`, {
+            method: 'POST',
+            headers: headers
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove from modal list
+                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                    if (btn) {
+                        const card = btn.closest('.modal-assignment-item') || btn.closest('.assignment-card');
+                        if (card) {
+                            const container = card.parentElement;
+                            card.style.opacity = '0';
+                            setTimeout(() => {
+                                card.remove();
+                                // Check if container is empty (ignoring the header div)
+                                // The header is a div, assignments are divs with class modal-assignment-item
+                                const remainingItems = container.querySelectorAll('.modal-assignment-item');
+                                if (remainingItems.length === 0) {
+                                    container.style.display = 'none';
+                                }
+                            }, 300);
+                        }
+                    }
+
+                    // Update background staff card
+                    if (staffId) {
+                        const staffCard = document.getElementById(`staff-card-${staffId}`);
+                        if (staffCard) {
+                            const cardBtn = staffCard.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                            if (cardBtn) {
+                                const assignmentDiv = cardBtn.closest('.assignment-card');
+                                if (assignmentDiv) {
+                                    assignmentDiv.remove();
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error removing assignment');
+            });
+    }
+};
+
+window.removeSubjectAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
+    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers[csrfHeader] = csrfToken;
+
+        fetch(`/admin/community/staff/remove-subject-assignment/${assignmentId}`, {
+            method: 'POST',
+            headers: headers
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove from modal list
+                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                    if (btn) {
+                        const card = btn.closest('.modal-assignment-item') || btn.closest('.assignment-card');
+                        if (card) {
+                            const container = card.parentElement;
+                            card.style.opacity = '0';
+                            setTimeout(() => {
+                                card.remove();
+                                // Check if container is empty
+                                const remainingItems = container.querySelectorAll('.modal-assignment-item');
+                                if (remainingItems.length === 0) {
+                                    container.style.display = 'none';
+                                }
+                            }, 300);
+                        }
+                    }
+
+                    // Update background staff card
+                    if (staffId) {
+                        const staffCard = document.getElementById(`staff-card-${staffId}`);
+                        if (staffCard) {
+                            const cardBtn = staffCard.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                            if (cardBtn) {
+                                const assignmentDiv = cardBtn.closest('.assignment-card');
+                                if (assignmentDiv) {
+                                    assignmentDiv.remove();
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error removing assignment');
+            });
+    }
+};
