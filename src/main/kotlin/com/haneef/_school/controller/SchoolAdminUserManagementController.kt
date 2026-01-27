@@ -74,7 +74,8 @@ class SchoolAdminUserManagementController(
         val users = if (!roleFilters.isNullOrEmpty()) {
             userSchoolRoleRepository.findBySchoolIdAndRoleNameIn(schoolId, roleFilters)
         } else {
-            userSchoolRoleRepository.findBySchoolId(schoolId)
+            // Return empty list when no roles are selected
+            emptyList()
         }
 
         var filteredUsers = when (tab) {
@@ -157,18 +158,18 @@ class SchoolAdminUserManagementController(
             )
         }
 
+        // Available roles for filtering
+        val availableRoles = listOf("STAFF", "TEACHER", "PARENT", "STUDENT", "SCHOOL_ADMIN")
+        
         model.addAttribute("users", userDtos)
         model.addAttribute("currentPage", page)
         model.addAttribute("totalPages", totalPages)
         model.addAttribute("totalItems", totalItems)
-        model.addAttribute("tab", tab)
+        model.addAttribute("activeTab", tab)
         model.addAttribute("search", search)
-        model.addAttribute("roleFilters", roleFilters)
+        model.addAttribute("availableRoles", availableRoles)
+        model.addAttribute("selectedRoles", roleFilters ?: emptyList<String>())
         
-        if (request.getHeader("HX-Request") != null && hxTarget != "community-content" && hxTarget != ".setup-layout") {
-            return "admin/community/approvals :: user-table"
-        }
-
         return "admin/community/approvals"
     }
 

@@ -1,107 +1,129 @@
-<!-- Staff Assignments Modal -->
-<div class="modal-content">
-    <div class="modal-header">
-        <h5 class="modal-title">
-            <i class="fas fa-chalkboard-teacher me-2"></i>
-            Teacher Assignments - <span th:text="${staff.user.firstName + ' ' + staff.user.lastName}"></span>
-        </h5>
-        <button type="button" class="btn-close" onclick="closeModal('staffAssignmentModal')" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
+<!-- Staff Assignments Modal - Redesigned -->
+<div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.15);">
+    <div class="modal-header"
+        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 0 0; padding: 1.5rem 2rem; border: none;">
+        <div>
+            <h5 class="modal-title" style="margin: 0; font-weight: 600; font-size: 1.25rem;">
+                <i class="fas fa-chalkboard-teacher me-2"></i>
+                Staff Assignments
+            </h5>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">
+                <span th:text="${staff.user.firstName + ' ' + staff.user.lastName}"></span>
+                <span style="opacity: 0.7; margin-left: 0.5rem;" th:text="'(' + ${staff.staffId} + ')'"></span>
+            </p>
+        </div>
+        <button type="button" class="btn-close btn-close-white" onclick="closeModal('staffAssignmentModal')"
+            aria-label="Close" style="opacity: 0.9;"></button>
     </div>
 
-    <div class="modal-body">
-        <!-- Flash Messages -->
-        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>
-            <span th:text="${success}"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            <span th:text="${error}"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <div th:if="${info}" class="alert alert-info alert-dismissible fade show" role="alert">
-            <i class="fas fa-info-circle me-2"></i>
-            <span th:text="${info}"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="modal-body" style="padding: 2rem; background: #f8f9fa;">
+        <!-- Success/Error Messages -->
+        <div id="assignment-messages" style="margin-bottom: 1.5rem;">
+            <div th:if="${success}" class="alert"
+                style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center;">
+                <i class="fas fa-check-circle me-2" style="font-size: 1.2rem;"></i>
+                <span th:text="${success}"></span>
+            </div>
+            <div th:if="${error}" class="alert"
+                style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center;">
+                <i class="fas fa-exclamation-circle me-2" style="font-size: 1.2rem;"></i>
+                <span th:text="${error}"></span>
+            </div>
         </div>
 
-        <div class="staff-summary mb-4">
-            <div class="d-flex align-items-center">
-                <div class="avatar-circle me-3">
-                    <span th:text="${#strings.substring(staff.user.firstName, 0, 1)}">A</span>
-                </div>
+        <!-- Academic Session Info Banner -->
+        <div
+            style="background: white; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; border-left: 4px solid #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <i class="fas fa-calendar-alt" style="color: #667eea; font-size: 1.5rem;"></i>
                 <div>
-                    <h5 class="mb-0" th:text="${staff.user.firstName + ' ' + staff.user.lastName}">Staff Name</h5>
-                    <small class="text-muted" th:text="${staff.staffId}">STF001</small>
+                    <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.25rem;">Current Academic Period
+                    </div>
+                    <div style="font-weight: 600; color: #2d3748;">
+                        <span th:text="${currentSession.sessionName}"></span>
+                        <span style="color: #cbd5e0; margin: 0 0.5rem;">•</span>
+                        <span th:text="${currentTerm.termName}"></span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="row">
+        <div class="row g-3">
             <!-- Class Teacher Assignment -->
-            <div class="col-md-6">
-                <div class="assignment-section">
-                    <h6 class="section-title">
-                        <i class="fas fa-users me-2"></i>Class Teacher Assignment
-                    </h6>
+            <div class="col-lg-6">
+                <div
+                    style="background: white; border-radius: 12px; padding: 1.5rem; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 2px solid #f1f3f5;">
+                        <div
+                            style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-users" style="color: white; font-size: 1.1rem;"></i>
+                        </div>
+                        <div>
+                            <h6 style="margin: 0; font-weight: 600; color: #2d3748;">Class Teacher</h6>
+                            <small style="color: #718096;">Assign as homeroom teacher</small>
+                        </div>
+                    </div>
 
                     <form id="classTeacherForm"
                         th:hx-post="@{/admin/community/staff/{staffId}/assign-class-htmx(staffId=${staff.id})}"
-                        hx-target="#staff-cards-content" hx-swap="outerHTML"
-                        hx-on::before-request="console.log('=== HTMX BEFORE REQUEST ===', event.detail); console.log('URL:', event.detail.requestConfig.path); console.log('Method:', event.detail.requestConfig.verb);"
-                        hx-on::after-request="console.log('=== HTMX AFTER REQUEST ===', event.detail); console.log('Status:', event.detail.xhr.status); console.log('Response:', event.detail.xhr.responseText); closeModal('staffAssignmentModal')"
-                        hx-on::response-error="console.log('=== HTMX ERROR ===', event.detail); console.log('Error Status:', event.detail.xhr.status); console.log('Error Response:', event.detail.xhr.responseText);"
+                        hx-target="#staffAssignmentModal .modal-dialog" hx-swap="innerHTML"
                         th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-                        action="javascript:void(0);"
-                        onsubmit="console.log('=== FORM SUBMIT EVENT ==='); event.preventDefault(); return false;">
+                        action="javascript:void(0);">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                        <div class="mb-3 track-selection">
-                            <label for="classTeacherTrackId" class="form-label">
-                                <i class="fas fa-route me-1"></i>Select Track
+
+                        <div class="mb-3">
+                            <label for="classTeacherTrackId"
+                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
+                                <i class="fas fa-route me-1" style="color: #a0aec0;"></i>Track
                             </label>
-                            <select class="form-select form-select-sm" id="classTeacherTrackId"
-                                onchange="loadAssignmentClassesByTrack('classTeacher')">
+                            <select class="form-select" id="classTeacherTrackId"
+                                onchange="loadAssignmentClassesByTrack('classTeacher')"
+                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
                                 <option value="">Choose a track...</option>
                                 <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
                                 </option>
                             </select>
                         </div>
 
-                        <div class="mb-3 class-selection">
-                            <label for="classTeacherClassId" class="form-label">
-                                <i class="fas fa-school me-1"></i>Select Class
+                        <div class="mb-3">
+                            <label for="classTeacherClassId"
+                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
+                                <i class="fas fa-school me-1" style="color: #a0aec0;"></i>Class
                             </label>
-                            <select class="form-select form-select-sm" id="classTeacherClassId" name="assignedClassId"
-                                disabled>
+                            <select class="form-select" id="classTeacherClassId" name="assignedClassId" disabled
+                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
                                 <option value="">First select a track...</option>
                             </select>
                         </div>
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-plus me-2"></i>Assign as Class Teacher
-                            </button>
-                        </div>
+                        <button type="submit" class="btn w-100"
+                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; padding: 0.7rem; font-weight: 500; transition: transform 0.2s; margin-top: 0.5rem;">
+                            <i class="fas fa-plus me-2"></i>Assign as Class Teacher
+                        </button>
                     </form>
 
                     <!-- Current Class Assignments -->
-                    <div class="current-assignments mt-3" th:if="${!#lists.isEmpty(currentClassAssignments)}">
-                        <h6 class="assignments-title">Current Class Assignments</h6>
-                        <div th:each="assignment : ${currentClassAssignments}" class="assignment-item">
-                            <div class="assignment-info">
-                                <span class="assignment-name"
-                                    th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"></span>
-                                <small class="assignment-year"
-                                    th:text="${assignment.academicSession.sessionName + ' - ' + assignment.term.termName}"></small>
+                    <div id="current-class-assignments" th:if="${!#lists.isEmpty(currentClassAssignments)}"
+                        style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
+                        <div
+                            style="font-size: 0.85rem; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
+                            Current Assignments</div>
+                        <div th:each="assignment : ${currentClassAssignments}"
+                            style="background: #f7fafc; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 500; color: #2d3748; margin-bottom: 0.25rem;"
+                                    th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}">
+                                </div>
+                                <small style="color: #718096; font-size: 0.8rem;"
+                                    th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></small>
                             </div>
-                            <button type="button" class="btn btn-outline-danger btn-xs"
-                                th:data-assignment-id="${assignment.id}"
+                            <button type="button" th:data-assignment-id="${assignment.id}"
                                 th:data-assignment-info="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
                                 onclick="removeClassAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
-                                title="Remove Assignment">
+                                style="background: #fed7d7; color: #c53030; border: none; border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='#fc8181'"
+                                onmouseout="this.style.background='#fed7d7'">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -110,76 +132,94 @@
             </div>
 
             <!-- Subject Teacher Assignment -->
-            <div class="col-md-6">
-                <div class="assignment-section">
-                    <h6 class="section-title">
-                        <i class="fas fa-book me-2"></i>Subject Teacher Assignment
-                    </h6>
+            <div class="col-lg-6">
+                <div
+                    style="background: white; border-radius: 12px; padding: 1.5rem; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 2px solid #f1f3f5;">
+                        <div
+                            style="width: 40px; height: 40px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-book" style="color: white; font-size: 1.1rem;"></i>
+                        </div>
+                        <div>
+                            <h6 style="margin: 0; font-weight: 600; color: #2d3748;">Subject Teacher</h6>
+                            <small style="color: #718096;">Assign to teach a subject</small>
+                        </div>
+                    </div>
 
                     <form id="subjectTeacherForm"
                         th:hx-post="@{/admin/community/staff/{staffId}/assign-subject-htmx(staffId=${staff.id})}"
-                        hx-target="#staff-cards-content" hx-swap="outerHTML"
-                        hx-on::before-request="console.log('Subject teacher form submitting...', event.detail)"
-                        hx-on::after-request="console.log('Subject teacher form response received...', event.detail); closeModal('staffAssignmentModal')"
+                        hx-target="#staffAssignmentModal .modal-dialog" hx-swap="innerHTML"
                         th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-                        action="javascript:void(0);"
-                        onsubmit="console.log('=== SUBJECT FORM SUBMIT EVENT ==='); event.preventDefault(); return false;">
+                        action="javascript:void(0);">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                        <div class="mb-3 track-selection">
-                            <label for="subjectTeacherTrackId" class="form-label">
-                                <i class="fas fa-route me-1"></i>Select Track
+
+                        <div class="mb-3">
+                            <label for="subjectTeacherTrackId"
+                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
+                                <i class="fas fa-route me-1" style="color: #a0aec0;"></i>Track
                             </label>
-                            <select class="form-select form-select-sm" id="subjectTeacherTrackId"
-                                onchange="loadAssignmentClassesByTrack('subjectTeacher')">
+                            <select class="form-select" id="subjectTeacherTrackId"
+                                onchange="loadAssignmentClassesByTrack('subjectTeacher')"
+                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
                                 <option value="">Choose a track...</option>
                                 <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
                                 </option>
                             </select>
                         </div>
 
-                        <div class="mb-3 class-selection">
-                            <label for="subjectTeacherClassId" class="form-label">
-                                <i class="fas fa-school me-1"></i>Select Class
+                        <div class="mb-3">
+                            <label for="subjectTeacherClassId"
+                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
+                                <i class="fas fa-school me-1" style="color: #a0aec0;"></i>Class
                             </label>
-                            <select class="form-select form-select-sm" id="subjectTeacherClassId" name="assignedClassId"
-                                onchange="loadAssignmentSubjectsByClass()" required disabled>
+                            <select class="form-select" id="subjectTeacherClassId" name="assignedClassId"
+                                onchange="loadAssignmentSubjectsByClass()" disabled
+                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
                                 <option value="">First select a track...</option>
                             </select>
                         </div>
 
-                        <div class="mb-3 subject-selection">
-                            <label for="subjectId" class="form-label">
-                                <i class="fas fa-book me-1"></i>Select Subject
+                        <div class="mb-3">
+                            <label for="subjectId"
+                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
+                                <i class="fas fa-book me-1" style="color: #a0aec0;"></i>Subject
                             </label>
-                            <select class="form-select form-select-sm" id="subjectId" name="subjectId" required
-                                disabled>
+                            <select class="form-select" id="subjectId" name="subjectId" required disabled
+                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
                                 <option value="">First select a class...</option>
                             </select>
                         </div>
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-warning btn-sm">
-                                <i class="fas fa-plus me-2"></i>Assign as Subject Teacher
-                            </button>
-                        </div>
+                        <button type="submit" class="btn w-100"
+                            style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; border-radius: 8px; padding: 0.7rem; font-weight: 500; transition: transform 0.2s; margin-top: 0.5rem;">
+                            <i class="fas fa-plus me-2"></i>Assign as Subject Teacher
+                        </button>
                     </form>
 
                     <!-- Current Subject Assignments -->
-                    <div class="current-assignments mt-3" th:if="${!#lists.isEmpty(currentSubjectAssignments)}">
-                        <h6 class="assignments-title">Current Subject Assignments</h6>
-                        <div th:each="assignment : ${currentSubjectAssignments}" class="assignment-item">
-                            <div class="assignment-info">
-                                <span class="assignment-name" th:text="${assignment.subject.subjectName}"></span>
-                                <small class="assignment-details"
+                    <div id="current-subject-assignments" th:if="${!#lists.isEmpty(currentSubjectAssignments)}"
+                        style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
+                        <div
+                            style="font-size: 0.85rem; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
+                            Current Assignments</div>
+                        <div th:each="assignment : ${currentSubjectAssignments}"
+                            style="background: #f7fafc; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 500; color: #2d3748; margin-bottom: 0.25rem;"
+                                    th:text="${assignment.subject.subjectName}"></div>
+                                <small style="color: #718096; font-size: 0.8rem;"
                                     th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"></small>
-                                <small class="assignment-year"
-                                    th:text="${assignment.academicSession.sessionName + ' - ' + assignment.term.termName}"></small>
+                                <br>
+                                <small style="color: #a0aec0; font-size: 0.75rem;"
+                                    th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></small>
                             </div>
-                            <button type="button" class="btn btn-outline-danger btn-xs"
-                                th:data-assignment-id="${assignment.id}"
+                            <button type="button" th:data-assignment-id="${assignment.id}"
                                 th:data-assignment-info="${assignment.subject.subjectName + ' in ' + (assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
                                 onclick="removeSubjectAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
-                                title="Remove Assignment">
+                                style="background: #fed7d7; color: #c53030; border: none; border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='#fc8181'"
+                                onmouseout="this.style.background='#fed7d7'">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -187,178 +227,19 @@
                 </div>
             </div>
         </div>
-
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="academic-year-info">
-                    <small class="text-muted">
-                        <i class="fas fa-calendar-alt me-1"></i>
-                        Academic Session: <strong th:text="${currentSession.sessionName}"></strong> |
-                        Term: <strong th:text="${currentTerm.termName}"></strong>
-                    </small>
-                </div>
-
-                <!-- Debug Test Button -->
-                <div class="mt-2">
-                    <button type="button" class="btn btn-info btn-sm" hx-get="/admin/community/staff"
-                        hx-target="#debug-test-result" onclick="console.log('=== DEBUG TEST BUTTON CLICKED ===')">
-                        Test HTMX Connection
-                    </button>
-                    <button type="button" class="btn btn-warning btn-sm"
-                        th:hx-post="@{/admin/community/staff/{staffId}/test-route(staffId=${staff.id})}"
-                        hx-target="#debug-test-result" onclick="console.log('=== ROUTE TEST BUTTON CLICKED ===')"
-                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
-                        Test Route
-                    </button>
-                    <div id="debug-test-result" class="mt-2"></div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('staffAssignmentModal')">
+    <div class="modal-footer"
+        style="background: #f8f9fa; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px; padding: 1.25rem 2rem;">
+        <button type="button" class="btn" onclick="closeModal('staffAssignmentModal')"
+            style="background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; padding: 0.6rem 1.5rem; font-weight: 500;">
             <i class="fas fa-times me-2"></i>Close
         </button>
     </div>
 </div>
 
-<script>
-    // Debug HTMX and form functionality
-    console.log('=== ASSIGNMENTS MODAL SCRIPT LOADED ===');
-    console.log('HTMX available:', typeof htmx !== 'undefined');
-    console.log('jQuery available:', typeof $ !== 'undefined');
 
-    // Add event listeners when DOM is ready
-    // Run immediately when script is loaded
-    (function () {
-        console.log('=== MODAL SCRIPT EXECUTING ===');
-
-        // Manually process HTMX for the modal content to ensure bindings work
-        const modalContent = document.getElementById('staffAssignmentModal');
-        if (modalContent && typeof htmx !== 'undefined') {
-            console.log('Processing HTMX for modal content');
-            htmx.process(modalContent);
-        }
-
-        // Test if forms exist
-        const classForm = document.querySelector('form[hx-post*="assign-class-htmx"]');
-        const subjectForm = document.querySelector('form[hx-post*="assign-subject-htmx"]');
-
-        console.log('Class form found:', !!classForm);
-        console.log('Subject form found:', !!subjectForm);
-
-        if (classForm) {
-            console.log('Class form action:', classForm.getAttribute('hx-post'));
-            // Add direct submit listener for debugging
-            classForm.addEventListener('submit', function (e) {
-                console.log('=== NATIVE FORM SUBMIT ===');
-                // We don't prevent default here because we want HTMX to handle it
-                // But if HTMX isn't handling it, the browser might try a standard submit
-            });
-        }
-        if (subjectForm) {
-            console.log('Subject form action:', subjectForm.getAttribute('hx-post'));
-        }
-    })();
-
-    // Dynamic loading functions for staff assignments
-    function loadClassesByTrack(assignmentType) {
-        console.log('=== LOADING CLASSES BY TRACK ===', assignmentType);
-        const trackSelect = document.getElementById(assignmentType + 'TrackId');
-        const classSelect = document.getElementById(assignmentType + 'ClassId');
-        const subjectSelect = document.getElementById('subjectId');
-
-        const trackId = trackSelect.value;
-        console.log('Selected track ID:', trackId);
-
-        if (!trackId) {
-            classSelect.innerHTML = '<option value="">First select a track...</option>';
-            classSelect.disabled = true;
-            if (subjectSelect) {
-                subjectSelect.innerHTML = '<option value="">First select a class...</option>';
-                subjectSelect.disabled = true;
-            }
-            return;
-        }
-
-        // Show loading state
-        classSelect.innerHTML = '<option value="">Loading classes...</option>';
-        classSelect.disabled = true;
-
-        // Load classes for selected track
-        const url = `/admin/community/staff/classes-by-track/${trackId}`;
-        console.log('Fetching classes from:', url);
-
-        fetch(url)
-            .then(response => {
-                console.log('Classes response status:', response.status);
-                return response.json();
-            })
-            .then(classes => {
-                console.log('Classes loaded:', classes);
-                classSelect.innerHTML = '<option value="">Choose a class...</option>';
-                classes.forEach(cls => {
-                    const option = document.createElement('option');
-                    option.value = cls.id;
-                    option.textContent = cls.className + (cls.gradeLevel ? ' (' + cls.gradeLevel + ')' : '');
-                    classSelect.appendChild(option);
-                });
-                classSelect.disabled = false;
-
-                // Reset subject dropdown if it exists
-                if (subjectSelect) {
-                    subjectSelect.innerHTML = '<option value="">First select a class...</option>';
-                    subjectSelect.disabled = true;
-                }
-            })
-            .catch(error => {
-                console.error('Error loading classes:', error);
-                classSelect.innerHTML = '<option value="">Error loading classes</option>';
-            });
-    }
-
-    function loadSubjectsByClass() {
-        console.log('=== LOADING SUBJECTS BY CLASS ===');
-        const classSelect = document.getElementById('subjectTeacherClassId');
-        const subjectSelect = document.getElementById('subjectId');
-
-        const classId = classSelect.value;
-        console.log('Selected class ID:', classId);
-
-        if (!classId) {
-            subjectSelect.innerHTML = '<option value="">First select a class...</option>';
-            subjectSelect.disabled = true;
-            return;
-        }
-
-        // Show loading state
-        subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';
-        subjectSelect.disabled = true;
-
-        // Load subjects for selected class
-        const url = `/admin/community/staff/subjects-by-class/${classId}`;
-        console.log('Fetching subjects from:', url);
-
-        fetch(url)
-            .then(response => {
-                console.log('Subjects response status:', response.status);
-                return response.json();
-            })
-            .then(subjects => {
-                console.log('Subjects loaded:', subjects);
-                subjectSelect.innerHTML = '<option value="">Choose a subject...</option>';
-                subjects.forEach(subject => {
-                    const option = document.createElement('option');
-                    option.value = subject.id;
-                    option.textContent = subject.subjectName + (subject.subjectCode ? ' (' + subject.subjectCode + ')' : '');
-                    subjectSelect.appendChild(option);
-                });
-                subjectSelect.disabled = false;
-            })
-            .catch(error => {
-                console.error('Error loading subjects:', error);
-                subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
-            });
-    }
-</script>
+<!-- OOB Update for Staff Card (only included when isOob is true) -->
+<th:block th:if="${isOob}">
+    <div th:replace="~{admin/community/staff/staff-card-single :: single-staff-card}"></div>
+</th:block>

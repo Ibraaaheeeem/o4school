@@ -3007,9 +3007,37 @@ class CommunityController(
             model.addAttribute("error", "Error creating assignment: ${e.message}")
         }
 
-        logger.info("Returning updated staff list...")
-        // Return updated staff list
-        return getUpdatedStaffList(selectedSchoolId, model)
+        logger.info("Returning assignment modal with OOB staff card update...")
+        // Reload the staff with updated assignments
+        val updatedStaff = loadStaffWithTeacherAssignments(selectedSchoolId).find { it.id == staffId }
+            ?: throw RuntimeException("Staff not found after update")
+        
+        // Get all necessary data for the modal
+        val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+            ?: throw RuntimeException("No current academic session found")
+        val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
+            .orElseThrow { RuntimeException("No current term found") }
+        
+        val currentClassAssignments = classTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+            staffId, currentSession.id!!, currentTerm.id!!, true
+        )
+        val currentSubjectAssignments = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+            staffId, currentSession.id!!, currentTerm.id!!, true
+        )
+        
+        val customUser = authentication.principal as CustomUserDetails
+        model.addAttribute("user", customUser.user)
+        model.addAttribute("staff", updatedStaff)
+        model.addAttribute("tracks", tracks)
+        model.addAttribute("currentSession", currentSession)
+        model.addAttribute("currentTerm", currentTerm)
+        model.addAttribute("currentClassAssignments", currentClassAssignments)
+        model.addAttribute("currentSubjectAssignments", currentSubjectAssignments)
+        model.addAttribute("isOob", true) // Enable OOB update for staff card
+        
+        // Return full modal to keep it open
+        return "admin/community/staff/assignments-modal"
     }
     
     // Simple test endpoint to verify routing
@@ -3148,9 +3176,37 @@ class CommunityController(
             model.addAttribute("error", "Error creating assignment: ${e.message}")
         }
         
-        logger.info("Returning updated staff list...")
-        // Return updated staff list
-        return getUpdatedStaffList(selectedSchoolId, model)
+        logger.info("Returning assignment modal with OOB staff card update...")
+        // Reload the staff with updated assignments
+        val updatedStaff = loadStaffWithTeacherAssignments(selectedSchoolId).find { it.id == staffId }
+            ?: throw RuntimeException("Staff not found after update")
+        
+        // Get all necessary data for the modal
+        val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+            ?: throw RuntimeException("No current academic session found")
+        val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
+            .orElseThrow { RuntimeException("No current term found") }
+        
+        val currentClassAssignments = classTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+            staffId, currentSession.id!!, currentTerm.id!!, true
+        )
+        val currentSubjectAssignments = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+            staffId, currentSession.id!!, currentTerm.id!!, true
+        )
+        
+        val customUser = authentication.principal as CustomUserDetails
+        model.addAttribute("user", customUser.user)
+        model.addAttribute("staff", updatedStaff)
+        model.addAttribute("tracks", tracks)
+        model.addAttribute("currentSession", currentSession)
+        model.addAttribute("currentTerm", currentTerm)
+        model.addAttribute("currentClassAssignments", currentClassAssignments)
+        model.addAttribute("currentSubjectAssignments", currentSubjectAssignments)
+        model.addAttribute("isOob", true) // Enable OOB update for staff card
+        
+        // Return full modal to keep it open
+        return "admin/community/staff/assignments-modal"
     }
 
     @GetMapping("/staff/classes-by-track/{trackId}")

@@ -581,7 +581,8 @@ window.initializeAssignmentForms = function () {
             form.addEventListener('htmx:afterRequest', function (event) {
                 console.log(`=== ${formName} HTMX AFTER REQUEST ===`, event.detail);
                 if (event.detail.successful) {
-                    closeModal('staffAssignmentModal');
+                    // Modal stays open to allow multiple assignments
+                    console.log('Assignment successful, keeping modal open');
                 }
             });
 

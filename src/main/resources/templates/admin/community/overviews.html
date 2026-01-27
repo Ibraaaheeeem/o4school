@@ -63,28 +63,6 @@
                 <p>Manage your school community members</p>
             </div>
 
-            <!-- Tabs -->
-            <div class="community-tabs">
-                <a th:href="@{/admin/community/overviews(tab='students')}" class="tab-link"
-                    th:classappend="${activeTab == 'students' ? 'active' : ''}"
-                    hx-get="/admin/community/overviews?tab=students" hx-target=".setup-layout" hx-select=".setup-layout"
-                    hx-push-url="true" data-tab="students">
-                    Students
-                </a>
-                <a th:href="@{/admin/community/overviews(tab='staff')}" class="tab-link"
-                    th:classappend="${activeTab == 'staff' ? 'active' : ''}"
-                    hx-get="/admin/community/overviews?tab=staff" hx-target=".setup-layout" hx-select=".setup-layout"
-                    hx-push-url="true" data-tab="staff">
-                    Staff
-                </a>
-                <a th:href="@{/admin/community/overviews(tab='parents')}" class="tab-link"
-                    th:classappend="${activeTab == 'parents' ? 'active' : ''}"
-                    hx-get="/admin/community/overviews?tab=parents" hx-target=".setup-layout" hx-select=".setup-layout"
-                    hx-push-url="true" data-tab="parents">
-                    Parents
-                </a>
-            </div>
-
             <!-- Content Container -->
             <div id="tab-content" th:hx-get="@{'/admin/community/' + ${activeTab}}" hx-trigger="load"
                 hx-target="#tab-content">
