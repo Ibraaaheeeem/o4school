@@ -7,7 +7,7 @@
 
     <form hx-post="/admin/community/students/save-htmx" hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
         th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-        hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('studentModal'); } else { alert('Error saving student. Please try again.'); }"
+        hx-on::after-request="if(!event.detail.successful) { alert('Error saving student. Please try again.'); }"
         hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form">
 
         <input type="hidden" name="id" th:value="${isEdit != null and isEdit and student != null ? student.id : ''}">

@@ -610,19 +610,7 @@ class CommunityController(
                 model.addAttribute("success", "Staff created successfully!")
             }
 
-            // Return updated staff list
-            val pageable = PageRequest.of(0, 12, Sort.by("user.firstName"))
-            val allStaff = loadStaffWithTeacherAssignments(selectedSchoolId)
-            val pagedStaff = allStaff.take(12)
-            val staffPage = org.springframework.data.domain.PageImpl(pagedStaff, pageable, allStaff.size.toLong())
-            val designations = staffRepository.findDistinctDesignationsBySchoolId(selectedSchoolId)
-            val communityStats = getCommunityStats(selectedSchoolId)
-            
-            model.addAttribute("staffPage", staffPage)
-            model.addAttribute("designations", designations)
-            model.addAttribute("communityStats", communityStats)
-            
-            return "admin/community/staff/staff-cards :: staff-cards-content"
+            return "admin/community/staff/assign-success"
         } catch (e: Exception) {
             model.addAttribute("error", handleDatabaseError(e, "Error saving staff"))
             return "fragments/error :: error-message"
@@ -1027,19 +1015,7 @@ class CommunityController(
                 model.addAttribute("success", "Student enrolled successfully!")
             }
 
-            // Return updated student list
-            val pageable = PageRequest.of(0, 12, Sort.by("user.firstName"))
-            val studentPage = studentRepository.findBySchoolIdAndIsActiveWithEnrollments(selectedSchoolId, true, pageable)
-            val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            val classes = schoolClassRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            val communityStats = getCommunityStats(selectedSchoolId)
-            
-            model.addAttribute("studentPage", studentPage)
-            model.addAttribute("tracks", tracks)
-            model.addAttribute("classes", classes)
-            model.addAttribute("communityStats", communityStats)
-            
-            return "admin/community/students/student-cards :: student-cards-content"
+            return "admin/community/students/assign-success"
         } catch (e: Exception) {
             model.addAttribute("error", handleDatabaseError(e, "Error saving student"))
             return "fragments/error :: error-message"
@@ -1739,11 +1715,7 @@ class CommunityController(
                 
                 model.addAttribute("success", "Parent added successfully!")
                 
-                // For create, we reload the list and close modal
-                response.setHeader("HX-Trigger", "{\"parentUpdated\": \"\", \"closeModal\": \"parentModal\"}")
-                
-                // Return empty string or success message to clear modal form
-                return "fragments/common :: success-alert" 
+                return "admin/community/parents/assign-success" 
             }
         } catch (e: Exception) {
             model.addAttribute("error", handleDatabaseError(e, "Error saving parent"))
