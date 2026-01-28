@@ -845,3 +845,27 @@ table {
         transform: translateY(0);
     }
 }
+
+/* Small Modal */
+.modal-sm {
+    max-width: 400px !important;
+    width: 100%;
+}
+
+/* Small Modal */
+
+/* Small Modal */
+.modal-sm {
+    max-width: 400px !important;
+    width: 100%;
+    height: auto !important;
+    max-height: 90vh;
+}
+
+/* Small Modal */
+.modal-sm {
+    max-width: 400px !important;
+    width: 100%;
+    height: auto !important;
+    max-height: 90vh;
+}

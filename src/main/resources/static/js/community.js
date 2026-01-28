@@ -28,7 +28,9 @@ window.closeModal = function (modalId) {
 // Student management functions
 window.confirmDelete = function (studentId, studentName) {
     document.getElementById('studentName').textContent = studentName;
-    document.getElementById('deleteForm').action = `/admin/community/students/${studentId}/delete`;
+    const form = document.getElementById('deleteForm');
+    form.setAttribute('hx-post', `/admin/community/students/${studentId}/delete`);
+    htmx.process(form);
     document.getElementById('deleteModal').classList.add('active');
 };
 
@@ -49,7 +51,9 @@ window.confirmDeleteStaff = function (staffId, staffName) {
         document.getElementById('staffName').textContent = staffName;
     }
     if (document.getElementById('deleteForm')) {
-        document.getElementById('deleteForm').action = `/admin/community/staff/${staffId}/delete`;
+        const form = document.getElementById('deleteForm');
+        form.setAttribute('hx-post', `/admin/community/staff/${staffId}/delete`);
+        htmx.process(form);
     }
     if (document.getElementById('deleteModal')) {
         document.getElementById('deleteModal').classList.add('active');
@@ -85,11 +89,13 @@ window.confirmDeleteParent = function (parentId, parentName) {
     if (document.getElementById('parentName')) {
         document.getElementById('parentName').textContent = parentName;
     }
-    if (document.getElementById('deleteParentForm')) {
-        document.getElementById('deleteParentForm').action = `/admin/community/parents/${parentId}/delete`;
+    if (document.getElementById('deleteForm')) {
+        const form = document.getElementById('deleteForm');
+        form.setAttribute('hx-post', `/admin/community/parents/${parentId}/delete`);
+        htmx.process(form);
     }
-    if (document.getElementById('deleteParentModal')) {
-        document.getElementById('deleteParentModal').classList.add('active');
+    if (document.getElementById('deleteModal')) {
+        document.getElementById('deleteModal').classList.add('active');
     }
 };
 

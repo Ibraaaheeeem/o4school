@@ -43,7 +43,7 @@ interface StudentClassRepository : JpaRepository<StudentClass, UUID> {
     @Query("SELECT sc FROM StudentClass sc JOIN FETCH sc.student s JOIN FETCH s.user WHERE sc.schoolId = :schoolId AND sc.isActive = true")
     fun findBySchoolIdWithStudentDetails(@Param("schoolId") schoolId: UUID): List<StudentClass>
     
-    @Query("SELECT sc FROM StudentClass sc JOIN FETCH sc.schoolClass c LEFT JOIN FETCH c.department d LEFT JOIN FETCH d.track t WHERE sc.student.id = :studentId AND sc.isActive = true")
+    @Query("SELECT sc FROM StudentClass sc JOIN FETCH sc.schoolClass c LEFT JOIN FETCH c.track tr LEFT JOIN FETCH c.department d LEFT JOIN FETCH d.track t WHERE sc.student.id = :studentId AND sc.isActive = true")
     fun findByStudentIdWithClassAndTrack(@Param("studentId") studentId: UUID): List<StudentClass>
     
     @Query("SELECT sc FROM StudentClass sc JOIN FETCH sc.academicSession JOIN FETCH sc.term WHERE sc.schoolId = :schoolId AND sc.isActive = true")

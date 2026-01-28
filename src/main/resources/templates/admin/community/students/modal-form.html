@@ -5,7 +5,7 @@
         <button class="close-modal" onclick="closeModal('studentModal')">&times;</button>
     </div>
 
-    <form hx-post="/admin/community/students/save-htmx" hx-target="#student-cards-container" hx-swap="innerHTML"
+    <form hx-post="/admin/community/students/save-htmx" hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
         th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
         hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('studentModal'); } else { alert('Error saving student. Please try again.'); }"
         hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form">
@@ -509,8 +509,13 @@
             cameraStream = null;
         }
 
-        video.srcObject = null;
-        container.style.display = 'none';
+        if (video) {
+            video.srcObject = null;
+        }
+
+        if (container) {
+            container.style.display = 'none';
+        }
     }
 
     function capturePhoto() {

@@ -7,7 +7,9 @@
         <span th:text="${error}"></span>
     </div>
 
-    <div class="parent-cards-grid" th:if="${!parentPage.content.empty}">
+    <div class="parent-cards-grid"
+        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.5rem; width: 100%;"
+        th:if="${!parentPage.content.empty}">
         <th:block th:each="parent : ${parentPage.content}">
             <div th:replace="~{:: single-parent-card}"></div>
         </th:block>
@@ -54,10 +56,8 @@
     </div>
 </div>
 
-<div th:fragment="single-parent-card" 
-     th:id="'parent-card-' + ${parent?.id}" 
-     class="parent-card"
-     th:attr="hx-swap-oob=${isOob} ? 'true' : null">
+<div th:fragment="single-parent-card" th:id="'parent-card-' + ${parent?.id}" class="parent-card"
+    th:attr="hx-swap-oob=${isOob} ? 'true' : null">
     <div class="parent-card-header">
         <div class="parent-avatar">
             <span th:text="${#strings.substring(parent.user.fullName, 0, 1)}">J</span>
@@ -105,24 +105,24 @@
 
     <div class="parent-card-footer">
         <div class="card-actions">
-            <button class="btn btn-sm btn-outline" th:hx-get="@{/admin/community/parents/{id}/modal(id=${parent?.id})}"
-                hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
-                th:onclick="'setTimeout(() => openModal(\'parentModal\'), 100)'">
-                <i class="icon-edit"></i> Edit
-            </button>
             <button class="btn btn-sm btn-info"
                 th:hx-get="@{/admin/community/parents/{id}/assign-students/modal(id=${parent?.id})}"
                 hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML"
                 th:onclick="'setTimeout(() => openModal(\'parentStudentModal\'), 100)'">
-                <i class="icon-plus"></i> Assign Students
+                <i class="fas fa-user-plus"></i> Assign Students
             </button>
             <a class="btn btn-sm btn-warning" th:href="@{/parent/view-as/{id}(id=${parent?.id})}" target="_blank">
-                <i class="icon-eye"></i> Dashboard
+                <i class="fas fa-external-link-alt"></i> Dashboard
             </a>
+            <button class="btn btn-sm btn-outline" th:hx-get="@{/admin/community/parents/{id}/modal(id=${parent?.id})}"
+                hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
+                th:onclick="'setTimeout(() => openModal(\'parentModal\'), 100)'">
+                <i class="fas fa-edit"></i>
+            </button>
             <button class="btn btn-sm btn-danger" th:data-parent-id="${parent?.id}"
                 th:data-parent-name="${parent?.user?.fullName}"
                 onclick="confirmDelete(this.dataset.parentId, this.dataset.parentName)">
-                <i class="icon-trash"></i> Delete
+                <i class="fas fa-trash-alt"></i>
             </button>
         </div>
     </div>

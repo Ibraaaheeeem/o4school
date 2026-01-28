@@ -8,7 +8,8 @@
     </div>
 
     <div class="student-cards-grid" th:if="${!studentPage.content.empty}">
-        <div th:each="student : ${studentPage.content}" class="student-card">
+        <div th:each="student : ${studentPage.content}" class="student-card" th:id="'student-card-' + ${student.id}"
+            th:fragment="single-student-card(student)" th:attr="hx-swap-oob=${isOob == true ? 'true' : null}">
             <div class="student-card-header">
                 <div class="student-avatar">
                     <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
@@ -65,22 +66,23 @@
 
             <div class="student-card-footer">
                 <div class="card-actions">
-                    <button class="btn btn-sm btn-outline"
-                        th:hx-get="@{/admin/community/students/{id}/modal(id=${student.id})}"
-                        hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
-                        th:onclick="'setTimeout(() => openModal(\'studentModal\'), 100)'">
-                        <i class="icon-edit"></i> Edit
-                    </button>
                     <button class="btn btn-sm btn-info"
                         th:hx-get="@{/admin/community/students/{id}/assign-class/modal(id=${student.id})}"
                         hx-target="#studentClassModal .modal-dialog" hx-swap="innerHTML"
                         th:onclick="'setTimeout(() => openModal(\'studentClassModal\'), 100)'">
-                        <i class="icon-plus"></i> Assign Class
+                        <i class="fas fa-plus"></i> Assign Class
                     </button>
+                    <button class="btn btn-sm btn-outline"
+                        th:hx-get="@{/admin/community/students/{id}/modal(id=${student.id})}"
+                        hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+                        th:onclick="'setTimeout(() => openModal(\'studentModal\'), 100)'">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+
                     <button class="btn btn-sm btn-danger" th:data-student-id="${student.id}"
                         th:data-student-name="${student.user.fullName}"
                         onclick="confirmDelete(this.dataset.studentId, this.dataset.studentName)">
-                        <i class="icon-trash"></i> Delete
+                        <i class="fas fa-trash-alt"></i>Delete
                     </button>
                 </div>
             </div>

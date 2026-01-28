@@ -106,7 +106,8 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
-                    <form id="deleteForm" method="post" style="display: inline;">
+                    <form id="deleteForm" method="post" style="display: inline;" hx-swap="none"
+                        hx-on::after-request="if(event.detail.successful) closeModal('deleteModal')">
                         <button type="submit" class="btn btn-danger">Delete</button>
                     </form>
                 </div>
@@ -126,7 +127,9 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-outline" onclick="closeModal('deleteAssignmentModal')">Cancel</button>
-                    <form id="deleteAssignmentForm" method="post" style="display: inline;">
+                    <form id="deleteAssignmentForm" method="post" style="display: inline;"
+                        hx-target="#student-cards-content" hx-swap="outerHTML"
+                        hx-on::after-request="if(event.detail.successful) closeModal('deleteAssignmentModal')">
                         <button type="submit" class="btn btn-danger">Remove</button>
                     </form>
                 </div>
@@ -215,19 +218,25 @@
             // Delete helpers - Override community.js functions to use the unified modal
             window.confirmDelete = function (studentId, studentName) {
                 document.getElementById('deleteItemName').textContent = studentName;
-                document.getElementById('deleteForm').action = `/admin/community/students/${studentId}/delete`;
+                const form = document.getElementById('deleteForm');
+                form.setAttribute('hx-post', `/admin/community/students/${studentId}/delete`);
+                htmx.process(form);
                 document.getElementById('deleteModal').classList.add('active');
             };
 
             window.confirmDeleteStaff = function (staffId, staffName) {
                 document.getElementById('deleteItemName').textContent = staffName;
-                document.getElementById('deleteForm').action = `/admin/community/staff/${staffId}/delete`;
+                const form = document.getElementById('deleteForm');
+                form.setAttribute('hx-post', `/admin/community/staff/${staffId}/delete`);
+                htmx.process(form);
                 document.getElementById('deleteModal').classList.add('active');
             };
 
             window.confirmDeleteParent = function (parentId, parentName) {
                 document.getElementById('deleteItemName').textContent = parentName;
-                document.getElementById('deleteForm').action = `/admin/community/parents/${parentId}/delete`;
+                const form = document.getElementById('deleteForm');
+                form.setAttribute('hx-post', `/admin/community/parents/${parentId}/delete`);
+                htmx.process(form);
                 document.getElementById('deleteModal').classList.add('active');
             };
         </script>

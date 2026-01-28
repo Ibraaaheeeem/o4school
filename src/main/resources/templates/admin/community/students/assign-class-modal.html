@@ -7,7 +7,7 @@
 
     <form hx-post="/admin/community/students/{studentId}/assign-class/modal"
         th:hx-post="@{/admin/community/students/{studentId}/assign-class/modal(studentId=${student.id})}"
-        hx-target="#student-cards-container" hx-swap="innerHTML"
+        hx-target="#studentClassModal .modal-dialog" hx-swap="innerHTML"
         hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('studentClassModal'); } else { alert('Error assigning class. Please try again.'); }"
         hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form"
         th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">

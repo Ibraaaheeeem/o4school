@@ -5,7 +5,7 @@
         <button class="close-modal" onclick="closeModal('staffModal')">&times;</button>
     </div>
 
-    <form hx-post="/admin/community/staff/save-htmx" hx-target="#staff-cards-container" hx-swap="innerHTML"
+    <form hx-post="/admin/community/staff/save-htmx" hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
         th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
         hx-on::after-request="if(event.detail.successful) { if(window.closeModal) window.closeModal('staffModal'); } else { alert('Error saving staff. Please try again.'); }"
         hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form">

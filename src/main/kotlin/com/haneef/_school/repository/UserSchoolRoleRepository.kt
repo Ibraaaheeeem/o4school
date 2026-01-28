@@ -36,6 +36,8 @@ interface UserSchoolRoleRepository : JpaRepository<UserSchoolRole, UUID> {
 
     fun existsByUserIdAndSchoolIdAndRoleId(userId: UUID, schoolId: UUID, roleId: UUID): Boolean
 
+    fun existsByUserIdAndSchoolId(userId: UUID, schoolId: UUID): Boolean
+
     @Query("SELECT usr FROM UserSchoolRole usr JOIN FETCH usr.role JOIN FETCH usr.user WHERE usr.schoolId = :schoolId")
     fun findBySchoolId(@Param("schoolId") schoolId: UUID): List<UserSchoolRole>
 

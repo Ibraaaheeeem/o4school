@@ -8,6 +8,7 @@
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/community.css}">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script th:src="@{/js/modal.js}"></script>
     <script th:src="@{/js/community.js}"></script>
@@ -47,24 +48,27 @@
                 <form id="filterForm" hx-get="/admin/community/staff" hx-target="#staff-cards-container"
                     hx-trigger="change, keyup delay:500ms from:#staffSearchInput" hx-replace-url="true"
                     class="filters-container">
-                    <div class="filter-group">
-                        <label for="staffSearchInput">Search:</label>
-                        <div class="search-input-container">
-                            <input type="text" id="staffSearchInput" name="search" class="form-input"
-                                placeholder="Search by name or staff ID..." th:value="${search}">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="staffSearchInput">Search</label>
+                            <div class="search-input-container">
+                                <input type="text" id="staffSearchInput" name="search" class="form-input"
+                                    placeholder="Search by name or staff ID..." th:value="${search}">
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label for="designationFilter">Designation</label>
+                            <select id="designationFilter" name="designation" class="form-select">
+                                <option value="">All Designations</option>
+                                <option th:each="designation : ${designations}" th:value="${designation}"
+                                    th:text="${designation}" th:selected="${selectedDesignation == designation}">
+                                </option>
+                            </select>
                         </div>
                     </div>
-                    <div class="filter-group">
-                        <label for="designationFilter">Designation:</label>
-                        <select id="designationFilter" name="designation" class="form-select">
-                            <option value="">All Designations</option>
-                            <option th:each="designation : ${designations}" th:value="${designation}"
-                                th:text="${designation}" th:selected="${selectedDesignation == designation}">
-                            </option>
-                        </select>
-                    </div>
                     <div class="filter-actions">
-                        <button type="button" class="btn btn-outline btn-sm" onclick="clearFilters()">Clear</button>
+                        <button type="button" class="btn-clear-filters" onclick="clearFilters()"
+                            title="Clear all filters">✕</button>
                     </div>
                 </form>
             </div>
@@ -75,93 +79,110 @@
                     <div th:replace="~{admin/community/staff/staff-cards :: staff-cards-content}"></div>
                 </div>
             </div>
+
+            <!-- Staff Modal -->
+            <div id="staffModal" class="modal">
+                <div class="modal-dialog">
+                    <!-- Modal content will be loaded here via HTMX -->
+                </div>
+            </div>
+
+            <!-- Staff Assignment Modal -->
+            <div id="staffAssignmentModal" class="modal">
+                <div class="modal-dialog">
+                    <!-- Modal content will be loaded here via HTMX -->
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Modal -->
+            <div id="deleteModal" class="modal">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Confirm Delete</h3>
+                            <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete <strong id="staffName"></strong>?</p>
+                            <p class="text-muted">This action cannot be undone.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+                            <form id="deleteForm" hx-post="" hx-swap="none" style="display: inline;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" name="search" th:value="${search}" />
+                                <input type="hidden" name="page" th:value="${currentPage}" />
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Class Teacher Assignment Modal -->
+            <div id="deleteTeacherAssignmentModal" class="modal">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Remove Class Teacher Assignment</h3>
+                            <button class="close-modal"
+                                onclick="closeModal('deleteTeacherAssignmentModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to remove the class teacher assignment:</p>
+                            <p><strong id="teacherAssignmentInfo"></strong>?</p>
+                            <p class="text-muted">The staff member will no longer be the class teacher for this class.
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline"
+                                onclick="closeModal('deleteTeacherAssignmentModal')">Cancel</button>
+                            <form id="deleteTeacherAssignmentForm"
+                                hx-post="/admin/community/staff/remove-class-assignment/0"
+                                hx-target="#staff-cards-container" hx-swap="innerHTML"
+                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                                hx-on::after-request="if(event.detail.successful) { closeModal('deleteTeacherAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
+                                hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
+                                style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Remove Assignment</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Subject Teacher Assignment Modal -->
+            <div id="deleteSubjectAssignmentModal" class="modal">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Remove Subject Teacher Assignment</h3>
+                            <button class="close-modal"
+                                onclick="closeModal('deleteSubjectAssignmentModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to remove the subject teacher assignment:</p>
+                            <p><strong id="subjectAssignmentInfo"></strong>?</p>
+                            <p class="text-muted">The staff member will no longer teach this subject in this class.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline"
+                                onclick="closeModal('deleteSubjectAssignmentModal')">Cancel</button>
+                            <form id="deleteSubjectAssignmentForm"
+                                hx-post="/admin/community/staff/remove-subject-assignment/0"
+                                hx-target="#staff-cards-container" hx-swap="innerHTML"
+                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                                hx-on::after-request="if(event.detail.successful) { closeModal('deleteSubjectAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
+                                hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
+                                style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Remove Assignment</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
-
-    <!-- Staff Modal -->
-    <div id="staffModal" class="modal">
-        <div class="modal-dialog">
-            <!-- Modal content will be loaded here via HTMX -->
-        </div>
-    </div>
-
-    <!-- Staff Assignment Modal -->
-    <div id="staffAssignmentModal" class="modal">
-        <div class="modal-dialog">
-            <!-- Modal content will be loaded here via HTMX -->
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Confirm Delete</h3>
-                <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete <strong id="staffName"></strong>?</p>
-                <p class="text-muted">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Class Teacher Assignment Modal -->
-    <div id="deleteTeacherAssignmentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Remove Class Teacher Assignment</h3>
-                <button class="close-modal" onclick="closeModal('deleteTeacherAssignmentModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to remove the class teacher assignment:</p>
-                <p><strong id="teacherAssignmentInfo"></strong>?</p>
-                <p class="text-muted">The staff member will no longer be the class teacher for this class.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeModal('deleteTeacherAssignmentModal')">Cancel</button>
-                <form id="deleteTeacherAssignmentForm" hx-post="/admin/community/staff/remove-class-assignment/0"
-                    hx-target="#staff-cards-container" hx-swap="innerHTML"
-                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-                    hx-on::after-request="if(event.detail.successful) { closeModal('deleteTeacherAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
-                    hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
-                    style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Remove Assignment</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Subject Teacher Assignment Modal -->
-    <div id="deleteSubjectAssignmentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Remove Subject Teacher Assignment</h3>
-                <button class="close-modal" onclick="closeModal('deleteSubjectAssignmentModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to remove the subject teacher assignment:</p>
-                <p><strong id="subjectAssignmentInfo"></strong>?</p>
-                <p class="text-muted">The staff member will no longer teach this subject in this class.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeModal('deleteSubjectAssignmentModal')">Cancel</button>
-                <form id="deleteSubjectAssignmentForm" hx-post="/admin/community/staff/remove-subject-assignment/0"
-                    hx-target="#staff-cards-container" hx-swap="innerHTML"
-                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-                    hx-on::after-request="if(event.detail.successful) { closeModal('deleteSubjectAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
-                    hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
-                    style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Remove Assignment</button>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <script>
         // Define modal functions globally

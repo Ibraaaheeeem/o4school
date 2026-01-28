@@ -533,6 +533,19 @@ class CommunityController(
                 staffRepository.save(existingStaff)
                 
                 model.addAttribute("success", "Staff updated successfully!")
+                
+                // Return updated staff card (OOB)
+                val updatedStaffList = loadStaffWithTeacherAssignments(selectedSchoolId).filter { it.id == id }
+                if (updatedStaffList.isEmpty()) throw RuntimeException("Staff not found after update")
+                val updatedStaff = updatedStaffList.first()
+                
+                val staffPage = org.springframework.data.domain.PageImpl(listOf(updatedStaff))
+                model.addAttribute("staffPage", staffPage)
+                model.addAttribute("staff", updatedStaff)
+                model.addAttribute("isOob", true)
+                model.addAttribute("modalId", "staffModal")
+                
+                return "admin/community/staff/assign-success"
             } else {
                 // Check if user already exists by email
                 val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
@@ -933,6 +946,15 @@ class CommunityController(
                 studentRepository.save(existingStudent)
                 
                 model.addAttribute("success", "Student updated successfully!")
+                
+                // Return updated student card (OOB)
+                val updatedStudent = studentRepository.findById(id).orElseThrow()
+                val studentPage = org.springframework.data.domain.PageImpl(listOf(updatedStudent))
+                model.addAttribute("studentPage", studentPage)
+                model.addAttribute("isOob", true)
+                model.addAttribute("modalId", "studentModal")
+                
+                return "admin/community/students/assign-success"
             } else {
                 // Check if user already exists by email
                 val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
@@ -1167,7 +1189,14 @@ class CommunityController(
     // Delete operations
     @PostMapping("/staff/{id}/delete")
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
-    fun deleteStaff(@PathVariable id: UUID, session: HttpSession, redirectAttributes: RedirectAttributes): String {
+    fun deleteStaff(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
             
@@ -1182,11 +1211,46 @@ class CommunityController(
             
             staff.isActive = false
             staffRepository.save(staff)
+            
+            // Handle HTMX request
+            if (request.getHeader("HX-Request") != null) {
+                // Close modal, remove card, show success message
+                return """
+                    <div id="staff-card-$id" hx-swap-oob="delete"></div>
+                    <div id="global-toast-container" hx-swap-oob="beforeend">
+                        <div class="toast success show">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Staff deleted successfully!</span>
+                        </div>
+                    </div>
+                    <script>
+                        closeModal('deleteModal');
+                        setTimeout(() => {
+                            const toasts = document.querySelectorAll('.toast');
+                            toasts.forEach(t => t.classList.remove('show'));
+                        }, 3000);
+                    </script>
+                """.trimIndent()
+            }
+            
             redirectAttributes.addFlashAttribute("success", "Staff deleted successfully!")
         } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) {
+                return "fragments/error :: error-message"
+            }
             redirectAttributes.addFlashAttribute("error", "Error deleting staff: ${e.message}")
         }
-        return "redirect:/admin/community/staff"
+        
+        val redirectUrl = StringBuilder("redirect:/admin/community/staff")
+        val params = mutableListOf<String>()
+        if (!search.isNullOrBlank()) params.add("search=$search")
+        if (page > 0) params.add("page=$page")
+        
+        if (params.isNotEmpty()) {
+            redirectUrl.append("?").append(params.joinToString("&"))
+        }
+        
+        return redirectUrl.toString()
     }
 
     @PostMapping("/students/save")
@@ -1356,7 +1420,14 @@ class CommunityController(
 
     @PostMapping("/students/{id}/delete")
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
-    fun deleteStudent(@PathVariable id: UUID, session: HttpSession, redirectAttributes: RedirectAttributes): String {
+    fun deleteStudent(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
             
@@ -1371,11 +1442,46 @@ class CommunityController(
             
             student.isActive = false
             studentRepository.save(student)
+            
+            // Handle HTMX request
+            if (request.getHeader("HX-Request") != null) {
+                // Close modal, remove card, show success message
+                return """
+                    <div id="student-card-$id" hx-swap-oob="delete"></div>
+                    <div id="global-toast-container" hx-swap-oob="beforeend">
+                        <div class="toast success show">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Student deleted successfully!</span>
+                        </div>
+                    </div>
+                    <script>
+                        closeModal('deleteModal');
+                        setTimeout(() => {
+                            const toasts = document.querySelectorAll('.toast');
+                            toasts.forEach(t => t.classList.remove('show'));
+                        }, 3000);
+                    </script>
+                """.trimIndent()
+            }
+            
             redirectAttributes.addFlashAttribute("success", "Student deleted successfully!")
         } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) {
+                return "fragments/error :: error-message"
+            }
             redirectAttributes.addFlashAttribute("error", "Error deleting student: ${e.message}")
         }
-        return "redirect:/admin/community/students"
+        
+        val redirectUrl = StringBuilder("redirect:/admin/community/students")
+        val params = mutableListOf<String>()
+        if (!search.isNullOrBlank()) params.add("search=$search")
+        if (page > 0) params.add("page=$page")
+        
+        if (params.isNotEmpty()) {
+            redirectUrl.append("?").append(params.joinToString("&"))
+        }
+        
+        return redirectUrl.toString()
     }
 
     @PostMapping("/parents/save")
@@ -1560,11 +1666,9 @@ class CommunityController(
                 
                 model.addAttribute("parent", updatedParent)
                 model.addAttribute("isOob", true)
+                model.addAttribute("modalId", "parentModal")
                 
-                // Close modal via trigger
-                response.setHeader("HX-Trigger", "{\"closeModal\": \"parentModal\"}")
-                
-                return "admin/community/parents/parent-cards :: single-parent-card"
+                return "admin/community/parents/assign-success"
             } else {
                 // Check if user already exists by email
                 val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
@@ -1635,7 +1739,14 @@ class CommunityController(
 
     @PostMapping("/parents/{id}/delete")
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
-    fun deleteParent(@PathVariable id: UUID, session: HttpSession, redirectAttributes: RedirectAttributes): String {
+    fun deleteParent(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
             
@@ -1650,11 +1761,46 @@ class CommunityController(
             
             parent.isActive = false
             parentRepository.save(parent)
+            
+            // Handle HTMX request
+            if (request.getHeader("HX-Request") != null) {
+                // Close modal, remove card, show success message
+                return """
+                    <div id="parent-card-$id" hx-swap-oob="delete"></div>
+                    <div id="global-toast-container" hx-swap-oob="beforeend">
+                        <div class="toast success show">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Parent deleted successfully!</span>
+                        </div>
+                    </div>
+                    <script>
+                        closeModal('deleteModal');
+                        setTimeout(() => {
+                            const toasts = document.querySelectorAll('.toast');
+                            toasts.forEach(t => t.classList.remove('show'));
+                        }, 3000);
+                    </script>
+                """.trimIndent()
+            }
+            
             redirectAttributes.addFlashAttribute("success", "Parent deleted successfully!")
         } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) {
+                return "fragments/error :: error-message"
+            }
             redirectAttributes.addFlashAttribute("error", "Error deleting parent: ${e.message}")
         }
-        return "redirect:/admin/community/parents"
+        
+        val redirectUrl = StringBuilder("redirect:/admin/community/parents")
+        val params = mutableListOf<String>()
+        if (!search.isNullOrBlank()) params.add("search=$search")
+        if (page > 0) params.add("page=$page")
+        
+        if (params.isNotEmpty()) {
+            redirectUrl.append("?").append(params.joinToString("&"))
+        }
+        
+        return redirectUrl.toString()
     }
 
     private fun generateStaffId(schoolId: UUID): String {
@@ -1829,7 +1975,7 @@ class CommunityController(
                 }
             }
             updateClassEnrollmentCount(schoolClass.id!!)
-
+            
             val successMessage = if (existingAssignments.isNotEmpty()) {
                 "Student class assignment updated successfully"
             } else {
@@ -1837,21 +1983,20 @@ class CommunityController(
             }
             model.addAttribute("success", successMessage)
             
-            // Return updated student list
-            val pageable = PageRequest.of(0, 20, Sort.by("user.firstName"))
-            val studentPage = studentRepository.findBySchoolIdAndIsActiveWithEnrollments(selectedSchoolId, true, pageable)
-            val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            val classes = schoolClassRepository.findBySchoolIdAndIsActiveWithTrack(selectedSchoolId, true)
-            val classesByTrack = classes.groupBy { it.track?.id }
-            val communityStats = getCommunityStats(selectedSchoolId)
+            // Return updated student card (OOB)
+            val updatedStudent = studentRepository.findById(studentId).orElseThrow()
             
+            // Manually update enrollments in memory to ensure the view reflects the change immediately
+            // This is needed because the student might be from L1 cache and the collection might not have been refreshed
+            val updatedEnrollments = studentClassRepository.findByStudentIdWithClassAndTrack(studentId)
+            updatedStudent.classEnrollments = updatedEnrollments.toMutableList()
+            
+            val studentPage = org.springframework.data.domain.PageImpl(listOf(updatedStudent))
             model.addAttribute("studentPage", studentPage)
-            model.addAttribute("tracks", tracks)
-            model.addAttribute("classesByTrack", classesByTrack)
-            model.addAttribute("communityStats", communityStats)
-            model.addAttribute("selectedClassIds", emptyList<UUID>())
+            model.addAttribute("modalId", "studentClassModal")
+            model.addAttribute("isOob", true)
             
-            return "admin/community/students/student-cards :: student-cards-content"
+            return "admin/community/students/assign-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error assigning student to class: ${e.message}")
             return "fragments/error :: error-message"
@@ -2245,19 +2390,20 @@ class CommunityController(
 
             model.addAttribute("success", "Class assignment removed successfully")
             
-            // Return updated student list
-            val pageable = PageRequest.of(0, 12, Sort.by("user.firstName"))
-            val studentPage = studentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true, pageable)
-            val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            val classes = schoolClassRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            val communityStats = getCommunityStats(selectedSchoolId)
+            // Return updated student card (OOB)
+            val studentId = assignment.student.id
+            val updatedStudent = studentRepository.findById(studentId!!).orElseThrow()
             
+            // Manually update enrollments in memory to ensure the view reflects the change immediately
+            val updatedEnrollments = studentClassRepository.findByStudentIdWithClassAndTrack(studentId)
+            updatedStudent.classEnrollments = updatedEnrollments.toMutableList()
+            
+            val studentPage = org.springframework.data.domain.PageImpl(listOf(updatedStudent))
             model.addAttribute("studentPage", studentPage)
-            model.addAttribute("tracks", tracks)
-            model.addAttribute("classes", classes)
-            model.addAttribute("communityStats", communityStats)
+            model.addAttribute("isOob", true)
+            model.addAttribute("modalId", "deleteAssignmentModal")
             
-            return "admin/community/students/student-cards :: student-cards-content"
+            return "admin/community/students/assign-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error removing class assignment: ${e.message}")
             return "fragments/error :: error-message"
@@ -2406,17 +2552,18 @@ class CommunityController(
 
             model.addAttribute("success", "Parent-child relationship removed successfully")
             
-            // Return updated parent list
-            val pageable = PageRequest.of(0, 12, Sort.by("user.firstName"))
-            val allParents = parentRepository.findBySchoolIdAndIsActiveWithRelationships(selectedSchoolId, true)
-            val pagedParents = allParents.take(12)
-            val parentPage = org.springframework.data.domain.PageImpl(pagedParents, pageable, allParents.size.toLong())
-            val communityStats = getCommunityStats(selectedSchoolId)
+            // Return updated parent card (OOB)
+            val parentId = assignment.parent.id
+            val updatedParent = parentRepository.findById(parentId!!).orElseThrow()
+            // Ensure relationships are loaded
+            val relationships = parentStudentRepository.findByParentIdWithStudentDetails(parentId)
+            updatedParent.studentRelationships = relationships.toMutableList()
             
-            model.addAttribute("parentPage", parentPage)
-            model.addAttribute("communityStats", communityStats)
+            model.addAttribute("parent", updatedParent)
+            model.addAttribute("isOob", true)
+            model.addAttribute("modalId", "deleteParentAssignmentModal")
             
-            return "admin/community/parents/parent-cards :: parent-cards-content"
+            return "admin/community/parents/assign-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error removing parent-child relationship: ${e.message}")
             return "fragments/error :: error-message"

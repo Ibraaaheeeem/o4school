@@ -1,67 +1,74 @@
 <!-- Staff Assignments Modal - Redesigned -->
-<div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.15);">
+<div class="modal-content"
+    style="border-radius: 12px; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden;">
     <div class="modal-header"
-        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 0 0; padding: 1.5rem 2rem; border: none;">
+        style="background: #ffffff; color: #1e293b; padding: 1.5rem 2rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h5 class="modal-title" style="margin: 0; font-weight: 600; font-size: 1.25rem;">
-                <i class="fas fa-chalkboard-teacher me-2"></i>
+            <h5 class="modal-title" style="margin: 0; font-weight: 700; font-size: 1.25rem; letter-spacing: -0.025em;">
+                <i class="fas fa-chalkboard-teacher me-2" style="color: #3b82f6;"></i>
                 Staff Assignments
             </h5>
-            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">
-                <span th:text="${staff.user.firstName + ' ' + staff.user.lastName}"></span>
-                <span style="opacity: 0.7; margin-left: 0.5rem;" th:text="'(' + ${staff.staffId} + ')'"></span>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #64748b;">
+                Managing assignments for <strong th:text="${staff.user.firstName + ' ' + staff.user.lastName}"
+                    style="color: #0f172a;"></strong>
+                <span
+                    style="opacity: 0.8; margin-left: 0.5rem; font-family: monospace; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;"
+                    th:text="${staff.staffId}"></span>
             </p>
         </div>
-        <button type="button" class="btn-close btn-close-white" onclick="closeModal('staffAssignmentModal')"
-            aria-label="Close" style="opacity: 0.9;"></button>
+        <button type="button" class="btn-close" onclick="closeModal('staffAssignmentModal')" aria-label="Close"
+            style="opacity: 0.6; transition: opacity 0.2s;"></button>
     </div>
 
-    <div class="modal-body" style="padding: 2rem; background: #f8f9fa;">
+    <div class="modal-body" style="padding: 2rem; background: #f8fafc;">
         <!-- Success/Error Messages -->
         <div id="assignment-messages" style="margin-bottom: 1.5rem;">
             <div th:if="${success}" class="alert"
-                style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center;">
-                <i class="fas fa-check-circle me-2" style="font-size: 1.2rem;"></i>
+                style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center; font-size: 0.95rem;">
+                <i class="fas fa-check-circle me-2" style="font-size: 1.1rem; color: #10b981;"></i>
                 <span th:text="${success}"></span>
             </div>
             <div th:if="${error}" class="alert"
-                style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center;">
-                <i class="fas fa-exclamation-circle me-2" style="font-size: 1.2rem;"></i>
+                style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center; font-size: 0.95rem;">
+                <i class="fas fa-exclamation-circle me-2" style="font-size: 1.1rem; color: #ef4444;"></i>
                 <span th:text="${error}"></span>
             </div>
         </div>
 
         <!-- Academic Session Info Banner -->
         <div
-            style="background: white; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; border-left: 4px solid #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <i class="fas fa-calendar-alt" style="color: #667eea; font-size: 1.5rem;"></i>
-                <div>
-                    <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.25rem;">Current Academic Period
-                    </div>
-                    <div style="font-weight: 600; color: #2d3748;">
-                        <span th:text="${currentSession.sessionName}"></span>
-                        <span style="color: #cbd5e0; margin: 0 0.5rem;">•</span>
-                        <span th:text="${currentTerm.termName}"></span>
-                    </div>
+            style="background: white; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 2rem; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div
+                style="width: 40px; height: 40px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #3b82f6;">
+                <i class="fas fa-calendar-alt" style="font-size: 1.2rem;"></i>
+            </div>
+            <div>
+                <div
+                    style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.25rem;">
+                    Current Academic Period</div>
+                <div style="font-weight: 600; color: #1e293b; font-size: 1rem;">
+                    <span th:text="${currentSession.sessionName}"></span>
+                    <span style="color: #cbd5e0; margin: 0 0.5rem;">•</span>
+                    <span th:text="${currentTerm.termName}"></span>
                 </div>
             </div>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-4">
             <!-- Class Teacher Assignment -->
             <div class="col-lg-6">
                 <div
-                    style="background: white; border-radius: 12px; padding: 1.5rem; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    style="background: white; border-radius: 12px; padding: 1.5rem; height: 100%; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                     <div
-                        style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 2px solid #f1f3f5;">
+                        style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9;">
                         <div
-                            style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-users" style="color: white; font-size: 1.1rem;"></i>
+                            style="width: 48px; height: 48px; background: #f0f9ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #bae6fd;">
+                            <i class="fas fa-users" style="color: #0284c7; font-size: 1.25rem;"></i>
                         </div>
                         <div>
-                            <h6 style="margin: 0; font-weight: 600; color: #2d3748;">Class Teacher</h6>
-                            <small style="color: #718096;">Assign as homeroom teacher</small>
+                            <h6 style="margin: 0; font-weight: 700; color: #0f172a; font-size: 1.1rem;">Class Teacher
+                            </h6>
+                            <small style="color: #64748b; font-size: 0.85rem;">Assign as homeroom teacher</small>
                         </div>
                     </div>
 
@@ -74,59 +81,63 @@
 
                         <div class="mb-3">
                             <label for="classTeacherTrackId"
-                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
-                                <i class="fas fa-route me-1" style="color: #a0aec0;"></i>Track
-                            </label>
+                                style="font-weight: 600; color: #475569; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Track</label>
                             <select class="form-select" id="classTeacherTrackId"
                                 onchange="loadAssignmentClassesByTrack('classTeacher')"
-                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
-                                <option value="">Choose a track...</option>
+                                style="border-radius: 8px; border: 1px solid #cbd5e1; padding: 0.6rem 0.75rem; font-size: 0.95rem; background-color: #f8fafc;">
+                                <option value="">Select Track...</option>
                                 <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
                                 </option>
                             </select>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="classTeacherClassId"
-                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
-                                <i class="fas fa-school me-1" style="color: #a0aec0;"></i>Class
-                            </label>
+                                style="font-weight: 600; color: #475569; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Class</label>
                             <select class="form-select" id="classTeacherClassId" name="assignedClassId" disabled
-                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
-                                <option value="">First select a track...</option>
+                                style="border-radius: 8px; border: 1px solid #cbd5e1; padding: 0.6rem 0.75rem; font-size: 0.95rem; background-color: #f8fafc;">
+                                <option value="">Select Track First...</option>
                             </select>
                         </div>
 
                         <button type="submit" class="btn w-100"
-                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; padding: 0.7rem; font-weight: 500; transition: transform 0.2s; margin-top: 0.5rem;">
-                            <i class="fas fa-plus me-2"></i>Assign as Class Teacher
+                            style="background: #0284c7; color: white; border: none; border-radius: 8px; padding: 0.75rem; font-weight: 600; transition: all 0.2s; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);">
+                            <i class="fas fa-plus me-2"></i>Assign Class
                         </button>
                     </form>
 
                     <!-- Current Class Assignments -->
                     <div id="current-class-assignments" th:if="${!#lists.isEmpty(currentClassAssignments)}"
-                        style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
+                        style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #e2e8f0;">
                         <div
-                            style="font-size: 0.85rem; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
-                            Current Assignments</div>
-                        <div th:each="assignment : ${currentClassAssignments}" class="modal-assignment-item"
-                            style="background: #f7fafc; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 500; color: #2d3748; margin-bottom: 0.25rem;"
-                                    th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}">
+                            style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+                            Current Assignments
+                        </div>
+                        <div class="assignments-scroll-container"
+                            style="max-height: 200px; overflow-y: auto; padding-right: 5px;">
+                            <div th:each="assignment : ${currentClassAssignments}" class="modal-assignment-item"
+                                style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: #334155; margin-bottom: 0.25rem; font-size: 0.95rem;"
+                                        th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}">
+                                    </div>
+                                    <small
+                                        style="color: #64748b; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="far fa-clock"></i>
+                                        <span
+                                            th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></span>
+                                    </small>
                                 </div>
-                                <small style="color: #718096; font-size: 0.8rem;"
-                                    th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></small>
+                                <button type="button" th:data-assignment-id="${assignment.id}"
+                                    th:data-staff-id="${staff.id}"
+                                    th:data-assignment-info="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
+                                    onclick="removeClassAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
+                                    style="background: #fee2e2; color: #ef4444; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='#fecaca'; this.style.color='#b91c1c';"
+                                    onmouseout="this.style.background='#fee2e2'; this.style.color='#ef4444';">
+                                    <i class="fas fa-trash-alt" style="font-size: 0.9rem;"></i>
+                                </button>
                             </div>
-                            <button type="button" th:data-assignment-id="${assignment.id}"
-                                th:data-staff-id="${staff.id}"
-                                th:data-assignment-info="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
-                                onclick="removeClassAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
-                                style="background: #fed7d7; color: #c53030; border: none; border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='#fc8181'"
-                                onmouseout="this.style.background='#fed7d7'">
-                                <i class="fas fa-times"></i>
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -135,16 +146,17 @@
             <!-- Subject Teacher Assignment -->
             <div class="col-lg-6">
                 <div
-                    style="background: white; border-radius: 12px; padding: 1.5rem; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    style="background: white; border-radius: 12px; padding: 1.5rem; height: 100%; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                     <div
-                        style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 2px solid #f1f3f5;">
+                        style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9;">
                         <div
-                            style="width: 40px; height: 40px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-book" style="color: white; font-size: 1.1rem;"></i>
+                            style="width: 48px; height: 48px; background: #fdf2f8; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #fbcfe8;">
+                            <i class="fas fa-book" style="color: #db2777; font-size: 1.25rem;"></i>
                         </div>
                         <div>
-                            <h6 style="margin: 0; font-weight: 600; color: #2d3748;">Subject Teacher</h6>
-                            <small style="color: #718096;">Assign to teach a subject</small>
+                            <h6 style="margin: 0; font-weight: 700; color: #0f172a; font-size: 1.1rem;">Subject Teacher
+                            </h6>
+                            <small style="color: #64748b; font-size: 0.85rem;">Assign to teach a subject</small>
                         </div>
                     </div>
 
@@ -157,13 +169,11 @@
 
                         <div class="mb-3">
                             <label for="subjectTeacherTrackId"
-                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
-                                <i class="fas fa-route me-1" style="color: #a0aec0;"></i>Track
-                            </label>
+                                style="font-weight: 600; color: #475569; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Track</label>
                             <select class="form-select" id="subjectTeacherTrackId"
                                 onchange="loadAssignmentClassesByTrack('subjectTeacher')"
-                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
-                                <option value="">Choose a track...</option>
+                                style="border-radius: 8px; border: 1px solid #cbd5e1; padding: 0.6rem 0.75rem; font-size: 0.95rem; background-color: #f8fafc;">
+                                <option value="">Select Track...</option>
                                 <option th:each="track : ${tracks}" th:value="${track.id}" th:text="${track.name}">
                                 </option>
                             </select>
@@ -171,75 +181,81 @@
 
                         <div class="mb-3">
                             <label for="subjectTeacherClassId"
-                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
-                                <i class="fas fa-school me-1" style="color: #a0aec0;"></i>Class
-                            </label>
+                                style="font-weight: 600; color: #475569; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Class</label>
                             <select class="form-select" id="subjectTeacherClassId" name="assignedClassId"
                                 onchange="loadAssignmentSubjectsByClass()" disabled
-                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
-                                <option value="">First select a track...</option>
+                                style="border-radius: 8px; border: 1px solid #cbd5e1; padding: 0.6rem 0.75rem; font-size: 0.95rem; background-color: #f8fafc;">
+                                <option value="">Select Track First...</option>
                             </select>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="subjectId"
-                                style="font-weight: 500; color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
-                                <i class="fas fa-book me-1" style="color: #a0aec0;"></i>Subject
-                            </label>
+                                style="font-weight: 600; color: #475569; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Subject</label>
                             <select class="form-select" id="subjectId" name="subjectId" required disabled
-                                style="border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.6rem 0.75rem;">
-                                <option value="">First select a class...</option>
+                                style="border-radius: 8px; border: 1px solid #cbd5e1; padding: 0.6rem 0.75rem; font-size: 0.95rem; background-color: #f8fafc;">
+                                <option value="">Select Class First...</option>
                             </select>
                         </div>
 
                         <button type="submit" class="btn w-100"
-                            style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; border-radius: 8px; padding: 0.7rem; font-weight: 500; transition: transform 0.2s; margin-top: 0.5rem;">
-                            <i class="fas fa-plus me-2"></i>Assign as Subject Teacher
+                            style="background: #db2777; color: white; border: none; border-radius: 8px; padding: 0.75rem; font-weight: 600; transition: all 0.2s; box-shadow: 0 2px 4px rgba(219, 39, 119, 0.2);">
+                            <i class="fas fa-plus me-2"></i>Assign Subject
                         </button>
                     </form>
 
                     <!-- Current Subject Assignments -->
                     <div id="current-subject-assignments" th:if="${!#lists.isEmpty(currentSubjectAssignments)}"
-                        style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
+                        style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #e2e8f0;">
                         <div
-                            style="font-size: 0.85rem; font-weight: 600; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
-                            Current Assignments</div>
-                        <div th:each="assignment : ${currentSubjectAssignments}" class="modal-assignment-item"
-                            style="background: #f7fafc; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 500; color: #2d3748; margin-bottom: 0.25rem;"
-                                    th:text="${assignment.subject.subjectName}"></div>
-                                <small style="color: #718096; font-size: 0.8rem;"
-                                    th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"></small>
-                                <br>
-                                <small style="color: #a0aec0; font-size: 0.75rem;"
-                                    th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></small>
+                            style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+                            Current Assignments
+                        </div>
+                        <div class="assignments-scroll-container"
+                            style="max-height: 200px; overflow-y: auto; padding-right: 5px;">
+                            <div th:each="assignment : ${currentSubjectAssignments}" class="modal-assignment-item"
+                                style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: #334155; margin-bottom: 0.25rem; font-size: 0.95rem;"
+                                        th:text="${assignment.subject.subjectName}"></div>
+                                    <small
+                                        style="color: #64748b; font-size: 0.8rem; display: block; margin-bottom: 2px;"
+                                        th:text="${(assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"></small>
+                                    <small
+                                        style="color: #94a3b8; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="far fa-clock"></i>
+                                        <span
+                                            th:text="${assignment.academicSession.sessionName + ' • ' + assignment.term.termName}"></span>
+                                    </small>
+                                </div>
+                                <button type="button" th:data-assignment-id="${assignment.id}"
+                                    th:data-staff-id="${staff.id}"
+                                    th:data-assignment-info="${assignment.subject.subjectName + ' in ' + (assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
+                                    onclick="removeSubjectAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
+                                    style="background: #fee2e2; color: #ef4444; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='#fecaca'; this.style.color='#b91c1c';"
+                                    onmouseout="this.style.background='#fee2e2'; this.style.color='#ef4444';">
+                                    <i class="fas fa-trash-alt" style="font-size: 0.9rem;"></i>
+                                </button>
                             </div>
-                            <button type="button" th:data-assignment-id="${assignment.id}"
-                                th:data-staff-id="${staff.id}"
-                                th:data-assignment-info="${assignment.subject.subjectName + ' in ' + (assignment.schoolClass.track != null ? assignment.schoolClass.track.name : 'No Track') + ' - ' + assignment.schoolClass.className}"
-                                onclick="removeSubjectAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
-                                style="background: #fed7d7; color: #c53030; border: none; border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='#fc8181'"
-                                onmouseout="this.style.background='#fed7d7'">
-                                <i class="fas fa-times"></i>
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="modal-footer"
-                style="background: #f8f9fa; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px; padding: 1.25rem 2rem;">
-                <button type="button" class="btn" onclick="closeModal('staffAssignmentModal')"
-                    style="background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; padding: 0.6rem 1.5rem; font-weight: 500;">
-                    <i class="fas fa-times me-2"></i>Close
-                </button>
-            </div>
         </div>
+    </div>
 
+    <div class="modal-footer"
+        style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 1.5rem 2rem; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn" onclick="closeModal('staffAssignmentModal')"
+            style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 0.75rem 2rem; font-weight: 600; font-size: 1rem; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3); transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-times-circle"></i>
+            Close
+        </button>
+    </div>
+</div>
 
-        <!-- OOB Update for Staff Card (only included when isOob is true) -->
-        <th:block th:if="${isOob}">
-            <div th:replace="~{admin/community/staff/staff-card-single :: single-staff-card}"></div>
-        </th:block>
+<!-- OOB Update for Staff Card (only included when isOob is true) -->
+<th:block th:if="${isOob}">
+    <div th:replace="~{admin/community/staff/staff-card-single :: single-staff-card}"></div>
+</th:block>

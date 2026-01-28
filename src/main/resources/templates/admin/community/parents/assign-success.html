@@ -1,0 +1,20 @@
+<div th:replace="~{admin/community/parents/parent-cards :: single-parent-card}" th:with="isOob=true"></div>
+<div id="global-toast-container" hx-swap-oob="beforeend">
+    <div class="toast success show">
+        <i class="fas fa-check-circle"></i>
+        <span th:text="${success}">Success message</span>
+    </div>
+</div>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    var modalId = /*[[${modalId}]]*/ '';
+    if (modalId && window.closeModal) {
+        window.closeModal(modalId);
+    }
+
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast');
+        toasts.forEach(t => t.classList.remove('show'));
+    }, 3000);
+    /*]]>*/
+</script>

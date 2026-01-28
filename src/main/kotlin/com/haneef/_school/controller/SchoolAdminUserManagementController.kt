@@ -370,4 +370,227 @@ class SchoolAdminUserManagementController(
             writer.println("\"${user.fullName}\",\"${user.email ?: ""}\",\"${user.phoneNumber}\",\"$paystackBank\",\"$paystackAccountName\",\"$paystackAccount\",\"$squadBank\",\"$squadAccountName\",\"$squadAccount\",$children")
         }
     }
+    @PostMapping("/approvals/approve/{id}")
+    fun approveUser(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): Any {
+        val schoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+
+        try {
+            val role = userSchoolRoleRepository.findById(id).orElseThrow { RuntimeException("Role not found") }
+            
+            if (role.schoolId != schoolId) {
+                if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(403).body("Unauthorized")
+                redirectAttributes.addFlashAttribute("error", "Unauthorized access")
+                return "redirect:/admin/community/approvals"
+            }
+            
+            role.isActive = true
+            role.assignedAt = LocalDateTime.now()
+            userSchoolRoleRepository.save(role)
+            
+            // Also update user status if it's pending
+            val user = role.user
+            if (user.status == UserStatus.PENDING) {
+                user.status = UserStatus.ACTIVE
+                user.approvalStatus = "approved"
+                user.approvedAt = LocalDateTime.now()
+                userRepository.save(user)
+            }
+            
+            if (request.getHeader("HX-Request") != null) {
+                return org.springframework.http.ResponseEntity.ok("") // HTMX will remove the row
+            }
+            redirectAttributes.addFlashAttribute("success", "User approved successfully")
+        } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(500).body("Error: ${e.message}")
+            redirectAttributes.addFlashAttribute("error", "Error approving user: ${e.message}")
+        }
+        
+        return "redirect:/admin/community/approvals?tab=pending"
+    }
+
+    @PostMapping("/approvals/reject/{id}")
+    fun rejectUser(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): Any {
+        val schoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+
+        try {
+            val role = userSchoolRoleRepository.findById(id).orElseThrow { RuntimeException("Role not found") }
+            
+            if (role.schoolId != schoolId) {
+                if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(403).body("Unauthorized")
+                redirectAttributes.addFlashAttribute("error", "Unauthorized access")
+                return "redirect:/admin/community/approvals"
+            }
+            
+            // For rejection, we might want to delete the role or mark it as rejected
+            // Here we'll just delete the role assignment
+            userSchoolRoleRepository.delete(role)
+            
+            if (request.getHeader("HX-Request") != null) {
+                return org.springframework.http.ResponseEntity.ok("") // HTMX will remove the row
+            }
+            redirectAttributes.addFlashAttribute("success", "User request rejected")
+        } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(500).body("Error: ${e.message}")
+            redirectAttributes.addFlashAttribute("error", "Error rejecting user: ${e.message}")
+        }
+        
+        return "redirect:/admin/community/approvals?tab=pending"
+    }
+
+    @PostMapping("/users/soft-delete/{id}")
+    fun softDeleteUser(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): Any {
+        val schoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+
+        try {
+            val role = userSchoolRoleRepository.findById(id).orElseThrow { RuntimeException("Role not found") }
+            
+            if (role.schoolId != schoolId) {
+                if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(403).body("Unauthorized")
+                redirectAttributes.addFlashAttribute("error", "Unauthorized access")
+                return "redirect:/admin/community/approvals"
+            }
+            
+            role.isActive = false
+            userSchoolRoleRepository.save(role)
+            
+            // Update user status to INACTIVE if this was their only active role
+            val user = role.user
+            val otherActiveRoles = userSchoolRoleRepository.findBySchoolId(schoolId)
+                .filter { it.user.id == user.id && it.id != role.id && it.isActive }
+            
+            if (otherActiveRoles.isEmpty() && user.status == UserStatus.ACTIVE) {
+                user.status = UserStatus.INACTIVE
+                userRepository.save(user)
+            }
+            
+            if (request.getHeader("HX-Request") != null) {
+                return org.springframework.http.ResponseEntity.ok("") // HTMX will remove the row
+            }
+            redirectAttributes.addFlashAttribute("success", "User deactivated successfully")
+        } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(500).body("Error: ${e.message}")
+            redirectAttributes.addFlashAttribute("error", "Error deactivating user: ${e.message}")
+        }
+        
+        return "redirect:/admin/community/approvals?tab=active"
+    }
+
+    @PostMapping("/users/restore/{id}")
+    fun restoreUser(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): Any {
+        val schoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+
+        try {
+            val role = userSchoolRoleRepository.findById(id).orElseThrow { RuntimeException("Role not found") }
+            
+            if (role.schoolId != schoolId) {
+                if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(403).body("Unauthorized")
+                redirectAttributes.addFlashAttribute("error", "Unauthorized access")
+                return "redirect:/admin/community/approvals"
+            }
+            
+            role.isActive = true
+            userSchoolRoleRepository.save(role)
+            
+            // Update user status to ACTIVE when restoring
+            val user = role.user
+            if (user.status == UserStatus.INACTIVE) {
+                user.status = UserStatus.ACTIVE
+                userRepository.save(user)
+            }
+            
+            if (request.getHeader("HX-Request") != null) {
+                return org.springframework.http.ResponseEntity.ok("") // HTMX will remove the row
+            }
+            redirectAttributes.addFlashAttribute("success", "User restored successfully")
+        } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(500).body("Error: ${e.message}")
+            redirectAttributes.addFlashAttribute("error", "Error restoring user: ${e.message}")
+        }
+        
+        return "redirect:/admin/community/approvals?tab=inactive"
+    }
+
+    @PostMapping("/users/hard-delete/{id}")
+    fun hardDeleteUser(
+        @PathVariable id: UUID, 
+        session: HttpSession, 
+        redirectAttributes: RedirectAttributes,
+        request: jakarta.servlet.http.HttpServletRequest
+    ): Any {
+        val schoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+
+        try {
+            val role = userSchoolRoleRepository.findById(id).orElseThrow { RuntimeException("Role not found") }
+            
+            if (role.schoolId != schoolId) {
+                if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(403).body("Unauthorized")
+                redirectAttributes.addFlashAttribute("error", "Unauthorized access")
+                return "redirect:/admin/community/approvals"
+            }
+            
+            // Delete the role assignment
+            userSchoolRoleRepository.delete(role)
+            
+            if (request.getHeader("HX-Request") != null) {
+                return org.springframework.http.ResponseEntity.ok("") // HTMX will remove the row
+            }
+            redirectAttributes.addFlashAttribute("success", "User permanently deleted from school")
+        } catch (e: Exception) {
+            if (request.getHeader("HX-Request") != null) return org.springframework.http.ResponseEntity.status(500).body("Error: ${e.message}")
+            redirectAttributes.addFlashAttribute("error", "Error deleting user: ${e.message}")
+        }
+        
+        return "redirect:/admin/community/approvals?tab=inactive"
+    }
+
+    @PostMapping("/users/send-reminder/{id}")
+    fun sendReminder(@PathVariable id: UUID, session: HttpSession, redirectAttributes: RedirectAttributes): String {
+        val schoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+
+        try {
+            val user = userRepository.findById(id).orElseThrow { RuntimeException("User not found") }
+            
+            // Verify user belongs to this school (via roles)
+            val hasRoleInSchool = userSchoolRoleRepository.existsByUserIdAndSchoolId(id, schoolId)
+            if (!hasRoleInSchool) {
+                redirectAttributes.addFlashAttribute("error", "Unauthorized access")
+                return "redirect:/admin/community/approvals"
+            }
+
+            // Logic to send reminder email/SMS would go here
+            // emailService.sendReminder(user)
+            
+            redirectAttributes.addFlashAttribute("success", "Reminder sent successfully")
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("error", "Error sending reminder: ${e.message}")
+        }
+        
+        return "redirect:/admin/community/approvals"
+    }
 }

@@ -88,7 +88,7 @@
             <a th:href="@{/admin/community/overviews(tab='staff')}" hx-get="/admin/community/overviews?tab=staff"
                 hx-target=".setup-layout" hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true"
                 hx-indicator="#community-loader"
-                th:classappend="${requestURI.contains('community/overviews') && activeTab == 'staff' ? 'active' : ''}"
+                th:classappend="${(requestURI.contains('community/overviews') && activeTab == 'staff') || requestURI.contains('/admin/community/staff') ? 'active' : ''}"
                 class="nav-item">
                 <span class="icon">👨‍🏫</span>
                 Staff Management
@@ -96,7 +96,7 @@
             <a th:href="@{/admin/community/overviews(tab='students')}" hx-get="/admin/community/overviews?tab=students"
                 hx-target=".setup-layout" hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true"
                 hx-indicator="#community-loader"
-                th:classappend="${requestURI.contains('community/overviews') && activeTab == 'students' ? 'active' : ''}"
+                th:classappend="${(requestURI.contains('community/overviews') && activeTab == 'students') || requestURI.contains('/admin/community/students') ? 'active' : ''}"
                 class="nav-item">
                 <span class="icon">🎓</span>
                 Student Management
@@ -104,7 +104,7 @@
             <a th:href="@{/admin/community/overviews(tab='parents')}" hx-get="/admin/community/overviews?tab=parents"
                 hx-target=".setup-layout" hx-select=".setup-layout" hx-swap="outerHTML" hx-push-url="true"
                 hx-indicator="#community-loader"
-                th:classappend="${requestURI.contains('community/overviews') && activeTab == 'parents' ? 'active' : ''}"
+                th:classappend="${(requestURI.contains('community/overviews') && activeTab == 'parents') || requestURI.contains('/admin/community/parents') ? 'active' : ''}"
                 class="nav-item">
                 <span class="icon">👨‍👩‍👧‍👦</span>
                 Parent Management
