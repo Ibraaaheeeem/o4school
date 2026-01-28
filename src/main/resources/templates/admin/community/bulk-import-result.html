@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Import Results</title>
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/bulk-import.css}">
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <div id="community-content" class="setup-content">
+            <div class="setup-header">
+                <h1>✅ Import Complete</h1>
+                <p>Review the import results below</p>
+            </div>
+
+            <!-- Success Message -->
+            <div class="alert alert-success" th:if="${success}">
+                <i class="fas fa-check-circle"></i>
+                <strong>Import Successful!</strong> All valid entries have been imported.
+            </div>
+
+            <!-- Error Message -->
+            <div class="alert alert-danger" th:if="${error}">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Import Failed!</strong> <span th:text="${error}"></span>
+            </div>
+
+            <!-- Results Summary -->
+            <div class="preview-summary-grid" th:if="${result}">
+                <!-- Students Results -->
+                <div class="summary-card">
+                    <div class="summary-header">
+                        <h3>🎓 Students</h3>
+                    </div>
+                    <div class="summary-stats">
+                        <div class="stat-item success">
+                            <span class="stat-label">Imported:</span>
+                            <span class="stat-value" th:text="${result.studentsImported}">0</span>
+                        </div>
+                        <div class="stat-item warning" th:if="${result.studentsSkipped > 0}">
+                            <span class="stat-label">Skipped (Duplicates):</span>
+                            <span class="stat-value" th:text="${result.studentsSkipped}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parents Results -->
+                <div class="summary-card">
+                    <div class="summary-header">
+                        <h3>👨‍👩‍👧‍👦 Parents</h3>
+                    </div>
+                    <div class="summary-stats">
+                        <div class="stat-item success">
+                            <span class="stat-label">Imported:</span>
+                            <span class="stat-value" th:text="${result.parentsImported}">0</span>
+                        </div>
+                        <div class="stat-item warning" th:if="${result.parentsSkipped > 0}">
+                            <span class="stat-label">Skipped (Duplicates):</span>
+                            <span class="stat-value" th:text="${result.parentsSkipped}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staff Results -->
+                <div class="summary-card">
+                    <div class="summary-header">
+                        <h3>👨‍🏫 Staff</h3>
+                    </div>
+                    <div class="summary-stats">
+                        <div class="stat-item success">
+                            <span class="stat-label">Imported:</span>
+                            <span class="stat-value" th:text="${result.staffImported}">0</span>
+                        </div>
+                        <div class="stat-item warning" th:if="${result.staffSkipped > 0}">
+                            <span class="stat-label">Skipped (Duplicates):</span>
+                            <span class="stat-value" th:text="${result.staffSkipped}">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Errors List -->
+            <div class="error-list" th:if="${result != null && !result.errors.empty}">
+                <h4>Errors During Import:</h4>
+                <div th:each="error : ${result.errors}" class="error-item error">
+                    <span class="error-message" th:text="${error}"></span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="preview-actions">
+                <a th:href="@{/admin/community/home}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-home"></i> Back to Community Home
+                </a>
+                <a th:href="@{/admin/community/overviews}" class="btn btn-outline btn-lg">
+                    <i class="fas fa-users"></i> View Imported Users
+                </a>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

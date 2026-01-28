@@ -243,7 +243,7 @@ class CommunityController(
         val communityStats = getCommunityStats(selectedSchoolId)
         
         // Parse phone number to extract country code and number
-        val phoneNumber = staff.user.phoneNumber
+        val phoneNumber = staff.user.phoneNumber ?: ""
         val (countryCode, phoneOnly) = parsePhoneNumber(phoneNumber)
         
         model.addAttribute("user", customUser.user)
@@ -334,7 +334,7 @@ class CommunityController(
         @ModelAttribute("userDto") userDto: UserDto,
         @RequestParam(required = false) id: UUID?,
         @RequestParam countryCode: String,
-        @RequestParam phoneNumber: String,
+        @RequestParam(required = false) phoneNumber: String?,
         session: HttpSession,
         redirectAttributes: RedirectAttributes
     ): String {
@@ -343,7 +343,7 @@ class CommunityController(
 
         try {
             // Combine country code and phone number
-            val fullPhoneNumber = countryCode + phoneNumber
+            val fullPhoneNumber = if (phoneNumber.isNullOrBlank()) null else countryCode + phoneNumber
             
             if (id != null) {
                 // Update existing staff
@@ -400,7 +400,7 @@ class CommunityController(
                 val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
                 val savedUser = if (existingUser != null) {
                     // Update existing user's phone if it was provided
-                    if (fullPhoneNumber.isNotBlank()) {
+                    if (fullPhoneNumber != null) {
                         existingUser.phoneNumber = fullPhoneNumber
                     }
                     userRepository.save(existingUser)
@@ -482,7 +482,7 @@ class CommunityController(
         @ModelAttribute staffDto: StaffDto,
         @ModelAttribute userDto: UserDto,
         @RequestParam countryCode: String,
-        @RequestParam phoneNumber: String,
+        @RequestParam(required = false) phoneNumber: String?,
         session: HttpSession,
         model: Model
     ): String {
@@ -491,7 +491,7 @@ class CommunityController(
 
         try {
             // Combine country code and phone number
-            val fullPhoneNumber = countryCode + phoneNumber
+            val fullPhoneNumber = if (phoneNumber.isNullOrBlank()) null else countryCode + phoneNumber
             
             if (id != null) {
                 // Update existing staff
@@ -551,7 +551,7 @@ class CommunityController(
                 val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
                 val savedUser = if (existingUser != null) {
                     // Update existing user's phone if it was provided
-                    if (fullPhoneNumber.isNotBlank()) {
+                    if (fullPhoneNumber != null) {
                         existingUser.phoneNumber = fullPhoneNumber
                     }
                     userRepository.save(existingUser)
@@ -924,7 +924,7 @@ class CommunityController(
                     this.lastName = userDto.lastName
                     this.middleName = userDto.middleName
                     this.email = userDto.email
-                    this.phoneNumber = phoneNumber ?: ""
+                    this.phoneNumber = phoneNumber?.takeIf { it.isNotBlank() }
                     this.dateOfBirth = userDto.dateOfBirth
                     this.gender = userDto.gender
                 }
@@ -960,11 +960,18 @@ class CommunityController(
                 val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
                 val savedUser = if (existingUser != null) {
                     if (!phoneNumber.isNullOrBlank()) {
-                        existingUser.phoneNumber = phoneNumber!!
+                        existingUser.phoneNumber = phoneNumber
                     }
                     userRepository.save(existingUser)
                 } else {
-                    val newUser = User(phoneNumber = if (phoneNumber.isNullOrBlank()) generateDummyPhoneNumber() else phoneNumber).apply {
+                    // Use admission number as phone number since phone number field is removed
+                    val finalPhoneNumber = if (!phoneNumber.isNullOrBlank()) {
+                        phoneNumber
+                    } else {
+                        null
+                    }
+                    
+                    val newUser = User(phoneNumber = finalPhoneNumber).apply {
                         this.firstName = userDto.firstName
                         this.lastName = userDto.lastName
                         this.middleName = userDto.middleName
@@ -1285,7 +1292,7 @@ class CommunityController(
                     lastName = userDto.lastName
                     middleName = userDto.middleName
                     email = userDto.email
-                    phoneNumber = userDto.phoneNumber ?: ""
+                    phoneNumber = userDto.phoneNumber?.takeIf { it.isNotBlank() }
                     dateOfBirth = userDto.dateOfBirth
                     gender = userDto.gender
                     addressLine1 = userDto.addressLine1
@@ -1336,7 +1343,16 @@ class CommunityController(
                     }
                     userRepository.save(existingUser)
                 } else {
-                    val newUser = User(phoneNumber = if (userDto.phoneNumber.isNullOrBlank()) generateDummyPhoneNumber() else userDto.phoneNumber!!).apply {
+                    // Use admission number as phone number since phone number field is removed
+                    val finalPhoneNumber = if (!userDto.phoneNumber.isNullOrBlank()) {
+                        userDto.phoneNumber
+                    } else if (!studentDto.admissionNumber.isNullOrBlank()) {
+                        studentDto.admissionNumber
+                    } else {
+                        null
+                    }
+                    
+                    val newUser = User(phoneNumber = finalPhoneNumber).apply {
                         firstName = userDto.firstName
                         lastName = userDto.lastName
                         middleName = userDto.middleName
@@ -1515,7 +1531,7 @@ class CommunityController(
                     lastName = userDto.lastName
                     middleName = userDto.middleName
                     email = userDto.email
-                    phoneNumber = userDto.phoneNumber ?: ""
+                    phoneNumber = userDto.phoneNumber?.takeIf { it.isNotBlank() }
                     dateOfBirth = userDto.dateOfBirth
                     gender = userDto.gender
                     addressLine1 = userDto.addressLine1
@@ -1548,7 +1564,7 @@ class CommunityController(
                     }
                     userRepository.save(existingUser)
                 } else {
-                    val newUser = User(phoneNumber = userDto.phoneNumber ?: "").apply {
+                    val newUser = User(phoneNumber = userDto.phoneNumber?.takeIf { it.isNotBlank() }).apply {
                         firstName = userDto.firstName
                         lastName = userDto.lastName
                         middleName = userDto.middleName
@@ -1641,7 +1657,7 @@ class CommunityController(
                     this.firstName = userDto.firstName
                     this.lastName = userDto.lastName
                     this.email = userDto.email
-                    this.phoneNumber = userDto.phoneNumber ?: ""
+                    this.phoneNumber = userDto.phoneNumber?.takeIf { it.isNotBlank() }
                 }
                 userRepository.save(existingUser)
                 
@@ -1678,7 +1694,7 @@ class CommunityController(
                     }
                     userRepository.save(existingUser)
                 } else {
-                    val newUser = User(phoneNumber = userDto.phoneNumber ?: "").apply {
+                    val newUser = User(phoneNumber = userDto.phoneNumber?.takeIf { it.isNotBlank() }).apply {
                         this.firstName = userDto.firstName
                         this.lastName = userDto.lastName
                         this.email = userDto.email
@@ -1824,11 +1840,7 @@ class CommunityController(
         return "STU${schoolId}${timestamp}"
     }
 
-    private fun generateDummyPhoneNumber(): String {
-        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        val randomPart = (1..8).map { chars.random() }.joinToString("")
-        return "STU-$randomPart"
-    }
+
 
     private fun generateAdmissionNumber(schoolId: UUID): String {
         val school = schoolRepository.findById(schoolId).orElse(null)
@@ -2761,6 +2773,16 @@ class CommunityController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "fragments/success :: success-message"
 
+        // Strip admission prefix if present
+        var processedStudentId = studentId
+        val school = schoolRepository.findById(selectedSchoolId).orElse(null)
+        if (school != null && !school.admissionPrefix.isNullOrBlank()) {
+            val prefix = school.admissionPrefix!!
+            if (processedStudentId.startsWith(prefix)) {
+                processedStudentId = processedStudentId.substring(prefix.length)
+            }
+        }
+
         try {
             if (id != null) {
                 // Update existing student
@@ -2774,11 +2796,15 @@ class CommunityController(
                     this.email = email
                     this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
                     this.gender = gender
+                    // Update phone number to match studentId (Admission Number)
+                    if (processedStudentId.isNotBlank()) {
+                        this.phoneNumber = processedStudentId
+                    }
                 }
                 userRepository.save(existingUser)
                 
                 existingStudent.apply {
-                    this.studentId = studentId
+                    this.studentId = processedStudentId
                     this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
                     this.gender = gender?.let { com.haneef._school.entity.Gender.valueOf(it.uppercase()) }
                 }
@@ -2794,11 +2820,13 @@ class CommunityController(
                     }
                     userRepository.save(existingUser)
                 } else {
-                    // Create new student - use provided phone number or generate unique placeholder
-                    val finalPhoneNumber = if (!phoneNumber.isNullOrBlank()) {
-                        phoneNumber!!
+                    // Create new student - use admission number (studentId) as phone number since field is removed
+                    val finalPhoneNumber = if (processedStudentId.isNotBlank()) {
+                        processedStudentId
+                    } else if (!phoneNumber.isNullOrBlank()) {
+                        phoneNumber
                     } else {
-                        generateDummyPhoneNumber()
+                        null
                     }
                     val newUser = User(phoneNumber = finalPhoneNumber).apply {
                         this.firstName = firstName
@@ -2817,7 +2845,7 @@ class CommunityController(
                 if (savedStudent == null) {
                     val newStudent = Student(
                         user = savedUser,
-                        studentId = studentId,
+                        studentId = processedStudentId,
                         admissionDate = LocalDate.now()
                     ).apply {
                         this.schoolId = selectedSchoolId

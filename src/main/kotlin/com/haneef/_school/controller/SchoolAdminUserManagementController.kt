@@ -90,7 +90,7 @@ class SchoolAdminUserManagementController(
             filteredUsers = filteredUsers.filter { 
                 (it.user.fullName ?: "").contains(searchTerm, ignoreCase = true) ||  
                 (it.user.email?.contains(searchTerm, ignoreCase = true) == true) ||
-                (it.user.phoneNumber.contains(searchTerm, ignoreCase = true))
+                (it.user.phoneNumber?.contains(searchTerm, ignoreCase = true) == true)
             }
         }
 

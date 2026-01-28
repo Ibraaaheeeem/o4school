@@ -100,8 +100,8 @@
                             th:value="${userDto != null ? userDto.dateOfBirth : ''}" class="form-input" required>
                     </div>
                     <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender" name="gender" class="form-select">
+                        <label for="gender">Gender *</label>
+                        <select id="gender" name="gender" class="form-select" required>
                             <option value="">Select Gender</option>
                             <option value="Male" th:selected="${userDto != null and userDto.gender == 'Male'}">
                                 Male</option>
@@ -111,11 +111,7 @@
                                 Other</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="phoneNumber">Phone Number</label>
-                        <input type="tel" id="phoneNumber" name="phoneNumber"
-                            th:value="${userDto != null ? userDto.phoneNumber : ''}" class="form-input">
-                    </div>
+
                 </div>
             </div>
 

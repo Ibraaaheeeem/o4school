@@ -80,7 +80,7 @@ class CustomUserDetailsService(
                     ?: throw UsernameNotFoundException("Student not found with admission number: $identifier")
                 // Load the student's user with roles
                 val userWithRoles = userRepository.findByEmailWithRoles(student.user.email ?: "")
-                    .or { userRepository.findByPhoneNumberWithRoles(student.user.phoneNumber) }
+                    .or { student.user.phoneNumber?.let { userRepository.findByPhoneNumberWithRoles(it) } ?: java.util.Optional.empty() }
                     .orElseThrow { UsernameNotFoundException("User roles not found for student: $identifier") }
                 logger.info("Student user loaded: ${userWithRoles.email} with ${userWithRoles.schoolRoles.size} school roles and ${userWithRoles.globalRoles.size} global roles")
                 CustomUserDetails(userWithRoles)

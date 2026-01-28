@@ -644,6 +644,7 @@
         padding: 0.5rem 0;
     }
 }
+
 /* Approvals Page Styles */
 .user-table {
     width: 100%;
@@ -925,4 +926,29 @@
 .export-help {
     font-size: 0.85rem;
     color: #64748b;
+}
+
+/* Filters Grid Layout */
+.filters-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+@media (max-width: 768px) {
+    .filters-grid {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
 }

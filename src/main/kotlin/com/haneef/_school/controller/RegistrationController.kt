@@ -83,10 +83,7 @@ class RegistrationController(
             return "redirect:/auth/register"
         }
         
-        if (userRepository.existsByPhoneNumber(phoneNumber)) {
-            redirectAttributes.addFlashAttribute("error", "A user with this phone number already exists.")
-            return "redirect:/auth/register"
-        }
+
 
         val otp = (100000..999999).random().toString()
 

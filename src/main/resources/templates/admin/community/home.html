@@ -11,6 +11,7 @@
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
     <link rel="stylesheet" th:href="@{/css/community.css}">
+    <link rel="stylesheet" th:href="@{/css/bulk-import.css}">
     <!-- Include CSRF JavaScript -->
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
 </head>
@@ -53,11 +54,6 @@
                         <div class="card-actions">
                             <a th:href="@{/admin/community/overviews(tab='students')}" class="card-link">Manage
                                 Students</a>
-                            <button class="btn btn-primary btn-sm" hx-get="/admin/community/students/new/home-modal"
-                                hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
-                                onclick="setTimeout(() => openModal('studentModal'), 100)">
-                                + Enroll Student
-                            </button>
                         </div>
                     </div>
 
@@ -69,11 +65,6 @@
                         <div class="card-actions">
                             <a th:href="@{/admin/community/overviews(tab='parents')}" class="card-link">Manage
                                 Parents</a>
-                            <button class="btn btn-primary btn-sm" hx-get="/admin/community/parents/new/home-modal"
-                                hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
-                                onclick="setTimeout(() => openModal('parentModal'), 100)">
-                                + Add Parent
-                            </button>
                         </div>
                     </div>
 
@@ -89,32 +80,236 @@
                     </div>
                 </div>
 
-                <!-- Quick Actions Section -->
-                <div class="quick-actions-section">
-                    <h3>Quick Actions</h3>
-                    <div class="quick-actions-grid">
-                        <button class="quick-action-card" hx-get="/admin/community/staff/new/home-modal"
-                            hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
-                            onclick="setTimeout(() => openModal('staffModal'), 100)">
-                            <div class="action-icon">👨‍🏫</div>
-                            <span>Add Staff Member</span>
-                        </button>
-                        <button class="quick-action-card" hx-get="/admin/community/students/new/home-modal"
-                            hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
-                            onclick="setTimeout(() => openModal('studentModal'), 100)">
-                            <div class="action-icon">🎓</div>
-                            <span>Enroll Student</span>
-                        </button>
-                        <button class="quick-action-card" hx-get="/admin/community/parents/new/home-modal"
-                            hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
-                            onclick="setTimeout(() => openModal('parentModal'), 100)">
-                            <div class="action-icon">👪</div>
-                            <span>Add Parent</span>
-                        </button>
-                        <a href="#" class="quick-action-card">
-                            <div class="action-icon">📋</div>
-                            <span>Bulk Import</span>
+                <!-- Bulk Import Section -->
+                <div class="bulk-import-section">
+                    <div class="section-header">
+                        <h3>📋 Bulk Import Data</h3>
+                        <p class="section-description">Import multiple records at once using a single Excel file with
+                            separate sheets for each category.</p>
+                        <div class="file-structure-info">
+                            <h4>📁 File Structure</h4>
+                            <p>Use a single Excel file (.xlsx) with <strong>three separate sheets</strong>:</p>
+                            <ul>
+                                <li><strong>Sheet 1:</strong> Students</li>
+                                <li><strong>Sheet 2:</strong> Parents</li>
+                                <li><strong>Sheet 3:</strong> Staff</li>
+                            </ul>
+                            <p class="info-note">Each sheet must be named exactly as shown above and follow the format
+                                specified in the tabs below.</p>
+                        </div>
+                    </div>
+
+                    <!-- Import Format Tabs -->
+                    <div class="import-tabs">
+                        <button class="import-tab active" onclick="showImportTab('students')">Students</button>
+                        <button class="import-tab" onclick="showImportTab('parents')">Parents</button>
+                        <button class="import-tab" onclick="showImportTab('staff')">Staff</button>
+                    </div>
+
+                    <!-- Students Import Format -->
+                    <div id="students-import" class="import-format-content active">
+                        <div class="format-header">
+                            <h4>Student Import Format</h4>
+                            <p class="format-note">📅 <strong>Date Format:</strong> DD/MM/YYYY (e.g., 15/05/2010)<br>
+                                ℹ️ Parent relationships, class assignments, and grade levels will be set up within the
+                                app after import.</p>
+                        </div>
+                        <div class="format-table-container">
+                            <table class="format-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column Name</th>
+                                        <th>Required</th>
+                                        <th>Description</th>
+                                        <th>Example</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>FirstName</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Student's first name</td>
+                                        <td>Ibrahim</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LastName</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Student's last name</td>
+                                        <td>Musa</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>MiddleName</code></td>
+                                        <td><span class="badge-optional">No</span></td>
+                                        <td>Student's middle name</td>
+                                        <td>Aliyu</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>Gender</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>M or F</td>
+                                        <td>M</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>DateOfBirth</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Format: DD/MM/YYYY</td>
+                                        <td>15/05/2010</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>AdmissionNumber</code></td>
+                                        <td><span class="badge-optional">No</span></td>
+                                        <td>Auto-generated if empty</td>
+                                        <td>ADM/2024/001</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>Address</code></td>
+                                        <td><span class="badge-optional">No</span></td>
+                                        <td>Residential address</td>
+                                        <td>123 Lagos Street, Kano</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Parents Import Format -->
+                    <div id="parents-import" class="import-format-content">
+                        <div class="format-header">
+                            <h4>Parent Import Format</h4>
+                        </div>
+                        <div class="format-table-container">
+                            <table class="format-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column Name</th>
+                                        <th>Required</th>
+                                        <th>Description</th>
+                                        <th>Example</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>FirstName</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Parent's first name</td>
+                                        <td>Fatima</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LastName</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Parent's last name</td>
+                                        <td>Musa</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>Email</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Unique email (used for login & linking)</td>
+                                        <td>parent@example.com</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>PhoneNumber</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Phone number with or without country code</td>
+                                        <td>08012345678</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>Address</code></td>
+                                        <td><span class="badge-optional">No</span></td>
+                                        <td>Residential address</td>
+                                        <td>123 Lagos Street, Kano</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Staff Import Format -->
+                    <div id="staff-import" class="import-format-content">
+                        <div class="format-header">
+                            <h4>Staff Import Format</h4>
+                            <p class="format-note">📅 <strong>Date Format:</strong> DD/MM/YYYY (e.g., 10/01/2022)</p>
+                        </div>
+                        <div class="format-table-container">
+                            <table class="format-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column Name</th>
+                                        <th>Required</th>
+                                        <th>Description</th>
+                                        <th>Example</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>FirstName</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Staff's first name</td>
+                                        <td>Chioma</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LastName</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Staff's last name</td>
+                                        <td>Okonkwo</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>Email</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Unique email address</td>
+                                        <td>teacher@school.com</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>PhoneNumber</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Phone number</td>
+                                        <td>07098765432</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>Designation</code></td>
+                                        <td><span class="badge-required">Yes</span></td>
+                                        <td>Job title (e.g., Teacher, Bursar, Cleaner)</td>
+                                        <td>Teacher</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>DateOfHire</code></td>
+                                        <td><span class="badge-optional">No</span></td>
+                                        <td>Format: DD/MM/YYYY</td>
+                                        <td>10/01/2022</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Download Template Button -->
+                    <div class="download-template-section">
+                        <a th:href="@{/admin/community/bulk-import/download-template}"
+                            class="btn btn-outline btn-lg download-template-btn">
+                            <i class="fas fa-download"></i> Download Sample Template
                         </a>
+                        <p class="template-note">Download this template, fill in your data, and upload it below.</p>
+                    </div>
+
+                    <!-- Upload Section -->
+                    <div class="upload-section">
+                        <form id="bulkImportForm" onsubmit="return false;">
+
+                            <div class="file-upload-container">
+                                <input type="file" id="excelFile" name="file" accept=".xlsx" class="file-input"
+                                    onchange="handleFileSelect(this)" required />
+                                <label for="excelFile" class="file-upload-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span id="fileName">Choose Excel File or Drag & Drop</span>
+                                </label>
+                            </div>
+
+                            <button type="button" class="btn btn-primary btn-lg" id="uploadBtn" disabled
+                                onclick="processExcelFile()">
+                                <i class="fas fa-upload"></i> Upload & Validate
+                            </button>
+                            <p class="upload-note">Supported format: .xlsx (Excel file with Students, Parents, and Staff
+                                sheets) | Max size: 5MB</p>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -145,6 +340,12 @@
 
     <!-- Include HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Include SheetJS for Excel reading -->
+    <script th:src="@{/js/xlsx.full.min.js}"></script>
+
+    <!-- Include bulk import script -->
+    <script th:src="@{/js/bulk-import.js}"></script>
     <script th:src="@{/js/community.js}"></script>
 
     <script>
@@ -180,6 +381,49 @@
             console.error('HTMX response error:', event.detail);
             alert('There was an error processing your request. Please try again.');
         });
+
+        // Tab switching for import formats
+        function showImportTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.import-format-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.import-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName + '-import').classList.add('active');
+
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // File upload handling
+        function handleFileSelect(input) {
+            const fileName = input.files[0]?.name;
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileNameSpan = document.getElementById('fileName');
+
+            if (fileName) {
+                fileNameSpan.textContent = fileName;
+                uploadBtn.disabled = false;
+
+                // Validate file size (5MB)
+                const fileSize = input.files[0].size;
+                if (fileSize > 5 * 1024 * 1024) {
+                    alert('File size exceeds 5MB limit. Please choose a smaller file.');
+                    input.value = '';
+                    fileNameSpan.textContent = 'Choose Excel File or Drag & Drop';
+                    uploadBtn.disabled = true;
+                }
+            } else {
+                fileNameSpan.textContent = 'Choose Excel File or Drag & Drop';
+                uploadBtn.disabled = true;
+            }
+        }
     </script>
 </body>
 

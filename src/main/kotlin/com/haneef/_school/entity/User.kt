@@ -13,8 +13,8 @@ import java.util.UUID
     ]
 )
 class User(
-    @Column(name = "phone_number", nullable = false)
-    var phoneNumber: String,
+    @Column(name = "phone_number", nullable = true)
+    var phoneNumber: String? = null,
     
     @Column(name = "password_hash")
     var passwordHash: String? = null,
@@ -108,7 +108,7 @@ class User(
     var intendedSchoolSlug: String? = null
 ) : BaseEntity() {
     
-    constructor() : this(phoneNumber = "")
+
     
     val fullName: String?
         get() {

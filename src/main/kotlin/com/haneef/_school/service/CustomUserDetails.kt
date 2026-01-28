@@ -88,7 +88,7 @@ class CustomUserDetails(
 
     override fun getPassword(): String = user.passwordHash ?: ""
 
-    override fun getUsername(): String = user.email ?: user.phoneNumber
+    override fun getUsername(): String = user.email ?: user.phoneNumber ?: ""
 
     override fun isAccountNonExpired(): Boolean = true
 
