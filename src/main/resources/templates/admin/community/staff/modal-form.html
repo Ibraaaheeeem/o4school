@@ -13,6 +13,13 @@
         <input type="hidden" name="id" th:value="${isEdit ? staff.id : ''}">
 
         <div class="modal-body">
+            <!-- Error Message -->
+            <div th:if="${error}" class="alert alert-danger"
+                style="margin-bottom: 20px; padding: 12px; border-radius: 6px; background-color: #fef2f2; border: 1px solid #fee2e2; color: #991b1b; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span th:text="${error}">Error message</span>
+            </div>
+
             <!-- Personal Information Section -->
             <div class="form-section">
                 <h4>Personal Information</h4>

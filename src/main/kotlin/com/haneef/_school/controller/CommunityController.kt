@@ -397,30 +397,34 @@ class CommunityController(
                 redirectAttributes.addFlashAttribute("success", "Staff updated successfully!")
             } else {
                 // Check if user already exists by email
-                val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
-                val savedUser = if (existingUser != null) {
-                    // Update existing user's phone if it was provided
-                    if (fullPhoneNumber != null) {
-                        existingUser.phoneNumber = fullPhoneNumber
+                if (!userDto.email.isNullOrBlank()) {
+                    if (userRepository.existsByEmail(userDto.email!!)) {
+                        throw RuntimeException("A user with this email address is already registered.")
                     }
-                    userRepository.save(existingUser)
-                } else {
-                    val newUser = User(phoneNumber = fullPhoneNumber).apply {
-                        firstName = userDto.firstName
-                        lastName = userDto.lastName
-                        middleName = userDto.middleName
-                        email = userDto.email
-                        dateOfBirth = userDto.dateOfBirth
-                        gender = userDto.gender
-                        addressLine1 = userDto.addressLine1
-                        addressLine2 = userDto.addressLine2
-                        city = userDto.city
-                        state = userDto.state
-                        postalCode = userDto.postalCode
-                        status = UserStatus.ACTIVE
-                    }
-                    userRepository.save(newUser)
                 }
+                
+                // Check if user already exists by phone number
+                if (fullPhoneNumber != null) {
+                    if (userRepository.existsByPhoneNumber(fullPhoneNumber)) {
+                        throw RuntimeException("A user with this phone number is already registered.")
+                    }
+                }
+
+                val newUser = User(phoneNumber = fullPhoneNumber).apply {
+                    firstName = userDto.firstName
+                    lastName = userDto.lastName
+                    middleName = userDto.middleName
+                    email = userDto.email
+                    dateOfBirth = userDto.dateOfBirth
+                    gender = userDto.gender
+                    addressLine1 = userDto.addressLine1
+                    addressLine2 = userDto.addressLine2
+                    city = userDto.city
+                    state = userDto.state
+                    postalCode = userDto.postalCode
+                    status = UserStatus.ACTIVE
+                }
+                val savedUser = userRepository.save(newUser)
                 
                 // Check if staff already exists for this user and school
                 var savedStaff = staffRepository.findByUserIdAndSchoolId(savedUser.id!!, selectedSchoolId)
@@ -548,25 +552,29 @@ class CommunityController(
                 return "admin/community/staff/assign-success"
             } else {
                 // Check if user already exists by email
-                val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
-                val savedUser = if (existingUser != null) {
-                    // Update existing user's phone if it was provided
-                    if (fullPhoneNumber != null) {
-                        existingUser.phoneNumber = fullPhoneNumber
+                if (!userDto.email.isNullOrBlank()) {
+                    if (userRepository.existsByEmail(userDto.email!!)) {
+                        throw RuntimeException("A user with this email address is already registered.")
                     }
-                    userRepository.save(existingUser)
-                } else {
-                    val newUser = User(phoneNumber = fullPhoneNumber).apply {
-                        this.firstName = userDto.firstName
-                        this.lastName = userDto.lastName
-                        this.middleName = userDto.middleName
-                        this.email = userDto.email
-                        this.dateOfBirth = userDto.dateOfBirth
-                        this.gender = userDto.gender
-                        this.status = UserStatus.ACTIVE
-                    }
-                    userRepository.save(newUser)
                 }
+                
+                // Check if user already exists by phone number
+                if (fullPhoneNumber != null) {
+                    if (userRepository.existsByPhoneNumber(fullPhoneNumber)) {
+                        throw RuntimeException("A user with this phone number is already registered.")
+                    }
+                }
+
+                val newUser = User(phoneNumber = fullPhoneNumber).apply {
+                    this.firstName = userDto.firstName
+                    this.lastName = userDto.lastName
+                    this.middleName = userDto.middleName
+                    this.email = userDto.email
+                    this.dateOfBirth = userDto.dateOfBirth
+                    this.gender = userDto.gender
+                    this.status = UserStatus.ACTIVE
+                }
+                val savedUser = userRepository.save(newUser)
                 
                 // Check if staff already exists for this user and school
                 var savedStaff = staffRepository.findByUserIdAndSchoolId(savedUser.id!!, selectedSchoolId)
@@ -613,7 +621,20 @@ class CommunityController(
             return "admin/community/staff/assign-success"
         } catch (e: Exception) {
             model.addAttribute("error", handleDatabaseError(e, "Error saving staff"))
-            return "fragments/error :: error-message"
+            
+            // Re-populate model for form re-rendering
+            val departments = departmentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+            model.addAttribute("departments", departments)
+            model.addAttribute("isEdit", id != null)
+            if (id != null) {
+                staffRepository.findById(id).ifPresent { model.addAttribute("staff", it) }
+            } else {
+                model.addAttribute("staff", Staff())
+            }
+            model.addAttribute("countryCode", countryCode)
+            model.addAttribute("phoneNumber", phoneNumber)
+            
+            return "admin/community/staff/modal-form"
         }
     }
 
@@ -919,8 +940,16 @@ class CommunityController(
                 userRepository.save(existingUser)
                 
                 // Update student details
+                val newAdmissionNumber = if (studentDto.admissionNumber.isNullOrBlank()) generateAdmissionNumber(selectedSchoolId) else studentDto.admissionNumber!!
+                
+                // Check for duplicate admission number in the same school
+                val studentWithSameAdmission = studentRepository.findByAdmissionNumberAndSchoolId(newAdmissionNumber, selectedSchoolId)
+                if (studentWithSameAdmission != null && studentWithSameAdmission.id != id) {
+                    throw RuntimeException("Admission number $newAdmissionNumber is already in use by another student.")
+                }
+
                 existingStudent.apply {
-                    this.admissionNumber = if (studentDto.admissionNumber.isNullOrBlank()) generateAdmissionNumber(selectedSchoolId) else studentDto.admissionNumber
+                    this.admissionNumber = newAdmissionNumber
                     this.currentGradeLevel = studentDto.currentGradeLevel
                     this.dateOfBirth = studentDto.dateOfBirth
                     this.gender = studentDto.gender?.let { com.haneef._school.entity.Gender.valueOf(it.uppercase()) }
@@ -945,43 +974,55 @@ class CommunityController(
                 return "admin/community/students/assign-success"
             } else {
                 // Check if user already exists by email
-                val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
-                val savedUser = if (existingUser != null) {
-                    if (!phoneNumber.isNullOrBlank()) {
-                        existingUser.phoneNumber = phoneNumber
+                if (!userDto.email.isNullOrBlank()) {
+                    if (userRepository.existsByEmail(userDto.email!!)) {
+                        throw RuntimeException("A user with this email address is already registered.")
                     }
-                    userRepository.save(existingUser)
-                } else {
-                    // Use admission number as phone number since phone number field is removed
-                    val finalPhoneNumber = if (!phoneNumber.isNullOrBlank()) {
-                        phoneNumber
-                    } else {
-                        null
-                    }
-                    
-                    val newUser = User(phoneNumber = finalPhoneNumber).apply {
-                        this.firstName = userDto.firstName
-                        this.lastName = userDto.lastName
-                        this.middleName = userDto.middleName
-                        this.email = userDto.email
-                        this.dateOfBirth = userDto.dateOfBirth
-                        this.gender = userDto.gender
-                        this.status = UserStatus.ACTIVE
-                    }
-                    userRepository.save(newUser)
                 }
+                
+                // Use admission number as phone number since phone number field is removed
+                val finalPhoneNumber = if (!phoneNumber.isNullOrBlank()) {
+                    phoneNumber
+                } else {
+                    null
+                }
+                
+                // Check if user already exists by phone number
+                if (finalPhoneNumber != null) {
+                    if (userRepository.existsByPhoneNumber(finalPhoneNumber)) {
+                        throw RuntimeException("A user with this phone number/admission number is already registered.")
+                    }
+                }
+
+                val newUser = User(phoneNumber = finalPhoneNumber).apply {
+                    this.firstName = userDto.firstName
+                    this.lastName = userDto.lastName
+                    this.middleName = userDto.middleName
+                    this.email = userDto.email
+                    this.dateOfBirth = userDto.dateOfBirth
+                    this.gender = userDto.gender
+                    this.status = UserStatus.ACTIVE
+                }
+                val savedUser = userRepository.save(newUser)
                 
                 // Check if student already exists for this user and school
                 var savedStudent = studentRepository.findByUserIdAndSchoolId(savedUser.id!!, selectedSchoolId)
                 if (savedStudent == null) {
                     val studentId = generateStudentId(selectedSchoolId)
+                    val admissionNumber = if (studentDto.admissionNumber.isNullOrBlank()) generateAdmissionNumber(selectedSchoolId) else studentDto.admissionNumber!!
+                    
+                    // Check for duplicate admission number in the same school
+                    if (studentRepository.findByAdmissionNumberAndSchoolId(admissionNumber, selectedSchoolId) != null) {
+                        throw RuntimeException("Admission number $admissionNumber is already in use.")
+                    }
+
                     val newStudent = Student(
                         user = savedUser,
                         studentId = studentId,
                         admissionDate = LocalDate.now()
                     ).apply {
                         this.schoolId = selectedSchoolId
-                        this.admissionNumber = if (studentDto.admissionNumber.isNullOrBlank()) generateAdmissionNumber(selectedSchoolId) else studentDto.admissionNumber
+                        this.admissionNumber = admissionNumber
                         this.currentGradeLevel = studentDto.currentGradeLevel
                         this.dateOfBirth = studentDto.dateOfBirth
                         this.gender = studentDto.gender?.let { com.haneef._school.entity.Gender.valueOf(it.uppercase()) }
@@ -1018,7 +1059,21 @@ class CommunityController(
             return "admin/community/students/assign-success"
         } catch (e: Exception) {
             model.addAttribute("error", handleDatabaseError(e, "Error saving student"))
-            return "fragments/error :: error-message"
+            
+            // Re-populate model for form re-rendering
+            val classes = schoolClassRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+            val school = schoolRepository.findById(selectedSchoolId).orElse(null)
+            
+            model.addAttribute("classes", classes)
+            model.addAttribute("isEdit", id != null)
+            if (id != null) {
+                studentRepository.findById(id).ifPresent { model.addAttribute("student", it) }
+            }
+            model.addAttribute("admissionPrefix", school?.admissionPrefix ?: "ADM")
+            model.addAttribute("lastAdmissionNumber", studentRepository.findFirstBySchoolIdOrderByCreatedAtDesc(selectedSchoolId)?.admissionNumber)
+            model.addAttribute("phoneNumber", phoneNumber)
+            
+            return "admin/community/students/modal-form"
         }
     }
 
@@ -1663,21 +1718,26 @@ class CommunityController(
                 return "admin/community/parents/assign-success"
             } else {
                 // Check if user already exists by email
-                val existingUser = if (!userDto.email.isNullOrBlank()) userRepository.findByEmail(userDto.email!!).orElse(null) else null
-                val savedUser = if (existingUser != null) {
-                    if (!userDto.phoneNumber.isNullOrBlank()) {
-                        existingUser.phoneNumber = userDto.phoneNumber!!
+                if (!userDto.email.isNullOrBlank()) {
+                    if (userRepository.existsByEmail(userDto.email!!)) {
+                        throw RuntimeException("A user with this email address is already registered.")
                     }
-                    userRepository.save(existingUser)
-                } else {
-                    val newUser = User(phoneNumber = userDto.phoneNumber?.takeIf { it.isNotBlank() }).apply {
-                        this.firstName = userDto.firstName
-                        this.lastName = userDto.lastName
-                        this.email = userDto.email
-                        this.status = UserStatus.ACTIVE
-                    }
-                    userRepository.save(newUser)
                 }
+                
+                // Check if user already exists by phone number
+                if (!userDto.phoneNumber.isNullOrBlank()) {
+                    if (userRepository.existsByPhoneNumber(userDto.phoneNumber!!)) {
+                        throw RuntimeException("A user with this phone number is already registered.")
+                    }
+                }
+
+                val newUser = User(phoneNumber = userDto.phoneNumber?.takeIf { it.isNotBlank() }).apply {
+                    this.firstName = userDto.firstName
+                    this.lastName = userDto.lastName
+                    this.email = userDto.email
+                    this.status = UserStatus.ACTIVE
+                }
+                val savedUser = userRepository.save(newUser)
                 
                 // Check if parent already exists for this user and school
                 var savedParent = parentRepository.findByUserIdAndSchoolId(savedUser.id!!, selectedSchoolId)
@@ -1719,7 +1779,11 @@ class CommunityController(
             }
         } catch (e: Exception) {
             model.addAttribute("error", handleDatabaseError(e, "Error saving parent"))
-            return "fragments/error :: error-message"
+            model.addAttribute("isEdit", id != null)
+            if (id != null) {
+                parentRepository.findById(id).ifPresent { model.addAttribute("parent", it) }
+            }
+            return "admin/community/parents/modal-form"
         }
     }
 
@@ -2621,7 +2685,10 @@ class CommunityController(
         model: Model
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return "fragments/success :: success-message"
+            ?: run {
+                model.addAttribute("error", "Session expired. Please select a school again.")
+                return "fragments/error :: error-message"
+            }
 
         try {
             // Same logic as saveStaffHtmx but return success message
@@ -2660,24 +2727,29 @@ class CommunityController(
                 model.addAttribute("message", "Staff updated successfully!")
             } else {
                 // Check if user already exists by email
-                val existingUser = if (!email.isNullOrBlank()) userRepository.findByEmail(email).orElse(null) else null
-                val savedUser = if (existingUser != null) {
-                    if (fullPhoneNumber.isNotBlank()) {
-                        existingUser.phoneNumber = fullPhoneNumber
+                if (!email.isNullOrBlank()) {
+                    if (userRepository.existsByEmail(email)) {
+                        throw RuntimeException("A user with this email address is already registered.")
                     }
-                    userRepository.save(existingUser)
-                } else {
-                    val newUser = User(phoneNumber = fullPhoneNumber).apply {
-                        this.firstName = firstName
-                        this.lastName = lastName
-                        this.middleName = middleName
-                        this.email = email
-                        this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
-                        this.gender = gender
-                        this.status = UserStatus.ACTIVE
-                    }
-                    userRepository.save(newUser)
                 }
+                
+                // Check if user already exists by phone number
+                if (fullPhoneNumber.isNotBlank()) {
+                    if (userRepository.existsByPhoneNumber(fullPhoneNumber)) {
+                        throw RuntimeException("A user with this phone number is already registered.")
+                    }
+                }
+
+                val newUser = User(phoneNumber = fullPhoneNumber).apply {
+                    this.firstName = firstName
+                    this.lastName = lastName
+                    this.middleName = middleName
+                    this.email = email
+                    this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
+                    this.gender = gender
+                    this.status = UserStatus.ACTIVE
+                }
+                val savedUser = userRepository.save(newUser)
                 
                 // Check if staff already exists for this user and school
                 var savedStaff = staffRepository.findByUserIdAndSchoolId(savedUser.id!!, selectedSchoolId)
@@ -2743,7 +2815,10 @@ class CommunityController(
         model: Model
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return "fragments/success :: success-message"
+            ?: run {
+                model.addAttribute("error", "Session expired. Please select a school again.")
+                return "fragments/error :: error-message"
+            }
 
         // Strip admission prefix if present
         var processedStudentId = studentId
@@ -2775,6 +2850,14 @@ class CommunityController(
                 }
                 userRepository.save(existingUser)
                 
+                // Check for duplicate student ID/admission number in the same school
+                if (processedStudentId.isNotBlank()) {
+                    val studentWithSameId = studentRepository.findByStudentIdAndSchoolId(processedStudentId, selectedSchoolId)
+                    if (studentWithSameId != null && studentWithSameId.id != id) {
+                        throw RuntimeException("Student ID/Admission number $processedStudentId is already in use.")
+                    }
+                }
+
                 existingStudent.apply {
                     this.studentId = processedStudentId
                     this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
@@ -2785,36 +2868,49 @@ class CommunityController(
                 model.addAttribute("message", "Student updated successfully!")
             } else {
                 // Check if user already exists by email
-                val existingUser = if (!email.isNullOrBlank()) userRepository.findByEmail(email).orElse(null) else null
-                val savedUser = if (existingUser != null) {
-                    if (!phoneNumber.isNullOrBlank()) {
-                        existingUser.phoneNumber = phoneNumber!!
+                if (!email.isNullOrBlank()) {
+                    if (userRepository.existsByEmail(email)) {
+                        throw RuntimeException("A user with this email address is already registered.")
                     }
-                    userRepository.save(existingUser)
-                } else {
-                    // Create new student - use admission number (studentId) as phone number since field is removed
-                    val finalPhoneNumber = if (processedStudentId.isNotBlank()) {
-                        processedStudentId
-                    } else if (!phoneNumber.isNullOrBlank()) {
-                        phoneNumber
-                    } else {
-                        null
-                    }
-                    val newUser = User(phoneNumber = finalPhoneNumber).apply {
-                        this.firstName = firstName
-                        this.lastName = lastName
-                        this.middleName = middleName
-                        this.email = email
-                        this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
-                        this.gender = gender
-                        this.status = UserStatus.ACTIVE
-                    }
-                    userRepository.save(newUser)
                 }
+                
+                // Create new student - use admission number (studentId) as phone number since field is removed
+                val finalPhoneNumber = if (processedStudentId.isNotBlank()) {
+                    processedStudentId
+                } else if (!phoneNumber.isNullOrBlank()) {
+                    phoneNumber
+                } else {
+                    null
+                }
+                
+                // Check if user already exists by phone number
+                if (finalPhoneNumber != null) {
+                    if (userRepository.existsByPhoneNumber(finalPhoneNumber)) {
+                        throw RuntimeException("A user with this phone number/admission number is already registered.")
+                    }
+                }
+
+                val newUser = User(phoneNumber = finalPhoneNumber).apply {
+                    this.firstName = firstName
+                    this.lastName = lastName
+                    this.middleName = middleName
+                    this.email = email
+                    this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
+                    this.gender = gender
+                    this.status = UserStatus.ACTIVE
+                }
+                val savedUser = userRepository.save(newUser)
                 
                 // Check if student already exists for this user and school
                 var savedStudent = studentRepository.findByUserIdAndSchoolId(savedUser.id!!, selectedSchoolId)
                 if (savedStudent == null) {
+                    // Check for duplicate student ID in the same school
+                    if (processedStudentId.isNotBlank()) {
+                        if (studentRepository.findByStudentIdAndSchoolId(processedStudentId, selectedSchoolId) != null) {
+                            throw RuntimeException("Student ID $processedStudentId is already in use.")
+                        }
+                    }
+
                     val newStudent = Student(
                         user = savedUser,
                         studentId = processedStudentId,
@@ -2896,7 +2992,10 @@ class CommunityController(
         model: Model
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return "fragments/success :: success-message"
+            ?: run {
+                model.addAttribute("error", "Session expired. Please select a school again.")
+                return "fragments/error :: error-message"
+            }
 
         try {
             val fullPhoneNumber = countryCode + phoneNumber
@@ -2924,24 +3023,29 @@ class CommunityController(
                 model.addAttribute("message", "Parent updated successfully!")
             } else {
                 // Check if user already exists by email
-                val existingUser = if (!email.isNullOrBlank()) userRepository.findByEmail(email).orElse(null) else null
-                val savedUser = if (existingUser != null) {
-                    if (fullPhoneNumber.isNotBlank()) {
-                        existingUser.phoneNumber = fullPhoneNumber
+                if (!email.isNullOrBlank()) {
+                    if (userRepository.existsByEmail(email)) {
+                        throw RuntimeException("A user with this email address is already registered.")
                     }
-                    userRepository.save(existingUser)
-                } else {
-                    val newUser = User(phoneNumber = fullPhoneNumber).apply {
-                        this.firstName = firstName
-                        this.lastName = lastName
-                        this.middleName = middleName
-                        this.email = email
-                        this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
-                        this.gender = gender
-                        this.status = UserStatus.ACTIVE
-                    }
-                    userRepository.save(newUser)
                 }
+                
+                // Check if user already exists by phone number
+                if (fullPhoneNumber.isNotBlank()) {
+                    if (userRepository.existsByPhoneNumber(fullPhoneNumber)) {
+                        throw RuntimeException("A user with this phone number is already registered.")
+                    }
+                }
+
+                val newUser = User(phoneNumber = fullPhoneNumber).apply {
+                    this.firstName = firstName
+                    this.lastName = lastName
+                    this.middleName = middleName
+                    this.email = email
+                    this.dateOfBirth = if (dateOfBirth.isNullOrBlank()) null else LocalDate.parse(dateOfBirth)
+                    this.gender = gender
+                    this.status = UserStatus.ACTIVE
+                }
+                val savedUser = userRepository.save(newUser)
                 
                 // Check if parent already exists for this user and school
                 var savedParent = parentRepository.findByUserIdAndSchoolId(savedUser.id!!, selectedSchoolId)
