@@ -78,10 +78,8 @@ async function processExcelFile(event) {
         // Read the Excel file
         const data = await readExcelFile(file);
 
-        // Validate that all required sheets exist
-        if (!data.students || !data.parents || !data.staff) {
-            throw new Error('Excel file must contain three sheets: Students, Parents, and Staff');
-        }
+        // Validate that at least one sheet exists or just proceed (empty import)
+        // Checks removed to allow partial/missing sheets
 
         // Sanitize and validate data
         const sanitizedData = sanitizeImportData(data);
@@ -155,7 +153,7 @@ function extractStudentsData(workbook) {
     const sheet = workbook.Sheets[sheetName];
 
     if (!sheet) {
-        throw new Error(`Sheet "${sheetName}" not found`);
+        return [];
     }
 
     // Convert sheet to JSON
@@ -181,7 +179,7 @@ function extractParentsData(workbook) {
     const sheet = workbook.Sheets[sheetName];
 
     if (!sheet) {
-        throw new Error(`Sheet "${sheetName}" not found`);
+        return [];
     }
 
     const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
@@ -203,7 +201,7 @@ function extractStaffData(workbook) {
     const sheet = workbook.Sheets[sheetName];
 
     if (!sheet) {
-        throw new Error(`Sheet "${sheetName}" not found`);
+        return [];
     }
 
     const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });

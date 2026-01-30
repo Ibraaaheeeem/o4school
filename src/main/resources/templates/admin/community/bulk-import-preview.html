@@ -6,12 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4School - Bulk Import Preview</title>
     <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
     <link rel="stylesheet" th:href="@{/css/bulk-import.css}">
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
 </head>
+
 <body>
     <div th:replace="~{fragments/header :: school-header}"></div>
 
@@ -24,10 +33,19 @@
                 <p>Review the validation results before importing</p>
             </div>
 
-            <!-- Error Alert -->
-            <div class="alert alert-danger" th:if="${hasErrors}">
+            <!-- Error Alert (Blocking) -->
+            <div class="alert alert-danger"
+                th:if="${hasErrors && (preview.students.validEntries + preview.parents.validEntries + preview.staff.validEntries == 0)}">
                 <i class="fas fa-exclamation-triangle"></i>
                 <strong>Validation Errors Found!</strong> Please fix the errors in your Excel file before proceeding.
+            </div>
+
+            <!-- Warning Alert (Partial Success) -->
+            <div class="alert alert-warning"
+                th:if="${hasErrors && (preview.students.validEntries + preview.parents.validEntries + preview.staff.validEntries > 0)}">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>Partial Validation Errors!</strong> Some rows contain errors and will be skipped. You can
+                proceed to import only the valid entries.
             </div>
 
             <!-- Success Alert -->
@@ -56,9 +74,11 @@
                             <span class="stat-label">Duplicates (Skipped):</span>
                             <span class="stat-value" th:text="${preview.students.duplicates}">0</span>
                         </div>
-                        <div class="stat-item error" th:if="${!preview.students.errors.empty}">
-                            <span class="stat-label">Errors:</span>
-                            <span class="stat-value" th:text="${preview.students.errors.size()}">0</span>
+                        <div class="stat-item error"
+                            th:if="${preview.students.errors.size() > preview.students.duplicates}">
+                            <span class="stat-label">Validation Errors:</span>
+                            <span class="stat-value"
+                                th:text="${preview.students.errors.size() - preview.students.duplicates}">0</span>
                         </div>
                     </div>
 
@@ -93,9 +113,11 @@
                             <span class="stat-label">Duplicates (Skipped):</span>
                             <span class="stat-value" th:text="${preview.parents.duplicates}">0</span>
                         </div>
-                        <div class="stat-item error" th:if="${!preview.parents.errors.empty}">
-                            <span class="stat-label">Errors:</span>
-                            <span class="stat-value" th:text="${preview.parents.errors.size()}">0</span>
+                        <div class="stat-item error"
+                            th:if="${preview.parents.errors.size() > preview.parents.duplicates}">
+                            <span class="stat-label">Validation Errors:</span>
+                            <span class="stat-value"
+                                th:text="${preview.parents.errors.size() - preview.parents.duplicates}">0</span>
                         </div>
                     </div>
 
@@ -130,9 +152,10 @@
                             <span class="stat-label">Duplicates (Skipped):</span>
                             <span class="stat-value" th:text="${preview.staff.duplicates}">0</span>
                         </div>
-                        <div class="stat-item error" th:if="${!preview.staff.errors.empty}">
-                            <span class="stat-label">Errors:</span>
-                            <span class="stat-value" th:text="${preview.staff.errors.size()}">0</span>
+                        <div class="stat-item error" th:if="${preview.staff.errors.size() > preview.staff.duplicates}">
+                            <span class="stat-label">Validation Errors:</span>
+                            <span class="stat-value"
+                                th:text="${preview.staff.errors.size() - preview.staff.duplicates}">0</span>
                         </div>
                     </div>
 
@@ -156,8 +179,9 @@
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
 
-                <form th:if="${!hasErrors}" method="post" th:action="@{/admin/community/bulk-import/confirm}"
-                    style="display: inline;">
+                <form
+                    th:if="${!hasErrors || (preview.students.validEntries + preview.parents.validEntries + preview.staff.validEntries > 0)}"
+                    method="post" th:action="@{/admin/community/bulk-import/confirm}" style="display: inline;">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <input type="hidden" name="previewData" th:value="${preview}" />
                     <button type="submit" class="btn btn-primary btn-lg">

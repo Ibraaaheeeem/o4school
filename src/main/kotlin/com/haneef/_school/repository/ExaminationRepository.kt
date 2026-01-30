@@ -102,4 +102,10 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
         examType: String,
         isActive: Boolean
     ): List<Examination>
+
+    fun findBySchoolClassIdInAndIsActiveAndIsPublished(
+        classIds: List<UUID>,
+        isActive: Boolean,
+        isPublished: Boolean
+    ): List<Examination>
 }

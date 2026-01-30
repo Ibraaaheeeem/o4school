@@ -6,8 +6,7 @@
     </div>
 
     <form hx-post="/admin/financial/fee-items/save-htmx" hx-target="#response-container" hx-swap="innerHTML"
-        class="modal-form"
-        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+        class="modal-form" th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
 
         <input type="hidden" name="id" th:value="${isEdit ? feeItem.id : ''}">
 
@@ -28,34 +27,6 @@
                         <label for="amount">Amount (₦) *</label>
                         <input type="number" id="amount" name="amount" class="form-input" th:value="${feeItem.amount}"
                             placeholder="0.00" step="0.01" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="feeCategory">Category *</label>
-                        <select id="feeCategory" name="feeCategory" class="form-input" required>
-                            <option value="">Select Category</option>
-                            <option th:each="category : ${feeCategories}" th:value="${category}" th:text="${category}"
-                                th:selected="${isEdit && feeItem.feeCategory == category}">
-                            </option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="academicSession">Academic Session *</label>
-                        <select id="academicSession" name="academicSessionId" class="form-input" required>
-                            <option value="">Select Session</option>
-                            <option th:each="acadSession : ${academicSessions}" th:value="${acadSession.id}"
-                                th:text="${acadSession.sessionName + ' (' + acadSession.sessionYear + ')'}"
-                                th:selected="${isEdit && feeItem.academicSession?.id == acadSession.id}">
-                            </option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="term">Term *</label>
-                        <select id="term" name="termId" class="form-input" required>
-                            <option value="">Select Term</option>
-                            <option th:each="term : ${terms}" th:value="${term.id}" th:text="${term.termName}"
-                                th:selected="${isEdit && feeItem.term?.id == term.id}">
-                            </option>
-                        </select>
                     </div>
                 </div>
 
@@ -154,25 +125,6 @@
                         </label>
                         <small class="form-help">Required for all students in applicable classes</small>
                     </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="isRecurring" value="true" th:checked="${feeItem.isRecurring}"
-                                onchange="toggleRecurrenceType()">
-                            <span class="checkmark"></span>
-                            Recurring Fee
-                        </label>
-                        <small class="form-help">Fee that repeats at regular intervals</small>
-                    </div>
-                </div>
-
-                <div class="form-group" id="recurrenceTypeGroup" style="display: none;">
-                    <label for="recurrenceType">Recurrence Type</label>
-                    <select id="recurrenceType" name="recurrenceType" class="form-input">
-                        <option value="">Select Recurrence</option>
-                        <option th:each="type : ${recurrenceTypes}" th:value="${type}" th:text="${type}"
-                            th:selected="${isEdit && feeItem.recurrenceType == type}">
-                        </option>
-                    </select>
                 </div>
             </div>
         </div>
@@ -187,20 +139,7 @@
 </div>
 
 <script>
-    function toggleRecurrenceType() {
-        const isRecurring = document.querySelector('input[name="isRecurring"]').checked;
-        const recurrenceGroup = document.getElementById('recurrenceTypeGroup');
-        const recurrenceSelect = document.getElementById('recurrenceType');
 
-        if (isRecurring) {
-            recurrenceGroup.style.display = 'block';
-            recurrenceSelect.required = true;
-        } else {
-            recurrenceGroup.style.display = 'none';
-            recurrenceSelect.required = false;
-            recurrenceSelect.value = '';
-        }
-    }
 
     function toggleDiscountAmount() {
         const type = document.getElementById('staffDiscountType').value;
@@ -218,7 +157,7 @@
 
     // Initialize recurrence type visibility and discount visibility
     document.addEventListener('DOMContentLoaded', function () {
-        toggleRecurrenceType();
+
         toggleDiscountAmount();
     });
 </script>

@@ -59,41 +59,13 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="classSelect">Select Class:</label>
-                            <select id="classSelect" name="classId" class="form-select" required>
+                            <select id="classSelect" name="classIds" class="form-select" required>
                                 <option value="">Choose a class...</option>
                                 <option th:each="schoolClass : ${allClasses}" th:value="${schoolClass.id}"
                                     th:text="${schoolClass.className}"
                                     th:disabled="${#lists.contains(assignedClassIds, schoolClass.id)}">
                                     Class 1A
                                 </option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="academicYear">Academic Year:</label>
-                            <input type="text" id="academicYear" name="academicYear" class="form-input"
-                                value="2024-2025" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="academicSession">Academic Session:</label>
-                            <select id="academicSession" name="academicSessionId" class="form-select" required>
-                                <option value="">Choose a session...</option>
-                                <option th:each="acadSession : ${academicSessions}" th:value="${acadSession.id}"
-                                    th:text="${acadSession.sessionName != null ? acadSession.sessionName : 'Session'} + ${acadSession.year != null ? ' (' + acadSession.year + ')' : ''}">
-                                    2024/2025 Session
-                                </option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" id="termGroup"
-                            th:style="${feeItem.recurrenceType?.name() == 'TERMLY'} ? 'display: block' : 'display: none'">
-                            <label for="term">Term:</label>
-                            <select id="term" name="term" class="form-select">
-                                <option value="">Choose a term...</option>
-                                <option value="FIRST_TERM">First Term</option>
-                                <option value="SECOND_TERM">Second Term</option>
-                                <option value="THIRD_TERM">Third Term</option>
                             </select>
                         </div>
 
@@ -126,20 +98,7 @@
 
     <script>
         // Show/hide term field based on fee item recurrence type
-        document.addEventListener('DOMContentLoaded', function () {
-            const feeItemRecurrenceType = /*[[${feeItem.recurrenceType?.name()}]]*/ 'TERMLY';
-            const termGroup = document.getElementById('termGroup');
-            const termSelect = document.getElementById('term');
 
-            if (feeItemRecurrenceType === 'TERMLY') {
-                termGroup.style.display = 'block';
-                termSelect.required = true;
-            } else {
-                termGroup.style.display = 'none';
-                termSelect.required = false;
-                termSelect.value = '';
-            }
-        });
 
         // Refresh class assignments after successful operation
         window.refreshClassAssignments = function (feeItemId) {

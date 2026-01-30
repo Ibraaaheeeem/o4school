@@ -53,6 +53,11 @@
     padding: 2rem 0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: var(--text-main);
+    width: 100%;
+}
+
+.main-content.setup-layout {
+    padding: 0;
 }
 
 .dashboard-container {

@@ -13,404 +13,427 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
             rel="stylesheet">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
         <style>
             :root {
-                --header-bg: rgba(255, 255, 255, 0.9);
-                --header-blur: 16px;
-                --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%, #db2777 100%);
-                --brand-gradient: linear-gradient(135deg, #1e293b 0%, #4338ca 100%);
-                --text-main: #0f172a;
-                --text-muted: #64748b;
-                --glass-border: rgba(226, 232, 240, 0.8);
-                --accent-color: #4f46e5;
+                --header-height: 70px;
+                --header-bg: rgba(255, 255, 255, 0.85);
+                --header-border: rgba(226, 232, 240, 0.6);
+                --text-primary: #0f172a;
+                --text-secondary: #64748b;
+                --brand-color: #4f46e5;
+                --brand-gradient: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+                --surface-hover: #f1f5f9;
+                --danger-color: #ef4444;
+                --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             }
 
             .school-header {
                 position: sticky;
                 top: 0;
-                z-index: 1000;
+                z-index: 100;
+                height: var(--header-height);
                 background: var(--header-bg);
-                backdrop-filter: blur(var(--header-blur));
-                -webkit-backdrop-filter: blur(var(--header-blur));
-                border-bottom: 1px solid var(--glass-border);
-                padding: 0.6rem 0;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-bottom: 1px solid var(--header-border);
+                transition: all 0.3s ease;
                 font-family: 'Inter', sans-serif;
-                box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
             }
 
             .header-container {
-                max-width: 1440px;
+                max-width: 1600px;
+                height: 100%;
                 margin: 0 auto;
                 padding: 0 1.5rem;
                 display: flex;
-                justify-content: space-between;
                 align-items: center;
-                gap: 1.5rem;
+                justify-content: space-between;
+                gap: 2rem;
             }
 
-            /* Combined Brand Container */
-            .brand-container {
+            /* --- Branding --- */
+            .brand-section {
                 display: flex;
                 align-items: center;
                 gap: 1rem;
-                padding: 0.4rem 0.8rem;
-                background: rgba(248, 250, 252, 0.8);
-                border-radius: 16px;
-                border: 1px solid rgba(226, 232, 240, 0.5);
-                transition: all 0.3s ease;
                 text-decoration: none;
+                color: inherit;
+                transition: transform 0.2s;
             }
 
-            .brand-container:hover {
-                background: #ffffff;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            .brand-section:hover {
                 transform: translateY(-1px);
             }
 
-            .logo-wrapper {
+            .logo-container {
                 position: relative;
-                width: 44px;
-                height: 44px;
-                flex-shrink: 0;
-            }
-
-            .school-logo {
-                width: 100%;
-                height: 100%;
-                border-radius: 12px;
-                object-fit: cover;
-                border: 2px solid white;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            }
-
-            .logo-placeholder {
-                width: 100%;
-                height: 100%;
-                border-radius: 12px;
-                background: var(--brand-gradient);
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                overflow: hidden;
+                box-shadow: var(--shadow-sm);
+                background: white;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 1.5rem;
-                color: white;
-                box-shadow: 0 4px 10px rgba(67, 56, 202, 0.2);
             }
 
-            .brand-details {
+            .logo-container img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .brand-info {
                 display: flex;
                 flex-direction: column;
-                gap: 0.1rem;
-            }
-
-            .brand-name-wrapper {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
+                justify-content: center;
             }
 
             .school-name {
                 font-family: 'Outfit', sans-serif;
-                font-size: 1.25rem;
                 font-weight: 700;
-                color: var(--text-main);
-                margin: 0;
-                line-height: 1;
-                letter-spacing: -0.02em;
+                font-size: 1.15rem;
+                color: var(--text-primary);
+                line-height: 1.2;
+                letter-spacing: -0.01em;
             }
 
-            .brand-badge {
-                padding: 0.2rem 0.5rem;
-                background: var(--brand-gradient);
-                color: white;
+            .school-meta {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .system-badge {
                 font-size: 0.65rem;
-                font-weight: 800;
-                border-radius: 6px;
+                font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
-                box-shadow: 0 2px 5px rgba(67, 56, 202, 0.2);
+                color: white;
+                background: var(--brand-gradient);
+                padding: 0.15rem 0.4rem;
+                border-radius: 4px;
+                line-height: 1;
             }
 
-            .school-tagline {
+            .school-motto {
                 font-size: 0.75rem;
-                color: var(--text-muted);
-                margin: 0;
-                font-weight: 500;
+                color: var(--text-secondary);
+                max-width: 200px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                max-width: 180px;
             }
 
+            /* --- Center Navigation/Context --- */
             .header-center {
                 flex: 1;
                 display: flex;
-                justify-content: center;
                 align-items: center;
-                gap: 0.75rem;
+                justify-content: center;
+                gap: 1.5rem;
             }
 
-            .nav-pill {
+            .context-toolbar {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                background: rgba(241, 245, 249, 0.5);
+                padding: 0.35rem 0.75rem;
+                border-radius: 12px;
+                border: 1px solid rgba(226, 232, 240, 0.8);
+            }
+
+            /* Custom Select Styling */
+            .context-select-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+
+            .context-select {
+                appearance: none;
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 0.4rem 2rem 0.4rem 0.75rem;
+                font-size: 0.85rem;
+                font-weight: 500;
+                color: var(--text-primary);
+                cursor: pointer;
+                transition: all 0.2s;
+                min-width: 140px;
+                box-shadow: var(--shadow-sm);
+            }
+
+            .context-select:hover {
+                border-color: #cbd5e1;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            }
+
+            .context-select:focus {
+                outline: none;
+                border-color: var(--brand-color);
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            }
+
+            .context-select.warning {
+                border-color: var(--danger-color);
+                color: var(--danger-color);
+                background: #fef2f2;
+            }
+
+            .select-chevron {
+                position: absolute;
+                right: 0.75rem;
+                font-size: 0.7rem;
+                color: var(--text-secondary);
+                pointer-events: none;
+            }
+
+            .nav-breadcrumb {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .back-dashboard-link {
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
                 padding: 0.5rem 1rem;
-                background: rgba(79, 70, 229, 0.06);
-                color: var(--accent-color);
+                color: var(--brand-color);
+                font-weight: 600;
+                font-size: 0.9rem;
                 text-decoration: none;
-                border-radius: 12px;
+                border-radius: 8px;
+                transition: background 0.2s;
+            }
+
+            .back-dashboard-link:hover {
+                background: rgba(79, 70, 229, 0.05);
+            }
+
+            .section-label {
+                padding: 0.25rem 0.75rem;
+                background: #f1f5f9;
+                color: var(--text-secondary);
+                border-radius: 20px;
+                font-size: 0.8rem;
                 font-weight: 600;
-                font-size: 0.85rem;
-                transition: all 0.2s ease;
-                border: 1px solid rgba(79, 70, 229, 0.1);
             }
 
-            .nav-pill:hover {
-                background: rgba(79, 70, 229, 0.1);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
-            }
-
-            .section-indicator {
-                padding: 0.5rem 1rem;
-                background: #f8fafc;
-                color: #475569;
-                border-radius: 12px;
-                font-weight: 600;
-                font-size: 0.85rem;
-                border: 1px solid #e2e8f0;
-            }
-
+            /* --- Right User Actions --- */
             .header-right {
                 display: flex;
                 align-items: center;
-                gap: 1rem;
-                flex-shrink: 0;
+                gap: 1.25rem;
             }
 
-            .user-profile {
+            .user-pill {
                 display: flex;
                 align-items: center;
                 gap: 0.75rem;
-                padding: 0.35rem;
+                padding: 0.25rem;
                 padding-right: 1rem;
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-radius: 14px;
-                transition: all 0.2s ease;
+                border: 1px solid transparent;
+                border-radius: 50px;
+                transition: all 0.2s;
             }
 
-            .user-avatar {
-                width: 34px;
-                height: 34px;
-                background: var(--brand-gradient);
-                color: white;
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: 700;
-                font-size: 0.85rem;
-                box-shadow: 0 3px 8px rgba(67, 56, 202, 0.2);
+            .user-pill:hover {
+                background: white;
+                border-color: #e2e8f0;
+                box-shadow: var(--shadow-sm);
             }
 
-            .user-details {
-                display: flex;
-                flex-direction: column;
-            }
-
-            .user-name {
-                font-size: 0.85rem;
-                font-weight: 600;
-                color: var(--text-main);
-                line-height: 1.2;
-            }
-
-            .user-role-text {
-                font-size: 0.65rem;
-                color: var(--text-muted);
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.03em;
-            }
-
-            .logout-btn {
+            .avatar-circle {
                 width: 38px;
                 height: 38px;
-                border-radius: 12px;
-                background: #fff1f2;
-                color: #e11d48;
-                border: 1px solid #ffe4e6;
+                background: var(--brand-gradient);
+                color: white;
+                border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                font-weight: 600;
+                font-size: 0.9rem;
+                border: 2px solid white;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }
+
+            .user-meta {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.1;
+            }
+
+            .user-fullname {
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+
+            .user-role-badge {
+                font-size: 0.7rem;
+                color: var(--text-secondary);
+                text-transform: capitalize;
+            }
+
+            .logout-button {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                border: none;
+                background: transparent;
+                color: var(--text-secondary);
                 cursor: pointer;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                font-size: 1rem;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.1rem;
             }
 
-            .logout-btn:hover {
-                background: #ffe4e6;
-                color: #be123c;
-                transform: scale(1.05);
-                box-shadow: 0 4px 12px rgba(225, 29, 72, 0.1);
+            .logout-button:hover {
+                background: #fee2e2;
+                color: var(--danger-color);
+                transform: translateX(2px);
             }
 
-            /* Mobile Optimizations */
-            @media (max-width: 768px) {
+            /* Mobile Responsive */
+            @media (max-width: 1024px) {
                 .header-container {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: center !important;
-                    justify-content: space-between !important;
                     padding: 0 1rem;
-                    gap: 0.5rem;
-                    width: 100%;
-                    box-sizing: border-box;
+                    gap: 1rem;
                 }
 
                 .header-center {
-                    display: none !important;
+                    display: none;
+                    /* Simplify for mobile for now or move to off-canvas */
                 }
 
-                .brand-container {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: center !important;
+                .school-motto {
+                    display: none;
+                }
+
+                .user-pill {
                     padding: 0;
-                    gap: 0.5rem;
-                    background: transparent;
                     border: none;
-                    flex: 1;
-                    min-width: 0;
                 }
 
-                .brand-container:hover {
-                    transform: none;
+                .user-pill:hover {
                     box-shadow: none;
-                }
-
-                .brand-details {
-                    min-width: 0;
-                    overflow: hidden;
-                    flex: 1;
-                }
-
-                .school-tagline,
-                .user-details,
-                .brand-badge {
-                    display: none !important;
-                }
-
-                .logo-wrapper {
-                    width: 32px;
-                    height: 32px;
-                    flex-shrink: 0;
-                }
-
-                .school-name {
-                    font-size: 1rem;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    display: block;
-                }
-
-                .header-right {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: center !important;
-                    justify-content: flex-end !important;
-                    gap: 0.5rem;
-                    flex-shrink: 0;
-                }
-
-                .user-profile {
-                    padding: 0;
-                    border: none;
                     background: transparent;
                 }
 
-                .user-avatar {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 8px;
-                }
-
-                .logout-form {
-                    margin-left: 0.5rem;
-                }
-
-                .logout-btn {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 8px;
+                .user-meta {
+                    display: none;
                 }
             }
         </style>
 
-
-
         <div class="header-container">
-            <!-- Combined Brand Container -->
-            <!-- Combined Brand Container -->
-            <a href="/" class="brand-container">
-                <!-- Platform Branding (Default) -->
-                <img th:if="${school == null}" src="/images/header-logo.svg" alt="4School"
-                    style="height: 40px; width: auto;">
+            <!-- Branding -->
+            <a href="/" class="brand-section">
+                <!-- Fallback Logic matches original -->
+                <div class="logo-container">
+                    <img src="/images/header-logo.svg" alt="App Logo"
+                        onerror="this.style.display='none'; this.parentElement.style.background='#4f46e5'; this.parentElement.innerHTML='<span style=\'color:white;font-weight:700;\'>4S</span>'">
+                </div>
 
-                <!-- School Branding -->
-                <th:block th:if="${school != null}">
-                    <img src="/images/header-logo.svg" alt="4School" style="height: 40px; width: auto;">
-                    <div class="brand-details"
-                        style="border-left: 1px solid #e2e8f0; padding-left: 1rem; margin-left: 0.5rem;">
-                        <div class="brand-name-wrapper">
-                            <h1 class="school-name" th:text="${school.name}">School Name</h1>
-                            <span class="brand-badge">PRO</span>
-                        </div>
-                        <p class="school-tagline" th:text="${school.schoolMotto ?: 'Excellence in Education'}">
-                            Excellence
-                            in Education</p>
+                <div class="brand-info">
+                    <span class="school-name" th:text="${school?.name ?: '4School Platform'}">4School Platform</span>
+                    <div class="school-meta" th:if="${school != null}">
+                        <span class="system-badge">PRO</span>
+                        <span class="school-motto" th:text="${school.schoolMotto}">Excellence in Education</span>
                     </div>
-                </th:block>
+                </div>
             </a>
 
-            <!-- Center: Navigation Breadcrumb -->
+            <!-- Center Context Navigation -->
             <div class="header-center" sec:authorize="isAuthenticated()">
-                <div class="breadcrumb-nav" id="dashboardNav" style="display: none;">
-                    <a href="/admin/dashboard" class="nav-pill" id="dashboardLink">
-                        <i class="fas fa-arrow-left"></i>
+                <!-- Admin Context Selectors -->
+                <div class="context-toolbar" th:if="${isSchoolAdmin == true}">
+                    <!-- Session -->
+                    <form th:action="@{/admin/header/set-session}" method="post" style="margin: 0;">
+                        <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}" />
+                        <div class="context-select-wrapper">
+                            <select name="sessionId" onchange="this.form.submit()" class="context-select"
+                                th:classappend="${headerContextSessionWarning == true ? 'warning' : ''}">
+                                <option th:if="${headerContextSession == null}" value="" disabled selected>Session
+                                </option>
+                                <option th:each="s : ${headerSessions}" th:value="${s.id}" th:text="${s.sessionName}"
+                                    th:selected="${headerContextSession != null && s.id == headerContextSession.id}">
+                                </option>
+                            </select>
+                            <i class="fas fa-chevron-down select-chevron"></i>
+                        </div>
+                    </form>
+
+                    <!-- Term -->
+                    <form th:if="${headerContextSession != null}" th:action="@{/admin/header/set-term}" method="post"
+                        style="margin: 0;">
+                        <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}" />
+                        <div class="context-select-wrapper">
+                            <select name="termId" onchange="this.form.submit()" class="context-select"
+                                th:classappend="${headerContextTermWarning == true ? 'warning' : ''}">
+                                <option th:if="${headerContextTerm == null}" value="" disabled selected>Term</option>
+                                <option th:each="t : ${headerTerms}" th:value="${t.id}" th:text="${t.termName}"
+                                    th:selected="${headerContextTerm != null && t.id == headerContextTerm.id}"></option>
+                            </select>
+                            <i class="fas fa-chevron-down select-chevron"></i>
+                        </div>
+                    </form>
+
+                    <!-- Warning Indicator -->
+                    <div th:if="${headerContextSessionWarning == true || headerContextTermWarning == true}"
+                        style="color: var(--danger-color); font-size: 1.1rem; animation: pulse 2s infinite;"
+                        title="Setup Required">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                </div>
+
+                <!-- Breadcrumb / Section Details -->
+                <div class="nav-breadcrumb" id="dashboardNav" style="display: none;">
+                    <a href="#" class="back-dashboard-link" id="dashboardLink">
+                        <i class="fas fa-arrow-left-long"></i>
                         <span id="dashboardText">Dashboard</span>
                     </a>
-                </div>
-                <div class="current-section" id="currentSection" style="display: none;">
-                    <div class="section-indicator">
+                    <div class="section-label" id="currentSection" style="display: none;">
                         <span id="sectionName"></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Right side: User Profile and Logout -->
+            <!-- User Profile & Logout -->
             <div class="header-right" sec:authorize="isAuthenticated()">
-                <div class="user-profile">
-                    <div class="user-avatar" th:text="${#strings.substring(user?.firstName ?: 'U', 0, 1)}">U</div>
-                    <div class="user-details">
-                        <span class="user-name" th:text="${user?.fullName ?: 'User'}">User Name</span>
-                        <span class="user-role-text" th:text="${userRole ?: 'Member'}">Role</span>
+                <div class="user-pill">
+                    <div class="avatar-circle" th:text="${#strings.substring(user?.firstName ?: 'U', 0, 1)}">U</div>
+                    <div class="user-meta">
+                        <span class="user-fullname" th:text="${user?.fullName ?: 'User'}">User Name</span>
+                        <span class="user-role-badge" th:text="${userRole ?: 'Access'}">Role</span>
                     </div>
                 </div>
-                <form th:action="@{/auth/logout}" method="post" class="logout-form">
+
+                <form th:action="@{/auth/logout}" method="post">
                     <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                    <button type="submit" class="logout-btn" title="Logout">
-                        <i class="fas fa-sign-out-alt"></i>
+                    <button type="submit" class="logout-button" title="Sign Out">
+                        <i class="fas fa-arrow-right-from-bracket"></i>
                     </button>
                 </form>
             </div>
         </div>
+
         <!-- Dashboard Navigation Script & Financial History Management -->
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -423,35 +446,37 @@
 
                 // Function to set section info
                 function setSectionInfo(sectionText) {
-                    if (sectionName) sectionName.textContent = sectionText;
-                    if (currentSection) currentSection.style.display = 'block';
+                    if (sectionName) {
+                        sectionName.textContent = sectionText;
+                        if (currentSection) currentSection.style.display = 'block';
+                    }
                 }
 
                 // Check if we're on a sub-route and show appropriate dashboard link
                 if (currentPath.startsWith('/admin/') && currentPath !== '/admin/dashboard') {
-                    dashboardLink.href = '/admin/dashboard';
-                    dashboardText.textContent = 'Admin Dashboard';
-                    dashboardNav.style.display = 'flex';
+                    if (dashboardLink) dashboardLink.href = '/admin/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'Dashboard';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
 
                     if (currentPath.includes('/financial')) setSectionInfo('Financials');
                     else if (currentPath.includes('/school-setup')) setSectionInfo('Setup');
                     else if (currentPath.includes('/community')) setSectionInfo('Community');
                     else if (currentPath.includes('/academic')) setSectionInfo('Academics');
                 } else if (currentPath.startsWith('/system-admin/') && currentPath !== '/system-admin/dashboard') {
-                    dashboardLink.href = '/system-admin/dashboard';
-                    dashboardText.textContent = 'System Dashboard';
-                    dashboardNav.style.display = 'flex';
-                    setSectionInfo('System Admin');
+                    if (dashboardLink) dashboardLink.href = '/system-admin/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'System';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
+                    setSectionInfo('Administration');
                 } else if (currentPath.startsWith('/parent/') && currentPath !== '/parent/dashboard') {
-                    dashboardLink.href = '/parent/dashboard';
-                    dashboardText.textContent = 'Parent Portal';
-                    dashboardNav.style.display = 'flex';
-                    setSectionInfo('Details');
+                    if (dashboardLink) dashboardLink.href = '/parent/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'Portal';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
+                    setSectionInfo('My Account');
                 } else if (currentPath.startsWith('/staff/') && currentPath !== '/staff/dashboard') {
-                    dashboardLink.href = '/staff/dashboard';
-                    dashboardText.textContent = 'Staff Portal';
-                    dashboardNav.style.display = 'flex';
-                    setSectionInfo('Details');
+                    if (dashboardLink) dashboardLink.href = '/staff/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'Portal';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
+                    setSectionInfo('Staff Area');
                 }
             });
 

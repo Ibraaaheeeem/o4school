@@ -11,7 +11,8 @@
 
         <div class="modal-body">
             <!-- Currently Assigned Classes -->
-            <div id="assignedClassesContainer" th:fragment="assignedClassesList">
+            <div id="assignedClassesContainer" th:fragment="assignedClassesList(swapOob)"
+                th:attr="hx-swap-oob=${swapOob == true ? 'true' : null}">
 
                 <div class="assigned-classes-section" th:if="${!#lists.isEmpty(assignedClassFeeItems)}">
                     <h3>Currently Assigned Classes</h3>

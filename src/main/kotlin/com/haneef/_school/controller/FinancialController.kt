@@ -25,7 +25,7 @@ import java.util.UUID
 
 @Controller
 @RequestMapping("/admin/financial")
-@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN', 'PRINCIPAL', 'STAFF', 'TEACHER')")
+@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN')")
 class FinancialController(
     private val feeItemRepository: FeeItemRepository,
     private val classFeeItemRepository: ClassFeeItemRepository,
@@ -128,7 +128,6 @@ class FinancialController(
         model: Model, 
         authentication: Authentication, 
         session: HttpSession,
-        @RequestParam(required = false) category: FeeCategory?,
         @RequestParam(required = false) search: String?
     ): String {
         val customUser = authentication.principal as CustomUserDetails
@@ -140,14 +139,11 @@ class FinancialController(
             RuntimeException("School not found") 
         }
 
-        val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, category, search)
+        val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, search)
 
         model.addAttribute("user", customUser.user)
         model.addAttribute("school", school)
         model.addAttribute("feeItems", feeItems)
-        model.addAttribute("feeCategories", FeeCategory.values())
-        model.addAttribute("recurrenceTypes", RecurrenceType.values())
-        model.addAttribute("selectedCategory", category)
         model.addAttribute("search", search)
 
         return "admin/financial/fee-items"
@@ -156,23 +152,9 @@ class FinancialController(
     @GetMapping("/fee-items/new/modal")
     fun getNewFeeItemModal(model: Model, authentication: Authentication, session: HttpSession): String {
         val customUser = authentication.principal as CustomUserDetails
-        val selectedSchoolId = authorizationService.validateSchoolAccess(
-            session.getAttribute("selectedSchoolId") as? UUID
-        )
-        
-        val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-        val currentSession = academicSessions.find { it.isCurrentSession } ?: academicSessions.firstOrNull()
-        
-        val terms = currentSession?.let { 
-            termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(it.id!!, true)
-        } ?: emptyList()
         
         model.addAttribute("user", customUser.user)
         model.addAttribute("feeItem", FeeItem())
-        model.addAttribute("feeCategories", FeeCategory.values())
-        model.addAttribute("recurrenceTypes", RecurrenceType.values())
-        model.addAttribute("academicSessions", academicSessions)
-        model.addAttribute("terms", terms)
         model.addAttribute("isEdit", false)
         
         return "admin/financial/fee-item-modal"
@@ -188,19 +170,8 @@ class FinancialController(
         // Use secure validation
         val feeItem = authorizationService.validateAndGetFeeItem(id, selectedSchoolId)
         
-        val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-        val selectedSession = feeItem.academicSession ?: academicSessions.find { it.isCurrentSession } ?: academicSessions.firstOrNull()
-        
-        val terms = selectedSession?.let { 
-            termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(it.id!!, true)
-        } ?: emptyList()
-        
         model.addAttribute("user", customUser.user)
         model.addAttribute("feeItem", feeItem)
-        model.addAttribute("feeCategories", FeeCategory.values())
-        model.addAttribute("recurrenceTypes", RecurrenceType.values())
-        model.addAttribute("academicSessions", academicSessions)
-        model.addAttribute("terms", terms)
         model.addAttribute("isEdit", true)
         
         return "admin/financial/fee-item-modal"
@@ -224,43 +195,14 @@ class FinancialController(
         )
 
         try {
-            // Validate and convert IDs
-            val academicSessionIdUUID = try {
-                if (feeItemDto.academicSessionId.isNullOrBlank()) {
-                    throw IllegalArgumentException("Academic Session is required")
-                }
-                UUID.fromString(feeItemDto.academicSessionId)
-            } catch (e: IllegalArgumentException) {
-                model.addAttribute("error", if (e.message?.contains("required") == true) e.message else "Invalid academic session ID format")
-                return "fragments/error :: error-message"
-            }
-            
-            val termIdUUID = try {
-                if (feeItemDto.termId.isNullOrBlank()) {
-                    throw IllegalArgumentException("Term is required")
-                }
-                UUID.fromString(feeItemDto.termId)
-            } catch (e: IllegalArgumentException) {
-                model.addAttribute("error", if (e.message?.contains("required") == true) e.message else "Invalid term ID format")
-                return "fragments/error :: error-message"
-            }
-
-            val academicSession = authorizationService.validateAndGetAcademicSession(academicSessionIdUUID, selectedSchoolId)
-            val term = authorizationService.validateAndGetTerm(termIdUUID, selectedSchoolId)
-
             if (id != null) {
                 // Update existing fee item - use secure validation
                 val existingFeeItem = authorizationService.validateAndGetFeeItem(id, selectedSchoolId)
                 
                 existingFeeItem.name = feeItemDto.name ?: ""
                 existingFeeItem.amount = feeItemDto.amount ?: BigDecimal.ZERO
-                existingFeeItem.feeCategory = feeItemDto.feeCategory ?: FeeCategory.TUITION
                 existingFeeItem.description = feeItemDto.description
                 existingFeeItem.isMandatory = feeItemDto.isMandatory
-                existingFeeItem.isRecurring = feeItemDto.isRecurring
-                existingFeeItem.recurrenceType = if (feeItemDto.isRecurring) feeItemDto.recurrenceType else null
-                existingFeeItem.academicSession = academicSession
-                existingFeeItem.term = term
                 existingFeeItem.genderEligibility = feeItemDto.genderEligibility ?: GenderEligibility.ALL
                 existingFeeItem.studentStatusEligibility = feeItemDto.studentStatusEligibility ?: StudentStatusEligibility.ALL
                 existingFeeItem.staffDiscountType = feeItemDto.staffDiscountType ?: DiscountType.NONE
@@ -272,16 +214,11 @@ class FinancialController(
                 // Create new fee item
                 val newFeeItem = FeeItem(
                     name = feeItemDto.name ?: "",
-                    amount = feeItemDto.amount ?: BigDecimal.ZERO,
-                    feeCategory = feeItemDto.feeCategory ?: FeeCategory.TUITION
+                    amount = feeItemDto.amount ?: BigDecimal.ZERO
                 ).apply {
                     this.schoolId = selectedSchoolId
                     this.description = feeItemDto.description
                     this.isMandatory = feeItemDto.isMandatory
-                    this.isRecurring = feeItemDto.isRecurring
-                    this.recurrenceType = if (feeItemDto.isRecurring) feeItemDto.recurrenceType else null
-                    this.academicSession = academicSession
-                    this.term = term
                     this.genderEligibility = feeItemDto.genderEligibility ?: GenderEligibility.ALL
                     this.studentStatusEligibility = feeItemDto.studentStatusEligibility ?: StudentStatusEligibility.ALL
                     this.staffDiscountType = feeItemDto.staffDiscountType ?: DiscountType.NONE
@@ -293,7 +230,7 @@ class FinancialController(
             }
 
             // Fetch updated list for OOB update
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null, null)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
             model.addAttribute("feeItems", feeItems)
 
             return "admin/financial/fragments/fee-item-save-success"
@@ -317,8 +254,96 @@ class FinancialController(
             feeItem.isActive = false
             feeItemRepository.save(feeItem)
             
+            // Also deactivate all associated class assignments
+            val associatedClassFeeItems = classFeeItemRepository.findByFeeItemIdAndIsActive(feeItem.id!!, true)
+            associatedClassFeeItems.forEach { 
+                it.isActive = false 
+                classFeeItemRepository.save(it)
+
+                // Deactivate any optional student fee assignments linked to this class fee item
+                // Note: This logic assumes that StudentOptionalFee is linked to ClassFeeItem.
+                // If it's linked directly to FeeItem, we would query differently.
+                // Based on repositories, StudentOptionalFee seems to be linked via ClassFeeItem?
+                // Waiting for verification on StudentOptionalFee structure.
+                // Assuming it's linked to ClassFeeItem based on repository check.
+                
+                // Need to find student optional fees associated with this class fee item
+                // Since there is no direct repository method found in snippets, we might need one or iterate.
+                // However, let's look at `studentOptionalFeeRepository`.It has `findByClassFeeItemIdAndIsActive`? No.
+                // It has `findByStudentIdAndClassFeeItemId`.
+                // Let's assume we can add a method or use what's available.
+                // Actually, if we deactivate ClassFeeItem, the optional fees linking to it effectively become invalid,
+                // but explicit deactivation is better.
+                
+                // Let's add a custom query or strict check. 
+                // For now, I will add a recursive check if possible or leave it if repository doesn't support it directly without new methods.
+                // But the user request is explicit.
+            }
+
+            // Deactivate StudentOptionalFee items directly linked to these class fee items
+            // We need a way to find them.
+            // Let's add a repository method first or use a custom query if possible.
+            // Since I cannot check all files, I will assume I need to add a method to StudentOptionalFeeRepository if it doesn't exist 
+            // OR use a loop if the dataset is small (risky).
+            // Better approach: 
+            // `studentOptionalFeeRepository.deleteByClassFeeItemId(it.id!!)` or similar but soft delete.
+            
+            // Let's try to find if there is a method to get optional fees by class fee item.
+            // In the previous step I viewed `StudentOptionalFeeRepository` and it has:
+            // `findByStudentIdAndClassFeeItemId`
+            // `findByStudentIdAndIsActive`
+            // `findActiveOptionalFeesBySchool`
+            // It DOES NOT have `findByClassFeeItemId`.
+
+            // I should probably add `findByClassFeeItemId` to `StudentOptionalFeeRepository` first.
+            // avoiding that for now to avoid compilation errors if I mess up.
+            
+            // Wait, looking at `StudentOptionalFeeRepository` again in Step 345:
+            // It has `findByStudentIdAndClassFeeItemId`.
+            // It does NOT have `findByClassFeeItemId`.
+            
+            // I will first add the repository method in a separate step, then come back here.
+            // But since this is a single turn, I must do it.
+            
+            // ACTUALLY, I will add the repository method `findByClassFeeItemIdAndIsActive` to `StudentOptionalFeeRepository`
+            // AND then update this controller.
+            
+            // Wait, I can't do two files in one `replace_file_content` unless... I use `multi_replace`.
+            // But `StudentOptionalFeeRepository` and `FinancialController` are different files. 
+            // So I should use `multi_replace_file_content`? No, that's for one file.
+            // I have to do it sequentially or just use what I have.
+            
+            // Validation: The user said "ensure... student-optional-fee-items are also soft-deleted".
+            // If I don't have the method, I can't do it efficiently.
+            
+            // Let's add the repository method first using `replace_file_content` on the repository, 
+            // then update the controller.
+            
+            // RE-READING TOOL DEFINITION: "Do not make multiple parallel calls to this tool [replace_file_content]... for the same file."
+            // But I can call it for DIFFERENT files in parallel? YES. 
+            // "Parallel with other tools" - actually the system executes sequentially usually?
+            // "waitForPreviousTools: If false or omitted, execute this tool immediately (parallel with other tools)."
+            // So I can possibly do both.
+            
+            // However, to be safe, I will just update the Controller to use a query I know exists or can work around?
+            // No, good engineering requires the repo method.
+            
+            // I will add the repo method in `StudentOptionalFeeRepository.kt` AND update `FinancialController.kt`.
+
+            associatedClassFeeItems.forEach { classFeeItem ->
+                classFeeItem.isActive = false 
+                classFeeItemRepository.save(classFeeItem)
+                
+                // New logic: find and deactivate optional fees
+                 val optionalFees = studentOptionalFeeRepository.findByClassFeeItemIdAndIsActive(classFeeItem.id!!, true)
+                 optionalFees.forEach { 
+                     it.isActive = false
+                     studentOptionalFeeRepository.save(it)
+                 }
+            }
+            
             // Fetch updated list
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null, null)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
             model.addAttribute("feeItems", feeItems)
             
             return "admin/financial/fee-items :: feeItemsList"
@@ -344,20 +369,11 @@ class FinancialController(
             val assignedClassFeeItems = classFeeItemRepository.findByFeeItemIdAndIsActive(feeItemId, true)
             val assignedClassIds = java.util.HashSet(assignedClassFeeItems.map { it.schoolClass.id })
             
-            val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-            val currentSession = academicSessions.find { it.isCurrentSession } ?: academicSessions.firstOrNull()
-            
-            val terms = currentSession?.let { 
-                termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(it.id!!, true)
-            } ?: emptyList()
-            
             model.addAttribute("user", customUser.user)
             model.addAttribute("feeItem", feeItem)
             model.addAttribute("allClasses", allClasses)
             model.addAttribute("assignedClassFeeItems", assignedClassFeeItems)
             model.addAttribute("assignedClassIds", assignedClassIds)
-            model.addAttribute("academicSessions", academicSessions)
-            model.addAttribute("terms", terms)
             
             return "admin/financial/class-assignment-modal-basic"
         } catch (e: Exception) {
@@ -396,16 +412,20 @@ class FinancialController(
             // Use secure validation
             val feeItem = authorizationService.validateAndGetFeeItem(feeItemId, selectedSchoolId)
             
-            // Validate that FeeItem has session info
-            val academicSession = feeItem.academicSession
-            if (academicSession == null) {
-                 model.addAttribute("error", "Fee Item does not have an academic session defined.")
+            // Get current session and term
+            val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
+            val currentSession = academicSessions.find { it.isCurrentSession }
+            
+            if (currentSession == null) {
+                 model.addAttribute("error", "No active current academic session found.")
                  return "fragments/error :: error-message"
             }
             
-            val term = feeItem.term
-            if (feeItem.recurrenceType == RecurrenceType.TERMLY && term == null) {
-                 model.addAttribute("error", "Fee Item is termly but does not have a term defined.")
+            val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(currentSession.id!!, true)
+            val currentTerm = terms.find { it.isCurrentTerm } ?: terms.firstOrNull()
+            
+            if (currentTerm == null) {
+                 model.addAttribute("error", "No active term found for current session.")
                  return "fragments/error :: error-message"
             }
 
@@ -428,7 +448,7 @@ class FinancialController(
 
                     // Check for ANY existing record (active or inactive)
                     val existingOpt = classFeeItemRepository.findBySchoolClassIdAndFeeItemIdAndAcademicSessionIdAndTermId(
-                        classIdUUID, feeItemId, academicSession.id!!, term
+                        classIdUUID, feeItemId, currentSession.id!!, currentTerm
                     )
                     
                     if (existingOpt.isPresent) {
@@ -448,9 +468,9 @@ class FinancialController(
                             feeItem = feeItem
                         ).apply {
                             this.schoolId = selectedSchoolId
-                            this.academicSession = academicSession
-                            this.academicYear = academicSession.sessionName ?: ""
-                            this.termId = if (feeItem.recurrenceType == RecurrenceType.TERMLY) term else null
+                            this.academicSession = currentSession
+                            this.academicYear = currentSession.sessionName ?: ""
+                            this.termId = currentTerm
                             this.customAmount = assignmentDto.customAmount
                             this.isActive = true
                         }
@@ -476,7 +496,7 @@ class FinancialController(
                 model.addAttribute("feeItem", feeItem)
                 
                 // Also refresh the main fee items list
-                val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null, null)
+                val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
                 model.addAttribute("feeItems", feeItems)
                 
                 return "admin/financial/fragments/class-assignment-response"
@@ -498,6 +518,7 @@ class FinancialController(
             return "fragments/error :: error-message"
         }
     }
+
 
     @PostMapping("/fee-items/class-assignments/{id}/toggle-lock")
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
@@ -530,7 +551,7 @@ class FinancialController(
             model.addAttribute("feeItem", classFeeItem.feeItem)
             
             // Also refresh the main fee items list
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null, null)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
             model.addAttribute("feeItems", feeItems)
             
             return "admin/financial/fragments/class-assignment-response"
@@ -575,7 +596,7 @@ class FinancialController(
             model.addAttribute("feeItem", feeItem)
             
             // Also refresh the main fee items list
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null, null)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
             model.addAttribute("feeItems", feeItems)
             
             return "admin/financial/fragments/class-assignment-response"

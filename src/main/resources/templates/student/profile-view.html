@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${student.user.fullName + ' - Profile'}">Student Profile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/output.css}">
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .profile-header {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: flex-end;
+            gap: 2rem;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #f3f4f6;
+        }
+
+        .profile-cover {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        }
+
+        .profile-avatar-xl {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 5px solid #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            object-fit: cover;
+            background: #f1f5f9;
+            z-index: 10;
+        }
+
+        .profile-info {
+            z-index: 10;
+            padding-bottom: 0.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            border: 1px solid #f1f5f9;
+            height: 100%;
+        }
+
+        /* Classroom Styles */
+        .milestone-track {
+            position: relative;
+            padding-left: 24px;
+            border-left: 2px solid #e2e8f0;
+            margin-left: 12px;
+        }
+
+        .milestone-node {
+            position: absolute;
+            left: -8px;
+            top: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px #f8fafc;
+        }
+
+        .lesson-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: white;
+            border-color: #22c55e;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transform: translateX(4px);
+        }
+
+        /* Stat Cards */
+        .stat-card {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50">
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-cover"></div>
+
+            <img th:src="@{${student.passportPhotoUrl ?: (student.user.profilePictureUrl ?: '/images/default-avatar.png')}}"
+                class="profile-avatar-xl" alt="Student Photo" onerror="this.src='/images/default-avatar.png'">
+
+            <div class="profile-info flex-1">
+                <h1 class="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
+                    <span th:text="${student.user.fullName}">Student Name</span>
+                    <span
+                        th:class="'text-xs px-3 py-1 rounded-full uppercase tracking-wider font-bold ' + ${student.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}"
+                        th:text="${student.isActive ? 'Active' : 'Inactive'}">Active</span>
+                </h1>
+
+                <div class="flex flex-wrap gap-4 text-sm text-slate-600 font-medium">
+                    <div
+                        class="flex items-center gap-1.5 bg-white/50 backdrop-blur px-3 py-1 rounded-full border border-slate-200">
+                        <i class="fas fa-id-card text-indigo-500"></i>
+                        <span th:text="${student.admissionNumber}">ADM-001</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-white/50 backdrop-blur px-3 py-1 rounded-full border border-slate-200"
+                        th:each="enrollment : ${activeClasses}">
+                        <i class="fas fa-graduation-cap text-indigo-500"></i>
+                        <span th:text="${enrollment.schoolClass.className}">Class Name</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-1.5 bg-white/50 backdrop-blur px-3 py-1 rounded-full border border-slate-200">
+                        <i class="fas fa-venus-mars text-indigo-500"></i>
+                        <span th:text="${student.gender}">Gender</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions z-10">
+                <a th:unless="${userRole == 'STUDENT'}" th:href="@{'/admin/community/students/' + ${student.id}}"
+                    class="bg-white text-slate-700 hover:text-indigo-600 font-bold py-2 px-4 rounded-lg shadow-sm border border-slate-200 transition-colors flex items-center gap-2">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: Main Content (8 cols) -->
+            <div class="lg:col-span-8 space-y-8">
+
+                <!-- 1. Weekly Learning Path (Classroom) -->
+                <section>
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="fas fa-chalkboard-teacher text-green-600"></i>
+                            <span>Weekly Learning Path</span>
+                        </div>
+                        <span
+                            class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                            Week <span th:text="${currentWeek}">1</span>
+                        </span>
+                    </div>
+
+                    <div class="content-card">
+                        <div th:if="${#lists.isEmpty(classroomContent)}" class="text-center py-16">
+                            <div
+                                class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-book-reader text-3xl text-slate-300"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-700">No content available</h3>
+                            <p class="text-slate-500 text-sm mt-1">Learning materials for this week are being prepared.
+                            </p>
+                        </div>
+
+                        <div th:unless="${#lists.isEmpty(classroomContent)}" class="space-y-8">
+                            <div th:each="subjectContent : ${classroomContent}" class="relative">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div
+                                        class="w-8 h-8 rounded bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-slate-800" th:text="${subjectContent.subjectName}">
+                                            Mathematics</h3>
+                                        <p class="text-xs text-slate-500" th:if="${subjectContent.weekTheme}"
+                                            th:text="${subjectContent.weekTheme}">Theme</p>
+                                    </div>
+                                </div>
+
+                                <div class="milestone-track pb-2">
+                                    <div th:each="topic : ${subjectContent.topics}" class="mb-6 relative">
+                                        <div class="milestone-node"></div>
+                                        <div class="mb-3">
+                                            <h4 class="font-bold text-slate-700 text-sm" th:text="${topic.name}">Topic
+                                            </h4>
+                                            <div class="flex flex-wrap gap-2 mt-1" th:if="${!topic.subtopics.empty}">
+                                                <span th:each="subtopic : ${topic.subtopics}"
+                                                    class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-medium"
+                                                    th:text="${subtopic.name}">Subtopic</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Lessons -->
+                                        <div class="space-y-2">
+                                            <div th:each="lesson : ${subjectContent.lessons}"
+                                                th:if="${lesson.topicName == topic.name}"
+                                                class="lesson-item group cursor-pointer"
+                                                th:onclick="'window.location.href=\'/student/lesson/' + ${lesson.id} + '\''">
+                                                <div class="flex items-center gap-3">
+                                                    <i
+                                                        class="fas fa-play-circle text-slate-300 group-hover:text-green-500 text-xl transition-colors"></i>
+                                                    <span
+                                                        class="text-sm font-semibold text-slate-700 group-hover:text-green-700"
+                                                        th:text="${lesson.title}">Lesson Title</span>
+                                                </div>
+                                                <i
+                                                    class="fas fa-arrow-right text-slate-300 group-hover:text-green-500 transition-colors text-sm"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fallback for lessons without topic match -->
+                                    <div th:if="${subjectContent.topics.empty && !subjectContent.lessons.empty}"
+                                        class="relative">
+                                        <div class="milestone-node"></div>
+                                        <div th:each="lesson : ${subjectContent.lessons}"
+                                            class="lesson-item group cursor-pointer"
+                                            th:onclick="'window.location.href=\'/student/lesson/' + ${lesson.id} + '\''">
+                                            <div class="flex items-center gap-3">
+                                                <i
+                                                    class="fas fa-play-circle text-slate-300 group-hover:text-green-500 text-xl transition-colors"></i>
+                                                <span
+                                                    class="text-sm font-semibold text-slate-700 group-hover:text-green-700"
+                                                    th:text="${lesson.title}">Lesson Title</span>
+                                            </div>
+                                            <i
+                                                class="fas fa-arrow-right text-slate-300 group-hover:text-green-500 transition-colors text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Ongoing Examinations -->
+                <section>
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="fas fa-clock text-amber-500"></i>
+                            <span>Examinations</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div th:each="exam : ${publishedExams}"
+                            class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div
+                                class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <i class="fas fa-clock text-6xl text-amber-500"></i>
+                            </div>
+
+                            <div class="relative z-10">
+                                <div class="flex justify-between items-start mb-3">
+                                    <span
+                                        class="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-1 rounded uppercase"
+                                        th:text="${exam.examType}">QUIZ</span>
+                                    <span class="text-xs font-bold text-slate-400"
+                                        th:text="${exam.durationMinutes + ' min'}">45 min</span>
+                                </div>
+
+                                <h4 class="font-bold text-slate-800 text-lg mb-1" th:text="${exam.title}">Exam Title
+                                </h4>
+                                <p class="text-sm text-slate-500 mb-4" th:text="${exam.subject.subjectName}">Subject</p>
+
+                                <div
+                                    class="flex items-center justify-between border-t pt-3 mt-2 border-dashed border-slate-100">
+                                    <div class="text-xs font-medium text-slate-400">
+                                        <i class="far fa-calendar mr-1"></i> <span
+                                            th:text="${#temporals.format(exam.startTime, 'MMM d, HH:mm')}">Date</span>
+                                    </div>
+                                    <a th:href="@{'/student/exam/' + ${exam.id}}"
+                                        class="text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded-lg transition-colors">
+                                        Start Exam
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div th:if="${#lists.isEmpty(publishedExams)}"
+                            class="col-span-full text-center py-10 bg-white rounded-xl border border-dashed border-slate-200">
+                            <p class="text-slate-400 font-medium">No examinations scheduled.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Academic History -->
+                <section>
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="fas fa-chart-line text-blue-500"></i>
+                            <span>Academic History</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div th:if="${#lists.isEmpty(assessments)}"
+                            class="text-center py-8 text-slate-400 bg-white rounded-xl border border-slate-100">
+                            No academic records found.
+                        </div>
+
+                        <div th:each="assessment : ${assessments}"
+                            class="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-lg" th:text="${assessment.session}">
+                                        2023/2024</h4>
+                                    <span class="text-sm text-slate-500 font-medium" th:text="${assessment.term}">First
+                                        Term</span>
+                                </div>
+                                <div class="flex gap-2 text-xs font-bold">
+                                    <div class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg">
+                                        <i class="fas fa-book mr-1"></i> <span
+                                            th:text="${#lists.size(assessment.scores)}">0</span> Subjects
+                                    </div>
+                                    <div class="px-3 py-1 bg-green-50 text-green-600 rounded-lg">
+                                        <i class="fas fa-check-circle mr-1"></i> <span
+                                            th:text="${assessment.attendance} + ' Days'">0 Days</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 border border-slate-100 mb-3">
+                                <span class="font-bold text-slate-800">Teacher's Remark:</span>
+                                <span class="italic"
+                                    th:text="${assessment.classTeacherComment ?: 'No remarks available.'}">Remark</span>
+                            </div>
+
+                            <button
+                                class="w-full py-2 text-center text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-dashed border-blue-200">
+                                View Full Report Card
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Sidebar (4 cols) -->
+            <div class="lg:col-span-4 space-y-8">
+                <!-- Personal Info Card -->
+                <div class="content-card">
+                    <h3 class="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">Personal Details</h3>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500">Date of Birth</span>
+                            <span class="font-semibold text-slate-800" th:text="${student.dateOfBirth}">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500">Admission Date</span>
+                            <span class="font-semibold text-slate-800" th:text="${student.admissionDate}">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500">Status</span>
+                            <span class="font-semibold text-green-600" th:text="${student.academicStatus}">Active</span>
+                        </div>
+                    </div>
+
+                    <h3 class="font-bold text-slate-800 mt-6 mb-4 pb-2 border-b border-slate-100">Contact</h3>
+                    <div class="flex items-start gap-3 text-sm text-slate-600 mb-3">
+                        <i class="fas fa-map-marker-alt mt-1 text-slate-400"></i>
+                        <span th:text="${student.user.addressLine1 ?: 'No address provided'}">-</span>
+                    </div>
+                    <!-- Parent Info Placeholder -->
+                    <div class="bg-slate-50 p-3 rounded-lg text-xs text-slate-500 text-center">
+                        Parent details managed by admin
+                    </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="stat-card">
+                        <div class="stat-value text-indigo-600" th:text="${#lists.size(assessments)}">0</div>
+                        <div class="stat-label">Term Reports</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value text-green-600" th:text="${#lists.size(publishedExams)}">0</div>
+                        <div class="stat-label">Active Exams</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter
 
 @Controller
 @RequestMapping("/admin/academic")
-@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'STAFF', 'TEACHER')")
+@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN')")
 class AcademicController(
     private val academicSessionRepository: AcademicSessionRepository,
     private val schoolCalendarRepository: SchoolCalendarRepository,
@@ -100,7 +100,7 @@ class AcademicController(
     }
 
     @PostMapping("/sessions/save-htmx")
-    @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
+    @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN', 'ADMIN')")
     fun saveSessionHtmx(
         @RequestParam(required = false) id: UUID?,
         @RequestParam sessionName: String,
@@ -226,7 +226,7 @@ class AcademicController(
         // Check for existing open-ended current term
         val schoolCurrentTerm = termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(selectedSchoolId, true, true)
         if (schoolCurrentTerm.isPresent && schoolCurrentTerm.get().endDate == null) {
-             model.addAttribute("existingOpenTerm", schoolCurrentTerm.get())
+            model.addAttribute("existingOpenTerm", schoolCurrentTerm.get())
         }
         
         return "admin/academic/term-modal"
@@ -252,7 +252,7 @@ class AcademicController(
         // Check for existing open-ended current term (excluding self)
         val schoolCurrentTerm = termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(selectedSchoolId, true, true)
         if (schoolCurrentTerm.isPresent && schoolCurrentTerm.get().id != id && schoolCurrentTerm.get().endDate == null) {
-             model.addAttribute("existingOpenTerm", schoolCurrentTerm.get())
+            model.addAttribute("existingOpenTerm", schoolCurrentTerm.get())
         }
         
         return "admin/academic/term-modal"

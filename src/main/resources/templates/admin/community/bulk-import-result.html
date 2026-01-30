@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4School - Import Results</title>
     <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
@@ -25,9 +33,19 @@
             </div>
 
             <!-- Success Message -->
-            <div class="alert alert-success" th:if="${success}">
+            <!-- Full Success Message -->
+            <div class="alert alert-success"
+                th:if="${success && (result.studentsSkipped + result.parentsSkipped + result.staffSkipped == 0)}">
                 <i class="fas fa-check-circle"></i>
-                <strong>Import Successful!</strong> All valid entries have been imported.
+                <strong>Import Successful!</strong> All entries have been imported.
+            </div>
+
+            <!-- Partial Success Message -->
+            <div class="alert alert-warning"
+                th:if="${success && (result.studentsSkipped + result.parentsSkipped + result.staffSkipped > 0)}">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>Import Completed with Skips.</strong> Valid entries were imported, but some entries were skipped
+                due to errors or duplicates.
             </div>
 
             <!-- Error Message -->
@@ -49,7 +67,7 @@
                             <span class="stat-value" th:text="${result.studentsImported}">0</span>
                         </div>
                         <div class="stat-item warning" th:if="${result.studentsSkipped > 0}">
-                            <span class="stat-label">Skipped (Duplicates):</span>
+                            <span class="stat-label">Skipped (Invalid/Duplicate):</span>
                             <span class="stat-value" th:text="${result.studentsSkipped}">0</span>
                         </div>
                     </div>
@@ -66,7 +84,7 @@
                             <span class="stat-value" th:text="${result.parentsImported}">0</span>
                         </div>
                         <div class="stat-item warning" th:if="${result.parentsSkipped > 0}">
-                            <span class="stat-label">Skipped (Duplicates):</span>
+                            <span class="stat-label">Skipped (Invalid/Duplicate):</span>
                             <span class="stat-value" th:text="${result.parentsSkipped}">0</span>
                         </div>
                     </div>
@@ -83,7 +101,7 @@
                             <span class="stat-value" th:text="${result.staffImported}">0</span>
                         </div>
                         <div class="stat-item warning" th:if="${result.staffSkipped > 0}">
-                            <span class="stat-label">Skipped (Duplicates):</span>
+                            <span class="stat-label">Skipped (Invalid/Duplicate):</span>
                             <span class="stat-value" th:text="${result.staffSkipped}">0</span>
                         </div>
                     </div>
@@ -100,7 +118,7 @@
 
             <!-- Action Buttons -->
             <div class="preview-actions">
-                <a th:href="@{/admin/community/home}" class="btn btn-primary btn-lg">
+                <a th:href="@{/admin/community}" class="btn btn-primary btn-lg">
                     <i class="fas fa-home"></i> Back to Community Home
                 </a>
                 <a th:href="@{/admin/community/overviews}" class="btn btn-outline btn-lg">

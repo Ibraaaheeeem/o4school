@@ -10,8 +10,7 @@ import java.math.BigDecimal
         UniqueConstraint(columnNames = ["name", "school_id"], name = "unique_fee_item_school")
     ],
     indexes = [
-        Index(columnList = "school_id,is_active", name = "idx_fee_item_school_active"),
-        Index(columnList = "fee_category", name = "idx_fee_item_category")
+        Index(columnList = "school_id,is_active", name = "idx_fee_item_school_active")
     ]
 )
 class FeeItem(
@@ -21,29 +20,10 @@ class FeeItem(
     @Column(nullable = false, precision = 10, scale = 2)
     var amount: BigDecimal,
     
-    @Column(name = "fee_category", nullable = false)
-    @Enumerated(EnumType.STRING)
-    var feeCategory: FeeCategory,
-    
     var description: String? = null,
     
     @Column(name = "is_mandatory")
     var isMandatory: Boolean = true,
-    
-    @Column(name = "is_recurring")
-    var isRecurring: Boolean = false,
-    
-    @Column(name = "recurrence_type")
-    @Enumerated(EnumType.STRING)
-    var recurrenceType: RecurrenceType? = null,
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "academic_session_id")
-    var academicSession: AcademicSession? = null,
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "term_id")
-    var term: Term? = null,
 
     @Column(name = "gender_eligibility")
     @Enumerated(EnumType.STRING)
@@ -63,8 +43,7 @@ class FeeItem(
     
     constructor() : this(
         name = "",
-        amount = BigDecimal.ZERO,
-        feeCategory = FeeCategory.TUITION
+        amount = BigDecimal.ZERO
     )
     
     // Relationships
@@ -72,31 +51,6 @@ class FeeItem(
     var classFeeItems: MutableList<ClassFeeItem> = mutableListOf()
 }
 
-enum class FeeCategory {
-    TUITION,
-    REGISTRATION,
-    EXAMINATION,
-    LIBRARY,
-    LABORATORY,
-    SPORTS,
-    TRANSPORT,
-    UNIFORM,
-    BOOKS,
-    MEALS,
-    ACCOMMODATION,
-    TECHNOLOGY,
-    EXTRACURRICULAR,
-    MISCELLANEOUS
-}
-
-enum class RecurrenceType {
-    ONE_TIME,
-    OPTIONAL,
-    MONTHLY,
-    QUARTERLY,
-    TERMLY,
-    ANNUALLY
-}
 
 enum class GenderEligibility {
     ALL,

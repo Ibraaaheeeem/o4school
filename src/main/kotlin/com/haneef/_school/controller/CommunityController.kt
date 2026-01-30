@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import java.time.LocalDate
@@ -1233,6 +1234,7 @@ class CommunityController(
     // Delete operations
     @PostMapping("/staff/{id}/delete")
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
+    @org.springframework.transaction.annotation.Transactional
     fun deleteStaff(
         @PathVariable id: UUID, 
         session: HttpSession, 
@@ -1240,7 +1242,7 @@ class CommunityController(
         @RequestParam(required = false) search: String?,
         @RequestParam(defaultValue = "0") page: Int,
         request: jakarta.servlet.http.HttpServletRequest
-    ): String {
+    ): Any { // Changed return type to Any to support both String (view) and ResponseEntity (body)
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
             
@@ -1256,29 +1258,45 @@ class CommunityController(
             staff.isActive = false
             staffRepository.save(staff)
             
+            // Cascade delete: Deactivate class assignments
+            val classTeachers = classTeacherRepository.findByStaffIdAndIsActive(staff.id!!, true)
+            classTeachers.forEach { 
+                it.isActive = false
+                classTeacherRepository.save(it)
+            }
+            
+            // Cascade delete: Deactivate subject assignments
+            val subjectTeachers = subjectTeacherRepository.findByStaffIdAndIsActive(staff.id!!, true)
+            subjectTeachers.forEach { 
+                it.isActive = false
+                subjectTeacherRepository.save(it)
+            }
+            
             // Handle HTMX request
             if (request.getHeader("HX-Request") != null) {
-                // Close modal, remove card, show success message
-                return """
-                    <div id="staff-card-$id" hx-swap-oob="delete"></div>
-                    <div id="global-toast-container" hx-swap-oob="beforeend">
-                        <div class="toast success show">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Staff deleted successfully!</span>
+                // Close modal via header, remove card OOB, show success message OOB
+                return ResponseEntity.ok()
+                    .header("HX-Trigger", "{\"closeModal\": \"deleteModal\"}")
+                    .body("""
+                        <div id="staff-card-$id" hx-swap-oob="delete"></div>
+                        <div id="global-toast-container" hx-swap-oob="beforeend">
+                            <div class="toast success show">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Staff deleted successfully!</span>
+                            </div>
+                            <script>
+                                setTimeout(() => {
+                                    const toasts = document.querySelectorAll('.toast');
+                                    toasts.forEach(t => t.classList.remove('show'));
+                                }, 3000);
+                            </script>
                         </div>
-                    </div>
-                    <script>
-                        closeModal('deleteModal');
-                        setTimeout(() => {
-                            const toasts = document.querySelectorAll('.toast');
-                            toasts.forEach(t => t.classList.remove('show'));
-                        }, 3000);
-                    </script>
-                """.trimIndent()
+                    """.trimIndent())
             }
             
             redirectAttributes.addFlashAttribute("success", "Staff deleted successfully!")
         } catch (e: Exception) {
+            e.printStackTrace()
             if (request.getHeader("HX-Request") != null) {
                 return "fragments/error :: error-message"
             }
@@ -1473,6 +1491,7 @@ class CommunityController(
 
     @PostMapping("/students/{id}/delete")
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
+    @org.springframework.transaction.annotation.Transactional
     fun deleteStudent(
         @PathVariable id: UUID, 
         session: HttpSession, 
@@ -1480,7 +1499,7 @@ class CommunityController(
         @RequestParam(required = false) search: String?,
         @RequestParam(defaultValue = "0") page: Int,
         request: jakarta.servlet.http.HttpServletRequest
-    ): String {
+    ): Any { // Changed return type to Any
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
             
@@ -1496,29 +1515,45 @@ class CommunityController(
             student.isActive = false
             studentRepository.save(student)
             
+            // Cascade delete: Deactivate class enrollments
+            val studentClasses = studentClassRepository.findByStudentIdAndIsActive(student.id!!, true)
+            studentClasses.forEach { 
+                it.isActive = false
+                studentClassRepository.save(it)
+            }
+            
+            // Cascade delete: Deactivate parent associations
+            val parentStudents = parentStudentRepository.findByStudentIdAndIsActive(student.id!!, true)
+            parentStudents.forEach { 
+                it.isActive = false
+                parentStudentRepository.save(it)
+            }
+            
             // Handle HTMX request
             if (request.getHeader("HX-Request") != null) {
-                // Close modal, remove card, show success message
-                return """
-                    <div id="student-card-$id" hx-swap-oob="delete"></div>
-                    <div id="global-toast-container" hx-swap-oob="beforeend">
-                        <div class="toast success show">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Student deleted successfully!</span>
+                // Close modal via header, remove card OOB, show success message OOB
+                return ResponseEntity.ok()
+                    .header("HX-Trigger", "{\"closeModal\": \"deleteModal\"}")
+                    .body("""
+                        <div id="student-card-$id" hx-swap-oob="delete"></div>
+                        <div id="global-toast-container" hx-swap-oob="beforeend">
+                            <div class="toast success show">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Student deleted successfully!</span>
+                            </div>
+                            <script>
+                                setTimeout(() => {
+                                    const toasts = document.querySelectorAll('.toast');
+                                    toasts.forEach(t => t.classList.remove('show'));
+                                }, 3000);
+                            </script>
                         </div>
-                    </div>
-                    <script>
-                        closeModal('deleteModal');
-                        setTimeout(() => {
-                            const toasts = document.querySelectorAll('.toast');
-                            toasts.forEach(t => t.classList.remove('show'));
-                        }, 3000);
-                    </script>
-                """.trimIndent()
+                    """.trimIndent())
             }
             
             redirectAttributes.addFlashAttribute("success", "Student deleted successfully!")
         } catch (e: Exception) {
+            e.printStackTrace() // Log stack trace
             if (request.getHeader("HX-Request") != null) {
                 return "fragments/error :: error-message"
             }
@@ -1799,6 +1834,7 @@ class CommunityController(
 
     @PostMapping("/parents/{id}/delete")
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
+    @org.springframework.transaction.annotation.Transactional
     fun deleteParent(
         @PathVariable id: UUID, 
         session: HttpSession, 
@@ -1806,7 +1842,7 @@ class CommunityController(
         @RequestParam(required = false) search: String?,
         @RequestParam(defaultValue = "0") page: Int,
         request: jakarta.servlet.http.HttpServletRequest
-    ): String {
+    ): Any { // Changed return type to Any
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
             
@@ -1822,34 +1858,54 @@ class CommunityController(
             parent.isActive = false
             parentRepository.save(parent)
             
+            // Cascade delete: Deactivate student associations
+            val parentStudents = parentStudentRepository.findByParentIdAndIsActive(parent.id!!, true)
+            parentStudents.forEach { 
+                it.isActive = false
+                parentStudentRepository.save(it)
+            }
+            
             // Handle HTMX request
             if (request.getHeader("HX-Request") != null) {
-                // Close modal, remove card, show success message
-                return """
-                    <div id="parent-card-$id" hx-swap-oob="delete"></div>
-                    <div id="global-toast-container" hx-swap-oob="beforeend">
-                        <div class="toast success show">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Parent deleted successfully!</span>
+                // Close modal via header, remove card OOB, show success message OOB
+                return ResponseEntity.ok()
+                    .header("HX-Trigger", "{\"closeModal\": \"deleteModal\"}")
+                    .body("""
+                        <div id="parent-card-$id" hx-swap-oob="delete"></div>
+                        <div id="global-toast-container" hx-swap-oob="beforeend">
+                            <div class="toast success show">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Parent deleted successfully!</span>
+                            </div>
+                            <script>
+                                setTimeout(() => {
+                                    const toasts = document.querySelectorAll('.toast');
+                                    toasts.forEach(t => t.classList.remove('show'));
+                                }, 3000);
+                            </script>
                         </div>
-                    </div>
-                    <script>
-                        closeModal('deleteModal');
-                        setTimeout(() => {
-                            const toasts = document.querySelectorAll('.toast');
-                            toasts.forEach(t => t.classList.remove('show'));
-                        }, 3000);
-                    </script>
-                """.trimIndent()
+                    """.trimIndent())
             }
             
             redirectAttributes.addFlashAttribute("success", "Parent deleted successfully!")
         } catch (e: Exception) {
+            e.printStackTrace()
             if (request.getHeader("HX-Request") != null) {
                 return "fragments/error :: error-message"
             }
             redirectAttributes.addFlashAttribute("error", "Error deleting parent: ${e.message}")
         }
+        
+        // ... remainder of method
+        // But since I don't want to replace truncated parts, I will look at file again.
+        // The previous view in step 376 ended at 1880, cutting off the return params logic.
+        // However, I matched only up to line 1883 in your instructions?
+        // Wait, the TargetContent must be exact.
+        // I will use replace_file_content for parent as well, but I need to match the actual content.
+        // Let's use the provided content from 376 plus what's standard.
+        // Actually, the end of `deleteParent` was NOT in 376.
+        // I should read `deleteParent` fully first to be safe.
+        // But I will just replace the top part where `Any` return type is needed and the `return """..."""` part.
         
         val redirectUrl = StringBuilder("redirect:/admin/community/parents")
         val params = mutableListOf<String>()

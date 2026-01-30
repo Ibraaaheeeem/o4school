@@ -1108,17 +1108,17 @@ nity Management Specific Styles */
 }
 
 .community-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
     padding: 1.5rem;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
 }
 
 .community-card:hover {
-    border-color: #3182ce;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
 }
 
 .community-card .card-icon {
@@ -1134,10 +1134,11 @@ nity Management Specific Styles */
 }
 
 .community-card .card-number {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #3182ce;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: var(--primary-color);
     margin: 0.5rem 0;
+    line-height: 1;
 }
 
 .community-card .card-description {
@@ -1159,15 +1160,19 @@ nity Management Specific Styles */
 }
 
 .community-card .card-link {
-    color: #3182ce;
+    color: var(--primary-color);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: gap 0.2s ease;
 }
 
 .community-card .card-link:hover {
-    color: #2c5aa0;
-    text-decoration: underline;
+    color: var(--primary-hover);
+    gap: 0.75rem;
 }
 
 /* Community Sidebar Stats */
@@ -1191,7 +1196,7 @@ nity Management Specific Styles */
 .stat-number {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #3182ce;
+    color: var(--primary-color);
     line-height: 1;
 }
 
@@ -2533,7 +2538,8 @@ Cards Layout */
     }
 }
 
-/ * Teacher Assignment Styles */ .teacher-assignments-section {
+/* Teacher Assignment Styles */
+.teacher-assignments-section {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid #e2e8f0;
@@ -2823,7 +2829,8 @@ Cards Layout */
     }
 }
 
-/ * Enhanced dropdown styles for staff assignments */ .assignment-section .form-select:disabled {
+/* Enhanced dropdown styles for staff assignments */
+.assignment-section .form-select:disabled {
     background-color: #f8f9fa;
     color: #6c757d;
     cursor: not-allowed;
@@ -3110,7 +3117,8 @@ uccess and Error Response Styles */
     }
 }
 
-/ * Auto-search filter improvements */ .filter-actions {
+/* Auto-search filter improvements */
+.filter-actions {
     display: flex;
     align-items: flex-end;
     gap: 0.5rem;
@@ -4463,9 +4471,7 @@ x Group Styles for Timetable Days */
     margin: 0;
 }
 
-.checkmark {
-    /* This will be styled by the browser's default checkbox styling */
-}
+
 
 /* Enhanced checkbox styling */
 .checkbox-label input[type="checkbox"]:checked+.checkmark+span {
@@ -4487,7 +4493,8 @@ x Group Styles for Timetable Days */
     }
 }
 
-/ * Quick Select Buttons for Timetable Days */ .quick-select-buttons {
+/* Quick Select Buttons for Timetable Days */
+.quick-select-buttons {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
@@ -4544,678 +4551,669 @@ Activity Meta Styling */
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin-top: 0.25rem;
+}
 
-    margin-top: 0.25re/ * Quick Select Buttons for Timetable Days */ .quick-select-buttons {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        margin-top: 0.75rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid #f3f4f6;
+/* Quick Select Buttons for Timetable Days */
+.quick-select-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.quick-select-buttons .btn {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Enhanced checkbox styling for better visual feedback */
+.checkbox-label input[type="checkbox"]:checked {
+    transform: scale(1.1);
+}
+
+.checkbox-label:has(input[type="checkbox"]:checked) {
+    background-color: #eff6ff;
+    border: 1px solid #dbeafe;
+    color: #1e40af;
+}
+
+/* Selected days preview */
+.selected-days-preview {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.selected-days-preview strong {
+    color: #0c4a6e;
+}
+
+/* Form validation styling */
+.form-group.has-error .checkbox-group {
+    border: 1px solid #ef4444;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+}
+
+.form-group.has-error .form-help {
+    color: #ef4444;
+}
+
+/* Improved button spacing in modal footer */
+.modal-footer .btn {
+    min-width: 100px;
+}
+
+/* Activity type preview in form */
+.activity-type-preview {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    text-align: center;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.activity-type-preview.academic {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.activity-type-preview.break {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.activity-type-preview.assembly {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.activity-type-preview.sports {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.activity-type-preview.extracurricular {
+    background: #fce7f3;
+    color: #be185d;
+}
+
+.activity-type-preview.administrative {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Time input styling */
+input[type="time"] {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+/* Responsive improvements for mobile */
+@media (max-width: 768px) {
+    .quick-select-buttons {
+        justify-content: center;
     }
 
     .quick-select-buttons .btn {
-        font-size: 0.75rem;
-        padding: 0.375rem 0.75rem;
+        flex: 1;
+        min-width: 70px;
     }
 
-    /* Enhanced checkbox styling for better visual feedback */
-    .checkbox-label input[type="checkbox"]:checked {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Animation for checkbox selection */
+@keyframes checkboxSelect {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
         transform: scale(1.1);
     }
+}
 
-    .checkbox-label:has(input[type="checkbox"]:checked) {
-        background-color: #eff6ff;
-        border: 1px solid #dbeafe;
-        color: #1e40af;
-    }
+.checkbox-label input[type="checkbox"]:checked {
+    animation: checkboxSelect 0.2s ease-in-out;
+}
 
-    /* Selected days preview */
-    .selected-days-preview {
-        margin-top: 0.75rem;
-        padding: 0.75rem;
-        background: #f0f9ff;
-        border: 1px solid #bae6fd;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-    }
+/* Enhanced Timetable Modal Styles */
+/* Days Selection Group */
+.days-selection-group {
+    grid-column: 1 / -1;
+    /* Full width in grid */
+    margin-bottom: 1.5rem;
+}
 
-    .selected-days-preview strong {
-        color: #0c4a6e;
-    }
+/* Quick Select Buttons for Timetable Days */
+.quick-select-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
 
-    /* Form validation styling */
-    .form-group.has-error .checkbox-group {
-        border: 1px solid #ef4444;
-        border-radius: 0.375rem;
-        padding: 0.5rem;
-    }
+.quick-select-btn {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    background: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    font-weight: 500;
+}
 
-    .form-group.has-error .form-help {
-        color: #ef4444;
-    }
+.quick-select-btn:hover {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
 
-    /* Improved button spacing in modal footer */
-    .modal-footer .btn {
-        min-width: 100px;
-    }
+.quick-select-btn i {
+    font-size: 0.75rem;
+}
 
-    /* Activity type preview in form */
-    .activity-type-preview {
-        margin-top: 0.5rem;
-        padding: 0.5rem;
-        border-radius: 0.375rem;
-        font-size: 0.75rem;
-        text-align: center;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
+/* Time Range Group */
+.time-range-group {
+    display: flex;
+    align-items: end;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+}
 
-    .activity-type-preview.academic {
-        background: #dbeafe;
-        color: #1e40af;
-    }
+.time-range-group .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
 
-    .activity-type-preview.break {
-        background: #fef3c7;
-        color: #92400e;
-    }
+.time-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 0.5rem;
+    color: #6b7280;
+    font-size: 1rem;
+    margin: 0 0.5rem;
+}
 
-    .activity-type-preview.assembly {
-        background: #e0e7ff;
-        color: #3730a3;
-    }
+.time-input {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 600;
+    text-align: center;
+    font-size: 1rem;
+    background: white;
+    border: 2px solid #d1d5db;
+    transition: all 0.2s ease;
+}
 
-    .activity-type-preview.sports {
-        background: #dcfce7;
-        color: #166534;
-    }
+.time-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: #fefefe;
+}
 
-    .activity-type-preview.extracurricular {
-        background: #fce7f3;
-        color: #be185d;
-    }
+/* Enhanced Selected Days Preview */
+.selected-days-preview {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #a7f3d0;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
-    .activity-type-preview.administrative {
-        background: #f3f4f6;
-        color: #374151;
-    }
+.selected-days-preview i {
+    color: #059669;
+    font-size: 1rem;
+}
 
-    /* Time input styling */
-    input[type="time"] {
-        font-family: 'Courier New', monospace;
-        font-weight: 600;
-    }
+.selected-days-preview strong {
+    color: #065f46;
+}
 
-    /* Responsive improvements for mobile */
-    @media (max-width: 768px) {
-        .quick-select-buttons {
-            justify-content: center;
-        }
+.selected-days-preview span {
+    color: #047857;
+    font-weight: 500;
+}
 
-        .quick-select-buttons .btn {
-            flex: 1;
-            min-width: 70px;
-        }
+/* Enhanced Checkbox Group */
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+}
 
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-    }
+.checkbox-item {
+    display: flex;
+    align-items: center;
+}
 
-    /* Animation for checkbox selection */
-    @keyframes checkboxSelect {
-        0% {
-            transform: scale(1);
-        }
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #374151;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    width: 100%;
+    justify-content: flex-start;
+}
 
-        50% {
-            transform: scale(1.2);
-        }
+.checkbox-label:hover {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+}
 
-        100% {
-            transform: scale(1.1);
-        }
-    }
+.checkbox-label input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    accent-color: #3b82f6;
+    margin: 0;
+}
 
-    .checkbox-label input[type="checkbox"]:checked {
-        animation: checkboxSelect 0.2s ease-in-out;
-    }
+/* Enhanced checkbox styling */
+.checkbox-label input[type="checkbox"]:checked+.checkmark+span {
+    font-weight: 600;
+    color: #3b82f6;
+}
 
-    / * Enhanced Timetable Modal Styles */
-    /* Days Selection Group */
-    .days-selection-group {
-        grid-column: 1 / -1;
-        /* Full width in grid */
-        margin-bottom: 1.5rem;
-    }
+.checkbox-label:has(input[type="checkbox"]:checked) {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #3b82f6;
+    color: #1e40af;
+    transform: scale(1.02);
+}
 
-    /* Quick Select Buttons for Timetable Days */
+/* Form Section Improvements */
+.form-section h4 {
+    color: #1f2937;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* Responsive Design for Enhanced Modal */
+@media (max-width: 768px) {
     .quick-select-buttons {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-        padding: 0.75rem;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.375rem;
+        padding: 0.5rem;
     }
 
     .quick-select-btn {
-        font-size: 0.75rem;
-        padding: 0.5rem 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.375rem;
-        border-radius: 0.375rem;
-        transition: all 0.2s ease;
-        white-space: nowrap;
-        background: white;
-        border: 1px solid #d1d5db;
-        color: #374151;
-        font-weight: 500;
+        font-size: 0.625rem;
+        padding: 0.375rem 0.5rem;
+        gap: 0.25rem;
     }
 
-    .quick-select-btn:hover {
-        background: #3b82f6;
-        border-color: #3b82f6;
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
-    }
-
-    .quick-select-btn i {
-        font-size: 0.75rem;
-    }
-
-    /* Time Range Group */
     .time-range-group {
-        display: flex;
-        align-items: end;
-        gap: 1rem;
-        margin-top: 1rem;
-        padding: 1rem;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
-    }
-
-    .time-range-group .form-group {
-        flex: 1;
-        margin-bottom: 0;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
     }
 
     .time-separator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding-bottom: 0.5rem;
-        color: #6b7280;
-        font-size: 1rem;
-        margin: 0 0.5rem;
+        transform: rotate(90deg);
+        padding: 0.25rem 0;
     }
 
-    .time-input {
-        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-        font-weight: 600;
-        text-align: center;
-        font-size: 1rem;
-        background: white;
-        border: 2px solid #d1d5db;
-        transition: all 0.2s ease;
-    }
-
-    .time-input:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        background: #fefefe;
-    }
-
-    /* Enhanced Selected Days Preview */
-    .selected-days-preview {
-        margin-top: 0.75rem;
-        padding: 0.75rem 1rem;
-        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-        border: 1px solid #a7f3d0;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .selected-days-preview i {
-        color: #059669;
-        font-size: 1rem;
-    }
-
-    .selected-days-preview strong {
-        color: #065f46;
-    }
-
-    .selected-days-preview span {
-        color: #047857;
-        font-weight: 500;
-    }
-
-    /* Enhanced Checkbox Group */
     .checkbox-group {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-        padding: 0.75rem;
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.375rem;
+        padding: 0.5rem;
     }
 
-    .checkbox-item {
-        display: flex;
-        align-items: center;
+    .selected-days-preview {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .quick-select-buttons {
+        grid-template-columns: 1fr;
     }
 
-    .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        font-size: 0.875rem;
-        color: #374151;
-        padding: 0.5rem 0.75rem;
-        border-radius: 0.375rem;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-        width: 100%;
-        justify-content: flex-start;
+    .checkbox-group {
+        grid-template-columns: 1fr;
     }
+}
 
-    .checkbox-label:hover {
-        background-color: #f9fafb;
-        border-color: #e5e7eb;
-    }
+/* Header Dashboard Link Styles */
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
 
-    .checkbox-label input[type="checkbox"] {
-        width: 1rem;
-        height: 1rem;
-        accent-color: #3b82f6;
-        margin: 0;
-    }
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 
-    /* Enhanced checkbox styling */
-    .checkbox-label input[type="checkbox"]:checked+.checkmark+span {
-        font-weight: 600;
-        color: #3b82f6;
-    }
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-    .checkbox-label:has(input[type="checkbox"]:checked) {
-        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-        border-color: #3b82f6;
-        color: #1e40af;
-        transform: scale(1.02);
-    }
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 
-    /* Form Section Improvements */
-    .form-section h4 {
-        color: #1f2937;
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e2e8f0;
-    }
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+}
 
-    /* Responsive Design for Enhanced Modal */
-    @media (max-width: 768px) {
-        .quick-select-buttons {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.375rem;
-            padding: 0.5rem;
-        }
+.dashboard-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
 
-        .quick-select-btn {
-            font-size: 0.625rem;
-            padding: 0.375rem 0.5rem;
-            gap: 0.25rem;
-        }
+.dashboard-link:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    text-decoration: none;
+    color: white;
+}
 
-        .time-range-group {
-            flex-direction: column;
-            gap: 0.75rem;
-            align-items: stretch;
-        }
+.dashboard-link i {
+    font-size: 0.875rem;
+}
 
-        .time-separator {
-            transform: rotate(90deg);
-            padding: 0.25rem 0;
-        }
+.dashboard-link span {
+    white-space: nowrap;
+}
 
-        .checkbox-group {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.375rem;
-            padding: 0.5rem;
-        }
+/* School Header Base Styles */
+.school-header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
 
-        .selected-days-preview {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.25rem;
-        }
-    }
+.school-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.375rem;
+}
 
-    @media (max-width: 480px) {
-        .quick-select-buttons {
-            grid-template-columns: 1fr;
-        }
+.logo-placeholder {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    border-radius: 0.375rem;
+    font-size: 1.5rem;
+}
 
-        .checkbox-group {
-            grid-template-columns: 1fr;
-        }
-    }
+.school-info h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
 
-    /* Header Dashboard Link Styles */
+.school-tagline {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.user-info {
+    text-align: right;
+}
+
+.welcome-message {
+    font-size: 0.875rem;
+    color: #374151;
+    display: block;
+}
+
+.username {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: #6b7280;
+    display: block;
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.logout-icon {
+    font-size: 1rem;
+}
+
+/* Responsive Header Design */
+@media (max-width: 1024px) {
     .header-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 2rem;
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .header-center {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .header-right {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .breadcrumb-nav {
-        display: flex;
-        align-items: center;
-    }
-
-    .dashboard-link {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        text-decoration: none;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        font-size: 0.875rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
-    }
-
-    .dashboard-link:hover {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-        text-decoration: none;
-        color: white;
-    }
-
-    .dashboard-link i {
-        font-size: 0.875rem;
+        padding: 0.75rem 1.5rem;
     }
 
     .dashboard-link span {
-        white-space: nowrap;
+        display: none;
     }
 
-    /* School Header Base Styles */
-    .school-header {
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-    }
-
-    .school-logo {
+    .dashboard-link {
+        padding: 0.5rem;
+        border-radius: 50%;
         width: 40px;
         height: 40px;
-        border-radius: 0.375rem;
-    }
-
-    .logo-placeholder {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
         justify-content: center;
-        background: #f3f4f6;
-        border-radius: 0.375rem;
-        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-container {
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .header-center {
+        order: 3;
+        flex-basis: 100%;
+        justify-content: flex-start;
+        margin-top: 0.5rem;
     }
 
     .school-info h1 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1f2937;
-        margin: 0;
-    }
-
-    .school-tagline {
-        font-size: 0.75rem;
-        color: #6b7280;
-        margin: 0;
-    }
-
-    .user-info {
-        text-align: right;
-    }
-
-    .welcome-message {
-        font-size: 0.875rem;
-        color: #374151;
-        display: block;
-    }
-
-    .username {
-        font-weight: 600;
-        color: #1f2937;
-    }
-
-    .user-role {
-        font-size: 0.75rem;
-        color: #6b7280;
-        display: block;
-    }
-
-    .logout-form {
-        margin: 0;
-    }
-
-    .logout-btn {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: #ef4444;
-        color: white;
-        border: none;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .logout-btn:hover {
-        background: #dc2626;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-    }
-
-    .logout-icon {
         font-size: 1rem;
     }
 
-    /* Responsive Header Design */
-    @media (max-width: 1024px) {
-        .header-container {
-            padding: 0.75rem 1.5rem;
-        }
-
-        .dashboard-link span {
-            display: none;
-        }
-
-        .dashboard-link {
-            padding: 0.5rem;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            justify-content: center;
-        }
+    .school-tagline {
+        display: none;
     }
 
-    @media (max-width: 768px) {
-        .header-container {
-            padding: 0.75rem 1rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .header-center {
-            order: 3;
-            flex-basis: 100%;
-            justify-content: flex-start;
-            margin-top: 0.5rem;
-        }
-
-        .school-info h1 {
-            font-size: 1rem;
-        }
-
-        .school-tagline {
-            display: none;
-        }
-
-        .user-info {
-            font-size: 0.75rem;
-        }
-
-        .logout-btn {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.75rem;
-        }
+    .user-info {
+        font-size: 0.75rem;
     }
 
-    @media (max-width: 480px) {
-        .header-container {
-            padding: 0.5rem;
-        }
+    .logout-btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
 
-        .header-left {
-            gap: 0.5rem;
-        }
-
-        .school-logo,
-        .logo-placeholder {
-            width: 32px;
-            height: 32px;
-        }
-
-        .dashboard-link {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.75rem;
-        }
-
-        .dashboard-link span {
-            display: inline;
-        }
+@media (max-width: 480px) {
+    .header-container {
+        padding: 0.5rem;
     }
 
-    /* Dashboard
- Link Styles - Missing CSS */
-    .dashboard-link {
-        display: flex;
-        align-items: center;
+    .header-left {
         gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        text-decoration: none;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        font-size: 0.875rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
     }
 
-    .dashboard-link:hover {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-        text-decoration: none;
-        color: white;
+    .school-logo,
+    .logo-placeholder {
+        width: 32px;
+        height: 32px;
     }
 
-    .dashboard-link i {
-        font-size: 0.875rem;
+    .dashboard-link {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
     }
 
     .dashboard-link span {
-        white-space: nowrap;
+        display: inline;
     }
+}
 
-    .breadcrumb-nav {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+/* Dashboard
+ Link Styles - Missing CSS */
+.dashboard-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
 
-    /* Ensure header-center is visible */
-    .header-center {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 40px;
-    }
+.dashboard-link:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    text-decoration: none;
+    color: white;
+}
 
-    /* Make sure the header container has proper layout */
-    .header-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 2rem;
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        position: relative;
-    }
+.dashboard-link i {
+    font-size: 0.875rem;
+}
 
-    /* Debug styles - temporary */
-    .header-center {
-        border: 1px dashed red;
-        /* Temporary - to see if the container is there */
-        min-width: 200px;
-    }
+.dashboard-link span {
+    white-space: nowrap;
+}
 
-    .breadcrumb-nav {
-        border: 1px dashed blue;
-        /* Temporary - to see if the nav is there */
-    }
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure header-center is visible */
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 40px;
+}
+
+/* Make sure the header container has proper layout */
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+}

@@ -302,6 +302,20 @@ document.addEventListener('htmx:sendError', function (event) {
     alert('There was a network error. Please check your connection and try again.');
 });
 
+// Handle custom trigger to close modals from server
+document.body.addEventListener('closeModal', function (evt) {
+    console.log('closeModal event triggered:', evt.detail);
+    if (evt.detail && typeof evt.detail === 'string') {
+        if (typeof window.closeModal === 'function') {
+            window.closeModal(evt.detail);
+        }
+    } else if (evt.detail && evt.detail.value) {
+        if (typeof window.closeModal === 'function') {
+            window.closeModal(evt.detail.value);
+        }
+    }
+});
+
 // Teacher assignment removal functions
 window.removeClassAssignment = function (assignmentId, assignmentInfo) {
     if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {

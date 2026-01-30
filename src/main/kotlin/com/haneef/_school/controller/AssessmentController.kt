@@ -19,7 +19,7 @@ import java.util.UUID
 
 @Controller
 @RequestMapping("/admin/assessments")
-@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'STAFF', 'TEACHER')")
+@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'STAFF', 'ADMIN')")
 class AssessmentController(
     private val examinationRepository: ExaminationRepository,
     private val questionRepository: QuestionRepository,

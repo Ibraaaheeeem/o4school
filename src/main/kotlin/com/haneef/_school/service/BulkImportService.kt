@@ -72,6 +72,11 @@ class BulkImportService(
                     errors.add(ImportError(rowNumber, "DateOfBirth", "Date of birth is required", ErrorSeverity.ERROR))
                     return@forEachIndexed
                 }
+                // Admission number is now mandatory
+                if (student.admissionNumber.isNullOrBlank()) {
+                    errors.add(ImportError(rowNumber, "AdmissionNumber", "Admission number is required", ErrorSeverity.ERROR))
+                    return@forEachIndexed
+                }
 
                 // Validate gender
                 if (student.gender !in listOf("M", "F")) {
@@ -88,15 +93,13 @@ class BulkImportService(
                     return@forEachIndexed
                 }
 
-                // Check for duplicate admission number
-                if (!student.admissionNumber.isNullOrBlank()) {
-                    val exists = studentRepository.findByAdmissionNumber(student.admissionNumber) != null
-                    if (exists) {
-                        errors.add(ImportError(rowNumber, "AdmissionNumber", 
-                            "Student with admission number '${student.admissionNumber}' already exists", ErrorSeverity.WARNING))
-                        duplicates++
-                        return@forEachIndexed
-                    }
+                // Check for duplicate admission number IN THIS SCHOOL
+                val exists = studentRepository.findByAdmissionNumberAndSchoolId(student.admissionNumber, schoolId) != null
+                if (exists) {
+                    errors.add(ImportError(rowNumber, "AdmissionNumber", 
+                        "Student with admission number '${student.admissionNumber}' already exists in this school", ErrorSeverity.WARNING))
+                    duplicates++
+                    return@forEachIndexed
                 }
 
                 // Add to valid data
@@ -106,7 +109,7 @@ class BulkImportService(
                     "MiddleName" to (student.middleName ?: ""),
                     "Gender" to student.gender,
                     "DateOfBirth" to student.dateOfBirth,
-                    "AdmissionNumber" to (student.admissionNumber ?: ""),
+                    "AdmissionNumber" to student.admissionNumber,
                     "Address" to (student.address ?: "")
                 ))
             } catch (e: Exception) {
@@ -156,14 +159,21 @@ class BulkImportService(
                     return@forEachIndexed
                 }
 
-                // Check for duplicate email
-                val emailExists = userRepository.existsByEmail(parent.email)
+                // Check if user exists
+                val existingUser = userRepository.findByEmail(parent.email).orElse(null)
                 
-                if (emailExists) {
-                    errors.add(ImportError(rowNumber, "Email", 
-                        "Parent with this Email already exists", ErrorSeverity.WARNING))
-                    duplicates++
-                    return@forEachIndexed
+                if (existingUser != null) {
+                    // Check if user has PARENT role IN THIS SCHOOL
+                    val parentRole = roleRepository.findByName("PARENT").orElseThrow()
+                    val hasRole = userSchoolRoleRepository.existsByUserIdAndSchoolIdAndRoleId(existingUser.id!!, schoolId, parentRole.id!!)
+                    
+                    if (hasRole) {
+                        errors.add(ImportError(rowNumber, "Email", 
+                            "Parent with this Email already exists in this school", ErrorSeverity.WARNING))
+                        duplicates++
+                        return@forEachIndexed
+                    }
+                    // If user exists but doesn't have role in this school, it's valid (we will link them)
                 }
 
                 validData.add(mapOf(
@@ -235,14 +245,21 @@ class BulkImportService(
                     }
                 }
 
-                // Check for duplicate email
-                val emailExists = userRepository.existsByEmail(staffMember.email)
+                // Check if user exists
+                val existingUser = userRepository.findByEmail(staffMember.email).orElse(null)
                 
-                if (emailExists) {
-                    errors.add(ImportError(rowNumber, "Email", 
-                        "Staff with this Email already exists", ErrorSeverity.WARNING))
-                    duplicates++
-                    return@forEachIndexed
+                if (existingUser != null) {
+                    // Check if user has STAFF role IN THIS SCHOOL
+                    val staffRole = roleRepository.findByName("STAFF").orElseThrow()
+                    val hasRole = userSchoolRoleRepository.existsByUserIdAndSchoolIdAndRoleId(existingUser.id!!, schoolId, staffRole.id!!)
+                    
+                    if (hasRole) {
+                        errors.add(ImportError(rowNumber, "Email", 
+                            "Staff with this Email already exists in this school", ErrorSeverity.WARNING))
+                        duplicates++
+                        return@forEachIndexed
+                    }
+                    // If user exists but doesn't have role in this school, it's valid
                 }
 
                 validData.add(mapOf(
@@ -321,9 +338,9 @@ class BulkImportService(
             studentsImported = studentsImported,
             parentsImported = parentsImported,
             staffImported = staffImported,
-            studentsSkipped = preview.students.duplicates,
-            parentsSkipped = preview.parents.duplicates,
-            staffSkipped = preview.staff.duplicates,
+            studentsSkipped = preview.students.errors.size,
+            parentsSkipped = preview.parents.errors.size,
+            staffSkipped = preview.staff.errors.size,
             errors = errors,
             success = errors.isEmpty()
         )
@@ -345,6 +362,9 @@ class BulkImportService(
 
         val phoneNumber = if (!admissionNumber.isNullOrBlank()) admissionNumber else null
 
+        // For students, we always create a new user for now as we generate email
+        // If we wanted to support existing students, we'd need a way to match them (e.g. admission number + school, but that's what we are creating)
+        
         val user = User(
             phoneNumber = phoneNumber,
             email = generateStudentEmail(data["FirstName"]!!, data["LastName"]!!),
@@ -388,78 +408,116 @@ class BulkImportService(
     }
 
     private fun createParent(data: Map<String, String>, schoolId: UUID): Parent {
-        val user = User(
-            phoneNumber = data["PhoneNumber"]!!,
-            email = data["Email"]!!,
-            firstName = data["FirstName"]!!,
-            lastName = data["LastName"]!!,
-            passwordHash = passwordEncoder.encode("parent123")
-        )
-        user.emailVerified = false
-        user.status = UserStatus.ACTIVE
-        // Set address if provided
-        if (!data["Address"].isNullOrBlank()) {
-            user.addressLine1 = data["Address"]
+        val email = data["Email"]!!
+        
+        // Check if user exists
+        var user = userRepository.findByEmail(email).orElse(null)
+        
+        if (user == null) {
+            // Create new user
+            user = User(
+                phoneNumber = data["PhoneNumber"]!!,
+                email = email,
+                firstName = data["FirstName"]!!,
+                lastName = data["LastName"]!!,
+                passwordHash = passwordEncoder.encode("parent123")
+            )
+            user.emailVerified = false
+            user.status = UserStatus.ACTIVE
+            // Set address if provided
+            if (!data["Address"].isNullOrBlank()) {
+                user.addressLine1 = data["Address"]
+            }
+            user = userRepository.save(user)
         }
-        val savedUser = userRepository.save(user)
 
         // Assign PARENT role
         val parentRole = roleRepository.findByName("PARENT").orElseThrow { 
             RuntimeException("PARENT role not found") 
         }
-        val userSchoolRole = UserSchoolRole(
-            user = savedUser,
-            schoolId = schoolId,
-            role = parentRole,
-            isPrimary = true
-        )
-        userSchoolRole.isActive = true
-        userSchoolRoleRepository.save(userSchoolRole)
+        
+        // Check if role exists (it shouldn't if validation passed, but good to be safe)
+        if (!userSchoolRoleRepository.existsByUserIdAndSchoolIdAndRoleId(user.id!!, schoolId, parentRole.id!!)) {
+            val userSchoolRole = UserSchoolRole(
+                user = user,
+                schoolId = schoolId,
+                role = parentRole,
+                isPrimary = true
+            )
+            userSchoolRole.isActive = true
+            userSchoolRoleRepository.save(userSchoolRole)
+        }
 
-        val parent = Parent(
-            user = savedUser
-        )
-        parent.schoolId = schoolId
-
-        return parentRepository.save(parent)
+        // Create Parent entity for this school
+        // Check if parent entity already exists for this school (shouldn't if role didn't exist, but possible if data inconsistency)
+        // Actually, Parent entity is unique per user? No, Parent entity has schoolId.
+        // Let's check if Parent entity exists for this user and school
+        val existingParent = parentRepository.findByUserIdAndSchoolId(user.id!!, schoolId)
+        
+        return if (existingParent != null) {
+            existingParent
+        } else {
+            val parent = Parent(
+                user = user
+            )
+            parent.schoolId = schoolId
+            parentRepository.save(parent)
+        }
     }
 
     private fun createStaff(data: Map<String, String>, schoolId: UUID): Staff {
-        val user = User(
-            phoneNumber = data["PhoneNumber"]!!,
-            email = data["Email"]!!,
-            firstName = data["FirstName"]!!,
-            lastName = data["LastName"]!!,
-            passwordHash = passwordEncoder.encode("staff123")
-        )
-        user.emailVerified = false
-        user.status = UserStatus.ACTIVE
-        val savedUser = userRepository.save(user)
+        val email = data["Email"]!!
+        
+        // Check if user exists
+        var user = userRepository.findByEmail(email).orElse(null)
+        
+        if (user == null) {
+            // Create new user
+            user = User(
+                phoneNumber = data["PhoneNumber"]!!,
+                email = email,
+                firstName = data["FirstName"]!!,
+                lastName = data["LastName"]!!,
+                passwordHash = passwordEncoder.encode("staff123")
+            )
+            user.emailVerified = false
+            user.status = UserStatus.ACTIVE
+            user = userRepository.save(user)
+        }
 
         // Assign STAFF role
         val staffRole = roleRepository.findByName("STAFF").orElseThrow { 
             RuntimeException("STAFF role not found") 
         }
-        val userSchoolRole = UserSchoolRole(
-            user = savedUser,
-            schoolId = schoolId,
-            role = staffRole,
-            isPrimary = true
-        )
-        userSchoolRole.isActive = true
-        userSchoolRoleRepository.save(userSchoolRole)
+        
+        if (!userSchoolRoleRepository.existsByUserIdAndSchoolIdAndRoleId(user.id!!, schoolId, staffRole.id!!)) {
+            val userSchoolRole = UserSchoolRole(
+                user = user,
+                schoolId = schoolId,
+                role = staffRole,
+                isPrimary = true
+            )
+            userSchoolRole.isActive = true
+            userSchoolRoleRepository.save(userSchoolRole)
+        }
 
-        val staff = Staff(
-            user = savedUser,
-            staffId = UUID.randomUUID().toString(),
-            designation = data["Designation"]!!,
-            hireDate = data["DateOfHire"]?.takeIf { it.isNotBlank() }
-                ?.let { LocalDate.parse(it, dateFormatter) }
-                ?: LocalDate.now()
-        )
-        staff.schoolId = schoolId
-
-        return staffRepository.save(staff)
+        // Create Staff entity
+        val existingStaff = staffRepository.findByUserIdAndSchoolId(user.id!!, schoolId)
+        
+        return if (existingStaff != null) {
+            existingStaff
+        } else {
+            val staff = Staff(
+                user = user,
+                staffId = UUID.randomUUID().toString(),
+                designation = data["Designation"]!!,
+                hireDate = data["DateOfHire"]?.takeIf { it.isNotBlank() }
+                    ?.let { LocalDate.parse(it, dateFormatter) }
+                    ?: LocalDate.now()
+            )
+            staff.schoolId = schoolId
+            staffRepository.save(staff)
+        }
     }
 
     private fun generateStudentEmail(firstName: String, lastName: String): String {

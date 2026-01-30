@@ -13,6 +13,8 @@ interface StudentOptionalFeeRepository : JpaRepository<StudentOptionalFee, UUID>
     fun findByStudentIdAndIsActive(studentId: UUID, isActive: Boolean): List<StudentOptionalFee>
     fun existsByStudentIdAndClassFeeItemIdAndIsActive(studentId: UUID, classFeeItemId: UUID, isActive: Boolean): Boolean
     
+    fun findByClassFeeItemIdAndIsActive(classFeeItemId: UUID, isActive: Boolean): List<StudentOptionalFee>
+    
     @Query("""
         SELECT sof FROM StudentOptionalFee sof 
         JOIN FETCH sof.student s 

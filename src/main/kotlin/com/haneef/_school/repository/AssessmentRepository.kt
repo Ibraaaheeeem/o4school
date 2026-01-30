@@ -24,4 +24,10 @@ interface AssessmentRepository : JpaRepository<Assessment, UUID> {
         schoolId: UUID,
         isActive: Boolean
     ): Optional<Assessment>
+
+    fun findByStudentIdAndSchoolIdAndIsActive(
+        studentId: UUID,
+        schoolId: UUID,
+        isActive: Boolean
+    ): List<Assessment>
 }

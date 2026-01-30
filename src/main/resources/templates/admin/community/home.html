@@ -7,6 +7,14 @@
     <title>4School - Community Management</title>
     <!-- CSRF Meta Tags -->
     <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
@@ -41,7 +49,7 @@
                         <h3>Staff Management</h3>
                         <p class="card-number" th:text="${staffCount}">0</p>
                         <p class="card-description">Teaching & non-teaching staff</p>
-                        <div class="card-actions">
+                        <div class="card-actions" style="margin-top: auto;">
                             <a th:href="@{/admin/community/overviews(tab='staff')}" class="card-link">Manage Staff</a>
                         </div>
                     </div>
@@ -51,7 +59,7 @@
                         <h3>Student Management</h3>
                         <p class="card-number" th:text="${studentCount}">0</p>
                         <p class="card-description">Enrolled students</p>
-                        <div class="card-actions">
+                        <div class="card-actions" style="margin-top: auto;">
                             <a th:href="@{/admin/community/overviews(tab='students')}" class="card-link">Manage
                                 Students</a>
                         </div>
@@ -62,7 +70,7 @@
                         <h3>Parent Management</h3>
                         <p class="card-number" th:text="${parentCount}">0</p>
                         <p class="card-description">Parents & guardians</p>
-                        <div class="card-actions">
+                        <div class="card-actions" style="margin-top: auto;">
                             <a th:href="@{/admin/community/overviews(tab='parents')}" class="card-link">Manage
                                 Parents</a>
                         </div>
@@ -73,7 +81,7 @@
                         <h3>User Management</h3>
                         <p class="card-number" th:text="${pendingApprovalCount}">0</p>
                         <p class="card-description">Manage staff, parents & students</p>
-                        <div class="card-actions">
+                        <div class="card-actions" style="margin-top: auto;">
                             <a th:href="@{/admin/community/approvals}" class="card-link" style="color: #d97706;">Manage
                                 Users</a>
                         </div>
@@ -88,7 +96,8 @@
                             separate sheets for each category.</p>
                         <div class="file-structure-info">
                             <h4>📁 File Structure</h4>
-                            <p>Use a single Excel file (.xlsx) with <strong>three separate sheets</strong>:</p>
+                            <p>Use a single Excel file (.xlsx) with <strong>at least one of the following
+                                    sheets</strong>:</p>
                             <ul>
                                 <li><strong>Sheet 1:</strong> Students</li>
                                 <li><strong>Sheet 2:</strong> Parents</li>
@@ -307,7 +316,8 @@
                                 onclick="processExcelFile()">
                                 <i class="fas fa-upload"></i> Upload & Validate
                             </button>
-                            <p class="upload-note">Supported format: .xlsx (Excel file with Students, Parents, and Staff
+                            <p class="upload-note">Supported format: .xlsx (Excel file with Students, Parents, and/or
+                                Staff
                                 sheets) | Max size: 5MB</p>
                         </form>
                     </div>

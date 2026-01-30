@@ -39,15 +39,7 @@
             <!-- Filters Section -->
             <div class="filters-section">
                 <div class="filters-container">
-                    <div class="filter-group">
-                        <label for="categoryFilter">Category:</label>
-                        <select id="categoryFilter" class="form-select" onchange="filterFeeItems()">
-                            <option value="">All Categories</option>
-                            <option th:each="category : ${feeCategories}" th:value="${category}" th:text="${category}"
-                                th:selected="${selectedCategory == category}">
-                            </option>
-                        </select>
-                    </div>
+
                     <div class="filter-group">
                         <label for="searchInput">Search:</label>
                         <div class="search-input-container">
@@ -71,13 +63,7 @@
                             <div class="fee-item-info">
                                 <h3 th:text="${feeItem.name}">Tuition Fee</h3>
                                 <div class="fee-item-meta">
-                                    <span class="fee-category-badge" th:text="${feeItem.feeCategory}"
-                                        th:class="'badge badge-' + ${#strings.toLowerCase(feeItem.feeCategory)}">TUITION</span>
                                     <span th:if="${feeItem.isMandatory}" class="badge badge-danger">Mandatory</span>
-                                    <span th:if="${feeItem.recurrenceType}" class="frequency-indicator"
-                                        th:classappend="'frequency-' + ${#strings.toLowerCase(#strings.replace(feeItem.recurrenceType.name(), '_', '-'))}"
-                                        th:text="${#strings.replace(feeItem.recurrenceType.name(), '_', ' ')}">ONE
-                                        TIME</span>
                                 </div>
                             </div>
                             <div class="fee-item-actions">
@@ -191,11 +177,9 @@
 
         // Filter functions
         function filterFeeItems() {
-            const category = document.getElementById('categoryFilter').value;
             const search = document.getElementById('searchInput').value;
 
             const params = new URLSearchParams();
-            if (category) params.append('category', category);
             if (search) params.append('search', search);
 
             window.location.replace('/admin/financial/fee-items?' + params.toString());

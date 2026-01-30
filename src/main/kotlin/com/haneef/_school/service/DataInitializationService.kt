@@ -803,16 +803,16 @@ class DataInitializationService(
 
         if (feeItemRepository.count() == 0L) {
             val feeItems = listOf(
-                FeeItem("Tuition Fee", 50000.toBigDecimal(), FeeCategory.TUITION, "Annual tuition fee", true, true, RecurrenceType.TERMLY, academicSession = currentSession, term = currentTerm),
-                FeeItem("Registration Fee", 5000.toBigDecimal(), FeeCategory.REGISTRATION, "One-time registration fee", true, true, RecurrenceType.ONE_TIME, academicSession = currentSession, term = currentTerm),
-                FeeItem("Examination Fee", 3000.toBigDecimal(), FeeCategory.EXAMINATION, "Examination fee per term", true, true, RecurrenceType.TERMLY, academicSession = currentSession, term = currentTerm),
-                FeeItem("Library Fee", 2000.toBigDecimal(), FeeCategory.LIBRARY, "Library access and maintenance", false, true, RecurrenceType.ANNUALLY, academicSession = currentSession, term = currentTerm),
-                FeeItem("Laboratory Fee", 4000.toBigDecimal(), FeeCategory.LABORATORY, "Science laboratory usage", false, true, RecurrenceType.TERMLY, academicSession = currentSession, term = currentTerm),
-                FeeItem("Sports Fee", 1500.toBigDecimal(), FeeCategory.SPORTS, "Sports activities and equipment", false, true, RecurrenceType.OPTIONAL, academicSession = currentSession, term = currentTerm),
-                FeeItem("Transport Fee", 8000.toBigDecimal(), FeeCategory.TRANSPORT, "School bus transportation", false, true, RecurrenceType.TERMLY, academicSession = currentSession, term = currentTerm),
-                FeeItem("Uniform Fee", 6000.toBigDecimal(), FeeCategory.UNIFORM, "School uniform and accessories", false, true, RecurrenceType.ONE_TIME, academicSession = currentSession, term = currentTerm),
-                FeeItem("Books Fee", 12000.toBigDecimal(), FeeCategory.BOOKS, "Textbooks and learning materials", true, true, RecurrenceType.ANNUALLY, academicSession = currentSession, term = currentTerm),
-                FeeItem("Technology Fee", 3500.toBigDecimal(), FeeCategory.TECHNOLOGY, "Computer lab and internet access", false, true, RecurrenceType.TERMLY, academicSession = currentSession, term = currentTerm)
+                FeeItem("Tuition Fee", 50000.toBigDecimal(), "Annual tuition fee", true),
+                FeeItem("Registration Fee", 5000.toBigDecimal(), "One-time registration fee", true),
+                FeeItem("Examination Fee", 3000.toBigDecimal(), "Examination fee per term", true),
+                FeeItem("Library Fee", 2000.toBigDecimal(), "Library access and maintenance", false),
+                FeeItem("Laboratory Fee", 4000.toBigDecimal(), "Science laboratory usage", false),
+                FeeItem("Sports Fee", 1500.toBigDecimal(), "Sports activities and equipment", false),
+                FeeItem("Transport Fee", 8000.toBigDecimal(), "School bus transportation", false),
+                FeeItem("Uniform Fee", 6000.toBigDecimal(), "School uniform and accessories", false),
+                FeeItem("Books Fee", 12000.toBigDecimal(), "Textbooks and learning materials", true),
+                FeeItem("Technology Fee", 3500.toBigDecimal(), "Computer lab and internet access", false)
             )
             
             feeItems.forEach { feeItem ->
@@ -825,7 +825,7 @@ class DataInitializationService(
         // Initialize some class fee assignments
         if (classFeeItemRepository.count() == 0L) {
             val classes = schoolClassRepository.findBySchoolIdAndIsActive(demoSchool.id!!, true).take(5)
-            val feeItems = feeItemRepository.findBySchoolIdAndIsActiveOrderByFeeCategoryAscNameAsc(demoSchool.id!!, true)
+            val feeItems = feeItemRepository.findBySchoolIdAndIsActiveOrderByNameAsc(demoSchool.id!!, true)
             
             classes.forEach { schoolClass ->
                 val mandatoryFees = feeItems.filter { it.isMandatory }
@@ -835,8 +835,8 @@ class DataInitializationService(
                         feeItem = feeItem
                     )
                     classFeeItem.schoolId = demoSchool.id!!
-                    classFeeItem.academicSession = feeItem.academicSession
-                    classFeeItem.termId = feeItem.term
+                    classFeeItem.academicSession = currentSession
+                    classFeeItem.termId = currentTerm
                     classFeeItem.isActive = true
                     classFeeItemRepository.save(classFeeItem)
                 }
@@ -851,8 +851,8 @@ class DataInitializationService(
                         feeItem = feeItem
                     )
                     classFeeItem.schoolId = demoSchool.id!!
-                    classFeeItem.academicSession = feeItem.academicSession
-                    classFeeItem.termId = feeItem.term
+                    classFeeItem.academicSession = currentSession
+                    classFeeItem.termId = currentTerm
                     classFeeItem.isActive = true
                     classFeeItemRepository.save(classFeeItem)
                 }

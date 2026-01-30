@@ -21,7 +21,7 @@ import java.util.UUID
 
 @Controller
 @RequestMapping("/admin")
-@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN', 'PRINCIPAL', 'TEACHER', 'STAFF')")
+@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')")
 class AdminDashboardController(
     private val userDetailsService: CustomUserDetailsService,
     private val studentRepository: StudentRepository,

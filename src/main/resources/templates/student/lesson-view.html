@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${lesson['title'] + ' - Lesson'}">Lesson View</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/output.css}">
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .lesson-container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .lesson-container {
+                grid-template-columns: 1fr;
+            }
+
+            .lesson-sidebar {
+                display: none;
+            }
+        }
+
+        .content-section {
+            background: white;
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        .lesson-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 24px;
+            padding: 3rem;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-pattern {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .lesson-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #334155;
+        }
+
+        .lesson-content h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 2.5rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .lesson-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid #f1f5f9;
+            position: sticky;
+            top: 6rem;
+        }
+
+        .outline-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .outline-item:hover {
+            background: #f8fafc;
+            color: #4f46e5;
+        }
+
+        .outline-item.active {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .concept-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: #f1f5f9;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            margin: 0.25rem;
+        }
+
+        .action-button {
+            background: #22c55e;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 16px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.2);
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(34, 197, 94, 0.2);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50">
+    <nav class="glass-nav py-4">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <a href="javascript:history.back()"
+                class="flex items-center gap-2 text-slate-600 font-bold hover:text-indigo-600 transition-colors">
+                <i class="fas fa-chevron-left"></i>
+                <span>Back to Classroom</span>
+            </a>
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Studying</span>
+                <span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold"
+                    th:text="${lesson['topic']}">Topic</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-10">
+        <div class="lesson-container">
+            <div class="lesson-main">
+                <!-- Hero Section -->
+                <div class="lesson-hero">
+                    <div class="hero-pattern"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-3 mb-6">
+                            <span
+                                class="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold border border-white/10"
+                                th:text="${'Week ' + lesson['week']}">Week 1</span>
+                            <span class="w-1 h-1 bg-white/30 rounded-full"></span>
+                            <span class="text-white/60 text-xs font-bold italic"
+                                th:text="${lesson['difficulty_level']}">Intermediate</span>
+                        </div>
+
+                        <h1 class="text-4xl md:text-5xl font-bold mb-6" th:text="${lesson['title']}">Understanding
+                            Calculus I</h1>
+
+                        <div class="flex flex-wrap items-center gap-6 text-white/70 text-sm">
+                            <div class="flex items-center gap-2">
+                                <i class="far fa-clock"></i>
+                                <span th:text="${lesson['duration_minutes'] + ' min study time'}">45 min study
+                                    time</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="far fa-calendar-alt"></i>
+                                <span>Curriculum 2024</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Learning Objectives -->
+                <div class="content-section" th:if="${lesson['learning_objectives']}">
+                    <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        Learning Objectives
+                    </h2>
+                    <div class="lesson-content text-slate-600" th:utext="${lesson['learning_objectives']}"></div>
+                </div>
+
+                <!-- Introduction -->
+                <div id="intro" class="content-section lesson-content" th:if="${lesson['introduction']}">
+                    <h2><i class="fas fa-door-open text-indigo-500"></i> Introduction</h2>
+                    <div th:utext="${lesson['introduction']}"></div>
+                </div>
+
+                <!-- Key Concepts -->
+                <div id="concepts" class="content-section" th:if="${lesson['key_concepts']}">
+                    <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <i class="fas fa-lightbulb text-amber-500"></i>
+                        Core Concepts
+                    </h2>
+                    <div class="flex flex-wrap mb-6">
+                        <!-- If key_concepts is a list, we can pill it, but it's usually HTML. 
+                              Let's just show the content. -->
+                        <div class="lesson-content" th:utext="${lesson['key_concepts']}"></div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div id="content" class="content-section lesson-content" th:if="${lesson['lesson_content']}">
+                    <h2><i class="fas fa-book-reader text-blue-500"></i> Main Content</h2>
+                    <div th:utext="${lesson['lesson_content']}"></div>
+                </div>
+
+                <!-- Examples -->
+                <div id="examples" class="content-section" th:if="${lesson['worked_examples']}">
+                    <div class="bg-slate-900 rounded-3xl p-8 text-white">
+                        <h2 class="text-white mt-0 mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
+                            <i class="fas fa-brain text-purple-400"></i>
+                            Practical Application
+                        </h2>
+                        <div class="lesson-content text-slate-300" th:utext="${lesson['worked_examples']}"></div>
+                    </div>
+                </div>
+
+                <!-- Study Notes -->
+                <div id="notes" class="content-section bg-amber-50/50 border-amber-100"
+                    th:if="${lesson['student_notes']}">
+                    <h2 class="text-amber-900"><i class="fas fa-sticky-note text-amber-500"></i> Essential Notes</h2>
+                    <div class="lesson-content text-amber-900/80" th:utext="${lesson['student_notes']}"></div>
+                </div>
+
+                <!-- Footer Action -->
+                <div class="flex justify-center py-12">
+                    <button class="action-button">
+                        <i class="fas fa-check-circle"></i>
+                        Complete Lesson
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lesson-sidebar">
+                <div class="sidebar-card">
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-widest mb-6">Lesson Content</h3>
+                    <nav class="space-y-1">
+                        <a href="#intro" class="outline-item active" th:if="${lesson['introduction']}">
+                            <i class="fas fa-hashtag text-[10px]"></i>
+                            Introduction
+                        </a>
+                        <a href="#concepts" class="outline-item" th:if="${lesson['key_concepts']}">
+                            <i class="fas fa-hashtag text-[10px]"></i>
+                            Key Concepts
+                        </a>
+                        <a href="#content" class="outline-item" th:if="${lesson['lesson_content']}">
+                            <i class="fas fa-hashtag text-[10px]"></i>
+                            Detailed Content
+                        </a>
+                        <a href="#examples" class="outline-item" th:if="${lesson['worked_examples']}">
+                            <i class="fas fa-hashtag text-[10px]"></i>
+                            Worked Examples
+                        </a>
+                        <a href="#notes" class="outline-item" th:if="${lesson['student_notes']}">
+                            <i class="fas fa-hashtag text-[10px]"></i>
+                            Study Summary
+                        </a>
+                    </nav>
+
+                    <div class="mt-8 pt-6 border-t border-slate-100">
+                        <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Support</h4>
+                        <button
+                            class="w-full flex items-center justify-center gap-2 py-3 border border-slate-200 rounded-xl text-slate-600 text-sm font-bold hover:bg-slate-50 transition-colors">
+                            <i class="far fa-question-circle"></i>
+                            Ask Teacher
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        // Basic active state for sidebar
+        const sections = document.querySelectorAll('.content-section');
+        const navItems = document.querySelectorAll('.outline-item');
+
+        window.addEventListener('scroll', () => {
+            let current = "";
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href') === `#${current}`) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
