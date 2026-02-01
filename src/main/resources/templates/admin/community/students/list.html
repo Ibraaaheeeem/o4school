@@ -79,7 +79,7 @@
                             <select th:id="${'track-' + track.id}" name="classId" class="form-select">
                                 <option value="">All Classes</option>
                                 <option th:each="schoolClass : ${classesByTrack[track.id]}" th:value="${schoolClass.id}"
-                                    th:text="${schoolClass.className + ' (' + (schoolClass.gradeLevel ?: 'No Grade') + ')'}"
+                                    th:text="${schoolClass.className + ' (' + (schoolClass.gradeLevelDisplayName ?: 'No Grade') + ')'}"
                                     th:selected="${#lists.contains(selectedClassIds, schoolClass.id)}">
                                 </option>
                             </select>

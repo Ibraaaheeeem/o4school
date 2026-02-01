@@ -10,9 +10,9 @@
                 <h2 class="section-title" th:text="${schoolClass.className}"
                     style="margin-bottom: 0.5rem; font-size: 1.5rem;">Class Name</h2>
                 <div style="display: flex; gap: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
-                    <span th:if="${schoolClass.gradeLevel}">
+                    <span th:if="${schoolClass.gradeLevel != null}">
                         <i class="fas fa-layer-group" style="margin-right: 0.5rem;"></i> <span
-                            th:text="${schoolClass.gradeLevel}"></span>
+                            th:text="${schoolClass.gradeLevelDisplayName}"></span>
                     </span>
                     <span th:if="${currentTerm}">
                         <i class="fas fa-calendar-alt" style="margin-right: 0.5rem;"></i> <span

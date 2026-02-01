@@ -1,12 +1,13 @@
 package com.haneef._school.controller
+
 import com.haneef._school.dto.*
 import com.haneef._school.entity.*
 import com.haneef._school.repository.*
-import com.haneef._school.service.CustomUserDetails
-import com.haneef._school.service.SchoolStructureService
-import com.haneef._school.service.BankService
-import com.haneef._school.service.PaystackRecipientService
-import com.haneef._school.service.SchoolContentService
+import com.haneef._school.service.*
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import jakarta.servlet.http.HttpSession
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication
@@ -54,6 +55,7 @@ class SchoolSetupController(
         model.addAttribute("newTrack", EducationTrack())
         model.addAttribute("newDepartment", Department())
         model.addAttribute("newClass", SchoolClass())
+        model.addAttribute("gradeLevels", SchoolClass.GradeLevel.values().toList())
         
         return "admin/school-setup/academic-structure"
     }
@@ -223,6 +225,7 @@ class SchoolSetupController(
                 }
                 
                 existing.className = schoolClassDto.className ?: ""
+                existing.gradeLevel = schoolClassDto.gradeLevel
                 existing.maxCapacity = schoolClassDto.maxCapacity ?: 30
                 schoolClassRepository.save(existing)
             } else {
@@ -242,7 +245,7 @@ class SchoolSetupController(
                     this.department = dept
                     this.track = dept.track // Inherit track from department
                     this.classCode = (schoolClassDto.className ?: "").replace(" ", "").uppercase()
-                    this.gradeLevel = schoolClassDto.className ?: ""
+                    this.gradeLevel = schoolClassDto.gradeLevel ?: SchoolClass.GradeLevel.fromClassName(schoolClassDto.className ?: "")
                 }
                 schoolClassRepository.save(schoolClass)
             }
@@ -564,7 +567,7 @@ class SchoolSetupController(
             schoolId = selectedSchoolId
             isActive = true
             classCode = (schoolClassDto.className ?: "").replace(" ", "").uppercase()
-            gradeLevel = schoolClassDto.className ?: ""
+            gradeLevel = schoolClassDto.gradeLevel ?: SchoolClass.GradeLevel.fromClassName(schoolClassDto.className ?: "")
             
             if (schoolClassDto.departmentId != null) {
                 val dept = departmentRepository.findById(schoolClassDto.departmentId!!).orElse(null)
@@ -583,15 +586,31 @@ class SchoolSetupController(
     // Step 5: Subjects
     @GetMapping("/subjects")
     fun subjects(
-        model: Model, 
+        model: Model,
         authentication: Authentication, 
         session: HttpSession,
         @RequestParam(required = false) trackId: UUID?,
-        @RequestParam(required = false) classId: UUID?
+        @RequestParam(required = false) classId: UUID?,
+        @RequestParam(required = false) query: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestHeader(value = "HX-Request", required = false) hxRequest: Boolean?
+    ): String {
+        return performSubjectsListing(model, authentication, session, trackId, classId, query, page, hxRequest)
+    }
+
+    private fun performSubjectsListing(
+        model: Model,
+        authentication: Authentication,
+        session: HttpSession,
+        trackId: UUID?,
+        classId: UUID?,
+        query: String?,
+        page: Int,
+        hxRequest: Boolean?
     ): String {
         val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return "redirect:/admin/school-setup/school-details"
+            ?: return if (hxRequest == true) "" else "redirect:/admin/school-setup/school-details"
         
         // Get all data for filtering
         val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
@@ -605,13 +624,23 @@ class SchoolSetupController(
             allClasses
         }
         
-        // Get subjects with their class assignments
+        // Get all subjects globally with search if provided
+        val allSubjects = if (!query.isNullOrBlank()) {
+            subjectRepository.searchSubjects(query, true, Pageable.unpaged()).content
+        } else {
+            subjectRepository.findByIsActive(true)
+        }
         
-        // Get subjects with their class assignments
-        val allSubjects = subjectRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+        // Get all class assignments for the school
+        val allAssignments = classSubjectRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+        
+        // Group assignments by subject ID for efficient lookup
+        val assignmentsBySubjectId = allAssignments.groupBy { it.subject.id!! }
+        
+        // Build the SubjectWithClasses list
         val subjectsWithClasses = allSubjects.map { subject ->
-            val classAssignments = classSubjectRepository.findBySubjectIdAndIsActive(subject.id!!, true)
-            val assignedClasses = classAssignments.mapNotNull { it.schoolClass }
+            val assignments = assignmentsBySubjectId[subject.id] ?: emptyList()
+            val assignedClasses = assignments.mapNotNull { it.schoolClass }
             
             // Filter assigned classes based on track and class filters
             val relevantClasses = assignedClasses.filter { assignedClass ->
@@ -622,78 +651,110 @@ class SchoolSetupController(
             
             SubjectWithClasses(subject, relevantClasses)
         }.filter { subjectWithClasses ->
-            // Show subjects that have relevant class assignments or show all if no filters applied
+            // Show subjects that have relevant class assignments if filters are applied,
+            // or show ALL subjects if no filters are applied
             when {
                 trackId != null || classId != null -> subjectWithClasses.assignedClasses.isNotEmpty()
-                else -> true // Show all subjects when no filters are applied
+                else -> true 
             }
+        }.sortedBy { it.subject.subjectName }
+
+        // Apply pagination
+        val pageSize = 20
+        val totalSubjects = subjectsWithClasses.size
+        val totalPages = if (totalSubjects == 0) 1 else (Math.ceil(totalSubjects.toDouble() / pageSize)).toInt()
+        
+        val start = page * pageSize
+        val end = Math.min(start + pageSize, totalSubjects)
+        
+        val paginatedSubjects = if (start < totalSubjects) {
+            subjectsWithClasses.subList(start, end)
+        } else {
+            emptyList()
         }
         
         model.addAttribute("user", customUser.user)
-        model.addAttribute("subjectsWithClasses", subjectsWithClasses)
+        model.addAttribute("subjectsWithClasses", paginatedSubjects)
+        model.addAttribute("currentPage", page)
+        model.addAttribute("totalPages", totalPages)
+        model.addAttribute("hasNext", page < totalPages - 1)
+        model.addAttribute("hasPrevious", page > 0)
         model.addAttribute("tracks", tracks)
         model.addAttribute("allClasses", allClasses)
         model.addAttribute("filteredClasses", filteredClasses)
         model.addAttribute("departments", departments)
         model.addAttribute("selectedTrackId", trackId)
         model.addAttribute("selectedClassId", classId)
+        model.addAttribute("searchQuery", query)
         model.addAttribute("newSubject", Subject())
         
-        return "admin/school-setup/subjects"
+        return if (hxRequest == true) {
+            "admin/school-setup/subjects :: subjects-list-fragment"
+        } else {
+            "admin/school-setup/subjects"
+        }
     }
 
     @PostMapping("/subjects")
     fun saveSubject(
         @ModelAttribute subjectDto: SubjectDto,
         @RequestParam(required = false) id: UUID?,
+        @RequestHeader(value = "HX-Request", required = false) hxRequest: Boolean?,
+        @RequestParam(required = false) trackId: UUID?,
+        @RequestParam(required = false) classId: UUID?,
+        @RequestParam(required = false) query: String?,
+        @RequestParam(defaultValue = "0") page: Int,
         session: HttpSession,
+        authentication: Authentication,
+        model: Model,
         redirectAttributes: RedirectAttributes
     ): String {
+        val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-            ?: return "redirect:/admin/school-setup/school-details"
+            ?: return if (hxRequest == true) "" else "redirect:/admin/school-setup/school-details"
         
         try {
             val savedSubject = if (id != null) {
-                // Update existing subject
-                val existingSubject = subjectRepository.findById(id).orElseThrow()
-                
-                if (existingSubject.schoolId != selectedSchoolId) {
-                    redirectAttributes.addFlashAttribute("error", "Unauthorized access to subject")
-                    return "redirect:/admin/school-setup/subjects"
-                }
-                
-                existingSubject.apply {
-                    subjectName = subjectDto.subjectName ?: ""
-                    subjectCode = subjectDto.subjectCode
-                    isCoreSubject = subjectDto.isCoreSubject
-                    description = subjectDto.description
-                }
-                subjectRepository.save(existingSubject)
+                // Editing existing: Only return the subject, DO NOT update details
+                subjectRepository.findById(id).orElseThrow()
             } else {
-                // Create new subject
-                val subject = Subject(
-                    subjectName = subjectDto.subjectName ?: "",
-                    subjectCode = subjectDto.subjectCode,
-                    isCoreSubject = subjectDto.isCoreSubject,
-                    description = subjectDto.description
-                ).apply {
-                    schoolId = selectedSchoolId
-                    isActive = true
+                // Creating new subject
+                val subjectName = subjectDto.subjectName ?: ""
+                val existingGlobalSubject = subjectRepository.findBySubjectNameIgnoreCaseAndIsActive(subjectName, true)
+                
+                if (existingGlobalSubject != null) {
+                    // Subject exists globally: Use it but DO NOT update its details
+                    existingGlobalSubject
+                } else {
+                    // Create new global subject
+                    val subject = Subject(
+                        subjectName = subjectName,
+                        subjectCode = subjectDto.subjectCode,
+                        isCoreSubject = subjectDto.isCoreSubject,
+                        description = subjectDto.description
+                    ).apply { isActive = true }
+                    subjectRepository.save(subject)
                 }
-                subjectRepository.save(subject)
             }
             
-            // Update class assignments
             updateSubjectClassAssignments(savedSubject.id!!, subjectDto.assignedClassIds.filterNotNull(), selectedSchoolId)
             
+            if (hxRequest == true) {
+                return performSubjectsListing(model, authentication, session, trackId, classId, query, page, true)
+            }
+
             val message = if (id != null) "Subject updated successfully!" else "Subject added successfully!"
             redirectAttributes.addFlashAttribute("success", message)
         } catch (e: Exception) {
+            if (hxRequest == true) {
+                model.addAttribute("error", "Error saving subject: ${e.message}")
+                return performSubjectsListing(model, authentication, session, trackId, classId, query, page, true)
+            }
             redirectAttributes.addFlashAttribute("error", "Error saving subject: ${e.message}")
         }
-        
         return "redirect:/admin/school-setup/subjects"
     }
+
 
     // Step 6: Landing Page Content
     @GetMapping("/landing-page")
@@ -724,8 +785,9 @@ class SchoolSetupController(
     }
     
     private fun updateSubjectClassAssignments(subjectId: UUID, assignedClassIds: List<UUID>, schoolId: UUID) {
-        // Get all existing assignments (both active and inactive) for this subject
+        // Get all existing assignments (both active and inactive) for this subject AND this school
         val allExistingAssignments = classSubjectRepository.findBySubjectId(subjectId)
+            .filter { it.schoolId == schoolId }
         
         // Deactivate all currently active assignments
         val currentlyActiveAssignments = allExistingAssignments.filter { it.isActive }
@@ -783,16 +845,24 @@ class SchoolSetupController(
         }
     }
 
+    @GetMapping("/academic-structure/subjects/check-availability")
+    @ResponseBody
+    fun checkSubjectAvailability(@RequestParam name: String): Map<String, Boolean> {
+        val subject = subjectRepository.findBySubjectNameIgnoreCaseAndIsActive(name.trim(), true)
+        return mapOf("available" to (subject == null))
+    }
+
     @GetMapping("/subjects/{id}/edit")
     @ResponseBody
     fun getSubjectForEdit(@PathVariable id: UUID, session: HttpSession): SubjectEditDto? {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return null
         val subject = subjectRepository.findById(id).orElse(null) ?: return null
         
-        if (subject.schoolId != selectedSchoolId) return null
+        // Subjects are global, so no schoolId check on the subject itself
         
-        // Get assigned classes
+        // Get assigned classes for this school only
         val classAssignments = classSubjectRepository.findBySubjectIdAndIsActive(subject.id!!, true)
+            .filter { it.schoolId == selectedSchoolId }
         val assignedClassIds = classAssignments.mapNotNull { it.schoolClass?.id }
         
         // Get all available tracks for this school
@@ -831,6 +901,7 @@ class SchoolSetupController(
     @PostMapping("/academic-structure/subjects/generate-default")
     fun generateDefaultSubjects(
         session: HttpSession,
+        authentication: Authentication,
         model: Model
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
@@ -843,10 +914,9 @@ class SchoolSetupController(
             model.addAttribute("error", e.message)
         }
         
-        val subjects = subjectRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-        model.addAttribute("subjects", subjects)
-        
-        return "admin/school-setup/subjects :: subjects-list-fragment"
+        // Since this returns the subjects list fragment, we should reuse the listing logic
+        // This will populate 'subjectsWithClasses' which the fragment expects
+        return performSubjectsListing(model, authentication, session, null, null, null, 0, true)
     }
 
     // Assign subjects to classes
@@ -865,8 +935,8 @@ class SchoolSetupController(
         val subject = subjectRepository.findById(subjectId).orElse(null)
         
         if (schoolClass != null && subject != null) {
-            if (schoolClass.schoolId != selectedSchoolId || subject.schoolId != selectedSchoolId) {
-                redirectAttributes.addFlashAttribute("error", "Unauthorized access to class or subject")
+            if (schoolClass.schoolId != selectedSchoolId) {
+                redirectAttributes.addFlashAttribute("error", "Unauthorized access to class")
                 return "redirect:/admin/school-setup/subjects"
             }
             
@@ -898,7 +968,9 @@ class SchoolSetupController(
         val tracksCount = educationTrackRepository.countBySchoolIdAndIsActive(schoolId, true)
         val departmentsCount = departmentRepository.countBySchoolIdAndIsActive(schoolId, true)
         val classesCount = schoolClassRepository.countBySchoolIdAndIsActive(schoolId, true)
-        val subjectsCount = subjectRepository.countBySchoolIdAndIsActive(schoolId, true)
+        // Count subjects assigned to this school
+        val subjectsCount = classSubjectRepository.findBySchoolIdWithRelationships(schoolId, true)
+            .map { it.subject }.distinctBy { it.id }.size
         
         val steps = mutableMapOf<String, Boolean>()
         steps["schoolDetails"] = school != null && school.name?.isNotBlank() == true

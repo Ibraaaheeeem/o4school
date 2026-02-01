@@ -60,7 +60,7 @@
                                 <td th:text="${assignment.schoolClass.department?.track?.name ?: 'Unknown'}">Track Name
                                 </td>
                                 <td th:text="${assignment.schoolClass.className}">Class Name</td>
-                                <td th:text="${assignment.schoolClass.gradeLevel}">Grade Level</td>
+                                <td th:text="${assignment.schoolClass.gradeLevelDisplayName}">Grade Level</td>
                                 <td th:text="${assignment.academicSession.sessionYear}">2024-2025</td>
                                 <td th:text="${#temporals.format(assignment.enrollmentDate, 'MMM dd, yyyy')}">Jan 15,
                                     2024</td>

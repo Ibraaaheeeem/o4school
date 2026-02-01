@@ -23,7 +23,7 @@ class SchoolClass(
     var classCode: String? = null,
     
     @Column(name = "grade_level")
-    var gradeLevel: String? = null,
+    var gradeLevel: Int? = null,
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
@@ -32,8 +32,6 @@ class SchoolClass(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "track_id")
     var track: EducationTrack? = null,
-    
-
     
     var term: String? = null,
     
@@ -56,6 +54,52 @@ class SchoolClass(
     constructor() : this(
         className = ""
     )
+    
+    enum class GradeLevel(val value: Int, val displayName: String) {
+        KINDERGARTEN(-3, "Kindergarten"),
+        NURSERY_1(-2, "Nursery 1"),
+        NURSERY_2(-1, "Nursery 2"),
+        NURSERY_3(0, "Nursery 3"),
+        PRIMARY_1(1, "Primary 1"),
+        PRIMARY_2(2, "Primary 2"),
+        PRIMARY_3(3, "Primary 3"),
+        PRIMARY_4(4, "Primary 4"),
+        PRIMARY_5(5, "Primary 5"),
+        PRIMARY_6(6, "Primary 6"),
+        JSS_1(7, "JSS 1"),
+        JSS_2(8, "JSS 2"),
+        JSS_3(9, "JSS 3"),
+        SSS_1(10, "SSS 1"),
+        SSS_2(11, "SSS 2"),
+        SSS_3(12, "SSS 3");
+
+        companion object {
+            fun fromValue(value: Int): GradeLevel? = values().find { it.value == value }
+            
+            fun fromClassName(className: String): Int? {
+                val name = className.trim()
+                return values().find { 
+                    name.equals(it.displayName, ignoreCase = true) || 
+                    name.contains(it.displayName, ignoreCase = true) 
+                }?.value ?: when {
+                    // Fallback heuristics if exact match fails but patterns exist
+                    name.contains("Primary", ignoreCase = true) -> {
+                         name.filter { it.isDigit() }.toIntOrNull()
+                    }
+                    name.contains("JSS", ignoreCase = true) -> {
+                         name.filter { it.isDigit() }.toIntOrNull()?.let { it + 6 }
+                    }
+                    name.contains("SSS", ignoreCase = true) -> {
+                         name.filter { it.isDigit() }.toIntOrNull()?.let { it + 9 }
+                    }
+                    else -> null
+                }
+            }
+        }
+    }
+    
+    val gradeLevelDisplayName: String
+        get() = gradeLevel?.let { GradeLevel.fromValue(it)?.displayName } ?: ""
     
     // Relationships
     @OneToMany(mappedBy = "schoolClass", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)

@@ -111,7 +111,10 @@ class AssessmentController(
         examinations.forEach { exam ->
             println("DEBUG: Examination - ID: ${exam.id}, Title: ${exam.title}, Start: ${exam.startTime}, End: ${exam.endTime}, Questions: ${exam.questions.size}")
         }
-        val subjects = subjectRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+        val subjects = classSubjectRepository.findBySchoolIdWithRelationships(selectedSchoolId, true)
+            .map { it.subject }
+            .distinctBy { it.id }
+            .sortedBy { it.subjectName }
         val classes = schoolClassRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
         val educationTracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
@@ -214,7 +217,10 @@ class AssessmentController(
             println("DEBUG: Filtered Exam - ID: ${exam.id}, Title: ${exam.title}, Start: ${exam.startTime}, End: ${exam.endTime}, Questions: ${exam.questions.size}")
         }
         
-        val subjects = subjectRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+        val subjects = classSubjectRepository.findBySchoolIdWithRelationships(selectedSchoolId, true)
+            .map { it.subject }
+            .distinctBy { it.id }
+            .sortedBy { it.subjectName }
         val classes = schoolClassRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         val educationTracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
 
@@ -329,8 +335,8 @@ class AssessmentController(
             val subject = subjectRepository.findById(examinationDto.subjectId).orElseThrow()
             val schoolClass = schoolClassRepository.findById(examinationDto.classId).orElseThrow()
 
-            // Security Check: Ensure subject and class belong to the selected school
-            if (subject.schoolId != selectedSchoolId || schoolClass.schoolId != selectedSchoolId) {
+            // Security Check: Ensure class belongs to the selected school
+            if (schoolClass.schoolId != selectedSchoolId) {
                 return "fragments/error :: error-message"
             }
 

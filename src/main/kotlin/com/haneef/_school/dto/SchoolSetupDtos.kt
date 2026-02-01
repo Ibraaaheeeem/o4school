@@ -33,6 +33,7 @@ data class DepartmentDto(
 
 data class SchoolClassDto(
     var className: String? = null,
+    var gradeLevel: Int? = null,
     var maxCapacity: Int? = null,
     var departmentId: UUID? = null
 )

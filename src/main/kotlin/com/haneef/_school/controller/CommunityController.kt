@@ -2355,7 +2355,7 @@ class CommunityController(
             mapOf(
                 "id" to schoolClass.id,
                 "className" to schoolClass.className,
-                "gradeLevel" to (schoolClass.gradeLevel ?: ""),
+                "gradeLevel" to schoolClass.gradeLevelDisplayName,
                 "currentEnrollment" to schoolClass.currentEnrollment,
                 "maxCapacity" to schoolClass.maxCapacity,
                 "department" to (schoolClass.department?.name ?: "")
@@ -3418,7 +3418,7 @@ class CommunityController(
                 logger.error("Subject not found with ID: $subjectId")
                 RuntimeException("Subject not found") 
             }
-            logger.info("Subject found: ${subject.subjectName} (ID: ${subject.id}, School: ${subject.schoolId})")
+            logger.info("Subject found: ${subject.subjectName} (ID: ${subject.id})")
             
             // Security checks
             logger.info("Performing security checks...")
@@ -3428,10 +3428,6 @@ class CommunityController(
             }
             if (schoolClass.schoolId != selectedSchoolId) {
                 logger.error("Security violation: Class school ID (${schoolClass.schoolId}) does not match selected school ID ($selectedSchoolId)")
-                return "fragments/error :: error-message"
-            }
-            if (subject.schoolId != selectedSchoolId) {
-                logger.error("Security violation: Subject school ID (${subject.schoolId}) does not match selected school ID ($selectedSchoolId)")
                 return "fragments/error :: error-message"
             }
             logger.info("Security checks passed")

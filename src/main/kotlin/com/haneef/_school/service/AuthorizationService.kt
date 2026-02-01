@@ -65,8 +65,10 @@ class AuthorizationService(
      * Validates and retrieves a subject ensuring it belongs to the specified school
      */
     fun validateAndGetSubject(subjectId: UUID, schoolId: UUID): Subject {
-        return subjectRepository.findByIdAndSchoolIdSecure(subjectId, schoolId)
-            .orElseThrow { RuntimeException("Subject not found or unauthorized access") }
+        // Subjects are now global, so we don't validate school ownership
+        return subjectRepository.findById(subjectId)
+            .filter { it.isActive }
+            .orElseThrow { RuntimeException("Subject not found or inactive") }
     }
 
     /**

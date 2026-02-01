@@ -439,9 +439,9 @@
                             <span class="icon">📚</span>
                             <span th:text="${schoolClass.className}">Class Name</span>
                         </div>
-                        <div class="info-item" th:if="${schoolClass.gradeLevel}">
+                        <div class="info-item" th:if="${schoolClass.gradeLevel != null}">
                             <span class="icon">📊</span>
-                            <span>Grade: <strong th:text="${schoolClass.gradeLevel}"></strong></span>
+                            <span>Grade: <strong th:text="${schoolClass.gradeLevelDisplayName}"></strong></span>
                         </div>
                         <div class="info-item" th:if="${isClassTeacher}">
                             <span class="class-role-badge class-teacher">Class Teacher</span>

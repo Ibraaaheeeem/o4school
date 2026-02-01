@@ -29,11 +29,7 @@ interface SecureStaffRepository {
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<Staff>
 }
 
-// Subject Repository Extensions
-interface SecureSubjectRepository {
-    @Query("SELECT s FROM Subject s WHERE s.id = :id AND s.schoolId = :schoolId AND s.isActive = true")
-    fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<Subject>
-}
+// Subject Repository Extensions - Removed (Subjects are global)
 
 // School Class Repository Extensions
 interface SecureSchoolClassRepository {

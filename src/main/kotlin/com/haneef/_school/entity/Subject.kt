@@ -6,10 +6,10 @@ import jakarta.persistence.*
 @Table(
     name = "subjects",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["subject_name", "school_id"], name = "unique_subject_school")
+        UniqueConstraint(columnNames = ["subject_name"], name = "unique_subject_name")
     ],
     indexes = [
-        Index(columnList = "school_id,subject_code", name = "idx_subject_school_code")
+        Index(columnList = "subject_code", name = "idx_subject_code")
     ]
 )
 class Subject(
@@ -25,8 +25,17 @@ class Subject(
     var isCoreSubject: Boolean? = false,
     
     @Column(name = "credit_hours")
-    var creditHours: Int = 1
-) : TenantAwareEntity() {
+    var creditHours: Int = 1,
+
+    @Column(name = "min_grade_level")
+    var minGradeLevel: Int = 1,
+
+    @Column(name = "max_grade_level")
+    var maxGradeLevel: Int = 12,
+
+    @Column(name = "category")
+    var category: String? = null
+) : GlobalEntity() {
     
     constructor() : this(subjectName = "")
     

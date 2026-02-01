@@ -214,7 +214,7 @@ class DataInitializationService(
                         val schoolClass = SchoolClass(
                             className = className,
                             classCode = "P$grade$section",
-                            gradeLevel = "Grade $grade",
+                            gradeLevel = grade,
                             track = track,
                             department = department,
                             maxCapacity = 30
@@ -240,7 +240,7 @@ class DataInitializationService(
                         val schoolClass = SchoolClass(
                             className = className,
                             classCode = "JSS$grade$section",
-                            gradeLevel = "JSS $grade",
+                            gradeLevel = grade + 6,
                             track = track,
                             department = department,
                             maxCapacity = 35
@@ -266,7 +266,7 @@ class DataInitializationService(
                         val schoolClass = SchoolClass(
                             className = className,
                             classCode = "SSS$grade${section.replace(" ", "")}",
-                            gradeLevel = "SSS $grade",
+                            gradeLevel = grade + 9,
                             track = track,
                             department = department,
                             maxCapacity = 40
@@ -311,7 +311,6 @@ class DataInitializationService(
             )
             
             subjects.forEach { subject ->
-                subject.schoolId = demoSchool.id!!
                 subject.isActive = true
                 subjectRepository.save(subject)
             }
@@ -735,7 +734,7 @@ class DataInitializationService(
         val demoSchool = schoolRepository.findBySlug("demo-high-school").orElse(null) ?: return
         
         if (examinationRepository.count() == 0L) {
-            val subjects = subjectRepository.findBySchoolIdAndIsActive(demoSchool.id!!, true)
+            val subjects = subjectRepository.findByIsActive(true)
             val classes = schoolClassRepository.findBySchoolIdAndIsActive(demoSchool.id!!, true)
             val currentSession = academicSessionRepository.findBySchoolIdAndIsActive(demoSchool.id!!, true)
                 .find { it.isCurrentSession }
