@@ -45,7 +45,8 @@
                         <p class="text-muted">No class assignments</p>
                     </div>
                     <div th:unless="${student.classEnrollments.empty}" class="assignments-grid">
-                        <div th:each="enrollment : ${student.classEnrollments}" th:if="${enrollment.isActive}"
+                        <div th:each="enrollment : ${student.classEnrollments}"
+                            th:if="${enrollment.isActive and (headerContextSession == null or enrollment.academicSession.id == headerContextSession.id) and (headerContextTerm == null or enrollment.term.id == headerContextTerm.id)}"
                             class="assignment-card">
                             <div class="assignment-details">
                                 <div class="track-name"
@@ -76,7 +77,7 @@
                         th:href="@{/student/view-as/{id}(id=${student.id})}" target="_blank" title="View Profile">
                         <i class="fas fa-external-link-alt"></i>Profile
                     </a>
-            
+
                     <button class="btn btn-sm btn-outline"
                         th:hx-get="@{/admin/community/students/{id}/modal(id=${student.id})}"
                         hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"

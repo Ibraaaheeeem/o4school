@@ -668,19 +668,32 @@ class CommunityController(
         // Filter out null or empty classIds if any
         val validClassIds = classIds?.filterNotNull()?.filter { it.toString().isNotBlank() }
         
+        // Get effective session and term
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
         // Apply filtering based on multiple class IDs
         val studentPage = when {
             !search.isNullOrBlank() && !validClassIds.isNullOrEmpty() -> {
-                studentRepository.findBySchoolIdAndIsActiveAndClassIdInAndSearch(
-                    selectedSchoolId, true, validClassIds, search, pageable)
+                if (effectiveSession != null && effectiveTerm != null) {
+                    studentRepository.findBySchoolIdAndIsActiveAndClassIdInAndSearchAndSessionAndTerm(
+                        selectedSchoolId, true, validClassIds, effectiveSession.id!!, effectiveTerm.id!!, search, pageable)
+                } else {
+                    studentRepository.findBySchoolIdAndIsActiveAndClassIdInAndSearch(
+                        selectedSchoolId, true, validClassIds, search, pageable)
+                }
             }
             !search.isNullOrBlank() -> {
                 studentRepository.findBySchoolIdAndIsActiveAndUserFullNameContaining(
                     selectedSchoolId, true, search, pageable)
             }
             !validClassIds.isNullOrEmpty() -> {
-                studentRepository.findBySchoolIdAndIsActiveAndClassIdIn(
-                    selectedSchoolId, true, validClassIds, pageable)
+                if (effectiveSession != null && effectiveTerm != null) {
+                    studentRepository.findBySchoolIdAndIsActiveAndClassIdInAndSessionAndTerm(
+                        selectedSchoolId, true, validClassIds, effectiveSession.id!!, effectiveTerm.id!!, pageable)
+                } else {
+                    studentRepository.findBySchoolIdAndIsActiveAndClassIdIn(
+                        selectedSchoolId, true, validClassIds, pageable)
+                }
             }
             else -> {
                 studentRepository.findBySchoolIdAndIsActiveWithEnrollments(selectedSchoolId, true, pageable)
@@ -1957,6 +1970,49 @@ class CommunityController(
         
         return CommunityStats(staffCount, studentCount, parentCount)
     }
+
+    private fun getEffectiveSessionAndTerm(session: HttpSession, schoolId: UUID): Pair<AcademicSession?, Term?> {
+        val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
+        val selectedTermId = session.getAttribute("selectedTermId") as? UUID
+        
+        // Resolve Session
+        var effectiveSession: AcademicSession? = null
+        if (selectedSessionId != null) {
+            effectiveSession = academicSessionRepository.findById(selectedSessionId).orElse(null)
+        }
+        
+        if (effectiveSession == null) {
+             effectiveSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
+        }
+
+        if (effectiveSession == null) {
+             val sessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(schoolId, true)
+             effectiveSession = sessions.firstOrNull()
+        }
+        
+        // Resolve Term
+        var effectiveTerm: Term? = null
+        if (effectiveSession != null) {
+            if (selectedTermId != null) {
+                effectiveTerm = termRepository.findById(selectedTermId).orElse(null)
+                // Ensure term belongs to session
+                if (effectiveTerm != null && effectiveTerm.academicSession.id != effectiveSession.id) {
+                    effectiveTerm = null
+                }
+            }
+            
+            if (effectiveTerm == null) {
+                effectiveTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(effectiveSession.id!!, true, true).orElse(null)
+            }
+            
+            if (effectiveTerm == null) {
+                val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(effectiveSession.id!!, true)
+                effectiveTerm = terms.firstOrNull()
+            }
+        }
+        
+        return Pair(effectiveSession, effectiveTerm)
+    }
     
     private fun parsePhoneNumber(fullPhoneNumber: String): Pair<String, String> {
         val commonCountryCodes = listOf("+234", "+1", "+44", "+91", "+86", "+33", "+49", "+81", "+27", "+254", "+233")
@@ -2034,11 +2090,13 @@ class CommunityController(
                 return "fragments/error :: error-message"
             }
 
-            // Get current academic session and term
-            val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
-                ?: throw RuntimeException("No current academic session found")
-            val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
-                .orElseThrow { RuntimeException("No current term found") }
+            // Get effective academic session and term
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            
+            val currentSession = effectiveSession 
+                ?: throw RuntimeException("No academic session found. Please ensure an active session exists.")
+            val currentTerm = effectiveTerm 
+                ?: throw RuntimeException("No academic term found. Please ensure an active term exists.")
 
             // Check if student is already assigned to a class in this track for this session and term
             val existingAssignments = studentClassRepository.findByStudentIdAndSchoolClassTrackIdAndAcademicSessionIdAndTermId(
@@ -2378,11 +2436,13 @@ class CommunityController(
             val student = studentRepository.findById(studentId).orElseThrow()
             val schoolClass = schoolClassRepository.findById(assignedClassId).orElseThrow()
 
-            // Get current academic session and term
-            val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
-                ?: throw RuntimeException("No current academic session found")
-            val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
-                .orElseThrow { RuntimeException("No current term found") }
+            // Get effective academic session and term
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            
+            val currentSession = effectiveSession 
+                ?: throw RuntimeException("No academic session found. Please ensure an active session exists.")
+            val currentTerm = effectiveTerm 
+                ?: throw RuntimeException("No academic term found. Please ensure an active term exists.")
 
             // Check if student is already assigned to any class in this track for this session and term
             val allAssignments = studentClassRepository.findByStudentIdAndSchoolClassTrackIdAndAcademicSessionIdAndTermId(

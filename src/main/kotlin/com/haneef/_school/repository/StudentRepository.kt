@@ -24,6 +24,7 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
     
     fun countBySchoolId(schoolId: UUID): Long
     
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
            "(CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
            "CAST(s.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
@@ -45,6 +46,7 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
     @Query("SELECT s FROM Student s JOIN FETCH s.user WHERE s.admissionNumber = :admissionNumber")
     fun findByAdmissionNumber(@Param("admissionNumber") admissionNumber: String): Student?
     
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
            "(CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
            "CAST(s.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
@@ -57,6 +59,7 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
         pageable: Pageable
     ): Page<Student>
     
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
            "EXISTS (SELECT 1 FROM StudentClass ce WHERE ce.student = s AND ce.schoolClass.id = :classId AND ce.isActive = true)")
     fun findBySchoolIdAndIsActiveAndClassId(
@@ -66,6 +69,7 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
         pageable: Pageable
     ): Page<Student>
     
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
            "EXISTS (SELECT 1 FROM StudentClass ce WHERE ce.student = s AND ce.schoolClass.department.track.id = :trackId AND ce.isActive = true)")
     fun findBySchoolIdAndIsActiveAndTrackId(
@@ -75,6 +79,7 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
         pageable: Pageable
     ): Page<Student>
     
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
            "EXISTS (SELECT 1 FROM StudentClass ce WHERE ce.student = s AND ce.schoolClass.id = :classId AND ce.isActive = true) AND " +
            "(CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
@@ -89,6 +94,7 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
         pageable: Pageable
     ): Page<Student>
     
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
            "EXISTS (SELECT 1 FROM StudentClass ce WHERE ce.student = s AND ce.schoolClass.department.track.id = :trackId AND ce.isActive = true) AND " +
            "(CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
@@ -103,7 +109,7 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
         pageable: Pageable
     ): Page<Student>
     
-    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass"])
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive")
     fun findBySchoolIdAndIsActiveWithEnrollments(
         @Param("schoolId") schoolId: UUID,
@@ -111,12 +117,44 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
         pageable: Pageable
     ): Page<Student>
 
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
            "EXISTS (SELECT 1 FROM StudentClass ce WHERE ce.student = s AND ce.schoolClass.id IN :classIds AND ce.isActive = true)")
     fun findBySchoolIdAndIsActiveAndClassIdIn(
         @Param("schoolId") schoolId: UUID,
         @Param("isActive") isActive: Boolean,
         @Param("classIds") classIds: List<UUID>,
+        pageable: Pageable
+    ): Page<Student>
+
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
+    @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
+           "EXISTS (SELECT 1 FROM StudentClass ce WHERE ce.student = s AND ce.schoolClass.id IN :classIds " +
+           "AND ce.academicSession.id = :sessionId AND ce.term.id = :termId AND ce.isActive = true)")
+    fun findBySchoolIdAndIsActiveAndClassIdInAndSessionAndTerm(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("classIds") classIds: List<UUID>,
+        @Param("sessionId") sessionId: UUID,
+        @Param("termId") termId: UUID,
+        pageable: Pageable
+    ): Page<Student>
+
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
+    @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
+           "EXISTS (SELECT 1 FROM StudentClass ce WHERE ce.student = s AND ce.schoolClass.id IN :classIds " +
+           "AND ce.academicSession.id = :sessionId AND ce.term.id = :termId AND ce.isActive = true) AND " +
+           "(CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.studentId AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.admissionNumber AS string) ILIKE CONCAT('%', :search, '%'))")
+    fun findBySchoolIdAndIsActiveAndClassIdInAndSearchAndSessionAndTerm(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("classIds") classIds: List<UUID>,
+        @Param("sessionId") sessionId: UUID,
+        @Param("termId") termId: UUID,
+        @Param("search") search: String,
         pageable: Pageable
     ): Page<Student>
 
