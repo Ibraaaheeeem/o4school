@@ -87,7 +87,12 @@
                 <div th:each="relationship : ${parent?.studentRelationships}" th:if="${relationship.isActive}"
                     class="assignment-card">
                     <div class="assignment-details">
-                        <div class="student-name" th:text="${relationship.student.user.fullName}">Student Name
+                        <div class="student-name">
+                            <span th:text="${relationship.student.user.fullName}">Student Name</span>
+                            <span th:each="enrollment : ${relationship.student.classEnrollments}"
+                                class="badge badge-info ms-1"
+                                style="font-size: 0.75em; font-weight: normal; background-color: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;"
+                                th:text="${enrollment.schoolClass.className}">Class</span>
                         </div>
                         <div class="relationship-type" th:text="${#strings.capitalize(relationship.relationshipType)}">
                             Biological</div>

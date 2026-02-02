@@ -146,10 +146,10 @@
                             <form id="deleteParentAssignmentForm"
                                 hx-post="/admin/community/parents/remove-assignment/00000000-0000-0000-0000-000000000000"
                                 hx-target="#deleteParentAssignmentModal .modal-dialog" hx-swap="innerHTML"
-                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
                                 hx-on::after-request="if(event.detail.successful) { closeModal('deleteParentAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
                                 hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
                                 style="display: inline;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                                 <button type="submit" class="btn btn-danger">Remove Assignment</button>
                             </form>
                         </div>

@@ -138,13 +138,15 @@ class FinancialController(
         val school = schoolRepository.findById(selectedSchoolId).orElseThrow { 
             RuntimeException("School not found") 
         }
-
-        val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, search)
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, effectiveSession?.id, effectiveTerm?.id, true, search)
 
         model.addAttribute("user", customUser.user)
         model.addAttribute("school", school)
         model.addAttribute("feeItems", feeItems)
         model.addAttribute("search", search)
+        model.addAttribute("effectiveSession", effectiveSession)
+        model.addAttribute("effectiveTerm", effectiveTerm)
 
         return "admin/financial/fee-items"
     }
@@ -230,8 +232,11 @@ class FinancialController(
             }
 
             // Fetch updated list for OOB update
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, effectiveSession?.id, effectiveTerm?.id, true, null)
             model.addAttribute("feeItems", feeItems)
+            model.addAttribute("effectiveSession", effectiveSession)
+            model.addAttribute("effectiveTerm", effectiveTerm)
 
             return "admin/financial/fragments/fee-item-save-success"
         } catch (e: Exception) {
@@ -343,8 +348,11 @@ class FinancialController(
             }
             
             // Fetch updated list
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, effectiveSession?.id, effectiveTerm?.id, true, null)
             model.addAttribute("feeItems", feeItems)
+            model.addAttribute("effectiveSession", effectiveSession)
+            model.addAttribute("effectiveTerm", effectiveTerm)
             
             return "admin/financial/fee-items :: feeItemsList"
         } catch (e: Exception) {
@@ -412,17 +420,13 @@ class FinancialController(
             // Use secure validation
             val feeItem = authorizationService.validateAndGetFeeItem(feeItemId, selectedSchoolId)
             
-            // Get current session and term
-            val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-            val currentSession = academicSessions.find { it.isCurrentSession }
+            // Get effective session and term
+            val (currentSession, currentTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
             
             if (currentSession == null) {
-                 model.addAttribute("error", "No active current academic session found.")
+                 model.addAttribute("error", "No active academic session found.")
                  return "fragments/error :: error-message"
             }
-            
-            val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(currentSession.id!!, true)
-            val currentTerm = terms.find { it.isCurrentTerm } ?: terms.firstOrNull()
             
             if (currentTerm == null) {
                  model.addAttribute("error", "No active term found for current session.")
@@ -496,7 +500,7 @@ class FinancialController(
                 model.addAttribute("feeItem", feeItem)
                 
                 // Also refresh the main fee items list
-                val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
+                val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, currentSession.id, currentTerm.id, true, null)
                 model.addAttribute("feeItems", feeItems)
                 
                 return "admin/financial/fragments/class-assignment-response"
@@ -551,8 +555,11 @@ class FinancialController(
             model.addAttribute("feeItem", classFeeItem.feeItem)
             
             // Also refresh the main fee items list
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, effectiveSession?.id, effectiveTerm?.id, true, null)
             model.addAttribute("feeItems", feeItems)
+            model.addAttribute("effectiveSession", effectiveSession)
+            model.addAttribute("effectiveTerm", effectiveTerm)
             
             return "admin/financial/fragments/class-assignment-response"
         } catch (e: Exception) {
@@ -596,8 +603,11 @@ class FinancialController(
             model.addAttribute("feeItem", feeItem)
             
             // Also refresh the main fee items list
-            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, true, null)
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, effectiveSession?.id, effectiveTerm?.id, true, null)
             model.addAttribute("feeItems", feeItems)
+            model.addAttribute("effectiveSession", effectiveSession)
+            model.addAttribute("effectiveTerm", effectiveTerm)
             
             return "admin/financial/fragments/class-assignment-response"
         } catch (e: Exception) {
@@ -983,13 +993,10 @@ class FinancialController(
                 ))
             }
 
-            // Get current academic session and term as fallback
-            val currentAcademicSession = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-                .find { it.isCurrentSession }
-            val currentTerm = if (currentAcademicSession != null) {
-                termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(currentAcademicSession.id!!, true)
-                    .find { it.isCurrentTerm }
-            } else null
+            // Get effective session and term
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            val currentAcademicSession = effectiveSession
+            val currentTerm = effectiveTerm
 
             // Use session/term from ClassFeeItem if available (primary source), otherwise fallback to current
             val targetSession = classFeeItem.academicSession ?: currentAcademicSession
@@ -1087,8 +1094,7 @@ class FinancialController(
 
         try {
             // Get current academic session
-            val currentSession = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-                .find { it.isCurrentSession }
+            val (currentSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
             
             if (currentSession == null) {
                 return ResponseEntity.ok(emptyList())
@@ -1098,7 +1104,7 @@ class FinancialController(
             val classFeeItems = classFeeItemRepository.findOptionalFees(
                 selectedSchoolId, 
                 currentSession.id!!, 
-                null // Get all terms
+                effectiveTerm?.id // Use effective term
             )
             
             val feeItemData = classFeeItems.map { classFeeItem ->
@@ -1139,8 +1145,7 @@ class FinancialController(
             }
 
             // Get current academic session
-            val currentSession = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-                .find { it.isCurrentSession }
+            val (currentSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
             
             if (currentSession == null) {
                 return ResponseEntity.ok(emptyList())
@@ -1158,7 +1163,7 @@ class FinancialController(
             val classFeeItems = classFeeItemRepository.findOptionalFees(
                 selectedSchoolId,
                 currentSession.id!!,
-                null
+                effectiveTerm?.id
             ).filter { it.schoolClass.id in classIds }
 
             
@@ -2065,5 +2070,85 @@ class FinancialController(
             model.addAttribute("error", "Error logging settlement: ${e.message}")
             return "fragments/error :: error-message"
         }
+    }
+    private fun getEffectiveSessionAndTerm(session: HttpSession, schoolId: UUID): Pair<AcademicSession?, Term?> {
+        val selectedSessionIdRaw = session.getAttribute("selectedSessionId")
+        logger.info("Raw selectedSessionId from session: '$selectedSessionIdRaw' (${selectedSessionIdRaw?.javaClass?.simpleName})")
+        
+        val selectedSessionId = when (selectedSessionIdRaw) {
+            is UUID -> selectedSessionIdRaw
+            is String -> try { UUID.fromString(selectedSessionIdRaw) } catch (e: Exception) { 
+                logger.error("Failed to parse sessionId string: $selectedSessionIdRaw", e)
+                null 
+            }
+            else -> null
+        }
+
+        val selectedTermIdRaw = session.getAttribute("selectedTermId")
+        logger.info("Raw selectedTermId from session: '$selectedTermIdRaw' (${selectedTermIdRaw?.javaClass?.simpleName})")
+
+        val selectedTermId = when (selectedTermIdRaw) {
+            is UUID -> selectedTermIdRaw
+            is String -> try { UUID.fromString(selectedTermIdRaw) } catch (e: Exception) { 
+                logger.error("Failed to parse termId string: $selectedTermIdRaw", e)
+                null 
+            }
+            else -> null
+        }
+        
+        logger.info("Resolved UUIDs - Session: $selectedSessionId, Term: $selectedTermId")
+        
+        // Resolve Session
+        var effectiveSession: AcademicSession? = null
+        if (selectedSessionId != null) {
+            effectiveSession = academicSessionRepository.findById(selectedSessionId).orElse(null)
+            logger.info("Fetched session by ID: ${effectiveSession?.sessionName}")
+        }
+        
+        if (effectiveSession == null) {
+             logger.info("No session selected or found, falling back to current active session for school: $schoolId")
+             effectiveSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
+             logger.info("Current active session: ${effectiveSession?.sessionName}")
+        }
+
+        if (effectiveSession == null) {
+             logger.info("No current active session found, falling back to most recent active session")
+             val sessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(schoolId, true)
+             effectiveSession = sessions.firstOrNull()
+             logger.info("Most recent active session: ${effectiveSession?.sessionName}")
+        }
+        
+        // Resolve Term
+        var effectiveTerm: Term? = null
+        if (effectiveSession != null) {
+            if (selectedTermId != null) {
+                effectiveTerm = termRepository.findById(selectedTermId).orElse(null)
+                // Ensure term belongs to session
+                if (effectiveTerm != null && effectiveTerm.academicSession.id != effectiveSession.id) {
+                    logger.warn("Selected term ${effectiveTerm.termName} does not belong to effective session ${effectiveSession.sessionName}. Ignoring selected term.")
+                    effectiveTerm = null
+                } else {
+                    logger.info("Using selected term: ${effectiveTerm?.termName}")
+                }
+            }
+            
+            if (effectiveTerm == null) {
+                logger.info("No valid term selected, checking for current term in session ${effectiveSession.sessionName}")
+                effectiveTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(effectiveSession.id!!, true, true).orElse(null)
+                logger.info("Current term in session: ${effectiveTerm?.termName}")
+            }
+            
+            if (effectiveTerm == null) {
+                logger.info("No current term found, falling back to first term in session")
+                val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(effectiveSession.id!!, true)
+                effectiveTerm = terms.firstOrNull()
+                logger.info("First term: ${effectiveTerm?.termName}")
+            }
+        } else {
+            logger.error("Could not resolve any effective session!")
+        }
+        
+        logger.info("FINAL EFFECTIVE CONTEXT - Session: '${effectiveSession?.sessionName}', Term: '${effectiveTerm?.termName}'")
+        return Pair(effectiveSession, effectiveTerm)
     }
 }

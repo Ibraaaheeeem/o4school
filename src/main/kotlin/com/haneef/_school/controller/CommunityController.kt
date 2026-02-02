@@ -139,13 +139,16 @@ class CommunityController(
             }
             else -> {
                 // Use method with teacher assignments for unfiltered view
-                val allStaff = loadStaffWithTeacherAssignments(selectedSchoolId)
-                val startIndex = (page * size).coerceAtMost(allStaff.size)
-                val endIndex = ((page + 1) * size).coerceAtMost(allStaff.size)
-                val pagedStaff = if (startIndex < allStaff.size) allStaff.subList(startIndex, endIndex) else emptyList()
-                org.springframework.data.domain.PageImpl(pagedStaff, pageable, allStaff.size.toLong())
+                // Fetch page first
+                staffRepository.findBySchoolIdAndIsActive(selectedSchoolId, true, pageable)
             }
         }
+        
+        // Get effective session and term
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
+        // Populate assignments for ALL paths
+        populateStaffAssignments(staffPage.content, selectedSchoolId, effectiveSession, effectiveTerm)
 
         // Get unique designations for filter
         val designations = staffRepository.findDistinctDesignationsBySchoolId(selectedSchoolId)
@@ -166,6 +169,8 @@ class CommunityController(
             else -> "admin/community/staff/list"
         }
     }
+    
+
 
 //    @GetMapping("/staff/new")
 //    fun newStaff(model: Model, authentication: Authentication, session: HttpSession): String {
@@ -1155,6 +1160,9 @@ class CommunityController(
 
         val pageable = PageRequest.of(page, size, Sort.by("user.firstName"))
         
+        // Get effective session and term
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
         // Apply filtering
         val parentPage = if (!search.isNullOrBlank()) {
             parentRepository.findBySchoolIdAndIsActiveAndUserFullNameContaining(
@@ -1169,6 +1177,9 @@ class CommunityController(
             // Create a Page object manually
             org.springframework.data.domain.PageImpl(pagedParents, pageable, allParents.size.toLong())
         }
+
+        // Populate student classes for session filtering
+        populateParentStudentClasses(parentPage.content, selectedSchoolId, effectiveSession, effectiveTerm)
 
         // Calculate balance for each parent
         parentPage.content.forEach { parent ->
@@ -1972,22 +1983,50 @@ class CommunityController(
     }
 
     private fun getEffectiveSessionAndTerm(session: HttpSession, schoolId: UUID): Pair<AcademicSession?, Term?> {
-        val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
-        val selectedTermId = session.getAttribute("selectedTermId") as? UUID
+        val selectedSessionIdRaw = session.getAttribute("selectedSessionId")
+        logger.info("Raw selectedSessionId from session: '$selectedSessionIdRaw' (${selectedSessionIdRaw?.javaClass?.simpleName})")
+        
+        val selectedSessionId = when (selectedSessionIdRaw) {
+            is UUID -> selectedSessionIdRaw
+            is String -> try { UUID.fromString(selectedSessionIdRaw) } catch (e: Exception) { 
+                logger.error("Failed to parse sessionId string: $selectedSessionIdRaw", e)
+                null 
+            }
+            else -> null
+        }
+
+        val selectedTermIdRaw = session.getAttribute("selectedTermId")
+        logger.info("Raw selectedTermId from session: '$selectedTermIdRaw' (${selectedTermIdRaw?.javaClass?.simpleName})")
+
+        val selectedTermId = when (selectedTermIdRaw) {
+            is UUID -> selectedTermIdRaw
+            is String -> try { UUID.fromString(selectedTermIdRaw) } catch (e: Exception) { 
+                logger.error("Failed to parse termId string: $selectedTermIdRaw", e)
+                null 
+            }
+            else -> null
+        }
+        
+        logger.info("Resolved UUIDs - Session: $selectedSessionId, Term: $selectedTermId")
         
         // Resolve Session
         var effectiveSession: AcademicSession? = null
         if (selectedSessionId != null) {
             effectiveSession = academicSessionRepository.findById(selectedSessionId).orElse(null)
+            logger.info("Fetched session by ID: ${effectiveSession?.sessionName}")
         }
         
         if (effectiveSession == null) {
+             logger.info("No session selected or found, falling back to current active session for school: $schoolId")
              effectiveSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
+             logger.info("Current active session: ${effectiveSession?.sessionName}")
         }
 
         if (effectiveSession == null) {
+             logger.info("No current active session found, falling back to most recent active session")
              val sessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(schoolId, true)
              effectiveSession = sessions.firstOrNull()
+             logger.info("Most recent active session: ${effectiveSession?.sessionName}")
         }
         
         // Resolve Term
@@ -1997,20 +2036,30 @@ class CommunityController(
                 effectiveTerm = termRepository.findById(selectedTermId).orElse(null)
                 // Ensure term belongs to session
                 if (effectiveTerm != null && effectiveTerm.academicSession.id != effectiveSession.id) {
+                    logger.warn("Selected term ${effectiveTerm.termName} does not belong to effective session ${effectiveSession.sessionName}. Ignoring selected term.")
                     effectiveTerm = null
+                } else {
+                    logger.info("Using selected term: ${effectiveTerm?.termName}")
                 }
             }
             
             if (effectiveTerm == null) {
+                logger.info("No valid term selected, checking for current term in session ${effectiveSession.sessionName}")
                 effectiveTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(effectiveSession.id!!, true, true).orElse(null)
+                logger.info("Current term in session: ${effectiveTerm?.termName}")
             }
             
             if (effectiveTerm == null) {
+                logger.info("No current term found, falling back to first term in session")
                 val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(effectiveSession.id!!, true)
                 effectiveTerm = terms.firstOrNull()
+                logger.info("First term: ${effectiveTerm?.termName}")
             }
+        } else {
+            logger.error("Could not resolve any effective session!")
         }
         
+        logger.info("FINAL EFFECTIVE CONTEXT - Session: '${effectiveSession?.sessionName}', Term: '${effectiveTerm?.termName}'")
         return Pair(effectiveSession, effectiveTerm)
     }
     
@@ -3289,135 +3338,94 @@ class CommunityController(
     ): String {
         logger.info("=== Starting Class Teacher Assignment ===")
         logger.info("Request Parameters - staffId: $staffId, assignedClassId: $assignedClassId")
-        logger.info("Authentication: ${authentication.name}")
         
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-        logger.info("Selected School ID from session: $selectedSchoolId")
-        
         if (selectedSchoolId == null) {
-            logger.error("No selected school ID found in session")
             return "fragments/error :: error-message"
         }
 
+        // 1. Resolve Effective Session/Term EARLY (Scope: Method-wide)
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
+        // If we can't resolve a session/term, we can't proceed with assignment OR display
+        val targetSession = effectiveSession ?: run {
+             logger.error("No effective session found for assignment.")
+             model.addAttribute("error", "No active academic session found.")
+             return "fragments/error :: error-message"
+        }
+        
+        val targetTerm = effectiveTerm ?: run {
+             logger.error("No effective term found for assignment.")
+             model.addAttribute("error", "No active academic term found.")
+             return "fragments/error :: error-message"
+        }
+        
+        logger.info("Target Context - Session: ${targetSession.sessionName}, Term: ${targetTerm.termName}")
+
         try {
-            logger.info("Fetching entities from database...")
-            
-            // Fetch staff
-            val staff = staffRepository.findById(staffId).orElseThrow { 
-                logger.error("Staff not found with ID: $staffId")
-                RuntimeException("Staff not found") 
-            }
-            logger.info("Staff found: ${staff.user.firstName} ${staff.user.lastName} (ID: ${staff.id}, School: ${staff.schoolId})")
-            
-            // Fetch class
-            val schoolClass = schoolClassRepository.findById(assignedClassId).orElseThrow { 
-                logger.error("Class not found with ID: $assignedClassId")
-                RuntimeException("Class not found") 
-            }
-            logger.info("Class found: ${schoolClass.className} (ID: ${schoolClass.id}, School: ${schoolClass.schoolId})")
+            // Fetch entities
+            val staff = staffRepository.findById(staffId).orElseThrow { RuntimeException("Staff not found") }
+            val schoolClass = schoolClassRepository.findById(assignedClassId).orElseThrow { RuntimeException("Class not found") }
             
             // Security checks
-            logger.info("Performing security checks...")
-            if (staff.schoolId != selectedSchoolId) {
-                logger.error("Security violation: Staff school ID (${staff.schoolId}) does not match selected school ID ($selectedSchoolId)")
+            if (staff.schoolId != selectedSchoolId || schoolClass.schoolId != selectedSchoolId) {
                 return "fragments/error :: error-message"
             }
-            if (schoolClass.schoolId != selectedSchoolId) {
-                logger.error("Security violation: Class school ID (${schoolClass.schoolId}) does not match selected school ID ($selectedSchoolId)")
-                return "fragments/error :: error-message"
-            }
-            logger.info("Security checks passed")
             
-            // Get current academic session and term
-            logger.info("Fetching current academic session and term...")
-            val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
-            if (currentSession == null) {
-                logger.error("No current academic session found for school ID: $selectedSchoolId")
-                throw RuntimeException("No current academic session found")
-            }
-            logger.info("Current session found: ${currentSession.sessionName} (ID: ${currentSession.id})")
-            
-            val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
-            if (!currentTerm.isPresent) {
-                logger.error("No current term found for session ID: ${currentSession.id}")
-                throw RuntimeException("No current term found")
-            }
-            val term = currentTerm.get()
-            logger.info("Current term found: ${term.termName} (ID: ${term.id})")
-            
-            // Check if assignment already exists
-            logger.info("Checking for existing assignment...")
-            // Check if assignment already exists (active or inactive)
-            logger.info("Checking for existing assignment...")
+            // Check for existing assignment in the TARGET session/term
             val existingAssignment = classTeacherRepository.findByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolId(
-                staffId, assignedClassId, currentSession.id!!, term.id!!, selectedSchoolId)
+                staffId, assignedClassId, targetSession.id!!, targetTerm.id!!, selectedSchoolId)
             
             if (existingAssignment != null) {
                 if (existingAssignment.isActive) {
-                    logger.warn("Assignment already exists and is active for staff: $staffId, class: $assignedClassId")
                     model.addAttribute("error", "Staff is already assigned as class teacher for this class")
                 } else {
-                    logger.info("Reactivating existing class teacher assignment...")
                     existingAssignment.isActive = true
                     classTeacherRepository.save(existingAssignment)
-                    model.addAttribute("success", "Class teacher assignment reactivated successfully!")
+                    model.addAttribute("success", "Assignment reactivated successfully!")
                 }
             } else {
-                logger.info("Creating new class teacher assignment...")
                 val classTeacher = ClassTeacher(
                     staff = staff,
                     schoolClass = schoolClass,
-                    academicSession = currentSession,
-                    term = term
+                    academicSession = targetSession,
+                    term = targetTerm
                 ).apply {
                     this.schoolId = selectedSchoolId
                     this.isActive = true
                 }
-                
-                logger.info("Saving class teacher assignment to database...")
-                val savedAssignment = classTeacherRepository.save(classTeacher)
-                logger.info("Class teacher assignment saved successfully with ID: ${savedAssignment.id}")
-                
-                model.addAttribute("success", "Class teacher assignment created successfully!")
-                logger.info("Success message added to model")
+                classTeacherRepository.save(classTeacher)
+                model.addAttribute("success", "Class teacher assigned successfully!")
             }
         } catch (e: Exception) {
             logger.error("Error creating class teacher assignment", e)
-            logger.error("Exception details: ${e.javaClass.simpleName} - ${e.message}")
-            e.printStackTrace()
             model.addAttribute("error", "Error creating assignment: ${e.message}")
         }
 
-        logger.info("Returning assignment modal with OOB staff card update...")
-        // Reload the staff with updated assignments
-        val updatedStaff = loadStaffWithTeacherAssignments(selectedSchoolId).find { it.id == staffId }
-            ?: throw RuntimeException("Staff not found after update")
+        // Reload the staff with updated assignments using the TARGET session/term
+        val staffForUpdate = staffRepository.findById(staffId).orElseThrow { RuntimeException("Staff not found after update") }
+        val updatedStaff = populateStaffAssignments(listOf(staffForUpdate), selectedSchoolId, targetSession, targetTerm).first()
         
-        // Get all necessary data for the modal
+        // Get all necessary data for the modal using the TARGET session/term
         val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
-            ?: throw RuntimeException("No current academic session found")
-        val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
-            .orElseThrow { RuntimeException("No current term found") }
         
         val currentClassAssignments = classTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-            staffId, currentSession.id!!, currentTerm.id!!, true
+            staffId, targetSession.id!!, targetTerm.id!!, true
         )
         val currentSubjectAssignments = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-            staffId, currentSession.id!!, currentTerm.id!!, true
+            staffId, targetSession.id!!, targetTerm.id!!, true
         )
         
         val customUser = authentication.principal as CustomUserDetails
         model.addAttribute("user", customUser.user)
         model.addAttribute("staff", updatedStaff)
         model.addAttribute("tracks", tracks)
-        model.addAttribute("currentSession", currentSession)
-        model.addAttribute("currentTerm", currentTerm)
+        model.addAttribute("currentSession", targetSession) // Use targetSession as "current" for the view context
+        model.addAttribute("currentTerm", targetTerm)
         model.addAttribute("currentClassAssignments", currentClassAssignments)
         model.addAttribute("currentSubjectAssignments", currentSubjectAssignments)
-        model.addAttribute("isOob", true) // Enable OOB update for staff card
+        model.addAttribute("isOob", true)
         
-        // Return full modal to keep it open
         return "admin/community/staff/assignments-modal"
     }
     
@@ -3446,143 +3454,96 @@ class CommunityController(
     ): String {
         logger.info("=== Starting Subject Teacher Assignment ===")
         logger.info("Request Parameters - staffId: $staffId, assignedClassId: $assignedClassId, subjectId: $subjectId")
-        logger.info("Authentication: ${authentication.name}")
         
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
-        logger.info("Selected School ID from session: $selectedSchoolId")
-        
         if (selectedSchoolId == null) {
-            logger.error("No selected school ID found in session")
             return "fragments/error :: error-message"
         }
 
+        // 1. Resolve Effective Session/Term EARLY (Scope: Method-wide)
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
+        // If we can't resolve a session/term, we can't proceed with assignment OR display
+        val targetSession = effectiveSession ?: run {
+             logger.error("No effective session found for assignment.")
+             model.addAttribute("error", "No active academic session found.")
+             return "fragments/error :: error-message"
+        }
+        
+        val targetTerm = effectiveTerm ?: run {
+             logger.error("No effective term found for assignment.")
+             model.addAttribute("error", "No active academic term found.")
+             return "fragments/error :: error-message"
+        }
+        
+        logger.info("Target Context - Session: ${targetSession.sessionName}, Term: ${targetTerm.termName}")
+
         try {
-            logger.info("Fetching entities from database...")
-            
-            // Fetch staff
-            val staff = staffRepository.findById(staffId).orElseThrow { 
-                logger.error("Staff not found with ID: $staffId")
-                RuntimeException("Staff not found") 
-            }
-            logger.info("Staff found: ${staff.user.firstName} ${staff.user.lastName} (ID: ${staff.id}, School: ${staff.schoolId})")
-            
-            // Fetch class
-            val schoolClass = schoolClassRepository.findById(assignedClassId).orElseThrow { 
-                logger.error("Class not found with ID: $assignedClassId")
-                RuntimeException("Class not found") 
-            }
-            logger.info("Class found: ${schoolClass.className} (ID: ${schoolClass.id}, School: ${schoolClass.schoolId})")
-            
-            // Fetch subject
-            val subject = subjectRepository.findById(subjectId).orElseThrow { 
-                logger.error("Subject not found with ID: $subjectId")
-                RuntimeException("Subject not found") 
-            }
-            logger.info("Subject found: ${subject.subjectName} (ID: ${subject.id})")
+            // Fetch entities
+            val staff = staffRepository.findById(staffId).orElseThrow { RuntimeException("Staff not found") }
+            val schoolClass = schoolClassRepository.findById(assignedClassId).orElseThrow { RuntimeException("Class not found") }
+            val subject = subjectRepository.findById(subjectId).orElseThrow { RuntimeException("Subject not found") }
             
             // Security checks
-            logger.info("Performing security checks...")
-            if (staff.schoolId != selectedSchoolId) {
-                logger.error("Security violation: Staff school ID (${staff.schoolId}) does not match selected school ID ($selectedSchoolId)")
+            if (staff.schoolId != selectedSchoolId || schoolClass.schoolId != selectedSchoolId) {
                 return "fragments/error :: error-message"
             }
-            if (schoolClass.schoolId != selectedSchoolId) {
-                logger.error("Security violation: Class school ID (${schoolClass.schoolId}) does not match selected school ID ($selectedSchoolId)")
-                return "fragments/error :: error-message"
-            }
-            logger.info("Security checks passed")
             
-            // Get current academic session and term
-            logger.info("Fetching current academic session and term...")
-            val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
-            if (currentSession == null) {
-                logger.error("No current academic session found for school ID: $selectedSchoolId")
-                throw RuntimeException("No current academic session found")
-            }
-            logger.info("Current session found: ${currentSession.sessionName} (ID: ${currentSession.id})")
-            
-            val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
-            if (!currentTerm.isPresent) {
-                logger.error("No current term found for session ID: ${currentSession.id}")
-                throw RuntimeException("No current term found")
-            }
-            val term = currentTerm.get()
-            logger.info("Current term found: ${term.termName} (ID: ${term.id})")
-            
-            // Check if assignment already exists
-            logger.info("Checking for existing assignment...")
-            // Check if assignment already exists (active or inactive)
-            logger.info("Checking for existing assignment...")
+            // Check for existing assignment in the TARGET session/term
             val existingAssignment = subjectTeacherRepository.findByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolId(
-                staffId, subjectId, assignedClassId, currentSession.id!!, term.id!!, selectedSchoolId)
+                staffId, subjectId, assignedClassId, targetSession.id!!, targetTerm.id!!, selectedSchoolId)
             
             if (existingAssignment != null) {
                 if (existingAssignment.isActive) {
-                    logger.warn("Assignment already exists and is active for staff: $staffId, subject: $subjectId, class: $assignedClassId")
                     model.addAttribute("error", "Staff is already assigned as subject teacher for this subject in this class")
                 } else {
-                    logger.info("Reactivating existing subject teacher assignment...")
                     existingAssignment.isActive = true
                     subjectTeacherRepository.save(existingAssignment)
-                    model.addAttribute("success", "Subject teacher assignment reactivated successfully!")
+                    model.addAttribute("success", "Assignment reactivated successfully!")
                 }
             } else {
-                logger.info("Creating new subject teacher assignment...")
                 val subjectTeacher = SubjectTeacher(
                     staff = staff,
                     subject = subject,
                     schoolClass = schoolClass,
-                    academicSession = currentSession,
-                    term = term
+                    academicSession = targetSession,
+                    term = targetTerm
                 ).apply {
                     this.schoolId = selectedSchoolId
                     this.isActive = true
                 }
-                
-                logger.info("Saving subject teacher assignment to database...")
-                val savedAssignment = subjectTeacherRepository.save(subjectTeacher)
-                logger.info("Subject teacher assignment saved successfully with ID: ${savedAssignment.id}")
-                
-                model.addAttribute("success", "Subject teacher assignment created successfully!")
-                logger.info("Success message added to model")
+                subjectTeacherRepository.save(subjectTeacher)
+                model.addAttribute("success", "Subject teacher assigned successfully!")
             }
         } catch (e: Exception) {
             logger.error("Error creating subject teacher assignment", e)
-            logger.error("Exception details: ${e.javaClass.simpleName} - ${e.message}")
-            e.printStackTrace()
             model.addAttribute("error", "Error creating assignment: ${e.message}")
         }
         
-        logger.info("Returning assignment modal with OOB staff card update...")
-        // Reload the staff with updated assignments
-        val updatedStaff = loadStaffWithTeacherAssignments(selectedSchoolId).find { it.id == staffId }
-            ?: throw RuntimeException("Staff not found after update")
-        
-        // Get all necessary data for the modal
+        // Reload the staff with updated assignments using the TARGET session/term
+        val staffForUpdate = staffRepository.findById(staffId).orElseThrow { RuntimeException("Staff not found after update") }
+        val updatedStaff = populateStaffAssignments(listOf(staffForUpdate), selectedSchoolId, targetSession, targetTerm).first()
+
+        // Get all necessary data for the modal using the TARGET session/term
         val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
-            ?: throw RuntimeException("No current academic session found")
-        val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
-            .orElseThrow { RuntimeException("No current term found") }
         
         val currentClassAssignments = classTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-            staffId, currentSession.id!!, currentTerm.id!!, true
+            staffId, targetSession.id!!, targetTerm.id!!, true
         )
         val currentSubjectAssignments = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-            staffId, currentSession.id!!, currentTerm.id!!, true
+            staffId, targetSession.id!!, targetTerm.id!!, true
         )
         
         val customUser = authentication.principal as CustomUserDetails
         model.addAttribute("user", customUser.user)
         model.addAttribute("staff", updatedStaff)
         model.addAttribute("tracks", tracks)
-        model.addAttribute("currentSession", currentSession)
-        model.addAttribute("currentTerm", currentTerm)
+        model.addAttribute("currentSession", targetSession) // Use targetSession as "current" for the view context
+        model.addAttribute("currentTerm", targetTerm)
         model.addAttribute("currentClassAssignments", currentClassAssignments)
         model.addAttribute("currentSubjectAssignments", currentSubjectAssignments)
-        model.addAttribute("isOob", true) // Enable OOB update for staff card
+        model.addAttribute("isOob", true)
         
-        // Return full modal to keep it open
         return "admin/community/staff/assignments-modal"
     }
 
@@ -3680,61 +3641,149 @@ class CommunityController(
         }
     }
 
-    private fun getUpdatedStaffList(selectedSchoolId: UUID, model: Model): String {
+    private fun getUpdatedStaffList(selectedSchoolId: UUID, model: Model, session: HttpSession): String {
         logger.info("Generating updated staff list for school ID: $selectedSchoolId")
         
+        val sessionId = session.getAttribute("selectedSessionId")
+        val termId = session.getAttribute("selectedTermId")
+        logger.info("Session Attributes - selectedSessionId: $sessionId, selectedTermId: $termId")
+        
         val pageable = PageRequest.of(0, 12, Sort.by("user.firstName"))
-        val allStaff = loadStaffWithTeacherAssignments(selectedSchoolId)
-        logger.info("Loaded ${allStaff.size} staff members with teacher assignments")
+        
+        // Get effective session and term
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
+        logger.info("Effective Context - Session: ${effectiveSession?.sessionName} (${effectiveSession?.id}), Term: ${effectiveTerm?.termName} (${effectiveTerm?.id})")
+        
+        // Load all staff and then populate assignments (following existing pattern)
+        // ideally we should page first then populate, but maintaining existing pattern for now
+        val allStaff = staffRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+        populateStaffAssignments(allStaff, selectedSchoolId, effectiveSession, effectiveTerm)
         
         val pagedStaff = allStaff.take(12)
         val staffPage = org.springframework.data.domain.PageImpl(pagedStaff, pageable, allStaff.size.toLong())
-        logger.info("Created staff page with ${pagedStaff.size} staff members (page 1 of ${if (allStaff.size <= 12) 1 else (allStaff.size + 11) / 12})")
         
         val designations = staffRepository.findDistinctDesignationsBySchoolId(selectedSchoolId)
-        logger.info("Found ${designations.size} distinct designations")
-        
         val communityStats = getCommunityStats(selectedSchoolId)
-        logger.info("Generated community stats")
         
         model.addAttribute("staffPage", staffPage)
         model.addAttribute("designations", designations)
         model.addAttribute("communityStats", communityStats)
         
-        logger.info("Returning staff cards template fragment")
         return "admin/community/staff/staff-cards :: staff-cards-content"
     }
 
-    // Helper method to load staff with teacher assignments avoiding MultipleBagFetchException
-    private fun loadStaffWithTeacherAssignments(schoolId: UUID): List<Staff> {
-        // Get all staff without eager loading the assignments
-        val allStaff = staffRepository.findBySchoolIdAndIsActiveWithTeacherAssignments(schoolId, true)
+    // Helper method to populate teacher assignments for staff
+    private fun populateStaffAssignments(
+        staffList: List<Staff>, 
+        schoolId: UUID, 
+        effectiveSession: AcademicSession?, 
+        effectiveTerm: Term?
+    ): List<Staff> {
+        if (staffList.isEmpty()) return staffList
         
-        // Get current academic session and term
-        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
-            ?: return allStaff // Return staff without assignments if no current session
-        val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true)
-            .orElse(null) ?: return allStaff // Return staff without assignments if no current term
+        val currentSession = effectiveSession 
+            ?: academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
+            ?: return staffList
+            
+        val currentTerm = effectiveTerm 
+            ?: termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true).orElse(null)
+            ?: return staffList
+            
+        logger.info("Populating assignments using - Session: ${currentSession.sessionName}, Term: ${currentTerm.termName}")
         
-        // Load class teacher assignments separately
+        val staffIds = staffList.map { it.id!! }
+        
+        // Load class teacher assignments
+        // efficient fetch for the specific staff list would be better, but existing repo methods are limited
+        // We'll filter in memory from the method that fetches for school/session/term which is likely cached/efficient enough 
+        // OR we can rely on Lazy/Batch fetching if we just accessed the collections, but here we want specific session filtering
+        
         val classTeacherAssignments = classTeacherRepository.findBySchoolIdAndIsActiveAndSessionAndTermWithDetails(
             schoolId, true, currentSession.id!!, currentTerm.id!!
         )
+        logger.info("Found ${classTeacherAssignments.size} class teacher assignments for this session/term")
+        
         val classAssignmentsByStaff = classTeacherAssignments.groupBy { it.staff.id }
         
-        // Load subject teacher assignments separately
+        // Load subject teacher assignments
         val subjectTeacherAssignments = subjectTeacherRepository.findBySchoolIdAndIsActiveAndSessionAndTermWithDetails(
             schoolId, true, currentSession.id!!, currentTerm.id!!
         )
+        logger.info("Found ${subjectTeacherAssignments.size} subject teacher assignments for this session/term")
+        
         val subjectAssignmentsByStaff = subjectTeacherAssignments.groupBy { it.staff.id }
         
         // Assign the loaded assignments to staff
-        allStaff.forEach { staff ->
+        staffList.forEach { staff ->
+            // Filter assignments relevant to this staff
             staff.classTeacherAssignments = (classAssignmentsByStaff[staff.id] ?: emptyList()).toMutableSet()
             staff.subjectTeacherAssignments = (subjectAssignmentsByStaff[staff.id] ?: emptyList()).toMutableSet()
         }
         
-        return allStaff
+        return staffList
+    }
+
+    private fun populateParentStudentClasses(
+        parents: List<Parent>, 
+        schoolId: UUID, 
+        effectiveSession: AcademicSession?, 
+        effectiveTerm: Term?
+    ) {
+        if (parents.isEmpty()) return
+        
+        val currentSession = effectiveSession 
+            ?: academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
+            ?: return
+            
+        val currentTerm = effectiveTerm 
+            ?: termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true).orElse(null)
+            ?: return
+            
+        // Collect all students from parents
+        val students = parents.flatMap { parent -> 
+            try {
+                // Handle potential lazy initialization by catching exception if not initialized
+                // But for 'WithRelationships' query it's eager. For search, it might trigger lazy fetch.
+                parent.studentRelationships.map { it.student }
+            } catch (e: Exception) {
+                // If we can't load students, skip
+                emptyList<Student>()
+            }
+        }.distinctBy { it.id }
+        
+        if (students.isEmpty()) {
+            logger.info("No students found for the listed parents.")
+            return
+        }
+        
+        logger.info("Fetching class enrollments for ${students.size} students using Session: ${currentSession.sessionName}, Term: ${currentTerm.termName}")
+        
+        // Fetch enrollments relevant to the session/term
+        val enrollments = studentClassRepository.findByStudentIdInAndAcademicSessionIdAndTermIdAndIsActiveWithClassDetails(
+            students.map { it.id!! }, 
+            currentSession.id!!, 
+            currentTerm.id!!, 
+            true
+        )
+        logger.info("Found ${enrollments.size} active enrollments for this session/term.")
+        
+        val enrollmentsByStudent = enrollments.groupBy { it.student.id }
+        
+        // Assign to student objects
+        students.forEach { student ->
+            val studentEnrollments = (enrollmentsByStudent[student.id] ?: emptyList()).toMutableList()
+            student.classEnrollments = studentEnrollments
+            if (studentEnrollments.isNotEmpty()) {
+               logger.debug("Assigned ${studentEnrollments.size} classes to student ${student.user.firstName}")
+            }
+        }
+    }
+
+    // Deprecated but kept for compatibility during refactor if needed, delegating to new method
+    private fun loadStaffWithTeacherAssignments(schoolId: UUID): List<Staff> {
+        val allStaff = staffRepository.findBySchoolIdAndIsActiveWithTeacherAssignments(schoolId, true)
+        return populateStaffAssignments(allStaff, schoolId, null, null)
     }
 
     private fun handleDatabaseError(e: Exception, defaultMessage: String): String {

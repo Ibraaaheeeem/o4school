@@ -19,6 +19,8 @@ interface FeeItemRepository : JpaRepository<FeeItem, UUID>, SecureFeeItemReposit
     
     @Query(value = "SELECT DISTINCT f.* FROM fee_items f " +
            "LEFT JOIN class_fee_items cfi ON f.id = cfi.fee_item_id " +
+           "AND (:sessionId IS NULL OR cfi.academic_session_id = CAST(:sessionId AS uuid)) " +
+           "AND (:termId IS NULL OR cfi.term_id = CAST(:termId AS uuid)) " +
            "LEFT JOIN classes sc ON cfi.class_id = sc.id " +
            "WHERE f.school_id = :schoolId AND f.is_active = :isActive AND " +
            "(CAST(:search AS text) IS NULL OR " +
@@ -27,6 +29,8 @@ interface FeeItemRepository : JpaRepository<FeeItem, UUID>, SecureFeeItemReposit
            nativeQuery = true)
     fun findBySchoolIdAndFilters(
         @Param("schoolId") schoolId: UUID,
+        @Param("sessionId") sessionId: UUID?,
+        @Param("termId") termId: UUID?,
         @Param("isActive") isActive: Boolean,
         @Param("search") search: String?
     ): List<FeeItem>

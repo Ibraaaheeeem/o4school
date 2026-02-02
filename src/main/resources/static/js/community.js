@@ -26,6 +26,238 @@ window.closeModal = function (modalId) {
 };
 
 // Student management functions
+window.loadClassesByTrackModal = function (selectElement) {
+    if (!selectElement) selectElement = document.getElementById('trackId');
+    const trackId = selectElement.value;
+    const form = selectElement.closest('form');
+    const classSelect = form ? form.querySelector('select[name="assignedClassId"]') : document.getElementById('classId');
+
+    if (!trackId) {
+        classSelect.innerHTML = '<option value="">Select Track First</option>';
+        classSelect.disabled = true;
+        return;
+    }
+
+    classSelect.disabled = true;
+    classSelect.innerHTML = '<option value="">Loading...</option>';
+
+    // Get student ID from the form or modal context
+    let studentId = null;
+    if (form) {
+        const hxPost = form.getAttribute('hx-post');
+        const match = hxPost.match(/\/students\/([^\/]+)\//);
+        if (match) studentId = match[1];
+    }
+
+    if (!studentId) {
+        studentId = getStudentIdFromContext();
+    }
+
+    fetch(`/admin/community/students/${studentId}/classes-by-track/${trackId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text(); // Get as text first to see what we're getting
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+
+                classSelect.innerHTML = '<option value="">Select Class</option>';
+
+                // Handle different response formats
+                let classes = data;
+                if (data && typeof data === 'object' && !Array.isArray(data)) {
+                    // If response is wrapped in an object, try to extract the array
+                    classes = data.classes || data.data || [];
+                }
+
+                if (!Array.isArray(classes)) {
+                    console.error('Expected array but got:', typeof classes, classes);
+                    classSelect.innerHTML = '<option value="">No classes available</option>';
+                    classSelect.disabled = false;
+                    return;
+                }
+
+                if (classes.length === 0) {
+                    classSelect.innerHTML = '<option value="">No classes available for this track</option>';
+                } else {
+                    classes.forEach(cls => {
+                        const option = document.createElement('option');
+                        option.value = cls.id;
+                        option.textContent = `${cls.className} (${cls.gradeLevel || 'No Grade'}) - ${cls.currentEnrollment}/${cls.maxCapacity} students`;
+                        classSelect.appendChild(option);
+                    });
+                }
+                classSelect.disabled = false;
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                console.error('Response text:', text);
+                classSelect.innerHTML = '<option value="">Error parsing response</option>';
+                classSelect.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading classes:', error);
+            classSelect.innerHTML = '<option value="">Error loading classes</option>';
+        });
+};
+
+// Helper function to get student ID from various contexts
+window.getStudentIdFromContext = function () {
+    // Try to get from form action URL
+    const form = document.querySelector('form[hx-post*="/students/"]');
+    if (form) {
+        const hxPost = form.getAttribute('hx-post');
+        const match = hxPost.match(/\/students\/([^\/]+)\/assign-class/);
+        if (match) {
+            return match[1];
+        }
+    }
+
+    // Try to get from modal data attribute
+    const modal = document.querySelector('.modal.active');
+    if (modal) {
+        const studentId = modal.getAttribute('data-student-id');
+        if (studentId) {
+            return studentId;
+        }
+    }
+
+    // Try to get from URL if we're on a student page
+    const urlMatch = window.location.pathname.match(/\/students\/([^\/]+)/);
+    if (urlMatch) {
+        return urlMatch[1];
+    }
+
+    // Fallback: use a placeholder that will work with the endpoint
+    console.warn('Could not determine student ID, using placeholder');
+    return '0'; // The endpoint uses this as a placeholder anyway
+};
+
+// In-place assignment removal functions (no page reload)
+window.removeClassAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
+    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers[csrfHeader] = csrfToken;
+
+        fetch(`/admin/community/staff/remove-class-assignment/${assignmentId}`, {
+            method: 'POST',
+            headers: headers
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove from modal list
+                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                    if (btn) {
+                        const card = btn.closest('.modal-assignment-item') || btn.closest('.assignment-card');
+                        if (card) {
+                            const container = card.parentElement;
+                            card.style.opacity = '0';
+                            setTimeout(() => {
+                                card.remove();
+                                // Check if container is empty (ignoring the header div)
+                                // The header is a div, assignments are divs with class modal-assignment-item
+                                const remainingItems = container.querySelectorAll('.modal-assignment-item');
+                                if (remainingItems.length === 0) {
+                                    container.style.display = 'none';
+                                }
+                            }, 300);
+                        }
+                    }
+
+                    // Update background staff card
+                    if (staffId) {
+                        const staffCard = document.getElementById(`staff-card-${staffId}`);
+                        if (staffCard) {
+                            const cardBtn = staffCard.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                            if (cardBtn) {
+                                const assignmentDiv = cardBtn.closest('.assignment-card');
+                                if (assignmentDiv) {
+                                    assignmentDiv.remove();
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error removing assignment');
+            });
+    }
+};
+
+window.removeSubjectAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
+    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers[csrfHeader] = csrfToken;
+
+        fetch(`/admin/community/staff/remove-subject-assignment/${assignmentId}`, {
+            method: 'POST',
+            headers: headers
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove from modal list
+                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                    if (btn) {
+                        const card = btn.closest('.modal-assignment-item') || btn.closest('.assignment-card');
+                        if (card) {
+                            const container = card.parentElement;
+                            card.style.opacity = '0';
+                            setTimeout(() => {
+                                card.remove();
+                                // Check if container is empty
+                                const remainingItems = container.querySelectorAll('.modal-assignment-item');
+                                if (remainingItems.length === 0) {
+                                    container.style.display = 'none';
+                                }
+                            }, 300);
+                        }
+                    }
+
+                    // Update background staff card
+                    if (staffId) {
+                        const staffCard = document.getElementById(`staff-card-${staffId}`);
+                        if (staffCard) {
+                            const cardBtn = staffCard.querySelector(`button[data-assignment-id="${assignmentId}"]`);
+                            if (cardBtn) {
+                                const assignmentDiv = cardBtn.closest('.assignment-card');
+                                if (assignmentDiv) {
+                                    assignmentDiv.remove();
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error removing assignment');
+            });
+    }
+};
+
 window.confirmDelete = function (studentId, studentName) {
     document.getElementById('studentName').textContent = studentName;
     const form = document.getElementById('deleteForm');
@@ -303,16 +535,20 @@ document.addEventListener('htmx:sendError', function (event) {
 });
 
 // Handle custom trigger to close modals from server
-document.body.addEventListener('closeModal', function (evt) {
-    console.log('closeModal event triggered:', evt.detail);
-    if (evt.detail && typeof evt.detail === 'string') {
-        if (typeof window.closeModal === 'function') {
-            window.closeModal(evt.detail);
-        }
-    } else if (evt.detail && evt.detail.value) {
-        if (typeof window.closeModal === 'function') {
-            window.closeModal(evt.detail.value);
-        }
+document.addEventListener('DOMContentLoaded', function () {
+    if (document.body) {
+        document.body.addEventListener('closeModal', function (evt) {
+            console.log('closeModal event triggered:', evt.detail);
+            if (evt.detail && typeof evt.detail === 'string') {
+                if (typeof window.closeModal === 'function') {
+                    window.closeModal(evt.detail);
+                }
+            } else if (evt.detail && evt.detail.value) {
+                if (typeof window.closeModal === 'function') {
+                    window.closeModal(evt.detail.value);
+                }
+            }
+        });
     }
 });
 
@@ -389,116 +625,7 @@ window.removeSubjectAssignment = function (assignmentId, assignmentInfo) {
     }
 };
 
-// Class assignment functions
-window.loadClassesByTrackModal = function (selectElement) {
-    if (!selectElement) selectElement = document.getElementById('trackId');
-    const trackId = selectElement.value;
-    const form = selectElement.closest('form');
-    const classSelect = form ? form.querySelector('select[name="assignedClassId"]') : document.getElementById('classId');
 
-    if (!trackId) {
-        classSelect.innerHTML = '<option value="">Select Track First</option>';
-        classSelect.disabled = true;
-        return;
-    }
-
-    classSelect.disabled = true;
-    classSelect.innerHTML = '<option value="">Loading...</option>';
-
-    // Get student ID from the form or modal context
-    let studentId = null;
-    if (form) {
-        const hxPost = form.getAttribute('hx-post');
-        const match = hxPost.match(/\/students\/([^\/]+)\//);
-        if (match) studentId = match[1];
-    }
-
-    if (!studentId) {
-        studentId = getStudentIdFromContext();
-    }
-
-    fetch(`/admin/community/students/${studentId}/classes-by-track/${trackId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.text(); // Get as text first to see what we're getting
-        })
-        .then(text => {
-            try {
-                const data = JSON.parse(text);
-
-                classSelect.innerHTML = '<option value="">Select Class</option>';
-
-                // Handle different response formats
-                let classes = data;
-                if (data && typeof data === 'object' && !Array.isArray(data)) {
-                    // If response is wrapped in an object, try to extract the array
-                    classes = data.classes || data.data || [];
-                }
-
-                if (!Array.isArray(classes)) {
-                    console.error('Expected array but got:', typeof classes, classes);
-                    classSelect.innerHTML = '<option value="">No classes available</option>';
-                    classSelect.disabled = false;
-                    return;
-                }
-
-                if (classes.length === 0) {
-                    classSelect.innerHTML = '<option value="">No classes available for this track</option>';
-                } else {
-                    classes.forEach(cls => {
-                        const option = document.createElement('option');
-                        option.value = cls.id;
-                        option.textContent = `${cls.className} (${cls.gradeLevel || 'No Grade'}) - ${cls.currentEnrollment}/${cls.maxCapacity} students`;
-                        classSelect.appendChild(option);
-                    });
-                }
-                classSelect.disabled = false;
-            } catch (parseError) {
-                console.error('JSON parse error:', parseError);
-                console.error('Response text:', text);
-                classSelect.innerHTML = '<option value="">Error parsing response</option>';
-                classSelect.disabled = false;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading classes:', error);
-            classSelect.innerHTML = '<option value="">Error loading classes</option>';
-        });
-};
-
-// Helper function to get student ID from various contexts
-window.getStudentIdFromContext = function () {
-    // Try to get from form action URL
-    const form = document.querySelector('form[hx-post*="/students/"]');
-    if (form) {
-        const hxPost = form.getAttribute('hx-post');
-        const match = hxPost.match(/\/students\/([^\/]+)\/assign-class/);
-        if (match) {
-            return match[1];
-        }
-    }
-
-    // Try to get from modal data attribute
-    const modal = document.querySelector('.modal.active');
-    if (modal) {
-        const studentId = modal.getAttribute('data-student-id');
-        if (studentId) {
-            return studentId;
-        }
-    }
-
-    // Try to get from URL if we're on a student page
-    const urlMatch = window.location.pathname.match(/\/students\/([^\/]+)/);
-    if (urlMatch) {
-        return urlMatch[1];
-    }
-
-    // Fallback: use a placeholder that will work with the endpoint
-    console.warn('Could not determine student ID, using placeholder');
-    return '0'; // The endpoint uses this as a placeholder anyway
-};
 
 // Assessment Sidebar Handler Functions
 // These functions act as bridges to the main page functions when available
@@ -790,128 +917,6 @@ window.removeSubjectAssignmentInPlace = function (assignmentId, staffId, assignm
                         if (card) {
                             card.style.opacity = '0';
                             setTimeout(() => card.remove(), 300);
-                        }
-                    }
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error removing assignment');
-            });
-    }
-};
-
-// In-place assignment removal functions (no page reload)
-window.removeClassAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
-    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
-        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        };
-        if (csrfToken) headers[csrfHeader] = csrfToken;
-
-        fetch(`/admin/community/staff/remove-class-assignment/${assignmentId}`, {
-            method: 'POST',
-            headers: headers
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove from modal list
-                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
-                    if (btn) {
-                        const card = btn.closest('.modal-assignment-item') || btn.closest('.assignment-card');
-                        if (card) {
-                            const container = card.parentElement;
-                            card.style.opacity = '0';
-                            setTimeout(() => {
-                                card.remove();
-                                // Check if container is empty (ignoring the header div)
-                                // The header is a div, assignments are divs with class modal-assignment-item
-                                const remainingItems = container.querySelectorAll('.modal-assignment-item');
-                                if (remainingItems.length === 0) {
-                                    container.style.display = 'none';
-                                }
-                            }, 300);
-                        }
-                    }
-
-                    // Update background staff card
-                    if (staffId) {
-                        const staffCard = document.getElementById(`staff-card-${staffId}`);
-                        if (staffCard) {
-                            const cardBtn = staffCard.querySelector(`button[data-assignment-id="${assignmentId}"]`);
-                            if (cardBtn) {
-                                const assignmentDiv = cardBtn.closest('.assignment-card');
-                                if (assignmentDiv) {
-                                    assignmentDiv.remove();
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error removing assignment');
-            });
-    }
-};
-
-window.removeSubjectAssignmentInPlace = function (assignmentId, staffId, assignmentInfo) {
-    if (confirm(`Are you sure you want to remove this assignment?\n\n${assignmentInfo}`)) {
-        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        };
-        if (csrfToken) headers[csrfHeader] = csrfToken;
-
-        fetch(`/admin/community/staff/remove-subject-assignment/${assignmentId}`, {
-            method: 'POST',
-            headers: headers
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove from modal list
-                    const btn = document.querySelector(`button[data-assignment-id="${assignmentId}"]`);
-                    if (btn) {
-                        const card = btn.closest('.modal-assignment-item') || btn.closest('.assignment-card');
-                        if (card) {
-                            const container = card.parentElement;
-                            card.style.opacity = '0';
-                            setTimeout(() => {
-                                card.remove();
-                                // Check if container is empty
-                                const remainingItems = container.querySelectorAll('.modal-assignment-item');
-                                if (remainingItems.length === 0) {
-                                    container.style.display = 'none';
-                                }
-                            }, 300);
-                        }
-                    }
-
-                    // Update background staff card
-                    if (staffId) {
-                        const staffCard = document.getElementById(`staff-card-${staffId}`);
-                        if (staffCard) {
-                            const cardBtn = staffCard.querySelector(`button[data-assignment-id="${assignmentId}"]`);
-                            if (cardBtn) {
-                                const assignmentDiv = cardBtn.closest('.assignment-card');
-                                if (assignmentDiv) {
-                                    assignmentDiv.remove();
-                                }
-                            }
                         }
                     }
                 } else {

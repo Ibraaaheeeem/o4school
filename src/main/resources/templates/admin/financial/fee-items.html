@@ -103,7 +103,9 @@
                                 </div>
                                 <div class="assigned-classes-list" th:if="${!#lists.isEmpty(feeItem.classFeeItems)}">
                                     <span th:each="classFeeItem, iterStat : ${feeItem.classFeeItems}"
-                                        th:if="${classFeeItem.isActive}" class="class-badge">
+                                        th:if="${classFeeItem.isActive 
+                                            and (effectiveSession == null or classFeeItem.academicSession?.id == effectiveSession.id) 
+                                            and (effectiveTerm == null or classFeeItem.termId?.id == effectiveTerm.id)}" class="class-badge">
                                         <span th:text="${classFeeItem.schoolClass.className}">Class 1A</span>
                                         <span th:if="${classFeeItem.customAmount}" class="custom-amount"
                                             th:text="'(₦' + ${#numbers.formatDecimal(classFeeItem.customAmount, 0, 'COMMA', 2, 'POINT')} + ')'">
