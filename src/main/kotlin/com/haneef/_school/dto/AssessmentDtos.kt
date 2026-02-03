@@ -7,10 +7,11 @@ data class ExaminationDto(
     val id: UUID? = null,
     val title: String,
     val examType: String,
+    val isOnline: Boolean = false,
     val subjectId: UUID,
     val classId: UUID,
-    val term: String,
-    val sessionYear: String,
+    val termId: UUID? = null,
+    val sessionId: UUID? = null,
     val startTime: LocalDateTime? = null,
     val endTime: LocalDateTime? = null,
     val durationMinutes: Int = 60,
@@ -36,12 +37,15 @@ data class QuestionListDto(
 
 data class BulkCreateRequest(
     val examType: String,
-    val term: String,
-    val session: String,
+    val term: String? = null,
+    val session: String? = null,
     val scopeType: String,
     val scopeId: UUID?,
     val durationMinutes: Int,
-    val totalMarks: Int
+    val totalMarks: Int,
+    val startTime: LocalDateTime? = null,
+    val endTime: LocalDateTime? = null,
+    val isOnline: Boolean = false
 )
 
 data class BulkCreateResponse(

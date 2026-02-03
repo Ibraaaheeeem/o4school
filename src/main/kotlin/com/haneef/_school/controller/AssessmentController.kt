@@ -39,6 +39,37 @@ class AssessmentController(
     private val subjectTeacherRepository: SubjectTeacherRepository
 ) {
 
+    private fun getEffectiveSessionAndTerm(session: HttpSession, schoolId: UUID): Pair<AcademicSession?, Term?> {
+        val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
+        val selectedTermId = session.getAttribute("selectedTermId") as? UUID
+        
+        // 1. Try to get from session attributes (User selection)
+        var effectiveSession = if (selectedSessionId != null) {
+            academicSessionRepository.findById(selectedSessionId).orElse(null)
+        } else {
+            null
+        }
+        
+        var effectiveTerm = if (selectedTermId != null) {
+            termRepository.findById(selectedTermId).orElse(null)
+        } else {
+            null
+        }
+
+        // 2. If not selected, fallback to current session/term
+        if (effectiveSession == null) {
+            val sessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(schoolId, true)
+            effectiveSession = sessions.find { it.isCurrentSession } ?: sessions.firstOrNull()
+        }
+        
+        if (effectiveTerm == null && effectiveSession != null) {
+             val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(effectiveSession.id!!, true)
+             effectiveTerm = terms.find { it.isCurrentTerm } ?: terms.firstOrNull()
+        }
+        
+        return Pair(effectiveSession, effectiveTerm)
+    }
+
     @GetMapping
     fun assessmentHome(model: Model, authentication: Authentication, session: HttpSession): String {
         val customUser = authentication.principal as CustomUserDetails
@@ -94,14 +125,20 @@ class AssessmentController(
             RuntimeException("School not found") 
         }
 
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(httpSession, selectedSchoolId)
+        
         val pageable = org.springframework.data.domain.PageRequest.of(page, size)
-        val examinationsPage = if (trackId == null && departmentId == null && subjectId == null && classId == null && examType == null && term == null && sessionYear == null) {
-            // No filters applied, show all examinations
-            examinationRepository.findBySchoolIdAndIsActiveOrderByCreatedAtDesc(selectedSchoolId, true, pageable)
+        val examinationsPage = if (trackId == null && departmentId == null && subjectId == null && classId == null && examType == null && effectiveSession == null) {
+            // No filters applied, show all examinations for the current session at least? 
+            // Original code showed EVERYTHING. Let's keep it consistent but scoped to session if possible?
+            // User requested "use header session/term context". So we SHOULD filter by session/term.
+            examinationRepository.findBySchoolIdAndFiltersWithQuestions(
+                selectedSchoolId, true, null, null, null, null, null, effectiveTerm?.id, effectiveSession?.id, pageable
+            )
         } else {
             // Filters applied, use filtered query
             examinationRepository.findBySchoolIdAndFiltersWithQuestions(
-                selectedSchoolId, true, subjectId, classId, departmentId, trackId, examType, term, sessionYear, pageable
+                selectedSchoolId, true, subjectId, classId, departmentId, trackId, examType, effectiveTerm?.id, effectiveSession?.id, pageable
             )
         }
         
@@ -137,8 +174,8 @@ class AssessmentController(
         model.addAttribute("selectedSubjectId", subjectId)
         model.addAttribute("selectedClassId", classId)
         model.addAttribute("selectedExamType", examType)
-        model.addAttribute("selectedTerm", term)
-        model.addAttribute("selectedSession", sessionYear)
+        model.addAttribute("selectedTerm", effectiveTerm?.termName)
+        model.addAttribute("selectedSession", effectiveSession?.sessionName)
         
         // Pagination metadata
         model.addAttribute("currentPage", page)
@@ -199,16 +236,13 @@ class AssessmentController(
         }
 
         // Apply filters
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(httpSession, selectedSchoolId)
+        
+        // Apply filters
         val pageable = org.springframework.data.domain.PageRequest.of(page, size)
-        val examinationsPage = if (trackId == null && departmentId == null && subjectId == null && classId == null && examType == null && term == null && sessionYear == null) {
-            // No filters applied, show all examinations
-            examinationRepository.findBySchoolIdAndIsActiveOrderByCreatedAtDesc(selectedSchoolId, true, pageable)
-        } else {
-            // Filters applied, use filtered query
-            examinationRepository.findBySchoolIdAndFiltersWithQuestions(
-                selectedSchoolId, true, subjectId, classId, departmentId, trackId, examType, term, sessionYear, pageable
-            )
-        }
+        val examinationsPage = examinationRepository.findBySchoolIdAndFiltersWithQuestions(
+            selectedSchoolId, true, subjectId, classId, departmentId, trackId, examType, effectiveTerm?.id, effectiveSession?.id, pageable
+        )
         
         val examinations = examinationsPage.content
         
@@ -237,8 +271,8 @@ class AssessmentController(
         model.addAttribute("selectedSubjectId", subjectId)
         model.addAttribute("selectedClassId", classId)
         model.addAttribute("selectedExamType", examType)
-        model.addAttribute("selectedTerm", term)
-        model.addAttribute("selectedSession", sessionYear)
+        model.addAttribute("selectedTerm", effectiveTerm?.termName)
+        model.addAttribute("selectedSession", effectiveSession?.sessionName)
         
         // Pagination metadata
         model.addAttribute("currentPage", page)
@@ -340,6 +374,11 @@ class AssessmentController(
                 return "fragments/error :: error-message"
             }
 
+            // Get effective session and term from context
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            val currentTerm = effectiveTerm ?: throw RuntimeException("No active term found in context")
+            val currentSession = effectiveSession ?: throw RuntimeException("No active session found in context")
+
             if (examinationDto.id != null) {
                 // Update existing examination
                 val existingExamination = examinationRepository.findById(examinationDto.id).orElseThrow()
@@ -352,10 +391,11 @@ class AssessmentController(
                 existingExamination.apply {
                     this.title = examinationDto.title
                     this.examType = examinationDto.examType
+                    this.isOnline = examinationDto.isOnline
                     this.subject = subject
                     this.schoolClass = schoolClass
-                    this.term = examinationDto.term
-                    this.session = examinationDto.sessionYear
+                    this.term = currentTerm
+                    this.academicSession = currentSession
                     this.durationMinutes = examinationDto.durationMinutes
                     this.totalMarks = examinationDto.totalMarks
                     this.startTime = examinationDto.startTime
@@ -368,10 +408,11 @@ class AssessmentController(
                 val newExamination = Examination(
                     title = examinationDto.title,
                     examType = examinationDto.examType,
+                    isOnline = examinationDto.isOnline,
                     subject = subject,
                     schoolClass = schoolClass,
-                    term = examinationDto.term,
-                    session = examinationDto.sessionYear,
+                    term = currentTerm,
+                    academicSession = currentSession,
                     createdBy = customUser.user.id!!
                 ).apply {
                     this.schoolId = selectedSchoolId
@@ -1172,15 +1213,31 @@ class AssessmentController(
             else -> emptyList<Triple<Subject, SchoolClass, ClassSubject>>()
         }
 
+        // Fix: Resolve Session and Term entities given the names in request or fallback to context
+        // Since BulkCreateRequest likely sends names (from the form), we should ideally look them up.
+        // However, sticking to the "effective context" rule, we should probably just use the header context
+        // or ensure the request data matches.
+        // For now, let's use the effective session from the controller helper to get the entities.
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
+        // If the request has specific session/term names, we should ideally find THOSE specific entities.
+        // But for simplification and aligning with the refactor goal, let's assume the user is operating in the current context.
+        // OR better: Find the entities by name if provided.
+        // Let's rely on effective context as the primary source of truth for the IDs as per the main refactor.
+        
+        val targetSession = effectiveSession ?: throw RuntimeException("No active session found")
+        val targetTerm = effectiveTerm ?: throw RuntimeException("No active term found")
+
+
         var created = 0
         var skipped = 0
 
         subjects.forEach { (subject, schoolClass, _) ->
-            val existing = examinationRepository.findBySubjectIdAndSchoolClassIdAndTermAndSessionAndIsActive(
+            val existing = examinationRepository.findBySubjectIdAndSchoolClassIdAndTermIdAndSessionIdAndIsActive(
                 subject.id!!,
                 schoolClass.id!!,
-                request.term,
-                request.session,
+                targetTerm.id!!,
+                targetSession.id!!,
                 true
             )
 
@@ -1191,12 +1248,15 @@ class AssessmentController(
                     this.schoolId = selectedSchoolId
                     this.subject = subject
                     this.schoolClass = schoolClass
+                    this.academicSession = targetSession
+                    this.term = targetTerm
+                    this.title = "${request.examType} - ${subject.subjectName}"
                     this.examType = request.examType
-                    this.term = request.term
-                    this.session = request.session
-                    this.title = "${request.term} ${request.examType} - ${subject.subjectName} (${schoolClass.className})"
                     this.durationMinutes = request.durationMinutes
                     this.totalMarks = request.totalMarks
+                    this.startTime = request.startTime
+                    this.endTime = request.endTime
+                    this.isOnline = request.isOnline
                     this.isActive = true
                     this.isPublished = false
                     this.createdAt = LocalDateTime.now()
@@ -1212,6 +1272,28 @@ class AssessmentController(
             skipped = skipped,
             message = "Successfully created $created examinations. $skipped duplicates skipped."
         )
+    }
+
+    @GetMapping("/api/tracks/{trackId}/classes")
+    @ResponseBody
+    fun getClassesByTrack(@PathVariable trackId: UUID, authentication: Authentication, session: HttpSession): List<Map<String, Any>> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: throw RuntimeException("School not selected")
+
+        val track = educationTrackRepository.findById(trackId).orElseThrow { RuntimeException("Track not found") }
+        if (track.schoolId != selectedSchoolId) throw RuntimeException("Unauthorized access")
+
+        val departments = departmentRepository.findByTrackIdAndIsActive(track.id!!, true)
+        val classes = departments.flatMap { dept ->
+            schoolClassRepository.findByDepartmentIdAndIsActive(dept.id!!, true)
+        }
+
+        return classes.map { cls ->
+            mapOf(
+                "id" to cls.id!!,
+                "name" to cls.className
+            )
+        }
     }
 
 }

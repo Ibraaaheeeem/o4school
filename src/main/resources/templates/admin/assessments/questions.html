@@ -42,8 +42,8 @@
                     <div class="examination-meta-header">
                         <span class="meta-badge" th:text="${examination.subject.subjectName}">Subject</span>
                         <span class="meta-badge" th:text="${examination.schoolClass.className}">Class</span>
-                        <span class="meta-badge" th:text="${examination.term}">Term</span>
-                        <span class="meta-badge" th:text="${examination.session}">Session</span>
+                        <span class="meta-badge" th:text="${examination.term.termName}">Term</span>
+                        <span class="meta-badge" th:text="${examination.academicSession.sessionName}">Session</span>
                     </div>
                 </div>
                 <div class="header-actions">

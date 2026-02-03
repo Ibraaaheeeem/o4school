@@ -495,15 +495,19 @@ class FinancialController(
                 model.addAttribute("message", msg)
                 
                 // Refresh list data for OOB update
-                val assignedClassFeeItems = classFeeItemRepository.findByFeeItemIdAndIsActive(feeItemId, true)
+                val assignedClassFeeItems = classFeeItemRepository.findByFeeItemIdAndIsActive(feeItem.id!!, true)
                 model.addAttribute("assignedClassFeeItems", assignedClassFeeItems)
                 model.addAttribute("feeItem", feeItem)
                 
                 // Also refresh the main fee items list
-                val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, currentSession.id, currentTerm.id, true, null)
+                val feeItems = feeItemRepository.findBySchoolIdAndFilters(selectedSchoolId, currentSession?.id, currentTerm?.id, true, null)
                 model.addAttribute("feeItems", feeItems)
+                model.addAttribute("effectiveSession", currentSession)
+                model.addAttribute("effectiveTerm", currentTerm)
                 
                 return "admin/financial/fragments/class-assignment-response"
+                
+
             } else {
                 if (errorClasses.isNotEmpty()) {
                     model.addAttribute("error", "Failed to assign classes. Errors: ${errorClasses.joinToString("; ")}")
@@ -699,8 +703,6 @@ class FinancialController(
         model: Model,
         authentication: Authentication,
         session: HttpSession,
-        @RequestParam(required = false) academicSessionId: UUID?,
-        @RequestParam(required = false) termId: UUID?,
         @RequestParam(required = false) search: String?
     ): String {
         logger.info("=== OPTIONAL FEES MANAGEMENT REQUEST ===")
@@ -722,39 +724,22 @@ class FinancialController(
             }
             logger.info("School found: ${school.name}")
 
-            // Get academic sessions and terms for dropdowns
-            val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-            val currentSession = academicSessions.find { it.isCurrentSession } ?: academicSessions.firstOrNull()
-            val selectedSession = academicSessionId?.let { sessionId ->
-                academicSessions.find { it.id == sessionId }
-            } ?: currentSession
+            // Get effective academic session and term
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
             
-            logger.info("Academic sessions found: ${academicSessions.size}, Selected session: ${selectedSession?.sessionName}")
+            logger.info("Effective Context - Session: ${effectiveSession?.sessionName}, Term: ${effectiveTerm?.termName}")
 
-            // Get terms based on selected session
-            val terms = if (selectedSession != null) {
-                termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(selectedSession.id!!, true)
-            } else {
-                emptyList()
-            }
-            val currentTerm = terms.find { it.isCurrentTerm } ?: terms.firstOrNull()
-            val selectedTerm = termId?.let { tId ->
-                terms.find { it.id == tId }
-            } ?: currentTerm
-            
-            logger.info("Terms found: ${terms.size}, Selected term: ${selectedTerm?.termName}")
-
-            // Get student optional fees instead of class fee items
+            // Get student optional fees
             val studentOptionalFees = try {
                 logger.info("Querying student optional fees with parameters:")
                 logger.info("  selectedSchoolId: $selectedSchoolId")
-                logger.info("  selectedSession?.id: ${selectedSession?.id}")
-                logger.info("  selectedTerm?.id: ${selectedTerm?.id}")
+                logger.info("  selectedSession?.id: ${effectiveSession?.id}")
+                logger.info("  selectedTerm?.id: ${effectiveTerm?.id}")
                 
                 studentOptionalFeeRepository.findActiveOptionalFeesBySchool(
                     selectedSchoolId,
-                    selectedSession?.id,
-                    selectedTerm?.id
+                    effectiveSession?.id,
+                    effectiveTerm?.id
                 )
                 
             } catch (e: Exception) {
@@ -790,21 +775,17 @@ class FinancialController(
             
             logger.info("Stats - Total: $totalOptionalFees, Locked: $lockedCount, Unlocked: $unlockedCount")
 
-            // Add basic attributes first
+            // Add attributes
             model.addAttribute("user", customUser.user)
             model.addAttribute("school", school)
             model.addAttribute("search", search ?: "")
-            
-            // Add collections
-            model.addAttribute("academicSessions", academicSessions)
-            model.addAttribute("terms", terms)
             model.addAttribute("studentOptionalFees", filteredFees)
             
-            // Add selected values
-            model.addAttribute("selectedSessionId", selectedSession?.id)
-            model.addAttribute("selectedTermId", selectedTerm?.id)
-            model.addAttribute("selectedSession", selectedSession)
-            model.addAttribute("selectedTerm", selectedTerm)
+            // Add context values for display
+            model.addAttribute("selectedSessionId", effectiveSession?.id)
+            model.addAttribute("selectedTermId", effectiveTerm?.id)
+            model.addAttribute("selectedSession", effectiveSession)
+            model.addAttribute("selectedTerm", effectiveTerm)
             
             // Add stats
             model.addAttribute("stats", mapOf(
@@ -1128,6 +1109,8 @@ class FinancialController(
     @ResponseBody
     fun getOptionalFeesForStudent(
         @PathVariable studentId: UUID,
+        @RequestParam(required = false) academicSessionId: UUID?,
+        @RequestParam(required = false) termId: UUID?,
         authentication: Authentication,
         session: HttpSession
     ): ResponseEntity<List<Map<String, Any>>> {
@@ -1144,11 +1127,23 @@ class FinancialController(
                 return ResponseEntity.badRequest().body(emptyList())
             }
 
-            // Get current academic session
-            val (currentSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
-            
-            if (currentSession == null) {
-                return ResponseEntity.ok(emptyList())
+            // Determine effective session and term
+            val targetSessionId: UUID
+            val targetTermId: UUID?
+
+            if (academicSessionId != null) {
+                // Use provided session context
+                targetSessionId = academicSessionId
+                targetTermId = termId
+            } else {
+                // Fallback to effective session context
+                val (currentSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId) // Renamed from currentSession to avoid confusion or keep as is?
+                // The snippet used getEffectiveSessionAndTerm which returns (session, term) objects
+                if (currentSession == null) {
+                    return ResponseEntity.ok(emptyList())
+                }
+                targetSessionId = currentSession.id!!
+                targetTermId = effectiveTerm?.id
             }
 
             // Get student's class enrollments
@@ -1162,8 +1157,8 @@ class FinancialController(
             // Get optional fees for student's classes
             val classFeeItems = classFeeItemRepository.findOptionalFees(
                 selectedSchoolId,
-                currentSession.id!!,
-                effectiveTerm?.id
+                targetSessionId,
+                targetTermId
             ).filter { it.schoolClass.id in classIds }
 
             

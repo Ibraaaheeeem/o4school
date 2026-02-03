@@ -589,11 +589,9 @@ class StaffDashboardController(
             )
             
             if (staff != null && staff.isActive) {
-                // Resolve session and term from examination
-                val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, examination.session, true)
-                val termEntity = if (sessionEntity != null) {
-                    termRepository.findByAcademicSessionIdAndTermNameAndIsActive(sessionEntity.id!!, examination.term, true).orElse(null)
-                } else null
+                // Resolve session and term directly from examination
+                val sessionEntity = examination.academicSession
+                val termEntity = examination.term
                 
                 val isClassTeacher = if (sessionEntity != null && termEntity != null) {
                     classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
@@ -603,7 +601,7 @@ class StaffDashboardController(
                     false
                 }
                 
-                val canManageExamination = if (sessionEntity != null && termEntity != null) {
+                val canManageExamination = if (true) {
                     if (isClassTeacher) {
                         // Class teacher can manage all examinations for their class
                         examination.schoolClass.id == classId
@@ -671,10 +669,9 @@ class StaffDashboardController(
             }
             
             // Resolve session and term from examination
-            val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, examination.session, true)
-            val termEntity = if (sessionEntity != null) {
-                termRepository.findByAcademicSessionIdAndTermNameAndIsActive(sessionEntity.id!!, examination.term, true).orElse(null)
-            } else null
+            // Resolve session and term directly from examination
+            val sessionEntity = examination.academicSession
+            val termEntity = examination.term
             
             if (sessionEntity == null || termEntity == null) {
                 return mapOf("success" to false, "message" to "Invalid session or term configuration")
@@ -782,10 +779,9 @@ class StaffDashboardController(
             
             val examination = question.examination
             // Resolve session and term from examination
-            val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, examination.session, true)
-            val termEntity = if (sessionEntity != null) {
-                termRepository.findByAcademicSessionIdAndTermNameAndIsActive(sessionEntity.id!!, examination.term, true).orElse(null)
-            } else null
+            // Resolve session and term directly from examination
+            val sessionEntity = examination.academicSession
+            val termEntity = examination.term
             
             if (sessionEntity == null || termEntity == null) {
                 return mapOf("success" to false, "message" to "Invalid session or term configuration")
@@ -1038,10 +1034,8 @@ class StaffDashboardController(
         
         // Check if staff has access to this class/exam
         // Resolve session and term from examination
-        val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, examination.session, true)
-        val termEntity = if (sessionEntity != null) {
-            termRepository.findByAcademicSessionIdAndTermNameAndIsActive(sessionEntity.id!!, examination.term, true).orElse(null)
-        } else null
+        val sessionEntity = examination.academicSession
+        val termEntity = examination.term
         
         if (sessionEntity == null || termEntity == null) {
             return "fragments/error :: error-message"
@@ -1628,9 +1622,12 @@ class StaffDashboardController(
                 var hasAnyScore = false
                 var singleExamMax = 0
 
+                // Resolve IDs first
+                // sessionEntity and termEntity are already resolved at the top of the method (lines 1562, 1564)
+                
                 request.sources.forEach { source ->
-                    val exams = examinationRepository.findBySubjectIdAndSchoolClassIdAndTermAndSessionAndExamTypeAndIsActive(
-                        cs.subject.id!!, request.classId, request.term, request.session, source.examType, true
+                    val exams = examinationRepository.findBySubjectIdAndSchoolClassIdAndTermIdAndAcademicSessionIdAndExamTypeAndIsActive(
+                        cs.subject.id!!, request.classId, termEntity.id!!, sessionEntity.id!!, source.examType, true
                     )
 
                     if (exams.isNotEmpty()) {

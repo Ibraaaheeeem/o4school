@@ -40,8 +40,8 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
            "(:subjectId IS NULL OR e.subject.id = :subjectId) AND " +
            "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
            "(:examType IS NULL OR e.examType = :examType) AND " +
-           "(:term IS NULL OR e.term = :term) AND " +
-           "(:session IS NULL OR e.session = :session) " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) " +
            "ORDER BY e.createdAt DESC")
     fun findBySchoolIdAndFilters(
         @Param("schoolId") schoolId: UUID,
@@ -49,16 +49,16 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
         @Param("subjectId") subjectId: UUID?,
         @Param("classId") classId: UUID?,
         @Param("examType") examType: String?,
-        @Param("term") term: String?,
-        @Param("session") session: String?
+        @Param("termId") termId: UUID?,
+        @Param("sessionId") sessionId: UUID?
     ): List<Examination>
     
-    @Query("SELECT e FROM Examination e WHERE e.subject.id = :subjectId AND e.schoolClass.id = :classId AND e.term = :term AND e.session = :session AND e.isActive = :isActive ORDER BY e.createdAt DESC")
-    fun findBySubjectIdAndSchoolClassIdAndTermAndSessionAndIsActive(
+    @Query("SELECT e FROM Examination e WHERE e.subject.id = :subjectId AND e.schoolClass.id = :classId AND e.term.id = :termId AND e.academicSession.id = :sessionId AND e.isActive = :isActive ORDER BY e.createdAt DESC")
+    fun findBySubjectIdAndSchoolClassIdAndTermIdAndSessionIdAndIsActive(
         @Param("subjectId") subjectId: UUID,
         @Param("classId") classId: UUID,
-        @Param("term") term: String,
-        @Param("session") session: String,
+        @Param("termId") termId: UUID,
+        @Param("sessionId") sessionId: UUID,
         @Param("isActive") isActive: Boolean
     ): List<Examination>
     
@@ -69,8 +69,8 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
            "(:departmentId IS NULL OR e.schoolClass.department.id = :departmentId) AND " +
            "(:trackId IS NULL OR e.schoolClass.track.id = :trackId) AND " +
            "(:examType IS NULL OR e.examType = :examType) AND " +
-           "(:term IS NULL OR e.term = :term) AND " +
-           "(:session IS NULL OR e.session = :session) " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) " +
            "ORDER BY e.createdAt DESC",
            countQuery = "SELECT COUNT(DISTINCT e) FROM Examination e " +
            "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
@@ -79,8 +79,8 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
            "(:departmentId IS NULL OR e.schoolClass.department.id = :departmentId) AND " +
            "(:trackId IS NULL OR e.schoolClass.track.id = :trackId) AND " +
            "(:examType IS NULL OR e.examType = :examType) AND " +
-           "(:term IS NULL OR e.term = :term) AND " +
-           "(:session IS NULL OR e.session = :session)")
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId)")
     fun findBySchoolIdAndFiltersWithQuestions(
         @Param("schoolId") schoolId: UUID,
         @Param("isActive") isActive: Boolean,
@@ -89,16 +89,16 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
         @Param("departmentId") departmentId: UUID?,
         @Param("trackId") trackId: UUID?,
         @Param("examType") examType: String?,
-        @Param("term") term: String?,
-        @Param("session") session: String?,
+        @Param("termId") termId: UUID?,
+        @Param("sessionId") sessionId: UUID?,
         pageable: org.springframework.data.domain.Pageable
     ): org.springframework.data.domain.Page<Examination>
 
-    fun findBySubjectIdAndSchoolClassIdAndTermAndSessionAndExamTypeAndIsActive(
+    fun findBySubjectIdAndSchoolClassIdAndTermIdAndAcademicSessionIdAndExamTypeAndIsActive(
         subjectId: UUID,
         classId: UUID,
-        term: String,
-        session: String,
+        termId: UUID,
+        sessionId: UUID,
         examType: String,
         isActive: Boolean
     ): List<Examination>

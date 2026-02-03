@@ -33,7 +33,7 @@
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-primary" hx-get="/admin/assessments/examinations/new/modal"
-                        hx-target="#examinationModal .modal-dialog" hx-swap="innerHTML"
+                        hx-target="#examinationModal" hx-swap="innerHTML"
                         hx-on:htmx:response-error="console.error('Error loading examination form:', event.detail)">
                         <i class="fas fa-plus me-2"></i>Create Examination
                     </button>
@@ -45,158 +45,124 @@
             </div>
 
 
+            <!-- Chip Filters Section (Moved outside fragment to persist state) -->
+            <div class="filter-chips-wrapper">
+                <!-- Track Filter Chip -->
+                <div class="chip-dropdown dropdown">
+                    <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
+                        id="chip-track">
+                        <i class="fas fa-sitemap"></i>
+                        <span class="chip-label" id="label-track">Track</span>
+                        <i class="fas fa-chevron-down chip-chevron"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="applyMainFilter('track', '')">All
+                            Tracks</a>
+                        <a th:each="track : ${educationTracks}" class="dropdown-item" href="javascript:void(0)"
+                            th:data-id="${track.id}" th:data-name="${track.name}"
+                            onclick="applyMainFilter('track', this.getAttribute('data-id'), this.getAttribute('data-name'))"
+                            th:text="${track.name}">Generic Track</a>
+                    </div>
+                </div>
+
+                <!-- Class Filter Chip (Hidden until Track selected) -->
+                <div class="chip-dropdown dropdown" id="filter-class-container" style="display: none;">
+                    <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
+                        id="chip-class">
+                        <i class="fas fa-users"></i>
+                        <span class="chip-label" id="label-class">Class</span>
+                        <i class="fas fa-chevron-down chip-chevron"></i>
+                    </button>
+                    <div class="dropdown-menu" id="filter-class-menu">
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="applyMainFilter('class', '')">All
+                            Classes</a>
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Exam Type Filter Chip -->
+                <div class="chip-dropdown dropdown">
+                    <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
+                        id="chip-examType">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span class="chip-label" id="label-examType">Exam Type</span>
+                        <i class="fas fa-chevron-down chip-chevron"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="javascript:void(0)"
+                            onclick="applyMainFilter('examType', '', 'All Types')">All Types</a>
+                        <a th:each="type : ${examTypes}" class="dropdown-item" href="javascript:void(0)"
+                            th:data-value="${type}"
+                            onclick="applyMainFilter('examType', this.getAttribute('data-value'), this.getAttribute('data-value'))"
+                            th:text="${type}">Assignment</a>
+                    </div>
+                </div>
+
+                <!-- Clear Filters Chip -->
+                <button class="filter-chip filter-chip-clear" id="clear-filters-btn" style="display: none;"
+                    onclick="clearAllMainFilters()" title="Clear All Filters">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <!-- Results Count (Dynamic, so this stays or moves? Count should update.
+                     If I move count out, I need to update it via JS manually or keep it in fragment.
+                     Let's keep count in fragment but chips out?
+                     User said "selection name shown and later disappears from the CHIP".
+                     So chips must stay out. Count can stay in or be updated separately.
+                     To be safe, I'll move chips out but duplicate/move count to inside fragment or update it via JS.
+                     The 'results-count' in my previous code was inside wrapper.
+                     I should probably allow 'examinations-list' to just contain the grid.
+                     But if I want to update the count from the response, the count is part of the HTML response.
+                     I will put the count INSIDE the fragment, separate from chips.
+                -->
+            </div>
+
             <!-- Examinations List -->
             <div class="examinations-container" id="examinationsContainer">
                 <div th:fragment="examinations-list">
-                    <!-- Filter Summary Section (Moved inside fragment) -->
-                    <div class="filter-summary-section" id="filterSummarySection">
-                        <div class="filter-summary-header">
-                            <div class="summary-info">
-                                <h3 class="summary-title">
-                                    <i class="fas fa-filter"></i>
-                                    <span id="summaryTitle">All Examinations</span>
-                                </h3>
-                                <p class="summary-description" id="summaryDescription">
-                                    Showing all examinations across all sessions, terms, and subjects
-                                </p>
-                            </div>
-                            <div class="summary-stats">
-                                <div class="stat-item">
-                                    <span class="stat-number" th:text="${totalElements ?: 0}">0</span>
-                                </div>
-                                <div class="stat-item"
-                                    th:if="${(selectedSession != null and selectedSession != '') or (selectedTerm != null and selectedTerm != '') or (selectedExamType != null and selectedExamType != '') or (selectedSubjectId != null) or (selectedClassId != null)}">
-                                    <button class="btn btn-outline btn-sm" onclick="handleClearAllSidebarFilters()">
-                                        <i class="fas fa-times"></i>
-                                        Clear Filters
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Active Filter Tags -->
-                        <div class="active-filter-tags" id="activeFilterTags">
-                            <!-- Server-side filter tags -->
-                            <div class="filter-tags-container"
-                                th:if="${(selectedSession != null and selectedSession != '') or (selectedTerm != null and selectedTerm != '') or (selectedExamType != null and selectedExamType != '') or (selectedSubjectId != null) or (selectedClassId != null) or (selectedTrackId != null) or (selectedDepartmentId != null)}">
-                                <div class="filter-tags-header">
-                                    <span class="filter-tags-label">
-                                        <i class="fas fa-filter"></i>
-                                        Active Filters:
-                                    </span>
-                                </div>
-                                <div class="filter-tags-list">
-                                    <!-- Session Filter -->
-                                    <div class="filter-tag session-tag"
-                                        th:if="${selectedSession != null and selectedSession != ''}">
-                                        <span class="tag-icon"><i class="fas fa-calendar-alt"></i></span>
-                                        <span class="tag-label">Session:</span>
-                                        <span class="tag-value" th:text="${selectedSession}">2024-2025</span>
-                                        <button class="tag-remove" onclick="removeFilter('sessionYear')"
-                                            title="Remove session filter">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- Term Filter -->
-                                    <div class="filter-tag term-tag"
-                                        th:if="${selectedTerm != null and selectedTerm != ''}">
-                                        <span class="tag-icon"><i class="fas fa-clock"></i></span>
-                                        <span class="tag-label">Term:</span>
-                                        <span class="tag-value" th:text="${selectedTerm}">First Term</span>
-                                        <button class="tag-remove" onclick="removeFilter('term')"
-                                            title="Remove term filter">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- Exam Type Filter -->
-                                    <div class="filter-tag exam-type-tag"
-                                        th:if="${selectedExamType != null and selectedExamType != ''}">
-                                        <span class="tag-icon"><i class="fas fa-clipboard-list"></i></span>
-                                        <span class="tag-label">Type:</span>
-                                        <span class="tag-value" th:text="${selectedExamType}">Assignment</span>
-                                        <button class="tag-remove" onclick="removeFilter('examType')"
-                                            title="Remove exam type filter">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- Track Filter -->
-                                    <div class="filter-tag track-tag" th:if="${selectedTrackId != null}">
-                                        <span class="tag-icon"><i class="fas fa-sitemap"></i></span>
-                                        <span class="tag-label">Track:</span>
-                                        <span class="tag-value"
-                                            th:text="${selectedTrackName ?: 'Unknown Track'}">Track</span>
-                                        <button class="tag-remove" onclick="removeFilter('trackId')"
-                                            title="Remove track filter">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- Department Filter -->
-                                    <div class="filter-tag department-tag" th:if="${selectedDepartmentId != null}">
-                                        <span class="tag-icon"><i class="fas fa-building"></i></span>
-                                        <span class="tag-label">Dept:</span>
-                                        <span class="tag-value"
-                                            th:text="${selectedDepartmentName ?: 'Unknown Department'}">Dept</span>
-                                        <button class="tag-remove" onclick="removeFilter('departmentId')"
-                                            title="Remove department filter">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- Subject Filter -->
-                                    <div class="filter-tag subject-tag" th:if="${selectedSubjectId != null}">
-                                        <span class="tag-icon"><i class="fas fa-book"></i></span>
-                                        <span class="tag-label">Subject:</span>
-                                        <span class="tag-value"
-                                            th:text="${selectedSubjectName ?: 'Unknown Subject'}">Subject</span>
-                                        <button class="tag-remove" onclick="removeFilter('subjectId')"
-                                            title="Remove subject filter">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- Class Filter -->
-                                    <div class="filter-tag class-tag" th:if="${selectedClassId != null}">
-                                        <span class="tag-icon"><i class="fas fa-users"></i></span>
-                                        <span class="tag-label">Class:</span>
-                                        <span class="tag-value"
-                                            th:text="${selectedClassName ?: 'Unknown Class'}">Class</span>
-                                        <button class="tag-remove" onclick="removeFilter('classId')"
-                                            title="Remove class filter">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- JavaScript-populated filter tags (for sidebar filters) -->
-                            <div class="js-filter-tags" id="jsFilterTags">
-                                <!-- Filter tags will be populated by JavaScript for sidebar interactions -->
-                            </div>
+                    <!-- Results Count (Inside fragment to update automatically) -->
+                    <div class="filter-chips-wrapper"
+                        style="margin-bottom: 1rem; border: none; padding: 0; background: none; box-shadow: none; justify-content: flex-end;">
+                        <div class="results-count">
+                            <span th:text="${totalElements ?: 0}">0</span> examinations found
                         </div>
                     </div>
+
+
 
                     <input type="hidden" id="totalFilteredCount" th:value="${totalElements ?: 0}">
                     <div class="examinations-grid" th:if="${!#lists.isEmpty(examinations)}">
                         <div th:each="examination : ${examinations}" class="examination-card"
                             th:fragment="examination-card">
                             <div class="title-section">
-                                <h3 class="examination-title" th:text="${examination.title}">First Term CA 1 2024/2025
+                                <h3 class="examination-title" th:text="${examination.title}">First Term CA 1
+                                    2024/2025
                                 </h3>
                                 <div class="examination-meta">
+
+                                    <span class="meta-item">
+                                        <i class="fas fa-users"></i>
+                                        <span th:text="${examination.schoolClass.className}">Class Name</span>
+                                    </span>
                                     <span class="meta-item">
                                         <i class="fas fa-calendar-alt"></i>
-                                        <span th:text="${examination.term + ' • ' + examination.session}">First Term •
+                                        <span
+                                            th:text="${examination.term.termName + ' • ' + examination.academicSession.sessionName}">First
+                                            Term
+                                            •
                                             2024-2025</span>
                                     </span>
                                 </div>
-                                <div class="examination-meta">
+                                <div class="examination-meta" style="margin-top: 0.25rem;">
                                     <span class="info-value">
                                         <span class="exam-type-badge" th:text="${examination.examType}"
                                             th:class="'badge badge-' + ${#strings.toLowerCase(#strings.replace(examination.examType, ' ', '-'))}">Assignment</span>
+                                        <span class="exam-mode-badge"
+                                            th:classappend="${examination.isOnline ? 'badge-online' : 'badge-offline'}">
+                                            <i
+                                                th:class="${examination.isOnline ? 'fas fa-laptop-code' : 'fas fa-file-alt'}"></i>
+                                            <span th:text="${examination.isOnline ? 'Online' : 'Offline'}">Mode</span>
+                                        </span>
                                     </span>
                                 </div>
                             </div>
@@ -273,8 +239,7 @@
                                         <button type="button" class="btn btn-info btn-action btn-view-submissions"
                                             title="View and Manage Submissions"
                                             th:hx-get="@{/admin/assessments/examinations/{id}/submissions(id=${examination.id})}"
-                                            hx-target="#examinationModal .modal-dialog" hx-swap="innerHTML"
-                                            hx-trigger="click">
+                                            hx-target="#examinationModal" hx-swap="innerHTML" hx-trigger="click">
                                             <i class="fas fa-file-alt"></i>
                                             <span>View Submissions</span>
                                             <span class="submission-count"
@@ -299,7 +264,7 @@
                                     <!-- Schedule Status -->
                                     <button class="status-indicator"
                                         th:hx-get="@{/admin/assessments/examinations/{id}/modal(id=${examination.id})}"
-                                        hx-target="#examinationModal .modal-dialog" hx-swap="innerHTML"
+                                        hx-target="#examinationModal" hx-swap="innerHTML"
                                         th:classappend="${examination.startTime != null ? 'status-good' : 'status-neutral'}"
                                         th:title="${examination.startTime != null ? 'Scheduled' : 'Not scheduled'}">
                                         <i class="fas fa-calendar-check"></i>
@@ -308,7 +273,7 @@
                                     <!-- Marks Status -->
                                     <button class="status-indicator"
                                         th:hx-get="@{/admin/assessments/examinations/{id}/modal(id=${examination.id})}"
-                                        hx-target="#examinationModal .modal-dialog" hx-swap="innerHTML"
+                                        hx-target="#examinationModal" hx-swap="innerHTML"
                                         th:classappend="${examination.totalMarks != null ? 'status-good' : 'status-neutral'}"
                                         th:title="${examination.totalMarks != null ? 'Marks configured' : 'Marks not set'}">
                                         <i class="fas fa-star"></i>
@@ -372,7 +337,7 @@
                         <h3>No Examinations</h3>
                         <p>Create your first examination to get started.</p>
                         <button class="btn btn-primary" hx-get="/admin/assessments/examinations/new/modal"
-                            hx-target="#examinationModal .modal-dialog" hx-swap="innerHTML">
+                            hx-target="#examinationModal" hx-swap="innerHTML">
                             Create Examination
                         </button>
                     </div>
@@ -384,9 +349,7 @@
 
     <!-- Examination Modal -->
     <div id="examinationModal" class="modal">
-        <div class="modal-dialog">
-            <!-- Modal content will be loaded here via HTMX -->
-        </div>
+        <!-- Modal content will be loaded here via HTMX -->
     </div>
 
     <!-- Include community.js first, then HTMX -->
@@ -398,12 +361,8 @@
 
         // Global filter state
         let filterState = {
-            session: '',
-            term: '',
             track: '',
-            department: '',
             class: '',
-            subject: '',
             examType: ''
         };
 
@@ -480,7 +439,7 @@
                         '/admin/assessments/examinations';
                     window.history.replaceState({}, '', newUrl);
 
-                    updateFilterStateFromUrl();
+                    initializeMainFiltersFromUrl();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                     showNotification('Failed to load examinations', 'error');
@@ -502,200 +461,168 @@
         }
 
 
-        function updateSidebarBreadcrumb() {
-            const breadcrumbChips = document.getElementById('sidebarBreadcrumbChips');
-            if (!breadcrumbChips) return;
 
-            breadcrumbChips.innerHTML = '';
-            const activeParts = [];
 
-            if (filterState.session) {
-                const sessionChip = document.querySelector(`[data-type="session"][data-value="${filterState.session}"]`);
-                if (sessionChip) activeParts.push({ text: sessionChip.textContent.trim(), color: 'session' });
-            }
-            if (filterState.term) activeParts.push({ text: filterState.term, color: 'term' });
-
-            // Academic Structure
-            if (filterState.track) {
-                const trackChip = document.querySelector(`[data-type="track"][data-value="${filterState.track}"]`);
-                if (trackChip) activeParts.push({ text: trackChip.textContent.trim(), color: 'track' });
-            }
-            if (filterState.department) {
-                const deptChip = document.querySelector(`[data-type="department"][data-value="${filterState.department}"]`);
-                if (deptChip) activeParts.push({ text: deptChip.textContent.trim(), color: 'department' });
-            }
-            if (filterState.class) {
-                const classChip = document.querySelector(`[data-type="class"][data-value="${filterState.class}"]`);
-                if (classChip) activeParts.push({ text: classChip.textContent.trim(), color: 'class' });
-            }
-            if (filterState.subject) {
-                const subjectChip = document.querySelector(`[data-type="subject"][data-value="${filterState.subject}"]`);
-                if (subjectChip) activeParts.push({ text: subjectChip.textContent.trim(), color: 'subject' });
-            }
-
-            if (filterState.examType) activeParts.push({ text: filterState.examType, color: 'exam-type' });
-
-            if (activeParts.length === 0) {
-                const defaultChip = document.createElement('span');
-                defaultChip.className = 'breadcrumb-chip-sidebar default';
-                defaultChip.textContent = 'All Examinations';
-                breadcrumbChips.appendChild(defaultChip);
-            } else {
-                activeParts.forEach((part, index) => {
-                    const chip = document.createElement('span');
-                    chip.className = `breadcrumb-chip-sidebar ${part.color}`;
-                    chip.textContent = part.text;
-                    breadcrumbChips.appendChild(chip);
-                    if (index < activeParts.length - 1) {
-                        const separator = document.createElement('span');
-                        separator.className = 'breadcrumb-separator';
-                        separator.textContent = ' > ';
-                        breadcrumbChips.appendChild(separator);
-                    }
-                });
-            }
-        }
-
-        function updateSidebarActiveChips() {
-            Object.keys(filterState).forEach(type => {
-                const value = filterState[type];
-                document.querySelectorAll(`[data-type="${type}"]`).forEach(chip => {
-                    chip.classList.toggle('active', chip.getAttribute('data-value') === value);
-                });
-            });
-        }
-
-        function updateFilterStateFromUrl() {
+        async function initializeMainFiltersFromUrl() {
             const urlParams = new URLSearchParams(window.location.search);
-            filterState.session = urlParams.get('sessionYear') || '';
-            filterState.term = urlParams.get('term') || '';
-            filterState.examType = urlParams.get('examType') || '';
-            filterState.track = urlParams.get('trackId') || '';
-            filterState.department = urlParams.get('departmentId') || '';
-            filterState.class = urlParams.get('classId') || '';
-            filterState.subject = urlParams.get('subjectId') || '';
+            const trackId = urlParams.get('trackId');
+            const classId = urlParams.get('classId');
+            const examType = urlParams.get('examType');
 
-            updateSidebarActiveChips();
-            updateSidebarBreadcrumb();
+            // Set Track UI
+            // Set Track UI
+            if (trackId) {
+                // Find element by data-id for robustness
+                const trackItem = document.querySelector(`.dropdown-item[data-id="${trackId}"]`);
+                const trackName = trackItem ? trackItem.getAttribute('data-name') : 'Track';
+
+                updateFilterLabel('track', trackName, true);
+                filterState.track = trackId; // Sync state
+
+                // Load classes for this track immediately
+                await loadClassesForTrack(trackId);
+
+                // Set Class UI if class is selected and belongs to track
+                if (classId) {
+                    setTimeout(() => {
+                        // Find element by data-id for robustness
+                        const classItem = document.querySelector(`#filter-class-menu .dropdown-item[data-id="${classId}"]`);
+                        const className = classItem ? classItem.getAttribute('data-name') : 'Class';
+
+                        if (className !== 'Class') {
+                            // Update label and set active state
+                            updateFilterLabel('class', className, true);
+                            filterState.class = classId;
+                        }
+                    }, 500);
+                }
+            }
+
+            // Set Exam Type UI
+            if (examType) {
+                updateFilterLabel('examType', examType, true);
+                filterState.examType = examType;
+            }
+
+            updateClearButtonVisibility();
         }
 
-        // --- Sidebar Handlers ---
+        function updateFilterLabel(type, text, isActive) {
+            const label = document.getElementById(`label-${type}`);
+            const chip = document.getElementById(`chip-${type}`);
 
-        function handleSidebarSessionChip(element) {
-            const params = new URLSearchParams(window.location.search);
-            const value = element.getAttribute('data-value');
-            if (value) params.set('sessionYear', value);
-            else params.delete('sessionYear');
-            loadExaminationsWithFilters(params);
+            if (label) {
+                // If text is default (starts with All), strip context for brevity in chip
+                // But user wants "Track: Science" vs "Track"
+                // Let's stick to the text
+                label.textContent = text;
+            }
+
+            if (chip) {
+                if (isActive) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            }
         }
 
-        function handleSidebarChip(element) {
-            const params = new URLSearchParams(window.location.search);
-            const type = element.getAttribute('data-type');
-            const value = element.getAttribute('data-value');
-            if (value) params.set(type, value);
-            else params.delete(type);
-            loadExaminationsWithFilters(params);
+        function updateClearButtonVisibility() {
+            const btn = document.getElementById('clear-filters-btn');
+            const hasFilters = filterState.track || filterState.class || filterState.examType;
+            if (btn) btn.style.display = hasFilters ? 'inline-block' : 'none';
         }
 
-        async function handleSidebarHierarchicalChip(element, level) {
+        async function applyMainFilter(type, value, name) {
             const params = new URLSearchParams(window.location.search);
-            const value = element.getAttribute('data-value');
-            const type = element.getAttribute('data-type');
 
-            // Update filter state and params
             if (value) {
-                params.set(type + 'Id', value);
-                filterState[type] = value; // Store without 'Id' suffix for breadcrumb
+                if (type === 'track') params.set('trackId', value);
+                else if (type === 'class') params.set('classId', value);
+                else if (type === 'examType') params.set('examType', value);
+
+                filterState[type] = value;
+                updateFilterLabel(type, name || value, true);
             } else {
-                params.delete(type + 'Id');
-                filterState[type] = ''; // Clear without 'Id' suffix
+                if (type === 'track') params.delete('trackId');
+                else if (type === 'class') params.delete('classId');
+                else if (type === 'examType') params.delete('examType');
+
+                filterState[type] = '';
+                // Reset labels to default
+                const defaultLabel = type === 'track' ? 'Track' : type === 'class' ? 'Class' : 'Exam Type';
+                updateFilterLabel(type, defaultLabel, false);
             }
 
-            // Clear dependent filters
-            if (level === 'track') {
-                params.delete('departmentId');
+            // Handle Hierarchy: Track Change -> Reset Class
+            if (type === 'track') {
                 params.delete('classId');
-                params.delete('subjectId');
-                filterState.department = '';
                 filterState.class = '';
-                filterState.subject = '';
-                await loadChildChips('track', value, 'sidebarDepartmentChips', 'department');
-                document.getElementById('sidebarClassChips').style.display = 'none';
-                document.getElementById('sidebarSubjectChips').style.display = 'none';
-            } else if (level === 'department') {
-                params.delete('classId');
-                params.delete('subjectId');
-                filterState.class = '';
-                filterState.subject = '';
-                await loadChildChips('department', value, 'sidebarClassChips', 'class');
-                document.getElementById('sidebarSubjectChips').style.display = 'none';
-            } else if (level === 'class') {
-                params.delete('subjectId');
-                filterState.subject = '';
-                await loadChildChips('class', value, 'sidebarSubjectChips', 'subject');
+                updateFilterLabel('class', 'Class', false);
+
+                if (value) {
+                    await loadClassesForTrack(value);
+                } else {
+                    document.getElementById('filter-class-container').style.display = 'none';
+                }
             }
 
-            // Update breadcrumb after filter state changes
-            updateSidebarBreadcrumb();
+            // Close any open dropdowns
+            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                menu.classList.remove('show');
+            });
+
+            updateClearButtonVisibility();
             loadExaminationsWithFilters(params);
         }
 
-        async function loadChildChips(parentType, parentId, containerId, childType) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            if (!parentId) {
-                container.style.display = 'none';
-                return;
-            }
+        async function loadClassesForTrack(trackId) {
+            const container = document.getElementById('filter-class-container');
+            const menu = document.getElementById('filter-class-menu');
 
             try {
-                let url = '';
-                if (parentType === 'track') url = `/admin/assessments/api/tracks/${parentId}/departments`;
-                else if (parentType === 'department') url = `/admin/assessments/api/departments/${parentId}/classes`;
-                else if (parentType === 'class') url = `/admin/assessments/api/classes/${parentId}/subjects`;
-
-                const response = await fetch(url);
+                const response = await fetch(`/admin/assessments/api/tracks/${trackId}/classes`);
                 if (response.ok) {
-                    const data = await response.json();
-                    const wrapper = container.querySelector('.chips-wrapper');
+                    const classes = await response.json();
 
-                    // Keep the "All" chip
-                    const allChip = wrapper.querySelector('.all-chip');
-                    wrapper.innerHTML = '';
-                    wrapper.appendChild(allChip);
+                    // Clear existing (keep "All Classes")
+                    menu.innerHTML = `<a class="dropdown-item" href="javascript:void(0)" onclick="applyMainFilter('class', '')">All Classes</a>`;
 
-                    data.forEach(item => {
-                        const chip = document.createElement('div');
-                        chip.className = `chip-sidebar ${childType}-chip`;
-                        chip.setAttribute('data-type', childType);
-                        chip.setAttribute('data-value', item.id);
-                        chip.textContent = item.name;
-                        chip.onclick = function () { handleSidebarHierarchicalChip(this, childType); };
-                        wrapper.appendChild(chip);
+                    classes.forEach(cls => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item';
+                        item.href = 'javascript:void(0)';
+                        item.onclick = () => applyMainFilter('class', cls.id, cls.name);
+                        item.setAttribute('data-id', cls.id);
+                        item.setAttribute('data-name', cls.name);
+                        item.textContent = cls.name;
+                        menu.appendChild(item);
                     });
 
-                    container.style.display = data.length > 0 ? 'block' : 'none';
+                    container.style.display = 'inline-block';
                 }
-            } catch (error) {
-                console.error(`Error loading ${childType} chips:`, error);
+            } catch (e) {
+                console.error('Error loading classes:', e);
             }
         }
 
-        function handleClearAllSidebarFilters() {
+
+        function clearAllMainFilters() {
+            filterState.track = '';
+            filterState.class = '';
+            filterState.examType = '';
+
+            updateFilterLabel('track', 'Track', false);
+            updateFilterLabel('class', 'Class', false);
+            updateFilterLabel('examType', 'Exam Type', false);
+
+            document.getElementById('filter-class-container').style.display = 'none';
+            updateClearButtonVisibility();
+
             loadExaminationsWithFilters(new URLSearchParams());
         }
 
-        window.removeFilter = function (type) {
-            const params = new URLSearchParams(window.location.search);
-            params.delete(type);
-            loadExaminationsWithFilters(params);
-        };
 
-        function handleApplySidebarFilters() {
-            loadExaminationsWithFilters(new URLSearchParams(window.location.search));
-        }
 
         // --- Examination Actions ---
 
@@ -729,11 +656,11 @@
         // --- Initialization ---
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateFilterStateFromUrl();
+            initializeMainFiltersFromUrl();
         });
 
         window.addEventListener('popstate', () => {
-            updateFilterStateFromUrl();
+            initializeMainFiltersFromUrl();
             loadExaminationsWithFilters(new URLSearchParams(window.location.search));
         });
 
@@ -790,7 +717,7 @@
                 document.getElementById('bulk-department-selection').style.display = 'block';
             } else if (scopeType === 'CLASS') {
                 document.getElementById('bulk-track-selection').style.display = 'block';
-                document.getElementById('bulk-department-selection').style.display = 'block';
+                // Department selection skipped for CLASS scope as per req
                 document.getElementById('bulk-class-selection').style.display = 'block';
             }
         }
@@ -800,6 +727,12 @@
             const scopeType = document.getElementById('bulk-scopeType').value;
 
             if (!trackId) return;
+
+            // Shortcut for CLASS scope: Load classes directly for track
+            if (scopeType === 'CLASS') {
+                loadBulkClassesForTrack(trackId);
+                return;
+            }
 
             try {
                 const response = await fetch(`/admin/assessments/api/tracks/${trackId}/departments`);
@@ -821,6 +754,28 @@
                 console.error('Error loading departments:', error);
             }
         }
+
+        async function loadBulkClassesForTrack(trackId) {
+            try {
+                const response = await fetch(`/admin/assessments/api/tracks/${trackId}/classes`);
+                const classes = await response.json();
+
+                const select = document.getElementById('bulk-classId');
+                select.innerHTML = '<option value="">Select Class</option>';
+                classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = cls.name;
+                    select.appendChild(option);
+                });
+
+                // No preview previewBulkSubjects call here? Maybe wait for class selection
+            } catch (error) {
+                console.error('Error loading classes for track:', error);
+            }
+        }
+
+
 
         async function loadBulkClasses() {
             const departmentId = document.getElementById('bulk-departmentId').value;
@@ -892,14 +847,16 @@
 
             const data = {
                 examType: document.getElementById('bulk-examType').value,
-                term: document.getElementById('bulk-term').value,
-                session: document.getElementById('bulk-session').value,
+                // term/session removed, backend uses context
                 scopeType: document.getElementById('bulk-scopeType').value,
                 scopeId: document.getElementById('bulk-classId').value ||
                     document.getElementById('bulk-departmentId').value ||
                     document.getElementById('bulk-trackId').value || null,
                 durationMinutes: parseInt(document.getElementById('bulk-duration').value),
-                totalMarks: parseFloat(document.getElementById('bulk-marks').value)
+                totalMarks: parseFloat(document.getElementById('bulk-marks').value),
+                startTime: document.getElementById('bulk-startTime').value || null,
+                endTime: document.getElementById('bulk-endTime').value || null,
+                isOnline: document.getElementById('bulk-isOnline').checked
             };
 
             try {
@@ -939,52 +896,47 @@
 
     <!-- Bulk Create Modal -->
     <div id="bulkCreateModal" class="modal">
-        <div class="modal-dialog modal-content large">
+        <div class="modal-dialog modal-content compact">
             <div class="modal-header">
                 <h2>Bulk Create Examinations</h2>
-                <button type="button" class="btn-close" onclick="closeBulkCreateModal()">&times;</button>
+                <button type="button" class="modal-close" onclick="closeBulkCreateModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="bulkCreateForm">
-                    <div class="form-section">
-                        <h3>Examination Details</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Examination Type *</label>
-                                <select id="bulk-examType" required>
-                                    <option value="">Select Type</option>
-                                    <option value="Assignment">Assignment</option>
-                                    <option value="Continuous Assessment">Continuous Assessment</option>
-                                    <option value="Mid-Term Test">Mid-Term Test</option>
-                                    <option value="End-of-Term Examination">End-of-Term Examination</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Term *</label>
-                                <select id="bulk-term" required>
-                                    <option value="">Select Term</option>
-                                    <option value="First Term">First Term</option>
-                                    <option value="Second Term">Second Term</option>
-                                    <option value="Third Term">Third Term</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Session *</label>
-                                <select id="bulk-session" required>
-                                    <option value="">Select Session</option>
-                                    <option th:each="acadSession : ${academicSessions}"
-                                        th:value="${acadSession.sessionYear}" th:text="${acadSession.sessionName}">
-                                        2024/2025</option>
-                                </select>
+                    <div class="modal-grid">
+                        <div class="form-group full-width">
+                            <label>Examination Type *</label>
+                            <select id="bulk-examType" class="form-select" required>
+                                <option value="">Select Type</option>
+                                <option value="Assignment">Assignment</option>
+                                <option value="Continuous Assessment">Continuous Assessment</option>
+                                <option value="Mid-Term Test">Mid-Term Test</option>
+                                <option value="End-of-Term Examination">End-of-Term Examination</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label
+                                style="color: #4b5563; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Examination
+                                Mode</label>
+                            <div class="exam-mode-wrapper">
+                                <input type="checkbox" id="bulk-isOnline" class="mode-checkbox-hidden">
+
+                                <label for="bulk-isOnline" class="mode-toggle-container">
+                                    <span class="mode-label-text offline">
+                                        <i class="fas fa-file-alt"></i> Paper / Offline
+                                    </span>
+                                    <div class="mode-switch-track"></div>
+                                    <span class="mode-label-text online">
+                                        <i class="fas fa-laptop-code"></i> Online (CBT)
+                                    </span>
+                                </label>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="form-section">
-                        <h3>Scope Selection</h3>
-                        <div class="form-group">
-                            <label>Create examinations for:</label>
-                            <select id="bulk-scopeType" onchange="handleScopeTypeChange()" required>
+                        <div class="form-group full-width">
+                            <label>Target Scope *</label>
+                            <select id="bulk-scopeType" class="form-select" onchange="handleScopeTypeChange()" required>
                                 <option value="">Select Scope</option>
                                 <option value="SCHOOL">Entire School</option>
                                 <option value="TRACK">Specific Track</option>
@@ -993,59 +945,64 @@
                             </select>
                         </div>
 
-                        <!-- Track Selection -->
                         <div id="bulk-track-selection" class="form-group" style="display: none;">
-                            <label>Select Track *</label>
-                            <select id="bulk-trackId" onchange="loadBulkDepartments()">
+                            <label>Track</label>
+                            <select id="bulk-trackId" class="form-select" onchange="loadBulkDepartments()">
                                 <option value="">Select Track</option>
                                 <option th:each="track : ${educationTracks}" th:value="${track.id}"
-                                    th:text="${track.name}">Primary Track</option>
+                                    th:text="${track.name}">Track</option>
                             </select>
                         </div>
 
-                        <!-- Department Selection -->
                         <div id="bulk-department-selection" class="form-group" style="display: none;">
-                            <label>Select Department *</label>
-                            <select id="bulk-departmentId" onchange="loadBulkClasses()">
+                            <label>Department</label>
+                            <select id="bulk-departmentId" class="form-select" onchange="loadBulkClasses()">
                                 <option value="">Select Department</option>
                             </select>
                         </div>
 
-                        <!-- Class Selection -->
                         <div id="bulk-class-selection" class="form-group" style="display: none;">
-                            <label>Select Class *</label>
-                            <select id="bulk-classId" onchange="previewBulkSubjects()">
+                            <label>Class</label>
+                            <select id="bulk-classId" class="form-select" onchange="previewBulkSubjects()">
                                 <option value="">Select Class</option>
                             </select>
                         </div>
-                    </div>
 
-                    <div class="form-section">
-                        <h3>Configuration</h3>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Duration (minutes) *</label>
-                                <input type="number" id="bulk-duration" min="1" value="60" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Total Marks *</label>
-                                <input type="number" id="bulk-marks" min="1" step="0.5" value="100" required>
-                            </div>
+                        <div class="form-group">
+                            <label>Duration (Minutes)</label>
+                            <input type="number" id="bulk-duration" class="form-input" min="1" value="60" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Total Marks</label>
+                            <input type="number" id="bulk-marks" class="form-input" min="1" step="0.5" value="100"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Start Time</label>
+                            <input type="datetime-local" id="bulk-startTime" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label>End Time</label>
+                            <input type="datetime-local" id="bulk-endTime" class="form-input">
                         </div>
                     </div>
 
-                    <div id="bulk-subject-preview" class="form-section" style="display: none;">
-                        <h3>Subjects Preview</h3>
-                        <div class="subject-preview-info">
-                            <p>Examinations will be created for <strong id="subject-count">0</strong> subjects:</p>
-                            <div id="subject-list" class="subject-list"></div>
+                    <div id="bulk-subject-preview" class="form-section full-width"
+                        style="display: none; margin-top: 20px;">
+                        <div class="preview-header">
+                            <h4>Subjects to be created: <span id="subject-count">0</span></h4>
                         </div>
+                        <div id="subject-list" class="subject-chips-container"
+                            style="max-height: 150px; overflow-y: auto;"></div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeBulkCreateModal()">Cancel</button>
-                <button type="button" class="btn-primary" id="bulk-create-btn" onclick="submitBulkCreate()" disabled>
+                <button type="button" class="btn btn-outline" onclick="closeBulkCreateModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="bulk-create-btn" onclick="submitBulkCreate()">
                     <i class="fas fa-layer-group me-2"></i>Create Examinations
                 </button>
             </div>

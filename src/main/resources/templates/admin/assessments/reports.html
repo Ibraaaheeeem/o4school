@@ -42,193 +42,239 @@
                                 <i class="fas fa-download me-2"></i> Import Scores
                             </button>
 
-                            <!-- Student Selection Dropdown -->
-                            <div class="student-selector" th:style="${students == null ? 'display: none;' : ''}">
-                                <label for="studentSelect" class="me-2">Select Student:</label>
-                                <select id="studentSelect" class="form-control glass-input"
-                                    onchange="loadStudentData()">
-                                    <option value="">Choose a student...</option>
-                                    <option th:each="student : ${students}" th:value="${student.id}"
-                                        th:text="${student.user.fullName + ' (' + student.admissionNumber + ')'}"
-                                        th:selected="${selectedStudentId == student.id}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="no-selection-msg text-muted"
-                                th:style="${students != null ? 'display: none;' : ''}">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Select Class & Session in sidebar to see students
-                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="reports-grid">
-                    <!-- Empty State -->
-                    <div id="emptyState" class="glass-card-premium animate-slide-up reports-empty-state">
-                        <div class="empty-state-icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <h3 class="empty-state-title">No Student Selected</h3>
-                        <p class="empty-state-text">Please select a student from the dropdown above to view and manage
-                            their assessment reports.</p>
-                    </div>
-
-                    <!-- Redesigned Assessment Card -->
-                    <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
-                        <!-- Student Profile Header -->
-                        <div class="student-profile-header">
-                            <div class="student-avatar-large" id="studentAvatar">
-                                JS
-                            </div>
-                            <div class="student-info-main">
-                                <h2 id="studentNameHeader">Student Name</h2>
-                                <div class="student-info-meta">
-                                    <span class="meta-item">
-                                        <i class="fas fa-id-card"></i>
-                                        <span id="studentAdmissionMeta">ADM-001</span>
-                                    </span>
-                                    <span class="meta-item">
-                                        <i class="fas fa-layer-group"></i>
-                                        <span id="studentTrackMeta">Track Name</span>
-                                    </span>
-                                    <span class="meta-item">
-                                        <i class="fas fa-school"></i>
-                                        <span id="studentClassMeta">Class Name</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="header-actions ms-auto">
-                                <button id="editModeBtn" class="btn btn-outline-primary" onclick="toggleEditMode()">
-                                    <i class="fas fa-edit me-2"></i> Edit Mode
+                        <!-- Filter Chips Section -->
+                        <div class="filter-chips-wrapper" style="margin-bottom: 2rem; padding: 0 10px;">
+                            <!-- Track Filter -->
+                            <div class="chip-dropdown dropdown">
+                                <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
+                                    id="chip-track">
+                                    <i class="fas fa-layer-group"></i>
+                                    <span class="chip-label" id="label-track">Select Track</span>
+                                    <i class="fas fa-chevron-down chip-chevron"></i>
                                 </button>
+                                <div class="dropdown-menu">
+                                    <div class="dropdown-header">Select Education Track</div>
+                                    <a class="dropdown-item" href="javascript:void(0)" onclick="resetFilters('track')">
+                                        <i class="fas fa-times me-2 text-danger"></i>Clear Selection
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a th:each="track : ${educationTracks}" class="dropdown-item"
+                                        href="javascript:void(0)" th:data-id="${track.id}" th:data-name="${track.name}"
+                                        onclick="selectTrack(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                        <span th:text="${track.name}">Track Name</span>
+                                    </a>
+                                </div>
                             </div>
+
+                            <!-- Class Filter (Hidden initially) -->
+                            <div class="chip-dropdown dropdown" id="filter-class-container" style="display: none;">
+                                <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
+                                    id="chip-class">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                    <span class="chip-label" id="label-class">Select Class</span>
+                                    <i class="fas fa-chevron-down chip-chevron"></i>
+                                </button>
+                                <div class="dropdown-menu" id="filter-class-menu">
+                                    <!-- Populated via JS -->
+                                </div>
+                            </div>
+
+                            <!-- Student Filter (Hidden initially) -->
+                            <div class="chip-dropdown dropdown" id="filter-student-container" style="display: none;">
+                                <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
+                                    id="chip-student">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span class="chip-label" id="label-student">Select Student</span>
+                                    <i class="fas fa-chevron-down chip-chevron"></i>
+                                </button>
+                                <div class="dropdown-menu" id="filter-student-menu">
+                                    <!-- Populated via JS -->
+                                </div>
+                            </div>
+
+                            <!-- Clear Filters -->
+                            <button class="filter-chip filter-chip-clear" id="clear-filters-btn" style="display: none;"
+                                onclick="clearAllFilters()" title="Clear All Filters">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
 
-                        <div class="card-body p-0">
-                            <!-- Tab Navigation -->
-                            <div class="px-4 pt-4">
-                                <div class="report-tabs">
-                                    <button class="report-tab active" onclick="switchTab('academic')">
-                                        <i class="fas fa-book"></i> Academic Scores
-                                    </button>
-                                    <button class="report-tab" onclick="switchTab('behavioral')">
-                                        <i class="fas fa-user-check"></i> Behavioral
-                                    </button>
-                                    <button class="report-tab" onclick="switchTab('comments')">
-                                        <i class="fas fa-comment-alt"></i> Comments & Attendance
-                                    </button>
+                        <div class="reports-grid">
+                            <!-- Empty State -->
+                            <div id="emptyState" class="glass-card-premium animate-slide-up reports-empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-user-graduate"></i>
                                 </div>
+                                <h3 class="empty-state-title">No Student Selected</h3>
+                                <p class="empty-state-text">Please select a student from the dropdown above to view and
+                                    manage
+                                    their assessment reports.</p>
                             </div>
 
-                            <!-- Tab Contents -->
-                            <div id="academicTab" class="tab-content active">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h4 class="m-0"><i class="fas fa-list-ol me-2 text-primary"></i>Subject Performance
-                                    </h4>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table glass-table table-hover">
-                                        <thead>
-                                            <tr id="tableHeaderRow">
-                                                <!-- Dynamic Headers -->
-                                            </tr>
-                                        </thead>
-                                        <tbody id="assessmentTableBody">
-                                            <!-- Dynamic Rows -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div id="behavioralTab" class="tab-content">
-                                <div class="behavioral-header mb-4">
-                                    <h4 class="mb-2"><i class="fas fa-heart me-2 text-danger"></i>Behavioral Assessment
-                                    </h4>
-                                    <p class="text-muted mb-0">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
-                                        Excellent)</p>
-                                </div>
-                                <div class="behavior-assessment-container">
-                                    <div id="behaviorContainer" class="behavioral-traits-grid"></div>
-                                </div>
-                            </div>
-
-                            <div id="commentsTab" class="tab-content">
-                                <!-- Attendance Section -->
-                                <div class="attendance-section mb-5">
-                                    <div class="section-header mb-4">
-                                        <h4 class="section-title">
-                                            <div class="title-icon-wrapper">
-                                                <i class="fas fa-calendar-check"></i>
-                                            </div>
-                                            Attendance Record
-                                        </h4>
-                                        <p class="section-subtitle">Track student's attendance for this term</p>
+                            <!-- Redesigned Assessment Card -->
+                            <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
+                                <!-- Student Profile Header -->
+                                <div class="student-profile-header">
+                                    <div class="student-avatar-large" id="studentAvatar">
+                                        JS
                                     </div>
-
-                                    <div class="attendance-card">
-                                        <div class="attendance-content">
-                                            <div class="attendance-info">
-                                                <div class="attendance-icon">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                </div>
-                                                <div class="attendance-details">
-                                                    <label class="attendance-label">Total Days Present</label>
-                                                    <p class="attendance-description">Enter the number of days the
-                                                        student was present this term</p>
-                                                </div>
-                                            </div>
-                                            <div class="attendance-input-wrapper">
-                                                <div class="attendance-input-group">
-                                                    <input type="number" id="attendanceInput" class="attendance-input"
-                                                        min="0" placeholder="0">
-                                                </div>
-                                            </div>
+                                    <div class="student-info-main">
+                                        <h2 id="studentNameHeader">Student Name</h2>
+                                        <div class="student-info-meta">
+                                            <span class="meta-item">
+                                                <i class="fas fa-id-card"></i>
+                                                <span id="studentAdmissionMeta">ADM-001</span>
+                                            </span>
+                                            <span class="meta-item">
+                                                <i class="fas fa-layer-group"></i>
+                                                <span id="studentTrackMeta">Track Name</span>
+                                            </span>
+                                            <span class="meta-item">
+                                                <i class="fas fa-school"></i>
+                                                <span id="studentClassMeta">Class Name</span>
+                                            </span>
                                         </div>
+                                    </div>
+                                    <div class="header-actions ms-auto">
+                                        <button id="editModeBtn" class="btn btn-outline-primary"
+                                            onclick="toggleEditMode()">
+                                            <i class="fas fa-edit me-2"></i> Edit Mode
+                                        </button>
                                     </div>
                                 </div>
 
-                                <!-- Comments Section -->
-                                <div class="comments-section">
-                                    <div class="row g-4">
-                                        <div class="col-12">
-                                            <div class="comment-box">
-                                                <h4><i class="fas fa-user-tie text-info"></i>Class Teacher's Remark</h4>
-                                                <textarea id="classTeacherComment" class="form-control glass-input"
-                                                    rows="5"
-                                                    placeholder="Enter detailed observation about the student's academic and social progress..."></textarea>
-                                            </div>
+                                <div class="card-body p-0">
+                                    <!-- Tab Navigation -->
+                                    <div class="px-4 pt-4">
+                                        <div class="report-tabs">
+                                            <button class="report-tab active" onclick="switchTab('academic')">
+                                                <i class="fas fa-book"></i> Academic Scores
+                                            </button>
+                                            <button class="report-tab" onclick="switchTab('behavioral')">
+                                                <i class="fas fa-user-check"></i> Behavioral
+                                            </button>
+                                            <button class="report-tab" onclick="switchTab('comments')">
+                                                <i class="fas fa-comment-alt"></i> Comments & Attendance
+                                            </button>
                                         </div>
-                                        <div class="col-12">
-                                            <div class="comment-box">
-                                                <h4><i class="fas fa-user-shield text-warning"></i>Head Teacher's Remark
+                                    </div>
+
+                                    <!-- Tab Contents -->
+                                    <div id="academicTab" class="tab-content active">
+                                        <div class="d-flex justify-content-between align-items-center mb-4">
+                                            <h4 class="m-0"><i class="fas fa-list-ol me-2 text-primary"></i>Subject
+                                                Performance
+                                            </h4>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table glass-table table-hover">
+                                                <thead>
+                                                    <tr id="tableHeaderRow">
+                                                        <!-- Dynamic Headers -->
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="assessmentTableBody">
+                                                    <!-- Dynamic Rows -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <div id="behavioralTab" class="tab-content">
+                                        <div class="behavioral-header mb-4">
+                                            <h4 class="mb-2"><i class="fas fa-heart me-2 text-danger"></i>Behavioral
+                                                Assessment
+                                            </h4>
+                                            <p class="text-muted mb-0">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
+                                                Excellent)</p>
+                                        </div>
+                                        <div class="behavior-assessment-container">
+                                            <div id="behaviorContainer" class="behavioral-traits-grid"></div>
+                                        </div>
+                                    </div>
+
+                                    <div id="commentsTab" class="tab-content">
+                                        <!-- Attendance Section -->
+                                        <div class="attendance-section mb-5">
+                                            <div class="section-header mb-4">
+                                                <h4 class="section-title">
+                                                    <div class="title-icon-wrapper">
+                                                        <i class="fas fa-calendar-check"></i>
+                                                    </div>
+                                                    Attendance Record
                                                 </h4>
-                                                <textarea id="headTeacherComment" class="form-control glass-input"
-                                                    rows="5"
-                                                    placeholder="Enter final recommendation or approval notes..."></textarea>
+                                                <p class="section-subtitle">Track student's attendance for this term</p>
+                                            </div>
+
+                                            <div class="attendance-card">
+                                                <div class="attendance-content">
+                                                    <div class="attendance-info">
+                                                        <div class="attendance-icon">
+                                                            <i class="fas fa-calendar-alt"></i>
+                                                        </div>
+                                                        <div class="attendance-details">
+                                                            <label class="attendance-label">Total Days Present</label>
+                                                            <p class="attendance-description">Enter the number of days
+                                                                the
+                                                                student was present this term</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="attendance-input-wrapper">
+                                                        <div class="attendance-input-group">
+                                                            <input type="number" id="attendanceInput"
+                                                                class="attendance-input" min="0" placeholder="0">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Comments Section -->
+                                        <div class="comments-section">
+                                            <div class="row g-4">
+                                                <div class="col-12">
+                                                    <div class="comment-box">
+                                                        <h4><i class="fas fa-user-tie text-info"></i>Class Teacher's
+                                                            Remark</h4>
+                                                        <textarea id="classTeacherComment"
+                                                            class="form-control glass-input" rows="5"
+                                                            placeholder="Enter detailed observation about the student's academic and social progress..."></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="comment-box">
+                                                        <h4><i class="fas fa-user-shield text-warning"></i>Head
+                                                            Teacher's Remark
+                                                        </h4>
+                                                        <textarea id="headTeacherComment"
+                                                            class="form-control glass-input" rows="5"
+                                                            placeholder="Enter final recommendation or approval notes..."></textarea>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- Footer Actions -->
-                            <div class="p-4 border-top bg-light" id="footerActions" style="display: none;">
-                                <div class="d-flex flex-column align-items-center gap-3">
-                                    <div class="text-muted small">
-                                        <i class="fas fa-info-circle me-1"></i> Changes are not saved until you click
-                                        "Update Assessment"
+                                    <!-- Footer Actions -->
+                                    <div class="p-4 border-top bg-light" id="footerActions" style="display: none;">
+                                        <div class="d-flex flex-column align-items-center gap-3">
+                                            <div class="text-muted small">
+                                                <i class="fas fa-info-circle me-1"></i> Changes are not saved until you
+                                                click
+                                                "Update Assessment"
+                                            </div>
+                                            <button class="btn btn-xl btn-primary shadow-sm" onclick="saveAssessment()">
+                                                <i class="fas fa-save me-2"></i> Update Assessment
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button class="btn btn-xl btn-primary shadow-sm" onclick="saveAssessment()">
-                                        <i class="fas fa-save me-2"></i> Update Assessment
-                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
     </main>
 
     <!-- Import Modal -->
@@ -285,12 +331,196 @@
         let filterState = {
             sessionId: /*[[${selectedSessionId ?: ''}]]*/ '',
             termId: /*[[${selectedTermId ?: ''}]]*/ '',
-            session: /*[[${selectedSession ?: ''}]]*/ '',
-            term: /*[[${selectedTerm ?: ''}]]*/ '',
             track: /*[[${selectedTrackId ?: ''}]]*/ '',
-            department: /*[[${selectedDepartmentId ?: ''}]]*/ '',
-            class: /*[[${selectedClassId ?: ''}]]*/ ''
+            class: /*[[${selectedClassId ?: ''}]]*/ '',
+            student: ''
         };
+
+        // --- Filter Chips Logic ---
+        function toggleDropdown(button) {
+            // Close all other dropdowns
+            document.querySelectorAll('.chip-dropdown .dropdown-menu.show').forEach(menu => {
+                if (menu !== button.nextElementSibling) {
+                    menu.classList.remove('show');
+                }
+            });
+            
+            const dropdown = button.nextElementSibling;
+            dropdown.classList.toggle('show');
+            
+            // Close when clicking outside
+            if (!button.dataset.hasListener) {
+                document.addEventListener('click', function(e) {
+                    if (!button.parentElement.contains(e.target)) {
+                        dropdown.classList.remove('show');
+                    }
+                });
+                button.dataset.hasListener = 'true';
+            }
+        }
+
+        async function selectTrack(trackId, trackName) {
+            // Update UI
+            document.getElementById('label-track').textContent = trackName;
+            document.getElementById('chip-track').classList.add('active');
+            filterState.track = trackId;
+
+            // Reset subsequent filters
+            resetFilters('class');
+            
+            // Close dropdown
+            const menu = document.getElementById('chip-track').nextElementSibling;
+            menu.classList.remove('show');
+
+            // Load Classes for Track
+            const classMenu = document.getElementById('filter-class-menu');
+            classMenu.innerHTML = '<div class="dropdown-item text-muted">Loading...</div>';
+            document.getElementById('filter-class-container').style.display = 'inline-block';
+
+            try {
+                // Using Tracks -> Classes API
+                const response = await fetch(`/admin/assessments/api/tracks/${trackId}/classes`);
+                if (response.ok) {
+                    const classes = await response.json();
+                    classMenu.innerHTML = `
+                        <div class="dropdown-header">Select Class</div>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="resetFilters('class')">
+                             <i class="fas fa-times me-2 text-danger"></i>Clear Selection
+                        </a>
+                        <div class="dropdown-divider"></div>
+                    `;
+                    
+                    if (classes.length === 0) {
+                        classMenu.innerHTML += '<div class="dropdown-item text-muted">No classes found</div>';
+                    }
+
+                    classes.forEach(cls => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item';
+                        item.href = 'javascript:void(0)';
+                        item.onclick = () => selectClass(cls.id, cls.name);
+                        item.innerHTML = `<span class="fw-bold">${cls.name}</span>`;
+                        classMenu.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                classMenu.innerHTML = '<div class="dropdown-item text-danger">Error loading classes</div>';
+            }
+            
+            updateClearButton();
+        }
+
+        async function selectClass(classId, className) {
+            document.getElementById('label-class').textContent = className;
+            document.getElementById('chip-class').classList.add('active');
+            filterState.class = classId;
+
+            resetFilters('student');
+            
+            const menu = document.getElementById('chip-class').nextElementSibling;
+            menu.classList.remove('show');
+
+            // Load Students for Class
+            const studentMenu = document.getElementById('filter-student-menu');
+            studentMenu.innerHTML = '<div class="dropdown-item text-muted">Loading...</div>';
+            document.getElementById('filter-student-container').style.display = 'inline-block';
+
+            try {
+                // Ensure we use current session/term if available
+                let url = `/admin/assessments/reports/api/classes/${classId}/students`;
+                const params = new URLSearchParams();
+                if (filterState.sessionId) params.append('sessionId', filterState.sessionId);
+                if (filterState.termId) params.append('termId', filterState.termId);
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                if (response.ok) {
+                    const students = await response.json();
+                    studentMenu.innerHTML = `
+                        <div class="dropdown-header">Select Student</div>
+                         <a class="dropdown-item" href="javascript:void(0)" onclick="resetFilters('student')">
+                             <i class="fas fa-times me-2 text-danger"></i>Clear Selection
+                        </a>
+                        <div class="dropdown-divider"></div>
+                    `;
+
+                    if (students.length === 0) {
+                        studentMenu.innerHTML += '<div class="dropdown-item text-muted">No students found</div>';
+                    }
+
+                    students.forEach(student => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item';
+                        item.href = 'javascript:void(0)';
+                        item.onclick = () => selectStudent(student.id, student.name + ' (' + student.admissionNumber + ')');
+                        item.innerHTML = `<span>${student.name} <small class="text-muted ms-1">${student.admissionNumber}</small></span>`;
+                        studentMenu.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+                studentMenu.innerHTML = '<div class="dropdown-item text-danger">Error loading students</div>';
+            }
+            
+            updateClearButton();
+        }
+
+        async function selectStudent(studentId, studentName) {
+            document.getElementById('label-student').textContent = studentName;
+            document.getElementById('chip-student').classList.add('active');
+            filterState.student = studentId;
+
+            const menu = document.getElementById('chip-student').nextElementSibling;
+            if(menu) menu.classList.remove('show');
+
+            updateClearButton();
+            
+            // Trigger Data Load
+            await loadStudentData(studentId);
+        }
+
+        function resetFilters(level) {
+            if (level === 'track') {
+                document.getElementById('label-track').textContent = 'Select Track';
+                document.getElementById('chip-track').classList.remove('active');
+                filterState.track = '';
+                document.getElementById('filter-class-container').style.display = 'none';
+            }
+            
+            if (level === 'track' || level === 'class') {
+                document.getElementById('label-class').textContent = 'Select Class';
+                document.getElementById('chip-class').classList.remove('active');
+                filterState.class = '';
+                document.getElementById('filter-student-container').style.display = 'none';
+            }
+            
+            if (level === 'track' || level === 'class' || level === 'student') {
+                document.getElementById('label-student').textContent = 'Select Student';
+                document.getElementById('chip-student').classList.remove('active');
+                filterState.student = '';
+                
+                // Clear View
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+            }
+            
+            updateClearButton();
+        }
+
+        function clearAllFilters() {
+            resetFilters('track');
+        }
+
+        function updateClearButton() {
+            const btn = document.getElementById('clear-filters-btn');
+            if (filterState.track || filterState.class || filterState.student) {
+                btn.style.display = 'inline-flex';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
 
         // --- Tab Switching ---
         window.switchTab = function (tabId) {
@@ -715,8 +945,10 @@
         });
 
 
-        async function loadStudentData() {
-            const studentId = document.getElementById('studentSelect').value;
+        async function loadStudentData(studentId) {
+            // Support both direct ID or getting from value if (legacy)
+            if (!studentId) studentId = filterState.student; // Default to filter state
+            
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('sessionId') || filterState.sessionId;
             const termId = urlParams.get('termId') || filterState.termId;
@@ -730,17 +962,20 @@
                 return;
             }
 
-            // Validate required parameters
-            if (!sessionId || !termId || !classId) {
-                console.error('Missing required parameters:', { sessionId, termId, classId });
-                alert('Please select session, term, and class before viewing student data');
+            // Validate required parameters (Only Class is strictly required from frontend perspective, assuming backend has session context)
+            if (!classId) {
+                console.error('Missing required classId');
+                alert('Please select a Class before viewing student data.');
                 document.getElementById('assessmentCard').style.display = 'none';
                 document.getElementById('emptyState').style.display = 'block';
                 return;
             }
 
             try {
-                const url = `/admin/assessments/reports/student-data?studentId=${studentId}&classId=${classId}&sessionId=${sessionId}&termId=${termId}`;
+                let url = `/admin/assessments/reports/student-data?studentId=${studentId}&classId=${classId}`;
+                if (sessionId) url += `&sessionId=${sessionId}`;
+                if (termId) url += `&termId=${termId}`;
+                
                 console.log('Fetching URL:', url);
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -1540,11 +1775,6 @@
                 return;
             }
 
-            if (!filterState.sessionId || !filterState.termId) {
-                alert('Please select both session and term');
-                return;
-            }
-
             try {
                 // Collect all score data
                 const scores = [];
@@ -1563,13 +1793,14 @@
                         subjectScores[subjectId] = { subjectId: subjectId, scores: {} };
                     }
 
-                    if (component === 'ca1' || component === 'ca2' || component === 'exam') {
-                        // Only set if value is not null (has been entered)
-                        if (value !== null) {
-                            subjectScores[subjectId][component] = value;
-                        }
+                    if (component.toLowerCase().includes('ca 1') || component.toLowerCase().includes('continuous assessment 1')) {
+                         if (value !== null) subjectScores[subjectId].ca1 = value;
+                    } else if (component.toLowerCase().includes('ca 2')) {
+                         if (value !== null) subjectScores[subjectId].ca2 = value;
+                    } else if (component.toLowerCase().includes('exam')) {
+                         if (value !== null) subjectScores[subjectId].exam = value;
                     } else {
-                        // Only set if value is not null (has been entered)
+                        // Dynamic scores
                         if (value !== null) {
                             subjectScores[subjectId].scores[component] = value;
                         }
@@ -1599,10 +1830,11 @@
                 // Prepare request data
                 const requestData = {
                     studentId: currentStudentData.studentId,
-                    sessionId: filterState.sessionId,
-                    termId: filterState.termId,
+                    // sessionId and termId are handled by backend context
                     scores: scores,
                     attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
+                    classTeacherComment: document.getElementById('classTeacherComment').value,
+                    headTeacherComment: document.getElementById('headTeacherComment').value,
                     fluency: behavioralScores.fluency || 0,
                     handwriting: behavioralScores.handwriting || 0,
                     game: behavioralScores.game || 0,
@@ -1612,9 +1844,7 @@
                     attentiveness: behavioralScores.attentiveness || 0,
                     neatness: behavioralScores.neatness || 0,
                     selfDiscipline: behavioralScores.selfDiscipline || 0,
-                    politeness: behavioralScores.politeness || 0,
-                    classTeacherComment: document.getElementById('classTeacherComment').value || null,
-                    headTeacherComment: document.getElementById('headTeacherComment').value || null
+                    politeness: behavioralScores.politeness || 0
                 };
 
                 console.log('Saving assessment data:', requestData);

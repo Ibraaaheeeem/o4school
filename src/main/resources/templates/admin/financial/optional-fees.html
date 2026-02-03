@@ -79,25 +79,7 @@
             <!-- Filters Section -->
             <div class="filters-section">
                 <div class="filters-container">
-                    <div class="filter-group">
-                        <label for="sessionFilter">Academic Session:</label>
-                        <select id="sessionFilter" class="form-select">
-                            <option value="">Select Session</option>
-                            <option th:each="academicSession : ${academicSessions}" th:value="${academicSession.id}"
-                                th:text="${academicSession.sessionName}"
-                                th:selected="${selectedSessionId == academicSession.id}">
-                            </option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="termFilter">Term:</label>
-                        <select id="termFilter" class="form-select">
-                            <option value="">All Terms</option>
-                            <option th:each="term : ${terms}" th:value="${term.id}" th:text="${term.termName}"
-                                th:selected="${selectedTermId == term.id}">
-                            </option>
-                        </select>
-                    </div>
+
                     <div class="filter-group">
                         <label for="searchInput">Search:</label>
                         <div class="search-input-container">
@@ -241,13 +223,9 @@
             // Show global loading
             showGlobalLoading();
 
-            const sessionId = document.getElementById('sessionFilter').value;
-            const termId = document.getElementById('termFilter').value;
             const search = document.getElementById('searchInput').value;
 
             const params = new URLSearchParams();
-            if (sessionId) params.append('academicSessionId', sessionId);
-            if (termId) params.append('termId', termId);
             if (search) params.append('search', search);
 
             window.location.replace('/admin/financial/optional-fees?' + params.toString());
@@ -417,9 +395,7 @@
         });
 
         // Auto-reload terms when session changes
-        document.getElementById('sessionFilter').addEventListener('change', function () {
-            applyFilters();
-        });
+
 
         // Hide global loading when page is fully loaded
         document.addEventListener('DOMContentLoaded', function () {
@@ -947,6 +923,7 @@
             feeSelect.innerHTML = '<option value="">Loading fees...</option>';
             feeSelect.disabled = true;
 
+            // Get current filters
             fetch(`/admin/financial/api/student-fees/${studentId}`)
                 .then(response => response.json())
                 .then(fees => {

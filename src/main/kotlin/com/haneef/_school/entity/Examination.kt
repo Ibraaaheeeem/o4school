@@ -8,7 +8,7 @@ import java.util.UUID
 @Table(
     name = "examinations",
     indexes = [
-        Index(columnList = "school_id,class_id,subject_id,term,session", name = "idx_exam_school_context")
+        Index(columnList = "school_id,class_id,subject_id,term_id,session_id", name = "idx_exam_school_context")
     ]
 )
 class Examination(
@@ -17,6 +17,9 @@ class Examination(
     
     @Column(name = "exam_type", nullable = false)
     var examType: String, // CA 1, CA 2, Final Examination
+
+    @Column(name = "is_online", nullable = false)
+    var isOnline: Boolean = false,
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = false)
@@ -26,11 +29,13 @@ class Examination(
     @JoinColumn(name = "class_id", nullable = false)
     var schoolClass: SchoolClass,
     
-    @Column(nullable = false)
-    var term: String, // First Term, Second Term, Third Term
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "term_id", nullable = false)
+    var term: Term,
     
-    @Column(nullable = false)
-    var session: String, // 2024/2025
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", nullable = false)
+    var academicSession: AcademicSession,
     
     @Column(name = "created_by", nullable = false)
     var createdBy: UUID,
@@ -54,10 +59,11 @@ class Examination(
     constructor() : this(
         title = "",
         examType = "",
+        isOnline = false,
         subject = Subject(),
         schoolClass = SchoolClass(),
-        term = "",
-        session = "",
+        term = Term(),
+        academicSession = AcademicSession(),
         createdBy = UUID.randomUUID() // Placeholder, should be set properly
     )
     

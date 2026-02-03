@@ -59,8 +59,8 @@ data class AssessmentReportData(
 
 data class SaveAssessmentRequest(
     val studentId: UUID,
-    val sessionId: UUID,
-    val termId: UUID,
+    val sessionId: UUID? = null,
+    val termId: UUID? = null,
     val scores: List<SubjectScoreInput>,
     val attendance: Int = 0,
     val fluency: Int = 0,
@@ -145,9 +145,15 @@ class AssessmentReportController(
         val departments = departmentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         val classes = schoolClassRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         
-        // Get current session if not provided
-        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
-        val resolvedSessionId = sessionId ?: currentSession?.id
+        // Resolve Effective Session
+        val sessionAttributeId = session.getAttribute("selectedSessionId") as? UUID
+        var resolvedSessionId = sessionId ?: sessionAttributeId
+        
+        // Fallback to active current session if still null
+        if (resolvedSessionId == null) {
+             val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+             resolvedSessionId = currentSession?.id
+        }
         
         // Get terms for the selected session (only if session is selected)
         val terms = if (resolvedSessionId != null) {
@@ -156,12 +162,21 @@ class AssessmentReportController(
             emptyList()
         }
         
-        // Get current term if not provided and session is selected
-        val currentTerm = if (resolvedSessionId != null) {
-            termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(resolvedSessionId, true, true)
+        // Resolve Effective Term
+        val termAttributeId = session.getAttribute("selectedTermId") as? UUID
+        var resolvedTermId = termId ?: termAttributeId
+        
+        // Get current term if not provided/found and session is selected
+        if (resolvedTermId == null && resolvedSessionId != null) {
+             val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(resolvedSessionId, true, true)
                 .orElse(null)
-        } else null
-        val resolvedTermId = termId ?: currentTerm?.id
+             resolvedTermId = currentTerm?.id
+             
+             // If no current term active, pick the first one
+             if (resolvedTermId == null && terms.isNotEmpty()) {
+                 resolvedTermId = terms[0].id
+             }
+        }
 
         model.addAttribute("user", customUser.user)
         model.addAttribute("userRole", "School Administrator")
@@ -441,13 +456,47 @@ class AssessmentReportController(
     fun getStudentAssessmentData(
         @RequestParam studentId: UUID,
         @RequestParam classId: UUID,
-        @RequestParam sessionId: UUID,
-        @RequestParam termId: UUID,
+        @RequestParam(required = false) sessionId: UUID?,
+        @RequestParam(required = false) termId: UUID?,
         session_http: HttpSession
     ): AssessmentReportData {
         val selectedSchoolId = authorizationService.validateSchoolAccess(
             session_http.getAttribute("selectedSchoolId") as? UUID
         )
+
+        // Resolve Effective Session
+        val sessionAttributeId = session_http.getAttribute("selectedSessionId") as? UUID
+        var resolvedSessionId = sessionId ?: sessionAttributeId
+        
+        // Fallback to active current session logic (reused)
+        if (resolvedSessionId == null) {
+             val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+             resolvedSessionId = currentSession?.id // Could still be null if no session exists, but unlikely
+        }
+        
+        // Resolve Effective Term
+        val termAttributeId = session_http.getAttribute("selectedTermId") as? UUID
+        var resolvedTermId = termId ?: termAttributeId
+        
+        // Fallback Term logic
+         if (resolvedTermId == null && resolvedSessionId != null) {
+             val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(resolvedSessionId, true, true)
+                .orElse(null)
+             resolvedTermId = currentTerm?.id
+             
+             if (resolvedTermId == null) {
+                 // Try first term
+                 val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(resolvedSessionId, true)
+                 if (terms.isNotEmpty()) resolvedTermId = terms[0].id
+             }
+        }
+        
+        if (resolvedSessionId == null || resolvedTermId == null) {
+            throw RuntimeException("Academic Session or Term context could not be resolved.")
+        }
+        
+        val effectiveSessionId = resolvedSessionId!!
+        val effectiveTermId = resolvedTermId!!
 
         // Validate student and class belong to school
         val student = authorizationService.validateAndGetStudent(studentId, selectedSchoolId)
@@ -458,7 +507,7 @@ class AssessmentReportController(
         
         // Get existing assessment if any
         val assessmentOpt = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            studentId, sessionId.toString(), termId.toString(), selectedSchoolId, true
+            studentId, effectiveSessionId.toString(), effectiveTermId.toString(), selectedSchoolId, true
         )
 
         val assessment = assessmentOpt.orElse(null)
@@ -512,10 +561,10 @@ class AssessmentReportController(
 
         // Get enrollment to find track name
         val enrollment = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
-            studentId, sessionId, termId, true
+            studentId, effectiveSessionId, effectiveTermId, true
         ).filter { it.schoolId == selectedSchoolId }.firstOrNull()
             ?: studentClassRepository.findByStudentIdAndAcademicSessionIdAndIsActive(
-                studentId, sessionId, true
+                studentId, effectiveSessionId, true
             ).filter { it.schoolId == selectedSchoolId }.firstOrNull()
         
         val className = enrollment?.schoolClass?.className ?: "Unknown Class"
@@ -568,15 +617,48 @@ class AssessmentReportController(
              staffId = staff.id
         }
 
+        // Resolve Effective Session
+        val sessionAttributeId = session_http.getAttribute("selectedSessionId") as? UUID
+        var resolvedSessionId = request.sessionId ?: sessionAttributeId
+        
+        // Fallback to active current session logic
+        if (resolvedSessionId == null) {
+             val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+             resolvedSessionId = currentSession?.id 
+        }
+        
+        // Resolve Effective Term
+        val termAttributeId = session_http.getAttribute("selectedTermId") as? UUID
+        var resolvedTermId = request.termId ?: termAttributeId
+        
+        // Fallback Term logic
+         if (resolvedTermId == null && resolvedSessionId != null) {
+             val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(resolvedSessionId, true, true)
+                .orElse(null)
+             resolvedTermId = currentTerm?.id
+             
+             if (resolvedTermId == null) {
+                 val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(resolvedSessionId, true)
+                 if (terms.isNotEmpty()) resolvedTermId = terms[0].id
+             }
+        }
+        
+        if (resolvedSessionId == null || resolvedTermId == null) {
+            throw RuntimeException("Academic Session or Term context could not be resolved.")
+        }
+        
+        val effectiveSessionId = resolvedSessionId!!
+        val effectiveTermId = resolvedTermId!!
+
         // Validate student belongs to school
         val student = authorizationService.validateAndGetStudent(request.studentId, selectedSchoolId)
 
         // Get student enrollment to find class
         val studentEnrollment = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
-            request.studentId, request.sessionId, request.termId, true
+            request.studentId, effectiveSessionId, effectiveTermId, true
         ).filter { it.schoolId == selectedSchoolId }.firstOrNull()
             ?: studentClassRepository.findByStudentIdAndAcademicSessionIdAndIsActive(
-                request.studentId, request.sessionId, true
+                request.studentId, effectiveSessionId, true
             ).filter { it.schoolId == selectedSchoolId }.firstOrNull()
             ?: throw RuntimeException("Student enrollment not found")
             
@@ -586,18 +668,18 @@ class AssessmentReportController(
         var isClassTeacher = false
         if (staffId != null) {
              isClassTeacher = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-                 staffId, classId, request.sessionId, request.termId, selectedSchoolId, true
+                 staffId, classId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
              )
         }
 
         val assessment = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            request.studentId, request.sessionId.toString(), request.termId.toString(), selectedSchoolId, true
+            request.studentId, effectiveSessionId.toString(), effectiveTermId.toString(), selectedSchoolId, true
         ).orElseGet {
             Assessment(
                 admissionNumber = student.admissionNumber ?: "",
                 student = student,
-                session = request.sessionId.toString(),
-                term = request.termId.toString()
+                session = effectiveSessionId.toString(),
+                term = effectiveTermId.toString()
             ).apply {
                 this.schoolId = selectedSchoolId
             }
@@ -631,7 +713,7 @@ class AssessmentReportController(
             // Check permission for this subject
             if (!isAdmin && !isClassTeacher) {
                  val isSubjectTeacher = subjectTeacherRepository.existsByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-                     staffId!!, scoreInput.subjectId, classId, request.sessionId, request.termId, selectedSchoolId, true
+                     staffId!!, scoreInput.subjectId, classId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
                  )
                  if (!isSubjectTeacher) {
                      // Skip subjects the user is not authorized to grade
@@ -729,20 +811,25 @@ class AssessmentReportController(
         // Validate class belongs to school
         authorizationService.validateAndGetSchoolClass(request.classId, selectedSchoolId)
 
+        // Resolve session and term entities once
+        val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(
+            selectedSchoolId, request.session, true
+        )
+        val termEntity = if (sessionEntity != null) {
+            termRepository.findByAcademicSessionIdAndTermNameAndIsActive(sessionEntity.id!!, request.term, true).orElse(null)
+        } else null
+
+        if (sessionEntity == null || termEntity == null) {
+            return mapOf("success" to false, "message" to "Session or Term not found")
+        }
+
         val students = if (request.studentId != null) {
             // Validate student belongs to school
             listOf(authorizationService.validateAndGetStudent(request.studentId, selectedSchoolId))
         } else {
-            val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(
-                selectedSchoolId, request.session, true
-            )
-            if (sessionEntity != null) {
-                studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
-                    request.classId, sessionEntity.id!!, true
-                ).map { it.student }
-            } else {
-                emptyList()
-            }
+             studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
+                request.classId, sessionEntity.id!!, true
+             ).map { it.student }
         }
 
         var importedCount = 0
@@ -788,8 +875,8 @@ class AssessmentReportController(
 
                 // Iterate over sources and sum up
                 request.sources.forEach { source ->
-                    val exams = examinationRepository.findBySubjectIdAndSchoolClassIdAndTermAndSessionAndExamTypeAndIsActive(
-                        cs.subject.id!!, request.classId, request.term, request.session, source.examType, true
+                    val exams = examinationRepository.findBySubjectIdAndSchoolClassIdAndTermIdAndAcademicSessionIdAndExamTypeAndIsActive(
+                        cs.subject.id!!, request.classId, termEntity.id!!, sessionEntity.id!!, source.examType, true
                     )
 
                     if (exams.isNotEmpty()) {
