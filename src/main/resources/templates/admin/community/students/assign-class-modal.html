@@ -12,7 +12,17 @@
         hx-on::target-error="console.error('HTMX target error'); window.location.reload();" class="modal-form"
         th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
 
+
         <div class="modal-body">
+            <div class="alert alert-warning mb-4" th:if="${isCurrentTermSelected != true}"
+                style="padding: 0.75rem 1rem; border-left: 4px solid #f59e0b; background-color: #fffbeb; color: #92400e; border-radius: 4px; display: flex; align-items: center; gap: 0.75rem">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Warning: Non-Current Term</strong>
+                    <div style="font-size: 0.9em">Please, note: You are not working in the current term. </div>
+                </div>
+            </div>
+
             <div class="student-info">
                 <h4>Student: <span th:text="${student.user.fullName}">Student Name</span></h4>
                 <p>Student ID: <span th:text="${student.studentId}">STU001</span></p>
@@ -61,7 +71,8 @@
 
         <div class="modal-footer">
             <button type="button" class="btn btn-outline" onclick="closeModal('studentClassModal')">Cancel</button>
-            <button type="submit" class="btn btn-primary">Assign to Class</button>
+            <button type="submit" class="btn btn-primary" th:disabled="${headerContextTerm == null}">Assign to
+                Class</button>
         </div>
     </form>
 </div>

@@ -47,7 +47,8 @@
 
             <!-- Filtering Section -->
             <div class="filters-section" th:if="${!tracks.empty || !allClasses.empty}">
-                <div class="filters-container">
+                <div class="filters-container"
+                    style="display: flex; align-items: flex-end; gap: 1rem; grid-template-columns: none;">
                     <div class="filter-group" style="flex: 1;">
                         <label for="subjectSearch">Search Subjects:</label>
                         <div class="search-input-container">
@@ -347,7 +348,7 @@
             const saveBtn = document.getElementById('saveButton');
             saveBtn.innerHTML = '<span class="btn-icon">💾</span> Save Subject';
             saveBtn.disabled = false;
-            
+
             document.getElementById('nameFeedback').innerHTML = '';
 
             // Show basic info and enable fields

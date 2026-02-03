@@ -13,6 +13,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
+import org.slf4j.LoggerFactory
 
 data class StudentReportInfo(
     val id: UUID,
@@ -123,6 +124,7 @@ class AssessmentReportController(
     private val subjectTeacherRepository: SubjectTeacherRepository
 ) {
     private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
+    private val logger = LoggerFactory.getLogger(AssessmentReportController::class.java)
 
     @GetMapping
     fun reportsHome(
@@ -138,6 +140,9 @@ class AssessmentReportController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
 
+        logger.info("DEBUG: reportsHome - Request Params: classId=$classId, termId=$termId, sessionId=$sessionId")
+        logger.info("DEBUG: reportsHome - Session Attrs: selectedSessionId=${session.getAttribute("selectedSessionId")}, selectedTermId=${session.getAttribute("selectedTermId")}")
+
         val customUser = authentication.principal as CustomUserDetails
         val school = schoolRepository.findById(selectedSchoolId).orElseThrow { RuntimeException("School not found") }
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
@@ -146,14 +151,18 @@ class AssessmentReportController(
         val classes = schoolClassRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         
         // Resolve Effective Session
-        val sessionAttributeId = session.getAttribute("selectedSessionId") as? UUID
-        var resolvedSessionId = sessionId ?: sessionAttributeId
+        var resolvedSessionId = session.getAttribute("selectedSessionId") as? UUID
         
         // Fallback to active current session if still null
         if (resolvedSessionId == null) {
              val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
              resolvedSessionId = currentSession?.id
+             if (resolvedSessionId != null) {
+                 session.setAttribute("selectedSessionId", resolvedSessionId)
+                 logger.info("DEBUG: reportsHome - Set initialized selectedSessionId=$resolvedSessionId")
+             }
         }
+        logger.info("DEBUG: reportsHome - resolvedSessionId=$resolvedSessionId")
         
         // Get terms for the selected session (only if session is selected)
         val terms = if (resolvedSessionId != null) {
@@ -163,8 +172,19 @@ class AssessmentReportController(
         }
         
         // Resolve Effective Term
-        val termAttributeId = session.getAttribute("selectedTermId") as? UUID
-        var resolvedTermId = termId ?: termAttributeId
+        var resolvedTermId = session.getAttribute("selectedTermId") as? UUID
+        logger.info("DEBUG: reportsHome - Initial resolvedTermId from session=$resolvedTermId")
+
+        // Validate that the resolved term actually belongs to the resolved session
+        if (resolvedTermId != null && resolvedSessionId != null) {
+            val isTermInSession = terms.any { it.id == resolvedTermId }
+            if (!isTermInSession && terms.isNotEmpty()) {
+                logger.warn("DEBUG: reportsHome - Term $resolvedTermId does not belong to Session $resolvedSessionId. Resetting.")
+                resolvedTermId = null
+                // Clean up session attribute to prevent recurring mismatch
+                session.removeAttribute("selectedTermId")
+            }
+        }
         
         // Get current term if not provided/found and session is selected
         if (resolvedTermId == null && resolvedSessionId != null) {
@@ -176,7 +196,13 @@ class AssessmentReportController(
              if (resolvedTermId == null && terms.isNotEmpty()) {
                  resolvedTermId = terms[0].id
              }
+             
+             if (resolvedTermId != null) {
+                 session.setAttribute("selectedTermId", resolvedTermId)
+                 logger.info("DEBUG: reportsHome - Set initialized selectedTermId=$resolvedTermId")
+             }
         }
+        logger.info("DEBUG: reportsHome - resolvedTermId=$resolvedTermId")
 
         model.addAttribute("user", customUser.user)
         model.addAttribute("userRole", "School Administrator")
@@ -210,27 +236,9 @@ class AssessmentReportController(
             val enrollments = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
                 classId, resolvedSessionId, resolvedTermId, true
             ).filter { it.schoolId == selectedSchoolId }
-            println("DEBUG: Main endpoint - Found ${enrollments.size} students for class $classId, session $resolvedSessionId, term $resolvedTermId")
+            logger.info("DEBUG: Main endpoint - Found ${enrollments.size} students for class $classId, session $resolvedSessionId, term $resolvedTermId")
             
-            // If no students found for specific session/term, try just session
-            if (enrollments.isEmpty()) {
-                val sessionEnrollments = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
-                    classId, resolvedSessionId, true
-                ).filter { it.schoolId == selectedSchoolId }
-                println("DEBUG: Main endpoint - Found ${sessionEnrollments.size} students for class $classId and session $resolvedSessionId")
-                
-                // If still no students, try all students in class
-                if (sessionEnrollments.isEmpty()) {
-                    val allEnrollments = studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
-                        .filter { it.schoolId == selectedSchoolId }
-                    println("DEBUG: Main endpoint - Found ${allEnrollments.size} students in class (all sessions)")
-                    model.addAttribute("students", allEnrollments.map { it.student })
-                } else {
-                    model.addAttribute("students", sessionEnrollments.map { it.student })
-                }
-            } else {
-                model.addAttribute("students", enrollments.map { it.student })
-            }
+            model.addAttribute("students", enrollments.map { it.student })
         }
 
         return "admin/assessments/reports"
@@ -245,6 +253,7 @@ class AssessmentReportController(
         @RequestParam(required = false) departmentId: UUID?,
         @RequestParam(required = false) classId: UUID?,
         @RequestParam(required = false) term: String?,
+        @RequestParam(required = false) termId: UUID?,
         @RequestParam(required = false) sessionYear: String?
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
@@ -254,30 +263,44 @@ class AssessmentReportController(
         model.addAttribute("selectedDepartmentId", departmentId)
         model.addAttribute("selectedClassId", classId)
         model.addAttribute("selectedTerm", term)
+        model.addAttribute("selectedTermId", termId)
         model.addAttribute("selectedSession", sessionYear)
 
         if (classId != null && sessionYear != null) {
-            // Try new foreign key approach first
             val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(
                 selectedSchoolId, sessionYear, true
             )
-            val enrollments = if (sessionEntity != null) {
-                studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
-                    classId, sessionEntity.id!!, true
-                ).filter { it.schoolId == selectedSchoolId }
-            } else {
-                emptyList()
-            }
-            
-            println("DEBUG: Filter endpoint - Found ${enrollments.size} students for class $classId and session $sessionYear")
-            
-            // If no students found for specific session, try to get all students in the class
-            if (enrollments.isEmpty()) {
-                val allEnrollments = studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
-                    .filter { it.schoolId == selectedSchoolId }
-                println("DEBUG: Filter endpoint - Found ${allEnrollments.size} students in class (all sessions)")
-                model.addAttribute("students", allEnrollments.map { it.student })
-            } else {
+
+            if (sessionEntity != null) {
+                // If termId is provided, use it directly
+                val enrollments = if (termId != null) {
+                    println("DEBUG: Filter endpoint - Fetching for Term ID: $termId")
+                    studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+                        classId, sessionEntity.id!!, termId, true
+                    ).filter { it.schoolId == selectedSchoolId }
+                } else if (!term.isNullOrBlank()) {
+                    // fall back to resolving string
+                    val termEntity = termRepository.findByAcademicSessionIdAndTermNameAndIsActive(
+                        sessionEntity.id!!, term, true
+                    ).orElse(null)
+                    
+                    if (termEntity != null) {
+                        println("DEBUG: Filter endpoint - Fetching for Term: ${termEntity.termName}")
+                        studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+                            classId, sessionEntity.id!!, termEntity.id!!, true
+                        ).filter { it.schoolId == selectedSchoolId }
+                    } else {
+                         println("DEBUG: Filter endpoint - Term $term not found")
+                        emptyList()
+                    }
+                } else {
+                     println("DEBUG: Filter endpoint - No term provided, fetching by session")
+                     studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
+                        classId, sessionEntity.id!!, true
+                    ).filter { it.schoolId == selectedSchoolId }
+                }
+                
+                println("DEBUG: Filter endpoint - Found ${enrollments.size} students")
                 model.addAttribute("students", enrollments.map { it.student })
             }
         }
@@ -290,6 +313,7 @@ class AssessmentReportController(
     fun getStudentsByClass(
         @RequestParam classId: UUID,
         @RequestParam session: String,
+        @RequestParam(required = false) term: String?,
         session_http: HttpSession
     ): List<StudentReportInfo> {
         val selectedSchoolId = authorizationService.validateSchoolAccess(
@@ -302,22 +326,41 @@ class AssessmentReportController(
         val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(
             selectedSchoolId, session, true
         )
+        
+        if (sessionEntity != null) {
+             if (!term.isNullOrBlank()) {
+                 val termEntity = termRepository.findByAcademicSessionIdAndTermNameAndIsActive(
+                    sessionEntity.id!!, term, true
+                ).orElse(null)
+                
+                if (termEntity != null) {
+                    return studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+                        classId, sessionEntity.id!!, termEntity.id!!, true
+                    ).filter { it.schoolId == selectedSchoolId }
+                    .map { enrollment ->
+                        StudentReportInfo(
+                            id = enrollment.student.id!!,
+                            admissionNumber = enrollment.student.admissionNumber ?: "",
+                            fullName = enrollment.student.user.fullName ?: "User"
+                        )
+                    }
+                }
+             }
 
-        val enrollments = if (sessionEntity != null) {
-            studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
+            // Fallback to session if no term provided or term not found
+            return studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
                 classId, sessionEntity.id!!, true
-            )
-        } else {
-            emptyList()
+            ).filter { it.schoolId == selectedSchoolId }
+             .map { enrollment ->
+                StudentReportInfo(
+                    id = enrollment.student.id!!,
+                    admissionNumber = enrollment.student.admissionNumber ?: "",
+                    fullName = enrollment.student.user.fullName ?: "User"
+                )
+            }
         }
 
-        return enrollments.map { enrollment ->
-            StudentReportInfo(
-                id = enrollment.student.id!!,
-                admissionNumber = enrollment.student.admissionNumber ?: "",
-                fullName = enrollment.student.user.fullName ?: "User"
-            )
-        }
+        return emptyList()
     }
 
     @GetMapping("/api/classes/{classId}/students")
@@ -336,37 +379,56 @@ class AssessmentReportController(
         authorizationService.validateAndGetSchoolClass(classId, selectedSchoolId)
 
         return try {
+            // Resolve effective Session/Term
+            val effectiveSessionId = sessionId ?: session_http.getAttribute("selectedSessionId") as? UUID
+            val effectiveTermId = termId ?: session_http.getAttribute("selectedTermId") as? UUID
+
             // Get students enrolled in the class for the specified session/term
             val studentClasses = when {
-                sessionId != null && termId != null -> {
+                effectiveSessionId != null && effectiveTermId != null -> {
                     val results = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
-                        classId, sessionId, termId, true
+                        classId, effectiveSessionId, effectiveTermId, true
                     ).filter { it.schoolId == selectedSchoolId }
-                    println("DEBUG: Found ${results.size} students for specific session $sessionId and term $termId")
+                    println("DEBUG: Found ${results.size} students for specific session $effectiveSessionId and term $effectiveTermId")
                     
-                    // If no students found for specific session/term, try just session
-                    if (results.isEmpty()) {
-                        val sessionResults = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
-                            classId, sessionId, true
-                        ).filter { it.schoolId == selectedSchoolId }
-                        println("DEBUG: Found ${sessionResults.size} students for session $sessionId")
-                        sessionResults
+                    // If no students found for specific session/term, try just session (if frontend didn't restrict)
+                    // Wait, user request says "ensure you select ... same as header session/term context"
+                    // So we should be strict.
+                    if (results.isEmpty() && termId == null) {
+                         // Only fallback if term wasn't explicitly requested by frontend? 
+                         // But here we are using effective IDs.
+                         // Let's stick to returning what matches the context.
+                         results
                     } else {
                         results
                     }
                 }
-                sessionId != null -> {
+                effectiveSessionId != null -> {
                     val results = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
-                        classId, sessionId, true
+                        classId, effectiveSessionId, true
                     ).filter { it.schoolId == selectedSchoolId }
-                    println("DEBUG: Found ${results.size} students for session $sessionId")
+                    println("DEBUG: Found ${results.size} students for session $effectiveSessionId")
                     results
                 }
                 else -> {
-                    val results = studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
-                        .filter { it.schoolId == selectedSchoolId }
-                    println("DEBUG: Found ${results.size} students in class (all sessions)")
-                    results
+                    // Fallback to current ACTIVE session/term if absolutely nothing is found in context
+                    // This mirrors reportsHome logic roughly without model population
+                    val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+                    if (currentSession != null) {
+                         val currentTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true).orElse(null)
+                         if (currentTerm != null) {
+                              studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+                                classId, currentSession.id!!, currentTerm.id!!, true
+                             ).filter { it.schoolId == selectedSchoolId }
+                         } else {
+                             studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
+                                classId, currentSession.id!!, true
+                             ).filter { it.schoolId == selectedSchoolId }
+                         }
+                    } else {
+                        // Truly nothing
+                        emptyList()
+                    }
                 }
             }
 
@@ -560,9 +622,13 @@ class AssessmentReportController(
         }
 
         // Get enrollment to find track name
-        val enrollment = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
+        // Prioritize enrollment that matches the requested classId
+        val enrollments = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
             studentId, effectiveSessionId, effectiveTermId, true
-        ).filter { it.schoolId == selectedSchoolId }.firstOrNull()
+        ).filter { it.schoolId == selectedSchoolId }
+        
+        val enrollment = enrollments.find { it.schoolClass.id == classId } 
+            ?: enrollments.firstOrNull()
             ?: studentClassRepository.findByStudentIdAndAcademicSessionIdAndIsActive(
                 studentId, effectiveSessionId, true
             ).filter { it.schoolId == selectedSchoolId }.firstOrNull()

@@ -166,8 +166,8 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="bankCode">Bank Name *</label>
-                                <select id="bankCode" name="bankCode" class="form-input" required
+                                <label for="bankCode">Bank Name</label>
+                                <select id="bankCode" name="bankCode" class="form-input"
                                     onchange="checkAccountDetails()">
                                     <option value="">Select Bank</option>
                                     <option th:each="bank : ${banks}" th:value="${bank.code}" th:text="${bank.name}"
@@ -178,18 +178,18 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="accountNumber">Account Number *</label>
+                                <label for="accountNumber">Account Number</label>
                                 <input type="text" id="accountNumber" name="accountNumber"
                                     th:value="${bankAccount.accountNumber}" class="form-input" maxlength="10"
-                                    minlength="10" pattern="\d{10}" required oninput="checkAccountDetails()" />
+                                    minlength="10" pattern="\d{10}" oninput="checkAccountDetails()" />
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="accountName">Account Name *</label>
+                            <label for="accountName">Account Name</label>
                             <div style="position: relative;">
                                 <input type="text" id="accountName" name="accountName"
-                                    th:value="${bankAccount.accountName}" class="form-input" required readonly
+                                    th:value="${bankAccount.accountName}" class="form-input" readonly
                                     style="background-color: #f3f4f6;" />
                                 <div id="accountLoading"
                                     style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">

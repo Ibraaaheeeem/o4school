@@ -902,111 +902,121 @@
                 <button type="button" class="modal-close" onclick="closeBulkCreateModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="bulkCreateForm">
-                    <div class="modal-grid">
-                        <div class="form-group full-width">
-                            <label>Examination Type *</label>
-                            <select id="bulk-examType" class="form-select" required>
-                                <option value="">Select Type</option>
-                                <option value="Assignment">Assignment</option>
-                                <option value="Continuous Assessment">Continuous Assessment</option>
-                                <option value="Mid-Term Test">Mid-Term Test</option>
-                                <option value="End-of-Term Examination">End-of-Term Examination</option>
-                            </select>
-                        </div>
+                <div class="alert alert-warning mb-4" th:if="${isCurrentTermSelected != true}"
+                    style="padding: 0.75rem 1rem; border-left: 4px solid #f59e0b; background-color: #fffbeb; color: #92400e; border-radius: 4px; display: flex; align-items: center; gap: 0.75rem">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Warning: Non-Current Term</strong>
+                        <div style="font-size: 0.9em">Please, note: You are not working in the current term. </div>
 
-                        <div class="form-group full-width">
-                            <label
-                                style="color: #4b5563; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Examination
-                                Mode</label>
-                            <div class="exam-mode-wrapper">
-                                <input type="checkbox" id="bulk-isOnline" class="mode-checkbox-hidden">
+                    </div>
+                </div>
+            </div>
 
-                                <label for="bulk-isOnline" class="mode-toggle-container">
-                                    <span class="mode-label-text offline">
-                                        <i class="fas fa-file-alt"></i> Paper / Offline
-                                    </span>
-                                    <div class="mode-switch-track"></div>
-                                    <span class="mode-label-text online">
-                                        <i class="fas fa-laptop-code"></i> Online (CBT)
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
+            <form id="bulkCreateForm">
+                <div class="modal-grid">
+                    <div class="form-group full-width">
+                        <label>Examination Type *</label>
+                        <select id="bulk-examType" class="form-select" required>
+                            <option value="">Select Type</option>
+                            <option value="Assignment">Assignment</option>
+                            <option value="Continuous Assessment">Continuous Assessment</option>
+                            <option value="Mid-Term Test">Mid-Term Test</option>
+                            <option value="End-of-Term Examination">End-of-Term Examination</option>
+                        </select>
+                    </div>
 
-                        <div class="form-group full-width">
-                            <label>Target Scope *</label>
-                            <select id="bulk-scopeType" class="form-select" onchange="handleScopeTypeChange()" required>
-                                <option value="">Select Scope</option>
-                                <option value="SCHOOL">Entire School</option>
-                                <option value="TRACK">Specific Track</option>
-                                <option value="DEPARTMENT">Specific Department</option>
-                                <option value="CLASS">Specific Class</option>
-                            </select>
-                        </div>
+                    <div class="form-group full-width">
+                        <label
+                            style="color: #4b5563; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Examination
+                            Mode</label>
+                        <div class="exam-mode-wrapper">
+                            <input type="checkbox" id="bulk-isOnline" class="mode-checkbox-hidden">
 
-                        <div id="bulk-track-selection" class="form-group" style="display: none;">
-                            <label>Track</label>
-                            <select id="bulk-trackId" class="form-select" onchange="loadBulkDepartments()">
-                                <option value="">Select Track</option>
-                                <option th:each="track : ${educationTracks}" th:value="${track.id}"
-                                    th:text="${track.name}">Track</option>
-                            </select>
-                        </div>
-
-                        <div id="bulk-department-selection" class="form-group" style="display: none;">
-                            <label>Department</label>
-                            <select id="bulk-departmentId" class="form-select" onchange="loadBulkClasses()">
-                                <option value="">Select Department</option>
-                            </select>
-                        </div>
-
-                        <div id="bulk-class-selection" class="form-group" style="display: none;">
-                            <label>Class</label>
-                            <select id="bulk-classId" class="form-select" onchange="previewBulkSubjects()">
-                                <option value="">Select Class</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Duration (Minutes)</label>
-                            <input type="number" id="bulk-duration" class="form-input" min="1" value="60" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Total Marks</label>
-                            <input type="number" id="bulk-marks" class="form-input" min="1" step="0.5" value="100"
-                                required>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Start Time</label>
-                            <input type="datetime-local" id="bulk-startTime" class="form-input">
-                        </div>
-
-                        <div class="form-group">
-                            <label>End Time</label>
-                            <input type="datetime-local" id="bulk-endTime" class="form-input">
+                            <label for="bulk-isOnline" class="mode-toggle-container">
+                                <span class="mode-label-text offline">
+                                    <i class="fas fa-file-alt"></i> Paper / Offline
+                                </span>
+                                <div class="mode-switch-track"></div>
+                                <span class="mode-label-text online">
+                                    <i class="fas fa-laptop-code"></i> Online (CBT)
+                                </span>
+                            </label>
                         </div>
                     </div>
 
-                    <div id="bulk-subject-preview" class="form-section full-width"
-                        style="display: none; margin-top: 20px;">
-                        <div class="preview-header">
-                            <h4>Subjects to be created: <span id="subject-count">0</span></h4>
-                        </div>
-                        <div id="subject-list" class="subject-chips-container"
-                            style="max-height: 150px; overflow-y: auto;"></div>
+                    <div class="form-group full-width">
+                        <label>Target Scope *</label>
+                        <select id="bulk-scopeType" class="form-select" onchange="handleScopeTypeChange()" required>
+                            <option value="">Select Scope</option>
+                            <option value="SCHOOL">Entire School</option>
+                            <option value="TRACK">Specific Track</option>
+                            <option value="DEPARTMENT">Specific Department</option>
+                            <option value="CLASS">Specific Class</option>
+                        </select>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="closeBulkCreateModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="bulk-create-btn" onclick="submitBulkCreate()">
-                    <i class="fas fa-layer-group me-2"></i>Create Examinations
-                </button>
-            </div>
+
+                    <div id="bulk-track-selection" class="form-group" style="display: none;">
+                        <label>Track</label>
+                        <select id="bulk-trackId" class="form-select" onchange="loadBulkDepartments()">
+                            <option value="">Select Track</option>
+                            <option th:each="track : ${educationTracks}" th:value="${track.id}" th:text="${track.name}">
+                                Track</option>
+                        </select>
+                    </div>
+
+                    <div id="bulk-department-selection" class="form-group" style="display: none;">
+                        <label>Department</label>
+                        <select id="bulk-departmentId" class="form-select" onchange="loadBulkClasses()">
+                            <option value="">Select Department</option>
+                        </select>
+                    </div>
+
+                    <div id="bulk-class-selection" class="form-group" style="display: none;">
+                        <label>Class</label>
+                        <select id="bulk-classId" class="form-select" onchange="previewBulkSubjects()">
+                            <option value="">Select Class</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Duration (Minutes)</label>
+                        <input type="number" id="bulk-duration" class="form-input" min="1" value="60" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Total Marks</label>
+                        <input type="number" id="bulk-marks" class="form-input" min="1" step="0.5" value="100" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Start Time</label>
+                        <input type="datetime-local" id="bulk-startTime" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label>End Time</label>
+                        <input type="datetime-local" id="bulk-endTime" class="form-input">
+                    </div>
+                </div>
+
+                <div id="bulk-subject-preview" class="form-section full-width" style="display: none; margin-top: 20px;">
+                    <div class="preview-header">
+                        <h4>Subjects to be created: <span id="subject-count">0</span></h4>
+                    </div>
+                    <div id="subject-list" class="subject-chips-container" style="max-height: 150px; overflow-y: auto;">
+                    </div>
+                </div>
+            </form>
         </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeBulkCreateModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" id="bulk-create-btn" onclick="submitBulkCreate()"
+                th:disabled="${headerContextTerm == null}">
+                <i class="fas fa-layer-group me-2"></i>Create Examinations
+            </button>
+        </div>
+    </div>
     </div>
 
 </body>

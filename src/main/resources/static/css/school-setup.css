@@ -5217,6 +5217,7 @@ input[type="time"] {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     position: relative;
 }
+
 /* Pagination Styles */
 .pagination-container {
     display: flex;
@@ -5517,7 +5518,9 @@ input[type="time"] {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .btn-icon {
@@ -5533,4 +5536,8 @@ input[type="time"] {
     background: #f0f9ff;
     padding: 1rem;
     border-radius: 0.5rem;
+}
+
+.completion-section {
+    margin-top: 2rem;
 }

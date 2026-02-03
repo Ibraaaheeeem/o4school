@@ -23,39 +23,40 @@
 
         <div class="setup-content" id="reportsContainer">
             <div th:fragment="reports-content">
-                <div class="setup-header animate-fade-in">
-                    <div class="d-flex justify-content-between align-items-center w-100">
-                        <div>
-                            <h1>Assessment Reports</h1>
-                            <p>Manage student scores and generate termly reports.</p>
+                <div class="setup-header animate-fade-in mb-4">
+                    <div class="d-flex flex-column gap-4 w-100">
+                        <!-- Top Header Row -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h1 class="page-title">Assessment Reports</h1>
+                                <p class="text-muted">Manage student scores and generate termly reports.</p>
+                            </div>
+                            <div class="d-flex gap-3">
+                                <!-- Update Assessment Button -->
+                                <button class="btn btn-premium-primary" onclick="saveAssessment()">
+                                    <i class="fas fa-save me-2"></i> Update Assessment
+                                </button>
+                                <!-- Import Scores Button -->
+                                <button class="btn btn-premium-outline" onclick="openImportModal()">
+                                    <i class="fas fa-download me-2"></i> Import Scores
+                                </button>
+                            </div>
                         </div>
-                        <div
-                            class="header-actions d-flex align-items-center gap-3 w-100 justify-content-end position-relative">
-                            <!-- Update Assessment Button (Centered) -->
-                            <button class="btn btn-primary position-absolute start-50 translate-middle-x"
-                                onclick="saveAssessment()" style="z-index: 10;">
-                                <i class="fas fa-save me-2"></i> Update Assessment
-                            </button>
 
-                            <!-- Import Scores Button (Far Right) -->
-                            <button class="btn btn-outline-primary" onclick="openImportModal()">
-                                <i class="fas fa-download me-2"></i> Import Scores
-                            </button>
+                        <!-- Filter Chips Row -->
+                        <div class="filter-chips-wrapper glass-panel p-3 rounded-4 d-flex align-items-center gap-3">
+                            <span class="text-muted small fw-bold text-uppercase me-2">Filters:</span>
 
-                        </div>
-
-                        <!-- Filter Chips Section -->
-                        <div class="filter-chips-wrapper" style="margin-bottom: 2rem; padding: 0 10px;">
                             <!-- Track Filter -->
                             <div class="chip-dropdown dropdown">
-                                <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
-                                    id="chip-track">
+                                <button class="filter-chip-pill dropdown-toggle" type="button"
+                                    onclick="toggleDropdown(this)" id="chip-track">
                                     <i class="fas fa-layer-group"></i>
                                     <span class="chip-label" id="label-track">Select Track</span>
                                     <i class="fas fa-chevron-down chip-chevron"></i>
                                 </button>
-                                <div class="dropdown-menu">
-                                    <div class="dropdown-header">Select Education Track</div>
+                                <div class="dropdown-menu shadow-lg border-0 rounded-3">
+                                    <div class="dropdown-header fw-bold text-uppercase small">Education Track</div>
                                     <a class="dropdown-item" href="javascript:void(0)" onclick="resetFilters('track')">
                                         <i class="fas fa-times me-2 text-danger"></i>Clear Selection
                                     </a>
@@ -68,213 +69,237 @@
                                 </div>
                             </div>
 
-                            <!-- Class Filter (Hidden initially) -->
+                            <!-- Class Filter -->
                             <div class="chip-dropdown dropdown" id="filter-class-container" style="display: none;">
-                                <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
-                                    id="chip-class">
-                                    <i class="fas fa-chalkboard-teacher"></i>
-                                    <span class="chip-label" id="label-class">Select Class</span>
-                                    <i class="fas fa-chevron-down chip-chevron"></i>
-                                </button>
-                                <div class="dropdown-menu" id="filter-class-menu">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-chevron-right text-muted mx-2"></i>
+                                    <button class="filter-chip-pill dropdown-toggle" type="button"
+                                        onclick="toggleDropdown(this)" id="chip-class">
+                                        <i class="fas fa-chalkboard-teacher"></i>
+                                        <span class="chip-label" id="label-class">Select Class</span>
+                                        <i class="fas fa-chevron-down chip-chevron"></i>
+                                    </button>
+                                </div>
+                                <div class="dropdown-menu shadow-lg border-0 rounded-3" id="filter-class-menu">
                                     <!-- Populated via JS -->
                                 </div>
                             </div>
 
-                            <!-- Student Filter (Hidden initially) -->
+                            <!-- Student Filter -->
                             <div class="chip-dropdown dropdown" id="filter-student-container" style="display: none;">
-                                <button class="filter-chip dropdown-toggle" type="button" onclick="toggleDropdown(this)"
-                                    id="chip-student">
-                                    <i class="fas fa-user-graduate"></i>
-                                    <span class="chip-label" id="label-student">Select Student</span>
-                                    <i class="fas fa-chevron-down chip-chevron"></i>
-                                </button>
-                                <div class="dropdown-menu" id="filter-student-menu">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-chevron-right text-muted mx-2"></i>
+                                    <button class="filter-chip-pill dropdown-toggle" type="button"
+                                        onclick="toggleDropdown(this)" id="chip-student">
+                                        <i class="fas fa-user-graduate"></i>
+                                        <span class="chip-label" id="label-student">Select Student</span>
+                                        <i class="fas fa-chevron-down chip-chevron"></i>
+                                    </button>
+                                </div>
+                                <div class="dropdown-menu shadow-lg border-0 rounded-3" id="filter-student-menu">
                                     <!-- Populated via JS -->
                                 </div>
                             </div>
 
                             <!-- Clear Filters -->
-                            <button class="filter-chip filter-chip-clear" id="clear-filters-btn" style="display: none;"
-                                onclick="clearAllFilters()" title="Clear All Filters">
-                                <i class="fas fa-times"></i>
+                            <button class="btn btn-sm btn-link text-danger text-decoration-none ms-auto"
+                                id="clear-filters-btn" style="display: none;" onclick="clearAllFilters()"
+                                title="Clear All Filters">
+                                <i class="fas fa-times-circle me-1"></i> Reset Filters
                             </button>
                         </div>
 
-                        <div class="reports-grid">
-                            <!-- Empty State -->
-                            <div id="emptyState" class="glass-card-premium animate-slide-up reports-empty-state">
-                                <div class="empty-state-icon">
-                                    <i class="fas fa-user-graduate"></i>
+                        <!-- Empty State -->
+                        <div id="emptyState" class="empty-state-premium animate-slide-up">
+                            <div class="empty-state-content">
+                                <div class="empty-state-icon-wrapper mb-4">
+                                    <div class="icon-circle">
+                                        <i class="fas fa-user-graduate"></i>
+                                    </div>
+                                    <div class="icon-ripple"></div>
                                 </div>
-                                <h3 class="empty-state-title">No Student Selected</h3>
-                                <p class="empty-state-text">Please select a student from the dropdown above to view and
-                                    manage
-                                    their assessment reports.</p>
+                                <h2 class="empty-state-title mb-3">No Student Selected</h2>
+                                <p class="empty-state-text text-muted mb-4" style="max-width: 400px; margin: 0 auto;">
+                                    Select a student from the filters above to view their performance, manage assessment
+                                    scores, and generate reports.
+                                </p>
+                                <div class="d-flex gap-3 justify-content-center">
+                                    <div class="step-badge">
+                                        <span class="badge rounded-pill bg-light text-dark border">1. Track</span>
+                                    </div>
+                                    <i class="fas fa-arrow-right text-muted align-self-center"></i>
+                                    <div class="step-badge">
+                                        <span class="badge rounded-pill bg-light text-dark border">2. Class</span>
+                                    </div>
+                                    <i class="fas fa-arrow-right text-muted align-self-center"></i>
+                                    <div class="step-badge">
+                                        <span class="badge rounded-pill bg-light text-dark border">3. Student</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Redesigned Assessment Card -->
+                        <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
+                            <!-- Student Profile Header -->
+                            <div class="student-profile-header">
+                                <div class="student-avatar-large" id="studentAvatar">
+                                    JS
+                                </div>
+                                <div class="student-info-main">
+                                    <h2 id="studentNameHeader">Student Name</h2>
+                                    <div class="student-info-meta">
+                                        <span class="meta-item">
+                                            <i class="fas fa-id-card"></i>
+                                            <span id="studentAdmissionMeta">ADM-001</span>
+                                        </span>
+                                        <span class="meta-item">
+                                            <i class="fas fa-layer-group"></i>
+                                            <span id="studentTrackMeta">Track Name</span>
+                                        </span>
+                                        <span class="meta-item">
+                                            <i class="fas fa-school"></i>
+                                            <span id="studentClassMeta">Class Name</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="header-actions ms-auto">
+                                    <button id="editModeBtn" class="btn btn-outline-primary" onclick="toggleEditMode()">
+                                        <i class="fas fa-edit me-2"></i> Edit Mode
+                                    </button>
+                                </div>
                             </div>
 
-                            <!-- Redesigned Assessment Card -->
-                            <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
-                                <!-- Student Profile Header -->
-                                <div class="student-profile-header">
-                                    <div class="student-avatar-large" id="studentAvatar">
-                                        JS
-                                    </div>
-                                    <div class="student-info-main">
-                                        <h2 id="studentNameHeader">Student Name</h2>
-                                        <div class="student-info-meta">
-                                            <span class="meta-item">
-                                                <i class="fas fa-id-card"></i>
-                                                <span id="studentAdmissionMeta">ADM-001</span>
-                                            </span>
-                                            <span class="meta-item">
-                                                <i class="fas fa-layer-group"></i>
-                                                <span id="studentTrackMeta">Track Name</span>
-                                            </span>
-                                            <span class="meta-item">
-                                                <i class="fas fa-school"></i>
-                                                <span id="studentClassMeta">Class Name</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="header-actions ms-auto">
-                                        <button id="editModeBtn" class="btn btn-outline-primary"
-                                            onclick="toggleEditMode()">
-                                            <i class="fas fa-edit me-2"></i> Edit Mode
+                            <div class="card-body p-0">
+                                <!-- Tab Navigation -->
+                                <div class="px-4 pt-4">
+                                    <div class="report-tabs">
+                                        <button class="report-tab active" onclick="switchTab('academic')">
+                                            <i class="fas fa-book"></i> Academic Scores
+                                        </button>
+                                        <button class="report-tab" onclick="switchTab('behavioral')">
+                                            <i class="fas fa-user-check"></i> Behavioral
+                                        </button>
+                                        <button class="report-tab" onclick="switchTab('comments')">
+                                            <i class="fas fa-comment-alt"></i> Comments & Attendance
                                         </button>
                                     </div>
                                 </div>
 
-                                <div class="card-body p-0">
-                                    <!-- Tab Navigation -->
-                                    <div class="px-4 pt-4">
-                                        <div class="report-tabs">
-                                            <button class="report-tab active" onclick="switchTab('academic')">
-                                                <i class="fas fa-book"></i> Academic Scores
-                                            </button>
-                                            <button class="report-tab" onclick="switchTab('behavioral')">
-                                                <i class="fas fa-user-check"></i> Behavioral
-                                            </button>
-                                            <button class="report-tab" onclick="switchTab('comments')">
-                                                <i class="fas fa-comment-alt"></i> Comments & Attendance
-                                            </button>
-                                        </div>
+                                <!-- Tab Contents -->
+                                <div id="academicTab" class="tab-content active">
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <h4 class="m-0"><i class="fas fa-list-ol me-2 text-primary"></i>Subject
+                                            Performance
+                                        </h4>
                                     </div>
+                                    <div class="table-responsive">
+                                        <table class="table glass-table table-hover">
+                                            <thead>
+                                                <tr id="tableHeaderRow">
+                                                    <!-- Dynamic Headers -->
+                                                </tr>
+                                            </thead>
+                                            <tbody id="assessmentTableBody">
+                                                <!-- Dynamic Rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
 
-                                    <!-- Tab Contents -->
-                                    <div id="academicTab" class="tab-content active">
-                                        <div class="d-flex justify-content-between align-items-center mb-4">
-                                            <h4 class="m-0"><i class="fas fa-list-ol me-2 text-primary"></i>Subject
-                                                Performance
+                                <div id="behavioralTab" class="tab-content">
+                                    <div class="behavioral-header mb-4">
+                                        <h4 class="mb-2"><i class="fas fa-heart me-2 text-danger"></i>Behavioral
+                                            Assessment
+                                        </h4>
+                                        <p class="text-muted mb-0">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
+                                            Excellent)</p>
+                                    </div>
+                                    <div class="behavior-assessment-container">
+                                        <div id="behaviorContainer" class="behavioral-traits-grid"></div>
+                                    </div>
+                                </div>
+
+                                <div id="commentsTab" class="tab-content">
+                                    <!-- Attendance Section -->
+                                    <div class="attendance-section mb-5">
+                                        <div class="section-header mb-4">
+                                            <h4 class="section-title">
+                                                <div class="title-icon-wrapper">
+                                                    <i class="fas fa-calendar-check"></i>
+                                                </div>
+                                                Attendance Record
                                             </h4>
+                                            <p class="section-subtitle">Track student's attendance for this term</p>
                                         </div>
-                                        <div class="table-responsive">
-                                            <table class="table glass-table table-hover">
-                                                <thead>
-                                                    <tr id="tableHeaderRow">
-                                                        <!-- Dynamic Headers -->
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="assessmentTableBody">
-                                                    <!-- Dynamic Rows -->
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
 
-                                    <div id="behavioralTab" class="tab-content">
-                                        <div class="behavioral-header mb-4">
-                                            <h4 class="mb-2"><i class="fas fa-heart me-2 text-danger"></i>Behavioral
-                                                Assessment
-                                            </h4>
-                                            <p class="text-muted mb-0">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
-                                                Excellent)</p>
-                                        </div>
-                                        <div class="behavior-assessment-container">
-                                            <div id="behaviorContainer" class="behavioral-traits-grid"></div>
-                                        </div>
-                                    </div>
-
-                                    <div id="commentsTab" class="tab-content">
-                                        <!-- Attendance Section -->
-                                        <div class="attendance-section mb-5">
-                                            <div class="section-header mb-4">
-                                                <h4 class="section-title">
-                                                    <div class="title-icon-wrapper">
-                                                        <i class="fas fa-calendar-check"></i>
+                                        <div class="attendance-card">
+                                            <div class="attendance-content">
+                                                <div class="attendance-info">
+                                                    <div class="attendance-icon">
+                                                        <i class="fas fa-calendar-alt"></i>
                                                     </div>
-                                                    Attendance Record
-                                                </h4>
-                                                <p class="section-subtitle">Track student's attendance for this term</p>
-                                            </div>
-
-                                            <div class="attendance-card">
-                                                <div class="attendance-content">
-                                                    <div class="attendance-info">
-                                                        <div class="attendance-icon">
-                                                            <i class="fas fa-calendar-alt"></i>
-                                                        </div>
-                                                        <div class="attendance-details">
-                                                            <label class="attendance-label">Total Days Present</label>
-                                                            <p class="attendance-description">Enter the number of days
-                                                                the
-                                                                student was present this term</p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="attendance-input-wrapper">
-                                                        <div class="attendance-input-group">
-                                                            <input type="number" id="attendanceInput"
-                                                                class="attendance-input" min="0" placeholder="0">
-                                                        </div>
+                                                    <div class="attendance-details">
+                                                        <label class="attendance-label">Total Days Present</label>
+                                                        <p class="attendance-description">Enter the number of days
+                                                            the
+                                                            student was present this term</p>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Comments Section -->
-                                        <div class="comments-section">
-                                            <div class="row g-4">
-                                                <div class="col-12">
-                                                    <div class="comment-box">
-                                                        <h4><i class="fas fa-user-tie text-info"></i>Class Teacher's
-                                                            Remark</h4>
-                                                        <textarea id="classTeacherComment"
-                                                            class="form-control glass-input" rows="5"
-                                                            placeholder="Enter detailed observation about the student's academic and social progress..."></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="col-12">
-                                                    <div class="comment-box">
-                                                        <h4><i class="fas fa-user-shield text-warning"></i>Head
-                                                            Teacher's Remark
-                                                        </h4>
-                                                        <textarea id="headTeacherComment"
-                                                            class="form-control glass-input" rows="5"
-                                                            placeholder="Enter final recommendation or approval notes..."></textarea>
+                                                <div class="attendance-input-wrapper">
+                                                    <div class="attendance-input-group">
+                                                        <input type="number" id="attendanceInput"
+                                                            class="attendance-input" min="0" placeholder="0">
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Footer Actions -->
-                                    <div class="p-4 border-top bg-light" id="footerActions" style="display: none;">
-                                        <div class="d-flex flex-column align-items-center gap-3">
-                                            <div class="text-muted small">
-                                                <i class="fas fa-info-circle me-1"></i> Changes are not saved until you
-                                                click
-                                                "Update Assessment"
+                                    <!-- Comments Section -->
+                                    <div class="comments-section">
+                                        <div class="row g-4">
+                                            <div class="col-12">
+                                                <div class="comment-box">
+                                                    <h4><i class="fas fa-user-tie text-info"></i>Class Teacher's
+                                                        Remark</h4>
+                                                    <textarea id="classTeacherComment" class="form-control glass-input"
+                                                        rows="5"
+                                                        placeholder="Enter detailed observation about the student's academic and social progress..."></textarea>
+                                                </div>
                                             </div>
-                                            <button class="btn btn-xl btn-primary shadow-sm" onclick="saveAssessment()">
-                                                <i class="fas fa-save me-2"></i> Update Assessment
-                                            </button>
+                                            <div class="col-12">
+                                                <div class="comment-box">
+                                                    <h4><i class="fas fa-user-shield text-warning"></i>Head
+                                                        Teacher's Remark
+                                                    </h4>
+                                                    <textarea id="headTeacherComment" class="form-control glass-input"
+                                                        rows="5"
+                                                        placeholder="Enter final recommendation or approval notes..."></textarea>
+                                                </div>
+                                            </div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- Footer Actions -->
+                                <div class="p-4 border-top bg-light" id="footerActions" style="display: none;">
+                                    <div class="d-flex flex-column align-items-center gap-3">
+                                        <div class="text-muted small">
+                                            <i class="fas fa-info-circle me-1"></i> Changes are not saved until you
+                                            click
+                                            "Update Assessment"
+                                        </div>
+                                        <button class="btn btn-xl btn-primary shadow-sm" onclick="saveAssessment()">
+                                            <i class="fas fa-save me-2"></i> Update Assessment
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
     </main>
 
     <!-- Import Modal -->
@@ -338,21 +363,28 @@
 
         // --- Filter Chips Logic ---
         function toggleDropdown(button) {
+            // Find the parent container
+            const container = button.closest('.chip-dropdown');
+            const dropdown = container.querySelector('.dropdown-menu');
+
             // Close all other dropdowns
             document.querySelectorAll('.chip-dropdown .dropdown-menu.show').forEach(menu => {
-                if (menu !== button.nextElementSibling) {
+                if (menu !== dropdown) {
                     menu.classList.remove('show');
                 }
             });
-            
-            const dropdown = button.nextElementSibling;
-            dropdown.classList.toggle('show');
-            
+
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            } else {
+                console.warn('Dropdown menu not found for button', button);
+            }
+
             // Close when clicking outside
             if (!button.dataset.hasListener) {
-                document.addEventListener('click', function(e) {
-                    if (!button.parentElement.contains(e.target)) {
-                        dropdown.classList.remove('show');
+                document.addEventListener('click', function (e) {
+                    if (!container.contains(e.target)) {
+                        if (dropdown) dropdown.classList.remove('show');
                     }
                 });
                 button.dataset.hasListener = 'true';
@@ -367,10 +399,10 @@
 
             // Reset subsequent filters
             resetFilters('class');
-            
+
             // Close dropdown
-            const menu = document.getElementById('chip-track').nextElementSibling;
-            menu.classList.remove('show');
+            const menu = document.getElementById('chip-track').closest('.chip-dropdown').querySelector('.dropdown-menu');
+            if (menu) menu.classList.remove('show');
 
             // Load Classes for Track
             const classMenu = document.getElementById('filter-class-menu');
@@ -389,7 +421,7 @@
                         </a>
                         <div class="dropdown-divider"></div>
                     `;
-                    
+
                     if (classes.length === 0) {
                         classMenu.innerHTML += '<div class="dropdown-item text-muted">No classes found</div>';
                     }
@@ -407,7 +439,7 @@
                 console.error('Error loading classes:', error);
                 classMenu.innerHTML = '<div class="dropdown-item text-danger">Error loading classes</div>';
             }
-            
+
             updateClearButton();
         }
 
@@ -417,9 +449,9 @@
             filterState.class = classId;
 
             resetFilters('student');
-            
-            const menu = document.getElementById('chip-class').nextElementSibling;
-            menu.classList.remove('show');
+
+            const menu = document.getElementById('chip-class').closest('.chip-dropdown').querySelector('.dropdown-menu');
+            if (menu) menu.classList.remove('show');
 
             // Load Students for Class
             const studentMenu = document.getElementById('filter-student-menu');
@@ -462,7 +494,7 @@
                 console.error('Error loading students:', error);
                 studentMenu.innerHTML = '<div class="dropdown-item text-danger">Error loading students</div>';
             }
-            
+
             updateClearButton();
         }
 
@@ -471,11 +503,11 @@
             document.getElementById('chip-student').classList.add('active');
             filterState.student = studentId;
 
-            const menu = document.getElementById('chip-student').nextElementSibling;
-            if(menu) menu.classList.remove('show');
+            const menu = document.getElementById('chip-student').closest('.chip-dropdown').querySelector('.dropdown-menu');
+            if (menu) menu.classList.remove('show');
 
             updateClearButton();
-            
+
             // Trigger Data Load
             await loadStudentData(studentId);
         }
@@ -487,24 +519,24 @@
                 filterState.track = '';
                 document.getElementById('filter-class-container').style.display = 'none';
             }
-            
+
             if (level === 'track' || level === 'class') {
                 document.getElementById('label-class').textContent = 'Select Class';
                 document.getElementById('chip-class').classList.remove('active');
                 filterState.class = '';
                 document.getElementById('filter-student-container').style.display = 'none';
             }
-            
+
             if (level === 'track' || level === 'class' || level === 'student') {
                 document.getElementById('label-student').textContent = 'Select Student';
                 document.getElementById('chip-student').classList.remove('active');
                 filterState.student = '';
-                
+
                 // Clear View
                 document.getElementById('assessmentCard').style.display = 'none';
                 document.getElementById('emptyState').style.display = 'block';
             }
-            
+
             updateClearButton();
         }
 
@@ -948,7 +980,7 @@
         async function loadStudentData(studentId) {
             // Support both direct ID or getting from value if (legacy)
             if (!studentId) studentId = filterState.student; // Default to filter state
-            
+
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('sessionId') || filterState.sessionId;
             const termId = urlParams.get('termId') || filterState.termId;
@@ -975,7 +1007,7 @@
                 let url = `/admin/assessments/reports/student-data?studentId=${studentId}&classId=${classId}`;
                 if (sessionId) url += `&sessionId=${sessionId}`;
                 if (termId) url += `&termId=${termId}`;
-                
+
                 console.log('Fetching URL:', url);
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -1794,11 +1826,11 @@
                     }
 
                     if (component.toLowerCase().includes('ca 1') || component.toLowerCase().includes('continuous assessment 1')) {
-                         if (value !== null) subjectScores[subjectId].ca1 = value;
+                        if (value !== null) subjectScores[subjectId].ca1 = value;
                     } else if (component.toLowerCase().includes('ca 2')) {
-                         if (value !== null) subjectScores[subjectId].ca2 = value;
+                        if (value !== null) subjectScores[subjectId].ca2 = value;
                     } else if (component.toLowerCase().includes('exam')) {
-                         if (value !== null) subjectScores[subjectId].exam = value;
+                        if (value !== null) subjectScores[subjectId].exam = value;
                     } else {
                         // Dynamic scores
                         if (value !== null) {

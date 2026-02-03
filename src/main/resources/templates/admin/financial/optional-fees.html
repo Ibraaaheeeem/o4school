@@ -692,6 +692,14 @@
             <form id="applyFeeForm" onsubmit="applyFeeToStudent(event); return false;">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                 <div class="modal-body">
+                    <div class="alert alert-warning mb-4" th:if="${isCurrentTermSelected != true}"
+                        style="padding: 0.75rem 1rem; border-left: 4px solid #f59e0b; background-color: #fffbeb; color: #92400e; border-radius: 4px; display: flex; align-items: center; gap: 0.75rem">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Warning: Non-Current Term</strong>
+                            <div style="font-size: 0.9em">Please, note: You are not working in the current term. </div>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="studentSearch">Search Student:</label>
                         <input type="text" id="studentSearch" class="form-input"
@@ -740,7 +748,8 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeApplyFeeModal()">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="applyFeeToStudent(event)">
+                    <button type="button" class="btn btn-primary" onclick="applyFeeToStudent(event)"
+                        th:disabled="${headerContextTerm == null}">
                         <span class="btn-content">
                             <i class="fas fa-check"></i> Apply Fee
                         </span>

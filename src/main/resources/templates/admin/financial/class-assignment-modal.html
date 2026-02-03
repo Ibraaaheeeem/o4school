@@ -10,6 +10,16 @@
         </div>
 
         <div class="modal-body">
+
+            <div class="alert alert-warning mb-4" th:if="${isCurrentTermSelected != true}"
+                style="padding: 0.75rem 1rem; border-left: 4px solid #f59e0b; background-color: #fffbeb; color: #92400e; border-radius: 4px; display: flex; align-items: center; gap: 0.75rem">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Warning: Non-Current Term</strong>
+                    <div style="font-size: 0.9em">Please, note: You are not working in the current term. </div>
+                </div>
+            </div>
+
             <!-- Currently Assigned Classes -->
             <div class="assigned-classes-section" th:if="${!#lists.isEmpty(assignedClassFeeItems)}">
                 <h3>Currently Assigned Classes</h3>
@@ -84,7 +94,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" th:disabled="${headerContextTerm == null}">
                             <i class="fas fa-plus"></i> Assign Class
                         </button>
                     </div>

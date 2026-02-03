@@ -71,7 +71,7 @@ class SecurityConfig(
             }
             .requestCache { cache ->
                 val requestCache = org.springframework.security.web.savedrequest.HttpSessionRequestCache()
-                val authPaths = listOf("/login", "/register", "/activate-account", "/forgot-password", "/auth/.*", "/favicon.ico")
+                val authPaths = listOf("/login", "/register", "/activate-account", "/forgot-password", "/auth/.*", "/favicon.ico", "/\\.well-known/.*")
                 val matchers = authPaths.map { RegexRequestMatcher(it, null) }.toMutableList<org.springframework.security.web.util.matcher.RequestMatcher>()
                 matchers.add(RequestHeaderRequestMatcher("HX-Request"))
                 requestCache.setRequestMatcher(NegatedRequestMatcher(OrRequestMatcher(matchers)))

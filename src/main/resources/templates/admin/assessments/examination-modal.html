@@ -10,6 +10,15 @@
             th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
             <input type="hidden" name="id" th:value="${examination.id}" th:if="${isEdit}">
 
+            <div class="alert alert-warning mb-4" th:if="${isCurrentTermSelected != true}"
+                style="padding: 0.75rem 1rem; border-left: 4px solid #f59e0b; background-color: #fffbeb; color: #92400e; border-radius: 4px; display: flex; align-items: center; gap: 0.75rem">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Warning: Non-Current Term</strong>
+                    <div style="font-size: 0.9em">Please, note: You are not working in the current term. </div>
+                </div>
+            </div>
+
             <div class="modal-grid">
                 <!-- Row 1: Title (Full) -->
                 <div class="form-group full-width">
@@ -103,7 +112,7 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeModal('examinationModal')">Cancel</button>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" th:disabled="${headerContextTerm == null}">
                     <i class="fas fa-save me-2"></i>
                     <span th:text="${isEdit ? 'Update Examination' : 'Create Examination'}">Create Examination</span>
                 </button>

@@ -64,6 +64,34 @@ class GlobalControllerAdvice {
                     
                     if (contextTerm != null) {
                         model.addAttribute("headerContextTerm", contextTerm)
+                        
+                        // Current Term & Week Logic
+                        if (contextTerm.isCurrentTerm) {
+                            model.addAttribute("isCurrentTermSelected", true)
+                            
+                            val now = java.time.LocalDate.now()
+                            val startDate = contextTerm.startDate
+                            
+                            // Determine the start of Week 1
+                            // "Week 1 starts the first sunday after the term start date or on the term start date if it is a Sunday"
+                            var week1Start = startDate
+                            if (startDate.dayOfWeek != java.time.DayOfWeek.SUNDAY) {
+                                week1Start = startDate.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY))
+                            }
+                            
+                            if (now.isBefore(startDate)) {
+                                // Before term starts
+                                model.addAttribute("currentWeekNumber", 0)
+                            } else if (now.isBefore(week1Start)) {
+                                // In the partial week before Week 1 starts (Week 0)
+                                model.addAttribute("currentWeekNumber", 0)
+                            } else {
+                                // Calculate week number
+                                val days = java.time.temporal.ChronoUnit.DAYS.between(week1Start, now)
+                                val weekNum = (days / 7) + 1
+                                model.addAttribute("currentWeekNumber", weekNum)
+                            }
+                        }
                     } else {
                          model.addAttribute("headerContextTermWarning", true)
                     }

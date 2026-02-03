@@ -19,37 +19,40 @@
 
         <style>
             :root {
-                --header-height: 70px;
-                --header-bg: rgba(255, 255, 255, 0.85);
-                --header-border: rgba(226, 232, 240, 0.6);
-                --text-primary: #0f172a;
+                --header-height: 80px;
+                --header-bg: rgba(255, 255, 255, 0.95);
+                --header-border: rgba(226, 232, 240, 0.8);
+                --text-primary: #1e293b;
                 --text-secondary: #64748b;
                 --brand-color: #4f46e5;
                 --brand-gradient: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-                --surface-hover: #f1f5f9;
+                --surface-hover: #f8fafc;
                 --danger-color: #ef4444;
-                --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
                 --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
             }
 
             .school-header {
                 position: sticky;
                 top: 0;
-                z-index: 100;
+                z-index: 1000;
+                /* Increased Z-index for safety */
                 height: var(--header-height);
                 background: var(--header-bg);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
                 border-bottom: 1px solid var(--header-border);
                 transition: all 0.3s ease;
                 font-family: 'Inter', sans-serif;
+                box-shadow: var(--shadow-sm);
             }
 
             .header-container {
                 max-width: 1600px;
                 height: 100%;
                 margin: 0 auto;
-                padding: 0 1.5rem;
+                padding: 0 2rem;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -60,75 +63,80 @@
             .brand-section {
                 display: flex;
                 align-items: center;
-                gap: 1rem;
+                gap: 1.25rem;
                 text-decoration: none;
                 color: inherit;
-                transition: transform 0.2s;
+                transition: transform 0.2s ease;
+                padding: 0.5rem;
+                border-radius: 12px;
             }
 
             .brand-section:hover {
                 transform: translateY(-1px);
+                background: var(--surface-hover);
             }
 
             .logo-container {
                 position: relative;
-                width: 42px;
-                height: 42px;
-                border-radius: 10px;
-                overflow: hidden;
-                box-shadow: var(--shadow-sm);
-                background: white;
+                width: 48px;
+                height: 48px;
+                /* No border radius or hidden overflow to allow logo shape */
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
             }
 
             .logo-container img {
                 width: 100%;
                 height: 100%;
-                object-fit: cover;
+                object-fit: contain;
+                /* Ensure entire logo is visible */
             }
 
             .brand-info {
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
+                gap: 2px;
             }
 
             .school-name {
                 font-family: 'Outfit', sans-serif;
                 font-weight: 700;
-                font-size: 1.15rem;
+                font-size: 1.25rem;
                 color: var(--text-primary);
                 line-height: 1.2;
-                letter-spacing: -0.01em;
+                letter-spacing: -0.02em;
             }
 
             .school-meta {
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                gap: 0.75rem;
             }
 
             .system-badge {
                 font-size: 0.65rem;
-                font-weight: 700;
+                font-weight: 800;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
                 color: white;
                 background: var(--brand-gradient);
-                padding: 0.15rem 0.4rem;
-                border-radius: 4px;
+                padding: 0.2rem 0.5rem;
+                border-radius: 6px;
                 line-height: 1;
+                box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
             }
 
             .school-motto {
-                font-size: 0.75rem;
+                font-size: 0.8rem;
                 color: var(--text-secondary);
-                max-width: 200px;
+                max-width: 250px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                font-weight: 500;
             }
 
             /* --- Center Navigation/Context --- */
@@ -143,169 +151,281 @@
             .context-toolbar {
                 display: flex;
                 align-items: center;
-                gap: 0.75rem;
-                background: rgba(241, 245, 249, 0.5);
-                padding: 0.35rem 0.75rem;
-                border-radius: 12px;
-                border: 1px solid rgba(226, 232, 240, 0.8);
+                gap: 1rem;
+                background: white;
+                padding: 0.5rem 1rem;
+                border-radius: 16px;
+                transition: box-shadow 0.2s;
             }
 
-            /* Custom Select Styling */
-            .context-select-wrapper {
+
+
+            /* Custom Dropdown Styling */
+            .custom-dropdown {
                 position: relative;
+                min-width: 180px;
+            }
+
+            .dropdown-trigger {
                 display: flex;
                 align-items: center;
-            }
-
-            .context-select {
-                appearance: none;
+                justify-content: space-between;
+                width: 100%;
                 background: white;
                 border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 0.4rem 2rem 0.4rem 0.75rem;
-                font-size: 0.85rem;
+                border-radius: 12px;
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
                 font-weight: 500;
                 color: var(--text-primary);
                 cursor: pointer;
-                transition: all 0.2s;
-                min-width: 140px;
-                box-shadow: var(--shadow-sm);
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                gap: 0.75rem;
             }
 
-            .context-select:hover {
+            .dropdown-trigger:hover {
                 border-color: #cbd5e1;
+                background: #f8fafc;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
                 transform: translateY(-1px);
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
             }
 
-            .context-select:focus {
-                outline: none;
+            .dropdown-trigger.active {
                 border-color: var(--brand-color);
-                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
             }
 
-            .context-select.warning {
-                border-color: var(--danger-color);
+            .dropdown-trigger.warning {
                 color: var(--danger-color);
                 background: #fef2f2;
+                border-color: #fee2e2;
             }
 
-            .select-chevron {
-                position: absolute;
-                right: 0.75rem;
-                font-size: 0.7rem;
+            .arrow-icon {
+                font-size: 0.75rem;
                 color: var(--text-secondary);
-                pointer-events: none;
+                transition: transform 0.2s;
+            }
+
+            .custom-dropdown.open .arrow-icon {
+                transform: rotate(180deg);
+                color: var(--brand-color);
+            }
+
+            .dropdown-menu {
+                position: absolute;
+                top: calc(100% + 8px);
+                left: 0;
+                width: 100%;
+                min-width: 200px;
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+                padding: 0.5rem;
+                z-index: 50;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(-10px);
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .custom-dropdown.open .dropdown-menu {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+
+            .dropdown-item {
+                padding: 0.6rem 0.75rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.9rem;
+                color: var(--text-primary);
+                transition: all 0.15s;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .dropdown-item:hover {
+                background: #f1f5f9;
+                color: var(--brand-color);
+            }
+
+            .dropdown-item.selected {
+                background: rgba(79, 70, 229, 0.08);
+                color: var(--brand-color);
+                font-weight: 600;
+            }
+
+            .check-icon {
+                opacity: 0;
+                font-size: 0.8rem;
+                transform: scale(0.5);
+                transition: all 0.2s;
+            }
+
+            .dropdown-item.selected .check-icon {
+                opacity: 1;
+                transform: scale(1);
             }
 
             .nav-breadcrumb {
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                gap: 0.75rem;
             }
 
             .back-dashboard-link {
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
-                padding: 0.5rem 1rem;
+                gap: 0.6rem;
+                padding: 0.5rem 1.25rem;
                 color: var(--brand-color);
                 font-weight: 600;
-                font-size: 0.9rem;
+                font-size: 0.95rem;
                 text-decoration: none;
-                border-radius: 8px;
-                transition: background 0.2s;
+                border-radius: 10px;
+                background: rgba(79, 70, 229, 0.08);
+                /* Very light brand color bg */
+                transition: all 0.2s;
             }
 
             .back-dashboard-link:hover {
-                background: rgba(79, 70, 229, 0.05);
+                background: rgba(79, 70, 229, 0.15);
+                transform: translateX(-2px);
             }
 
             .section-label {
-                padding: 0.25rem 0.75rem;
-                background: #f1f5f9;
-                color: var(--text-secondary);
-                border-radius: 20px;
-                font-size: 0.8rem;
+                padding: 0.35rem 1rem;
+                background: var(--text-primary);
+                color: white;
+                /* Inverted for contrast */
+                border-radius: 50px;
+                font-size: 0.85rem;
                 font-weight: 600;
+                letter-spacing: 0.02em;
+                box-shadow: var(--shadow-sm);
             }
 
             /* --- Right User Actions --- */
             .header-right {
                 display: flex;
                 align-items: center;
-                gap: 1.25rem;
+                gap: 1.5rem;
             }
 
             .user-pill {
                 display: flex;
                 align-items: center;
-                gap: 0.75rem;
-                padding: 0.25rem;
-                padding-right: 1rem;
-                border: 1px solid transparent;
+                gap: 1rem;
+                padding: 0.35rem;
+                padding-right: 1.25rem;
                 border-radius: 50px;
-                transition: all 0.2s;
+                transition: all 0.2s ease;
+                background: white;
+                cursor: pointer;
             }
 
             .user-pill:hover {
-                background: white;
-                border-color: #e2e8f0;
-                box-shadow: var(--shadow-sm);
+                transform: translateY(-1px);
             }
 
             .avatar-circle {
-                width: 38px;
-                height: 38px;
+                width: 42px;
+                height: 42px;
                 background: var(--brand-gradient);
                 color: white;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-weight: 600;
-                font-size: 0.9rem;
-                border: 2px solid white;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                font-weight: 700;
+                font-size: 1rem;
+                border: 3px solid white;
+                box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
             }
 
             .user-meta {
                 display: flex;
                 flex-direction: column;
-                line-height: 1.1;
+                line-height: 1.2;
             }
 
             .user-fullname {
-                font-size: 0.9rem;
-                font-weight: 600;
+                font-size: 0.95rem;
+                font-weight: 700;
                 color: var(--text-primary);
             }
 
             .user-role-badge {
-                font-size: 0.7rem;
+                font-size: 0.75rem;
                 color: var(--text-secondary);
                 text-transform: capitalize;
+                font-weight: 500;
             }
 
             .logout-button {
-                width: 40px;
-                height: 40px;
-                border-radius: 10px;
-                border: none;
+                width: 44px;
+                height: 44px;
+                border-radius: 12px;
+                border: 1px solid transparent;
                 background: transparent;
                 color: var(--text-secondary);
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 1.1rem;
+                font-size: 1.2rem;
             }
 
             .logout-button:hover {
-                background: #fee2e2;
+                background: #fef2f2;
                 color: var(--danger-color);
+                border-color: #fee2e2;
                 transform: translateX(2px);
+                box-shadow: var(--shadow-sm);
+            }
+
+            /* --- Current Term Indicator --- */
+            .term-info-badge {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-start;
+                line-height: 1.1;
+                gap: 2px;
+                padding: 0.5rem 1rem;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-left: 0.5rem;
+                background: white;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+
+            .term-status-label {
+                font-size: 0.65rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--brand-color);
+            }
+
+            .term-status-label.warning {
+                color: var(--danger-color);
+                background: #fef2f2;
+                padding: 2px 6px;
+                border-radius: 4px;
+                border: 1px solid #fee2e2;
+            }
+
+            .term-week-label {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--text-primary);
             }
 
             /* Mobile Responsive */
@@ -327,15 +447,21 @@
                 .user-pill {
                     padding: 0;
                     border: none;
+                    background: transparent;
                 }
 
                 .user-pill:hover {
                     box-shadow: none;
-                    background: transparent;
+                    transform: none;
                 }
 
                 .user-meta {
                     display: none;
+                }
+
+                .brand-section:hover {
+                    background: transparent;
+                    transform: none;
                 }
             }
         </style>
@@ -345,7 +471,7 @@
             <a href="/" class="brand-section">
                 <!-- Fallback Logic matches original -->
                 <div class="logo-container">
-                    <img src="/images/header-logo.svg" alt="App Logo"
+                    <img src="/images/school-logo.png" alt="App Logo"
                         onerror="this.style.display='none'; this.parentElement.style.background='#4f46e5'; this.parentElement.innerHTML='<span style=\'color:white;font-weight:700;\'>4S</span>'">
                 </div>
 
@@ -362,42 +488,72 @@
             <div class="header-center" sec:authorize="isAuthenticated()">
                 <!-- Admin Context Selectors -->
                 <div class="context-toolbar" th:if="${isSchoolAdmin == true}">
-                    <!-- Session -->
-                    <form th:action="@{/admin/header/set-session}" method="post" style="margin: 0;">
+                    <!-- Session Custom Dropdown -->
+                    <form th:action="@{/admin/header/set-session}" method="post" id="sessionForm" style="margin: 0;">
                         <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}"
                             th:value="${_csrf.token}" />
-                        <div class="context-select-wrapper">
-                            <select name="sessionId" onchange="this.form.submit()" class="context-select"
+                        <input type="hidden" name="sessionId" id="sessionIdInput" />
+
+                        <div class="custom-dropdown" id="sessionDropdown">
+                            <div class="dropdown-trigger" onclick="toggleDropdown('sessionDropdown')"
                                 th:classappend="${headerContextSessionWarning == true ? 'warning' : ''}">
-                                <option th:if="${headerContextSession == null}" value="" disabled selected>Session
-                                </option>
-                                <option th:each="s : ${headerSessions}" th:value="${s.id}" th:text="${s.sessionName}"
-                                    th:selected="${headerContextSession != null && s.id == headerContextSession.id}">
-                                </option>
-                            </select>
-                            <i class="fas fa-chevron-down select-chevron"></i>
+                                <span
+                                    th:text="${headerContextSession != null ? headerContextSession.sessionName : 'Select Session'}">Session</span>
+                                <i class="fas fa-chevron-down arrow-icon"></i>
+                            </div>
+                            <div class="dropdown-menu">
+                                <div th:each="s : ${headerSessions}" class="dropdown-item"
+                                    th:classappend="${headerContextSession != null && s.id == headerContextSession.id} ? 'selected' : ''"
+                                    th:data-id="${s.id}"
+                                    onclick="submitContext('sessionForm', 'sessionIdInput', this.getAttribute('data-id'))">
+                                    <span th:text="${s.sessionName}"></span>
+                                    <i class="fas fa-check check-icon"></i>
+                                </div>
+                            </div>
                         </div>
                     </form>
 
-                    <!-- Term -->
+                    <!-- Term Custom Dropdown -->
                     <form th:if="${headerContextSession != null}" th:action="@{/admin/header/set-term}" method="post"
-                        style="margin: 0;">
+                        id="termForm" style="margin: 0;">
                         <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}"
                             th:value="${_csrf.token}" />
-                        <div class="context-select-wrapper">
-                            <select name="termId" onchange="this.form.submit()" class="context-select"
+                        <input type="hidden" name="termId" id="termIdInput" />
+
+                        <div class="custom-dropdown" id="termDropdown">
+                            <div class="dropdown-trigger" onclick="toggleDropdown('termDropdown')"
                                 th:classappend="${headerContextTermWarning == true ? 'warning' : ''}">
-                                <option th:if="${headerContextTerm == null}" value="" disabled selected>Term</option>
-                                <option th:each="t : ${headerTerms}" th:value="${t.id}" th:text="${t.termName}"
-                                    th:selected="${headerContextTerm != null && t.id == headerContextTerm.id}"></option>
-                            </select>
-                            <i class="fas fa-chevron-down select-chevron"></i>
+                                <span
+                                    th:text="${headerContextTerm != null ? headerContextTerm.termName : 'Select Term'}">Term</span>
+                                <i class="fas fa-chevron-down arrow-icon"></i>
+                            </div>
+                            <div class="dropdown-menu">
+                                <div th:each="t : ${headerTerms}" class="dropdown-item"
+                                    th:classappend="${headerContextTerm != null && t.id == headerContextTerm.id} ? 'selected' : ''"
+                                    th:data-id="${t.id}"
+                                    onclick="submitContext('termForm', 'termIdInput', this.getAttribute('data-id'))">
+                                    <span th:text="${t.termName}"></span>
+                                    <i class="fas fa-check check-icon"></i>
+                                </div>
+                            </div>
                         </div>
                     </form>
+
+                    <!-- Current Term & Week Indicator -->
+                    <div class="term-info-badge" th:if="${isCurrentTermSelected == true}">
+                        <span class="term-status-label">Current</span>
+                        <span class="term-week-label" th:text="'Week ' + ${currentWeekNumber}">Week 1</span>
+                    </div>
+
+                    <!-- Not Current Warning -->
+                    <div class="term-info-badge"
+                        th:if="${isCurrentTermSelected != true && headerContextTerm != null && headerContextTermWarning != true}">
+                        <span class="term-status-label warning">Not Current</span>
+                    </div>
 
                     <!-- Warning Indicator -->
                     <div th:if="${headerContextSessionWarning == true || headerContextTermWarning == true}"
-                        style="color: var(--danger-color); font-size: 1.1rem; animation: pulse 2s infinite;"
+                        style="color: var(--danger-color); font-size: 1.25rem; animation: pulse 2s infinite;"
                         title="Setup Required">
                         <i class="fas fa-exclamation-circle"></i>
                     </div>
@@ -561,6 +717,7 @@
                 }, true);
             })();
         </script>
+        <div th:replace="~{fragments/header-scripts :: script}"></div>
     </header>
 
 </body>
