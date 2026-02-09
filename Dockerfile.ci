@@ -18,20 +18,20 @@ COPY gradle.properties .
 # Fix gradle.properties for CI environment
 # 1. Remove hardcoded java.home (it will likely differ in CI)
 RUN sed -i '/org.gradle.java.home/d' gradle.properties
-# 2. Ensure distributionUrl points to the official URL (in case local config was committed)
-RUN sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
+# Ensure distributionUrl points to the official URL (in case local config was committed)
+RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
 RUN chmod +x gradlew
-RUN ./gradlew dependencies --no-daemon
+RUN ./gradlew dependencies -x test --no-daemon
 
 # Build native image
 COPY . .
 
 # Apply the same fixes again after copying full source (as it overwrites the previous files)
 RUN sed -i '/org.gradle.java.home/d' gradle.properties
-RUN sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
+RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
-RUN ./gradlew nativeCompile --no-daemon --stacktrace
+RUN ./gradlew nativeCompile -x test --no-daemon --stacktrace
 
 FROM debian:12-slim
 WORKDIR /app
