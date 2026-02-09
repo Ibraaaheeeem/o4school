@@ -16,9 +16,12 @@ COPY settings.gradle .
 COPY gradle.properties .
 
 # Fix gradle.properties for CI environment
-# 1. Remove hardcoded java.home (it will likely differ in CI)
-RUN sed -i '/org.gradle.java.home/d' gradle.properties
-# Ensure distributionUrl points to the official URL (in case local config was committed)
+# 1. Remove hardcoded java.home and memory-heavy settings
+RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
+    sed -i '/org.gradle.jvmargs/d' gradle.properties && \
+    sed -i '/kotlin.daemon.jvmargs/d' gradle.properties && \
+    sed -i '/org.gradle.parallel/d' gradle.properties
+# 2. Ensure distributionUrl points to the official URL
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
 RUN chmod +x gradlew
@@ -28,10 +31,13 @@ RUN ./gradlew dependencies -x test --no-daemon
 COPY . .
 
 # Apply the same fixes again after copying full source (as it overwrites the previous files)
-RUN sed -i '/org.gradle.java.home/d' gradle.properties
+RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
+    sed -i '/org.gradle.jvmargs/d' gradle.properties && \
+    sed -i '/kotlin.daemon.jvmargs/d' gradle.properties && \
+    sed -i '/org.gradle.parallel/d' gradle.properties
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
-RUN ./gradlew nativeCompile -x test --no-daemon --stacktrace
+RUN ./gradlew nativeCompile -x test --no-daemon --info
 
 FROM debian:12-slim
 WORKDIR /app
