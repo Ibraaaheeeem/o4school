@@ -2,7 +2,9 @@ FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 # Install build essentials and dependencies
 # We need findutils for xargs which gradlew uses
-RUN microdnf install -y findutils
+# gcc and zlib-devel are required for native image compilation
+RUN microdnf update -y && microdnf install -y findutils gcc zlib-devel tar gzip
+ENV CI=true
 
 WORKDIR /app
 
