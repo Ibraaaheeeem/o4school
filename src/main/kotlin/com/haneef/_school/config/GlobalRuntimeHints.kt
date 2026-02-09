@@ -137,17 +137,6 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
                     MemberCategory.INVOKE_PUBLIC_METHODS, 
                     MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                     MemberCategory.DECLARED_FIELDS)
-        }
-        
-        // 10. Register Flyway Configuration Extensions for Reflection
-        listOf(
-            "org.flywaydb.core.internal.configuration.extensions.DeployScriptFilenameConfigurationExtension"
-        ).forEach { className ->
-            try {
-                hints.reflection().registerType(Class.forName(className), 
-                    MemberCategory.INVOKE_PUBLIC_METHODS,
-                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
-                    MemberCategory.DECLARED_FIELDS)
             } catch (e: Exception) {}
         }
     }
