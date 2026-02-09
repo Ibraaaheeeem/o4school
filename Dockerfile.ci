@@ -20,7 +20,9 @@ COPY gradle.properties .
 RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
     sed -i '/org.gradle.jvmargs/d' gradle.properties && \
     sed -i '/kotlin.daemon.jvmargs/d' gradle.properties && \
-    sed -i '/org.gradle.parallel/d' gradle.properties
+    sed -i '/org.gradle.parallel/d' gradle.properties && \
+    sed -i '/org.gradle.configuration-cache/d' gradle.properties && \
+    sed -i '/org.gradle.caching/d' gradle.properties
 # 2. Ensure distributionUrl points to the official URL
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
