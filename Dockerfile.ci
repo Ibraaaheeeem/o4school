@@ -31,7 +31,7 @@ COPY . .
 RUN sed -i '/org.gradle.java.home/d' gradle.properties
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
-RUN ./gradlew nativeCompile --no-daemon
+RUN ./gradlew nativeCompile --no-daemon --stacktrace
 
 FROM debian:12-slim
 WORKDIR /app
