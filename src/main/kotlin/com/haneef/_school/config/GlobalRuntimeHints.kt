@@ -139,5 +139,20 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
                     MemberCategory.DECLARED_FIELDS)
             } catch (e: Exception) {}
         }
+
+        // 10. Register PostgreSQL Dialect and Hibernate internals for Native
+        val hibernateInternals = listOf(
+            "org.hibernate.dialect.PostgreSQLDialect",
+            "org.hibernate.dialect.DatabaseVersion",
+            "com.haneef._school.config.GlobalRuntimeHints"
+        )
+        hibernateInternals.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS)
+            } catch (e: Exception) {}
+        }
     }
 }
