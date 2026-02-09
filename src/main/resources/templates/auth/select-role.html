@@ -19,7 +19,7 @@
         <!-- School Branding -->
         <div class="auth-header">
             <div class="school-brand">
-                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 42px; width: auto;">
             </div>
         </div>
 
@@ -37,46 +37,103 @@
             </div>
 
             <form th:action="@{/select-role}" method="post" class="auth-form" id="roleForm">
-                <div class="role-list">
-                    <div th:each="userSchoolRole : ${userRoles}" class="role-option">
-                        <input type="radio" th:id="'role-' + ${userSchoolRole.role?.id}" name="roleSelection"
-                            th:value="${userSchoolRole.role?.id} + '|' + ${userSchoolRole.role?.name}" required>
-
-                        <label th:for="'role-' + ${userSchoolRole.role?.id}" class="role-card">
-                            <div class="role-info">
-                                <h3 th:text="${userSchoolRole.role?.name}">Role Name</h3>
-                                <p th:text="${userSchoolRole.role?.description}">Role Description</p>
-                                <div class="role-icon">
-                                    <span th:switch="${userSchoolRole.role?.name}">
-                                        <span th:case="'SYSTEM_ADMIN'">👨‍💼</span>
-                                        <span th:case="'System Administrator'">👨‍💼</span>
-                                        <span th:case="'SCHOOL_ADMIN'">🏫</span>
-                                        <span th:case="'PRINCIPAL'">🏫</span>
-                                        <span th:case="'Principal'">🏫</span>
-                                        <span th:case="'TEACHER'">👨‍🏫</span>
-                                        <span th:case="'Teacher'">👨‍🏫</span>
-                                        <span th:case="'STAFF'">👨‍💼</span>
-                                        <span th:case="'Staff'">👨‍💼</span>
-                                        <span th:case="'PARENT'">👨‍👩‍👧‍👦</span>
-                                        <span th:case="'Parent'">👨‍👩‍👧‍👦</span>
-                                        <span th:case="'STUDENT'">👨‍🎓</span>
-                                        <span th:case="'Student'">👨‍🎓</span>
-                                        <span th:case="*">👤</span>
-                                    </span>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
                 <input type="hidden" name="roleId" id="roleId">
                 <input type="hidden" name="roleName" id="roleName">
 
-                <button type="submit" class="auth-btn primary">
-                    <span>Continue</span>
-                    <i class="btn-icon">→</i>
-                </button>
+                <div class="role-list">
+                    <div th:each="userSchoolRole : ${userRoles}" class="role-option">
+                        <!-- Clickable container -->
+                        <div class="role-card-wrapper"
+                            th:onclick="selectRole([[${userSchoolRole.role?.id}]], [[${userSchoolRole.role?.name}]])">
+
+                            <div class="role-card-content">
+                                <div class="role-info">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <h3 th:text="${userSchoolRole.role?.name}">Role Name</h3>
+                                        <div class="role-icon">
+                                            <span th:switch="${userSchoolRole.role?.name}">
+                                                <span th:case="'SYSTEM_ADMIN'">👨‍💼</span>
+                                                <span th:case="'System Administrator'">👨‍💼</span>
+                                                <span th:case="'SCHOOL_ADMIN'">🏫</span>
+                                                <span th:case="'PRINCIPAL'">🏫</span>
+                                                <span th:case="'Principal'">🏫</span>
+                                                <span th:case="'TEACHER'">👨‍🏫</span>
+                                                <span th:case="'Teacher'">👨‍🏫</span>
+                                                <span th:case="'STAFF'">👨‍💼</span>
+                                                <span th:case="'Staff'">👨‍💼</span>
+                                                <span th:case="'PARENT'">👨‍👩‍👧‍👦</span>
+                                                <span th:case="'Parent'">👨‍👩‍👧‍👦</span>
+                                                <span th:case="'STUDENT'">👨‍🎓</span>
+                                                <span th:case="'Student'">👨‍🎓</span>
+                                                <span th:case="*">👤</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p th:text="${userSchoolRole.role?.description}">Role Description</p>
+                                    <span class="click-hint">Click to continue →</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </form>
+
+            <style>
+                .role-card-wrapper {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 1.25rem;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    margin-bottom: 1rem;
+                }
+
+                .role-card-wrapper:hover {
+                    border-color: #3b82f6;
+                    background: #eff6ff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }
+
+                .role-card-wrapper h3 {
+                    margin: 0 0 0.5rem 0;
+                    font-size: 1.1rem;
+                    color: #1e293b;
+                }
+
+                .role-card-wrapper p {
+                    margin: 0;
+                    color: #64748b;
+                    font-size: 0.9rem;
+                }
+
+                .role-icon {
+                    font-size: 1.5rem;
+                }
+
+                .click-hint {
+                    display: inline-block;
+                    margin-top: 0.75rem;
+                    font-size: 0.8rem;
+                    color: #3b82f6;
+                    font-weight: 500;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+
+                .role-card-wrapper:hover .click-hint {
+                    opacity: 1;
+                }
+            </style>
+
+            <script>
+                function selectRole(id, name) {
+                    document.getElementById('roleId').value = id;
+                    document.getElementById('roleName').value = name;
+                    document.getElementById('roleForm').submit();
+                }
+            </script>
 
             <!-- Alternative Actions -->
             <div class="auth-links">
@@ -91,16 +148,7 @@
                 </p>
             </div>
 
-            <script>
-                document.getElementById('roleForm').addEventListener('submit', function (e) {
-                    const selectedRole = document.querySelector('input[name="roleSelection"]:checked');
-                    if (selectedRole) {
-                        const [roleId, roleName] = selectedRole.value.split('|');
-                        document.getElementById('roleId').value = roleId;
-                        document.getElementById('roleName').value = roleName;
-                    }
-                });
-            </script>
+
         </div>
     </div>
 </body>

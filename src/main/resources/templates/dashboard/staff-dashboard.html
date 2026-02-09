@@ -9,6 +9,7 @@
     <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
     <!-- Include CSRF JavaScript -->
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
 </head>
@@ -58,47 +59,21 @@
                 </span>
             </a>
 
-            <div class="dashboard-card">
+            <a href="/staff/reports/class" class="dashboard-card">
                 <div class="card-header">
-                    <span class="card-title">My Students</span>
-                    <div class="card-icon"><i class="fas fa-user-graduate"></i></div>
+                    <span class="card-title">Class Reports</span>
+                    <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
                 </div>
-                <div class="card-value" th:text="${studentCount ?: 0}">0</div>
+                <div class="card-value" style="font-size: 1.5rem; color: #64748b;"><i class="fas fa-list-check"></i>
+                </div>
                 <div class="card-trend">
-                    <span class="trend-neutral">Total Students</span>
+                    <span class="trend-neutral">Manage Assessments</span>
                 </div>
                 <span class="card-link">
-                    View Students <i class="fas fa-arrow-right"></i>
+                    View Reports <i class="fas fa-arrow-right"></i>
                 </span>
-            </div>
+            </a>
 
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <span class="card-title">Pending Tasks</span>
-                    <div class="card-icon"><i class="fas fa-tasks"></i></div>
-                </div>
-                <div class="card-value" th:text="${pendingTasks ?: 0}">0</div>
-                <div class="card-trend">
-                    <span class="trend-neutral">Tasks Due</span>
-                </div>
-                <span class="card-link">
-                    View Tasks <i class="fas fa-arrow-right"></i>
-                </span>
-            </div>
-
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <span class="card-title">Recent Grades</span>
-                    <div class="card-icon"><i class="fas fa-chart-bar"></i></div>
-                </div>
-                <div class="card-value" th:text="${recentGrades ?: 0}">0</div>
-                <div class="card-trend">
-                    <span class="trend-neutral">Entered this week</span>
-                </div>
-                <span class="card-link">
-                    Gradebook <i class="fas fa-arrow-right"></i>
-                </span>
-            </div>
         </div>
 
         <!-- Your Recent Activity Widget -->
@@ -106,7 +81,7 @@
             <div class="section-header">
                 <h2 class="section-title">Recent Activity</h2>
             </div>
-            <div th:replace="~{fragments/activity-widget :: user-activity-widget}" th:attr="data-user-id=${user?.id}">
+            <div th:replace="~{fragments/activity-widget :: user-activity-widget(userId=${user?.id})}">
             </div>
         </div>
     </div>

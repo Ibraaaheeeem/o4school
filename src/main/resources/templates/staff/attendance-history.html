@@ -137,13 +137,12 @@
 
     <script th:inline="javascript">
         window.goBackToAttendanceTab = function () {
-            const activeClassItem = document.querySelector('.class-item.active');
+            const activeClassItem = document.querySelector('.class-card.active');
             if (activeClassItem && typeof loadClassDetails === 'function') {
-                loadClassDetails(activeClassItem);
-                setTimeout(() => {
+                loadClassDetails(activeClassItem).then(() => {
                     const attendanceTab = document.querySelector('[data-tab="attendance"]');
                     if (attendanceTab) attendanceTab.click();
-                }, 500);
+                });
             }
         };
     </script>

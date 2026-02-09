@@ -41,17 +41,15 @@
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline" 
-                                th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}"
-                                hx-target="#staffModal .modal-dialog"
-                                hx-swap="innerHTML"
-                                th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'">
+                        <button class="btn btn-sm btn-outline"
+                            th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}"
+                            hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
+                            th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'">
                             Edit
                         </button>
-                        <button class="btn btn-sm btn-danger" 
-                                th:data-staff-id="${staff.id}"
-                                th:data-staff-name="${staff.user.fullName}"
-                                onclick="confirmDelete(this.dataset.staffId, this.dataset.staffName)">
+                        <button class="btn btn-sm btn-danger" th:data-staff-id="${staff.id}"
+                            th:data-staff-name="${staff.user.fullName}"
+                            onclick="confirmDeleteStaff(this.dataset.staffId, this.dataset.staffName)">
                             Delete
                         </button>
                     </div>
@@ -64,11 +62,8 @@
         <div class="empty-icon">👨‍🏫</div>
         <h3>No Staff Members Found</h3>
         <p>Start by adding your first staff member to the system.</p>
-        <button class="btn btn-primary" 
-                hx-get="/admin/community/staff/new/modal"
-                hx-target="#staffModal .modal-dialog"
-                hx-swap="innerHTML"
-                hx-on::after-request="openModal('staffModal')">
+        <button class="btn btn-primary" hx-get="/admin/community/staff/new/modal" hx-target="#staffModal .modal-dialog"
+            hx-swap="innerHTML" hx-on::after-request="openModal('staffModal')">
             Add First Staff Member
         </button>
     </div>

@@ -23,16 +23,7 @@
                         <input type="text" id="eventName" name="eventName" class="form-input"
                             th:value="${calendarEvent.eventName}" placeholder="e.g., First Term Examination" required>
                     </div>
-                    <div class="form-group">
-                        <label for="sessionId">Academic Session *</label>
-                        <select id="sessionId" name="sessionId" class="form-input" required>
-                            <option value="">Select Academic Session</option>
-                            <option th:each="academicSession : ${academicSessions}" th:value="${academicSession.id}"
-                                th:text="${academicSession.sessionName}"
-                                th:selected="${isEdit && calendarEvent.session.id == academicSession.id}">
-                            </option>
-                        </select>
-                    </div>
+
                     <div class="form-group">
                         <label for="eventType">Event Type *</label>
                         <select id="eventType" name="eventType" class="form-input" required>
@@ -42,6 +33,12 @@
                             </option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-input" rows="3"
+                            th:text="${calendarEvent.description}"
+                            placeholder="Additional details about this event"></textarea>
+                    </div>
                 </div>
             </div>
 
@@ -50,53 +47,23 @@
                 <h4>Event Dates</h4>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="startDate">Start Date *</label>
-                        <input type="date" id="startDate" name="startDate" class="form-input"
-                            th:value="${calendarEvent.startDate}" required>
+                        <label for="startDate">Start Date <span class="text-xs text-muted">(dd/mm/yyyy)</span> *</label>
+                        <input type="text" id="startDate" name="startDate" class="form-input"
+                            th:value="${calendarEvent.startDate != null ? #temporals.format(calendarEvent.startDate, 'dd/MM/yyyy') : ''}"
+                            placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" title="Format: dd/MM/yyyy" required>
                     </div>
                     <div class="form-group">
-                        <label for="endDate">End Date</label>
-                        <input type="date" id="endDate" name="endDate" class="form-input"
-                            th:value="${calendarEvent.endDate}">
+                        <label for="endDate">End Date <span class="text-xs text-muted">(dd/mm/yyyy)</span></label>
+                        <input type="text" id="endDate" name="endDate" class="form-input"
+                            th:value="${calendarEvent.endDate != null ? #temporals.format(calendarEvent.endDate, 'dd/MM/yyyy') : ''}"
+                            placeholder="dd/MM/yyyy" pattern="\d{2}/\d{2}/\d{4}" title="Format: dd/MM/yyyy">
                         <small class="form-help">Leave empty for single-day events</small>
                     </div>
                 </div>
             </div>
 
             <!-- Event Settings -->
-            <div class="form-section">
-                <h4>Event Settings</h4>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="isHoliday" value="true"
-                                th:checked="${calendarEvent.isHoliday}">
-                            <span class="checkmark"></span>
-                            Holiday Period
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="isExamPeriod" value="true"
-                                th:checked="${calendarEvent.isExamPeriod}">
-                            <span class="checkmark"></span>
-                            Examination Period
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label for="color">Event Color</label>
-                        <input type="color" id="color" name="color" class="form-input"
-                            th:value="${calendarEvent.color ?: '#3b82f6'}">
-                    </div>
-                </div>
 
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea id="description" name="description" class="form-input" rows="3"
-                        th:text="${calendarEvent.description}"
-                        placeholder="Additional details about this event"></textarea>
-                </div>
-            </div>
         </div>
 
         <div class="modal-footer">

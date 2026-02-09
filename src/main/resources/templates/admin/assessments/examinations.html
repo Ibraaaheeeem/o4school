@@ -131,178 +131,29 @@
 
 
                     <input type="hidden" id="totalFilteredCount" th:value="${totalElements ?: 0}">
-                    <div class="examinations-grid" th:if="${!#lists.isEmpty(examinations)}">
-                        <div th:each="examination : ${examinations}" class="examination-card"
-                            th:fragment="examination-card">
-                            <div class="title-section">
-                                <h3 class="examination-title" th:text="${examination.title}">First Term CA 1
-                                    2024/2025
-                                </h3>
-                                <div class="examination-meta">
-
-                                    <span class="meta-item">
-                                        <i class="fas fa-users"></i>
-                                        <span th:text="${examination.schoolClass.className}">Class Name</span>
-                                    </span>
-                                    <span class="meta-item">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        <span
-                                            th:text="${examination.term.termName + ' • ' + examination.academicSession.sessionName}">First
-                                            Term
-                                            •
-                                            2024-2025</span>
-                                    </span>
-                                </div>
-                                <div class="examination-meta" style="margin-top: 0.25rem;">
-                                    <span class="info-value">
-                                        <span class="exam-type-badge" th:text="${examination.examType}"
-                                            th:class="'badge badge-' + ${#strings.toLowerCase(#strings.replace(examination.examType, ' ', '-'))}">Assignment</span>
-                                        <span class="exam-mode-badge"
-                                            th:classappend="${examination.isOnline ? 'badge-online' : 'badge-offline'}">
-                                            <i
-                                                th:class="${examination.isOnline ? 'fas fa-laptop-code' : 'fas fa-file-alt'}"></i>
-                                            <span th:text="${examination.isOnline ? 'Online' : 'Offline'}">Mode</span>
-                                        </span>
-                                    </span>
-                                </div>
+                    <div class="examinations-grid" id="examinationsGrid">
+                        <!-- Loop in the main view -->
+                        <th:block th:each="examination : ${examinations}">
+                            <div
+                                th:replace="~{admin/assessments/examinations :: examination-card(examination=${examination}, swapOob='false')}">
                             </div>
+                        </th:block>
+                    </div>
 
-                            <!-- Card Body -->
-                            <div class="examination-body">
-                                <!-- Primary Information Grid -->
-                                <div class="info-grid">
-                                    <div class="info-section">
-                                        <h4 class="section-title">
-                                            <i class="fas fa-clock"></i>
-                                            Timing & Duration
-                                        </h4>
-                                        <div class="info-rows">
-                                            <div class="info-row">
-                                                <span class="info-label">
-                                                    <i class="fas fa-hourglass-half"></i>
-                                                    Duration:
-                                                </span>
-                                                <span class="info-value">
-                                                    <span class="duration-badge"
-                                                        th:text="${examination.durationMinutes + ' minutes'}">60
-                                                        minutes</span>
-                                                </span>
-                                            </div>
-                                            <div class="info-row" th:if="${examination.startTime != null}">
-                                                <span class="info-label">
-                                                    <i class="fas fa-play"></i>
-                                                    Start Time:
-                                                </span>
-                                                <span class="info-value"
-                                                    th:text="${#temporals.format(examination.startTime, 'dd MMM yyyy, HH:mm')}">01
-                                                    Jan 2025, 09:00</span>
-                                            </div>
-                                            <div class="info-row" th:if="${examination.endTime != null}">
-                                                <span class="info-label">
-                                                    <i class="fas fa-stop"></i>
-                                                    End Time:
-                                                </span>
-                                                <span class="info-value"
-                                                    th:text="${#temporals.format(examination.endTime, 'dd MMM yyyy, HH:mm')}">01
-                                                    Jan 2025, 11:00</span>
-                                            </div>
-                                            <div class="info-row"
-                                                th:if="${examination.startTime == null and examination.endTime == null}">
-                                                <span class="info-label">
-                                                    <i class="fas fa-calendar-times"></i>
-                                                    Schedule:
-                                                </span>
-                                                <span class="info-value text-muted">Not scheduled</span>
-                                            </div>
-                                            <div class="info-row">
-                                                <span class="info-label">
-                                                    <i class="fas fa-question-circle"></i>
-                                                    Questions:
-                                                </span>
-                                                <span class="info-value">
-                                                    <span class="questions-badge"
-                                                        th:classappend="${(examination.questions != null ? #lists.size(examination.questions) : 0) == 0 ? 'badge-warning' : 'badge-info'}"
-                                                        th:text="${examination.questions != null ? #lists.size(examination.questions) : 0}">0</span>
-                                                    <span class="text-muted">questions</span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Card Footer with Action Buttons -->
-                            <div class="examination-footer">
-                                <div class="footer-actions">
-                                    <!-- View Submissions Button -->
-                                    <div class="primary-actions">
-                                        <button type="button" class="btn btn-info btn-action btn-view-submissions"
-                                            title="View and Manage Submissions"
-                                            th:hx-get="@{/admin/assessments/examinations/{id}/submissions(id=${examination.id})}"
-                                            hx-target="#examinationModal" hx-swap="innerHTML" hx-trigger="click">
-                                            <i class="fas fa-file-alt"></i>
-                                            <span>View Submissions</span>
-                                            <span class="submission-count"
-                                                th:id="'exam-submission-count-' + ${examination.id}"
-                                                th:text="'(' + ${examination.submissionCount} + ')'">(0)</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Status Indicators Bar -->
-                            <div class="examination-status-bar">
-                                <div class="indicator-group">
-                                    <!-- Question Status -->
-                                    <a th:href="@{/admin/assessments/examinations/{id}/questions(id=${examination.id})}"
-                                        class="status-indicator"
-                                        th:classappend="${(examination.questions != null ? #lists.size(examination.questions) : 0) > 0 ? 'status-good' : 'status-warning'}"
-                                        th:title="${(examination.questions != null ? #lists.size(examination.questions) : 0) > 0 ? 'Questions added' : 'No questions added'}">
-                                        <i class="fas fa-question-circle"></i>
-                                    </a>
-
-                                    <!-- Schedule Status -->
-                                    <button class="status-indicator"
-                                        th:hx-get="@{/admin/assessments/examinations/{id}/modal(id=${examination.id})}"
-                                        hx-target="#examinationModal" hx-swap="innerHTML"
-                                        th:classappend="${examination.startTime != null ? 'status-good' : 'status-neutral'}"
-                                        th:title="${examination.startTime != null ? 'Scheduled' : 'Not scheduled'}">
-                                        <i class="fas fa-calendar-check"></i>
-                                    </button>
-
-                                    <!-- Marks Status -->
-                                    <button class="status-indicator"
-                                        th:hx-get="@{/admin/assessments/examinations/{id}/modal(id=${examination.id})}"
-                                        hx-target="#examinationModal" hx-swap="innerHTML"
-                                        th:classappend="${examination.totalMarks != null ? 'status-good' : 'status-neutral'}"
-                                        th:title="${examination.totalMarks != null ? 'Marks configured' : 'Marks not set'}">
-                                        <i class="fas fa-star"></i>
-                                    </button>
-
-                                    <!-- Publication Status -->
-                                    <button class="status-indicator" th:id="'publish-btn-' + ${examination.id}"
-                                        th:fragment="publish-button"
-                                        th:hx-post="@{/admin/assessments/examinations/{id}/{action}(id=${examination.id}, action=${examination.isPublished ? 'unpublish' : 'publish'})}"
-                                        hx-target="this" hx-swap="outerHTML"
-                                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-                                        th:classappend="${examination.isPublished != null and examination.isPublished == true ? 'status-published' : 'status-draft'}"
-                                        th:title="${examination.isPublished != null and examination.isPublished == true ? 'Click to unpublish (make draft)' : 'Click to publish (make visible to students)'}">
-                                        <i
-                                            th:class="${examination.isPublished != null and examination.isPublished == true ? 'fas fa-eye' : 'fas fa-eye-slash'}"></i>
-                                    </button>
-
-                                    <div class="flex-grow-1"></div>
-
-                                    <!-- Delete Action -->
-                                    <button class="status-indicator status-danger" th:data-id="${examination.id}"
-                                        onclick="deleteExamination(this.getAttribute('data-id'))"
-                                        title="Delete Examination">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
+                    <div th:if="${#lists.isEmpty(examinations)}" class="empty-state">
+                        <div class="empty-icon">
+                            <i class="feather-inbox"></i>
                         </div>
-                    </div> <!-- End of examinations-grid -->
+                        <h3>No Examinations Found</h3>
+                        <p>Get started by creating a new examination for this class.</p>
+                        <button class="btn btn-primary" hx-get="/admin/assessments/examinations/new/modal"
+                            hx-target="#examinationModal" hx-trigger="click" data-bs-toggle="modal"
+                            data-bs-target="#examinationModal">
+                            <i class="feather-plus"></i> Create Examination
+                        </button>
+                    </div>
+
+
 
                     <!-- Pagination Controls -->
                     <div class="pagination-container" th:if="${totalPages > 1}">
@@ -332,16 +183,12 @@
                         </div>
                     </div>
 
-                    <div class="empty-state" th:if="${#lists.isEmpty(examinations)}">
-                        <div class="empty-icon">📝</div>
-                        <h3>No Examinations</h3>
-                        <p>Create your first examination to get started.</p>
-                        <button class="btn btn-primary" hx-get="/admin/assessments/examinations/new/modal"
-                            hx-target="#examinationModal" hx-swap="innerHTML">
-                            Create Examination
-                        </button>
-                    </div>
-                </div> <!-- End of examinations-list fragment -->
+
+
+                    <!-- OOB Scritp Target -->
+                    <div id="response-script"></div>
+
+                </div> <!-- End examinations-list -->
             </div>
         </div>
 
@@ -357,15 +204,6 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
     <script>
-        console.log('Examinations script starting...');
-
-        // Global filter state
-        let filterState = {
-            track: '',
-            class: '',
-            examType: ''
-        };
-
         // --- Utility Functions ---
 
         function toggleDropdown(button) {
@@ -395,6 +233,15 @@
                 console.error('Error in toggleDropdown:', error);
             }
         }
+
+        console.log('Examinations script starting...');
+
+        // Global filter state
+        let filterState = {
+            track: '',
+            class: '',
+            examType: ''
+        };
 
         function showNotification(message, type = 'info') {
             try {
@@ -1017,7 +864,122 @@
             </button>
         </div>
     </div>
-    </div>
+
+    <!-- Reusable Fragments (not rendered directly) -->
+    <th:block th:if="false">
+        <!-- Reusable Card Fragment -->
+        <!-- Reusable Card Fragment -->
+        <div th:fragment="examination-card(examination, swapOob)" class="examination-card dashboard-card"
+            th:id="'examination-card-' + ${examination.id}" th:attr="hx-swap-oob=${swapOob}">
+
+            <!-- Left Icon -->
+            <div class="card-icon-wrapper">
+                <div class="card-icon-large">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+            </div>
+
+            <!-- Central Info -->
+            <div class="card-info-central">
+                <div class="title-badge-row">
+                    <h3 class="card-title-text" th:text="${examination.title}">First Term CA 1</h3>
+                    <div class="badge-group">
+                        <button class="card-badge clickable"
+                            th:classappend="${examination.isPublished ? 'published' : 'draft'}"
+                            th:hx-post="@{/admin/assessments/examinations/{id}/{action}(id=${examination.id}, action=${examination.isPublished ? 'unpublish' : 'publish'})}"
+                            hx-target="closest .examination-card" hx-swap="outerHTML"
+                            th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                            th:title="${examination.isPublished ? 'Click to unpublish' : 'Click to publish'}"
+                            th:text="${examination.isPublished ? 'PUBLISHED' : 'DRAFT'}">
+                            PUBLISHED
+                        </button>
+                        <span class="card-badge mode" th:classappend="${examination.isOnline ? 'online' : 'offline'}"
+                            th:text="${examination.isOnline ? 'ONLINE (CBT)' : 'PAPER / OFFLINE'}">
+                            ONLINE (CBT)
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-meta-rows">
+                    <!-- Subject & Class Row -->
+                    <div class="card-meta-row">
+                        <span class="card-meta-item">
+                            <i class="fas fa-book"></i>
+                            <span th:text="${examination.subject.subjectName}">Mathematics</span>
+                        </span>
+                        <span class="card-meta-separator">•</span>
+                        <span class="card-meta-item">
+                            <i class="fas fa-users"></i>
+                            <span th:text="${examination.schoolClass.className}">JSS 1</span>
+                        </span>
+                    </div>
+
+                    <!-- Type & Duration Row -->
+                    <div class="card-meta-row">
+                        <span class="card-meta-item">
+                            <i class="fas fa-tag"></i>
+                            <span th:text="${examination.examType}">Assignment</span>
+                        </span>
+                        <span class="card-meta-item">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span th:text="${examination.durationMinutes + ' mins'}">60 mins</span>
+                        </span>
+                    </div>
+
+                    <!-- Marks & Questions Row -->
+                    <div class="card-meta-row">
+                        <span class="card-meta-item">
+                            <i class="fas fa-star"></i>
+                            <span th:text="${examination.totalMarks + ' marks'}">45 marks</span>
+                        </span>
+                        <span class="card-meta-item">
+                            <i class="fas fa-list-ol"></i>
+                            <span
+                                th:text="${(examination.questions != null ? #lists.size(examination.questions) : 0) + ' questions'}">5
+                                questions</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Actions -->
+            <div class="card-actions-right">
+                <a th:href="@{/admin/assessments/examinations/{id}/questions(id=${examination.id})}"
+                    class="btn-row-action primary" title="Manage Questions">
+                    <i class="fas fa-list-ol"></i> Questions
+                </a>
+
+                <button class="btn-row-action secondary"
+                    th:hx-get="@{/admin/assessments/examinations/{id}/submissions(id=${examination.id})}"
+                    hx-target="#examinationModal" hx-trigger="click" data-bs-toggle="modal"
+                    data-bs-target="#examinationModal">
+                    <i class="fas fa-file-signature"></i> Submissions
+                    <span th:text="'(' + ${examination.submissionCount ?: 0} + ')'" class="count-bubble">(0)</span>
+                </button>
+
+                <div class="util-actions">
+                    <button class="btn-util-icon edit" title="Edit Settings"
+                        th:hx-get="@{/admin/assessments/examinations/{id}/edit(id=${examination.id})}"
+                        hx-target="#examinationModal" data-bs-toggle="modal" data-bs-target="#examinationModal">
+                        <i class="fas fa-edit"></i>
+                    </button>
+
+                    <button class="btn-util-icon danger" title="Delete" th:data-id="${examination.id}"
+                        onclick="deleteExamination(this.getAttribute('data-id'))">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HTMX Response Fragment for Save -->
+        <th:block th:fragment="examination-save-response">
+            <!-- The Card with OOB -->
+            <div class="examination-card"
+                th:replace="~{admin/assessments/examinations :: examination-card (examination=${examination}, swapOob=${isNew == true ? 'afterbegin:#examinationsGrid' : 'true'})}">
+            </div>
+        </th:block>
+    </th:block>
 
 </body>
 

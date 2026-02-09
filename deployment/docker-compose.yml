@@ -14,6 +14,9 @@ services:
       - DB_URL=jdbc:postgresql://4school_db:5432/j4school
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
+      - ELEARNER_DB_URL=jdbc:postgresql://4school_db:5432/elearner
+      - ELEARNER_DB_USERNAME=${DB_USERNAME}
+      - ELEARNER_DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}
       - PAYSTACK_PUBLIC_KEY=${PAYSTACK_PUBLIC_KEY}
@@ -39,6 +42,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - school_network
 

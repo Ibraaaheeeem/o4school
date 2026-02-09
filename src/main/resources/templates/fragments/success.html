@@ -1,24 +1,40 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <body>
     <div th:fragment="success-message" class="success-response">
+        <div class="modal-header">
+            <h3>Success</h3>
+            <button class="close-modal" onclick="closeAllModals()">&times;</button>
+        </div>
+        <div class="modal-body text-center p-5">
+            <div class="success-icon mb-4" style="font-size: 3rem; color: #10b981;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h4 th:text="${message}" style="margin-bottom: 20px;">Success!</h4>
+            <p class="text-muted">The record has been saved successfully.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="closeAllModals()">Close</button>
+        </div>
+        <script>
+            // Auto-close after a delay if desired, but keep it manual-friendly
+            setTimeout(() => {
+                // For now, let's just make it reliable and trigger refresh
+                console.log('Success received, triggering background refresh');
+                document.body.dispatchEvent(new CustomEvent('refreshCommunityList'));
+            }, 500);
+        </script>
+    </div>
+
+    <!-- OOB Success Message (No Reload) -->
+    <div th:fragment="oob-success-message" class="success-response">
         <div class="alert alert-success">
             <i class="fas fa-check-circle me-2"></i>
             <span th:text="${message}">Success!</span>
         </div>
-        <script>
-            // Close modal and refresh page after short delay
-            setTimeout(() => {
-                if (window.closeModal) {
-                    // Close all possible modals
-                    window.closeModal('staffModal');
-                    window.closeModal('studentModal');
-                    window.closeModal('parentModal');
-                }
-                // Refresh page to update counts
-                window.location.reload();
-            }, 1500);
-        </script>
+        <!-- Script specifically triggers modal close via event dispatcher or assumes parent handles it -->
     </div>
 </body>
+
 </html>

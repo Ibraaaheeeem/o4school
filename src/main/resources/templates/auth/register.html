@@ -19,7 +19,7 @@
         <!-- School Branding -->
         <div class="auth-header">
             <div class="school-brand">
-                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 42px; width: auto;">
             </div>
         </div>
 
@@ -41,24 +41,23 @@
                 style="background: #ecfdf5; color: #065f46; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #10b981;"
                 th:text="${success}"></div>
 
-            <form class="auth-form" th:action="@{/auth/register}" method="post">
+            <form class="auth-form" th:action="@{/auth/register}" th:object="${registrationDto}" method="post">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" name="firstName" required placeholder="Enter first name"
+                        <input type="text" th:field="*{firstName}" required placeholder="Enter first name"
                             class="form-input">
                     </div>
                     <div class="form-group">
                         <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" name="lastName" required placeholder="Enter last name"
+                        <input type="text" th:field="*{lastName}" required placeholder="Enter last name"
                             class="form-input">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" required placeholder="Enter your email"
-                        class="form-input">
+                    <input type="email" th:field="*{email}" required placeholder="Enter your email" class="form-input">
                 </div>
 
                 <div class="form-group">
@@ -78,7 +77,7 @@
                         <input type="tel" id="localPhoneNumber" required placeholder="8012345678" class="form-input"
                             style="flex: 1;">
                     </div>
-                    <input type="hidden" id="phoneNumber" name="phoneNumber">
+                    <input type="hidden" th:field="*{phoneNumber}">
                     <small class="input-help">Leading zeros are automatically removed</small>
                 </div>
 
@@ -87,6 +86,20 @@
                         const countryCodeSelect = document.getElementById('countryCode');
                         const localPhoneInput = document.getElementById('localPhoneNumber');
                         const hiddenPhoneInput = document.getElementById('phoneNumber');
+
+                        // Repopulate phone fields if value exists (e.g. after error)
+                        if (hiddenPhoneInput.value) {
+                            const fullNumber = hiddenPhoneInput.value;
+                            // Check which country code matches
+                            for (let i = 0; i < countryCodeSelect.options.length; i++) {
+                                const code = countryCodeSelect.options[i].value;
+                                if (fullNumber.startsWith(code)) {
+                                    countryCodeSelect.value = code;
+                                    localPhoneInput.value = fullNumber.substring(code.length);
+                                    break;
+                                }
+                            }
+                        }
 
                         function updatePhoneNumber() {
                             let localNumber = localPhoneInput.value.replace(/\D/g, ''); // Remove non-digits
@@ -174,7 +187,7 @@
 
                 <div class="form-group">
                     <label for="role">Account Type</label>
-                    <select id="role" name="role" class="form-input" onchange="toggleSchoolCode()">
+                    <select th:field="*{role}" class="form-input" onchange="toggleSchoolCode()">
                         <option value="STAFF">Staff</option>
                         <option value="PARENT">Parent</option>
                         <option value="SCHOOL_ADMIN">School Admin</option>
@@ -183,8 +196,8 @@
 
                 <div id="schoolCodeGroup" class="form-group" style="display: none;">
                     <label for="schoolCode">School Code (Slug)</label>
-                    <input type="text" id="schoolCode" name="schoolCode"
-                        placeholder="Enter the school code provided to you" class="form-input">
+                    <input type="text" th:field="*{schoolCode}" placeholder="Enter the school code provided to you"
+                        class="form-input">
                     <div id="slugFeedback" class="validation-feedback"></div>
                     <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
                         Staff and Parents must provide a valid school code to register.

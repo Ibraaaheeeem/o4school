@@ -33,6 +33,15 @@
                         <input type="text" id="termName" name="termName" class="form-input" th:value="${term.termName}"
                             placeholder="e.g., First Term, Second Term" required>
                     </div>
+                    <div class="form-group">
+                        <label for="termNumber">Term Number</label>
+                        <select id="termNumber" name="termNumber" class="form-input">
+                            <option value="">Select Term Number</option>
+                            <option value="1" th:selected="${term.termNumber == 1}">First - 1</option>
+                            <option value="2" th:selected="${term.termNumber == 2}">Second - 2</option>
+                            <option value="3" th:selected="${term.termNumber == 3}">Third - 3</option>
+                        </select>
+                    </div>
 
                 </div>
             </div>

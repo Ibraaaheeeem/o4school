@@ -247,6 +247,15 @@
                 htmx.process(form);
                 document.getElementById('deleteModal').classList.add('active');
             };
+
+            // Listen for list refresh events
+            document.body.addEventListener('refreshCommunityList', function () {
+                console.log('Refreshing community list...');
+                const tabContent = document.getElementById('tab-content');
+                if (tabContent) {
+                    htmx.trigger(tabContent, 'load');
+                }
+            });
         </script>
     </main>
 

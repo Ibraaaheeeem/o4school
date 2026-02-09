@@ -126,7 +126,7 @@
             </button>
             <button class="btn btn-sm btn-danger" th:data-parent-id="${parent?.id}"
                 th:data-parent-name="${parent?.user?.fullName}"
-                onclick="confirmDelete(this.dataset.parentId, this.dataset.parentName)">
+                onclick="confirmDeleteParent(this.dataset.parentId, this.dataset.parentName)">
                 <i class="fas fa-trash-alt"></i>
             </button>
         </div>

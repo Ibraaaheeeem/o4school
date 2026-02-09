@@ -1,7 +1,7 @@
 <div class="modal-content">
     <div class="modal-header">
         <h3>Success!</h3>
-        <button class="close-modal" onclick="closeModal('studentClassModal')">&times;</button>
+        <button class="close-modal" onclick="closeAllModals()">&times;</button>
     </div>
     <div class="modal-body" style="text-align: center; padding: 40px 20px;">
         <i class="fas fa-check-circle" style="font-size: 64px; color: #10b981; margin-bottom: 20px;"></i>
@@ -9,7 +9,7 @@
         <p style="color: #6b7280; margin-top: 10px;">You can now close this dialog.</p>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal('studentClassModal')">Close</button>
+        <button type="button" class="btn btn-outline" onclick="closeAllModals()">Close</button>
     </div>
 </div>
 <div id="global-toast-container" hx-swap-oob="beforeend">
@@ -20,7 +20,9 @@
 </div>
 <!-- OOB Update for Student Card -->
 <th:block th:if="${studentPage != null and !studentPage.content.empty}">
-    <div th:replace="~{admin/community/students/student-cards :: single-student-card(student=${studentPage.content[0]})}"></div>
+    <div
+        th:replace="~{admin/community/students/student-cards :: single-student-card(student=${studentPage.content[0]})}">
+    </div>
 </th:block>
 <script th:inline="javascript">
     /*<![CDATA[*/

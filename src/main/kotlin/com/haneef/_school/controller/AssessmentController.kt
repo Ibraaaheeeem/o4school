@@ -316,6 +316,8 @@ class AssessmentController(
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
         val educationTracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
         model.addAttribute("user", customUser.user)
         model.addAttribute("examination", Examination())
         model.addAttribute("academicSessions", academicSessions)
@@ -323,6 +325,8 @@ class AssessmentController(
         model.addAttribute("examTypes", listOf("Assignment", "Continuous Assessment", "Mid-Term Test", "End-of-Term Examination"))
         model.addAttribute("terms", listOf("First Term", "Second Term", "Third Term"))
         model.addAttribute("isEdit", false)
+        model.addAttribute("headerContextTerm", effectiveTerm)
+        model.addAttribute("isCurrentTermSelected", effectiveTerm?.isCurrentTerm == true)
         
         return "admin/assessments/examination-modal"
     }
@@ -343,6 +347,8 @@ class AssessmentController(
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
         val educationTracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
         model.addAttribute("user", customUser.user)
         model.addAttribute("examination", examination)
         model.addAttribute("academicSessions", academicSessions)
@@ -350,6 +356,9 @@ class AssessmentController(
         model.addAttribute("examTypes", listOf("Assignment", "Continuous Assessment", "Mid-Term Test", "End-of-Term Examination"))
         model.addAttribute("terms", listOf("First Term", "Second Term", "Third Term"))
         model.addAttribute("isEdit", true)
+        model.addAttribute("headerContextTerm", effectiveTerm)
+        model.addAttribute("isCurrentTermSelected", effectiveTerm?.isCurrentTerm == true)
+        model.addAttribute("formAction", "/admin/assessments/examinations/save-htmx")
         
         return "admin/assessments/examination-modal"
     }
@@ -359,7 +368,8 @@ class AssessmentController(
         @ModelAttribute examinationDto: ExaminationDto,
         authentication: Authentication,
         session: HttpSession,
-        model: Model
+        model: Model,
+        response: jakarta.servlet.http.HttpServletResponse
     ): String {
         val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
@@ -398,11 +408,27 @@ class AssessmentController(
                     this.academicSession = currentSession
                     this.durationMinutes = examinationDto.durationMinutes
                     this.totalMarks = examinationDto.totalMarks
-                    this.startTime = examinationDto.startTime
-                    this.endTime = examinationDto.endTime
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                    this.startTime = if (!examinationDto.startTime.isNullOrBlank()) {
+                        try {
+                            java.time.LocalDateTime.parse(examinationDto.startTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.startTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+                    
+                    this.endTime = if (!examinationDto.endTime.isNullOrBlank()) {
+                         try {
+                            java.time.LocalDateTime.parse(examinationDto.endTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.endTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+                    this.isPublished = examinationDto.isPublished
                 }
                 examinationRepository.save(existingExamination)
-                model.addAttribute("message", "Examination updated successfully!")
+                model.addAttribute("examination", existingExamination)
+                model.addAttribute("isNew", false)
             } else {
                 // Create new examination
                 val newExamination = Examination(
@@ -419,14 +445,32 @@ class AssessmentController(
                     this.durationMinutes = examinationDto.durationMinutes
                     this.totalMarks = examinationDto.totalMarks
                     this.isActive = true
-                    this.startTime = examinationDto.startTime
-                    this.endTime = examinationDto.endTime
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                    this.startTime = if (!examinationDto.startTime.isNullOrBlank()) {
+                        try {
+                            java.time.LocalDateTime.parse(examinationDto.startTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.startTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+                    
+                    this.endTime = if (!examinationDto.endTime.isNullOrBlank()) {
+                         try {
+                            java.time.LocalDateTime.parse(examinationDto.endTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.endTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+                    this.isPublished = examinationDto.isPublished
                 }
-                examinationRepository.save(newExamination)
-                model.addAttribute("message", "Examination created successfully!")
+                val savedExamination = examinationRepository.save(newExamination)
+                model.addAttribute("examination", savedExamination)
+                model.addAttribute("isNew", true)
             }
+            
+            response.setHeader("HX-Trigger", "{\"closeModal\": \"examinationModal\", \"showNotification\": \"Examination saved successfully!\"}")
 
-            return "fragments/success :: success-message"
+            return "admin/assessments/examinations :: examination-save-response"
         } catch (e: Exception) {
             model.addAttribute("error", "Error saving examination: ${e.message}")
             return "fragments/error :: error-message"
@@ -582,14 +626,17 @@ class AssessmentController(
                 val sanitizedQuestionText = htmlSanitizerService.sanitize(qData.questionText)
                 if (sanitizedQuestionText.isNotBlank()) {
                     val sanitizedInstruction = htmlSanitizerService.sanitize(qData.instruction)
-                    val sanitizedOptionA = htmlSanitizerService.sanitize(qData.optionA)
-                    val sanitizedOptionB = htmlSanitizerService.sanitize(qData.optionB)
+                    val sanitizedExplanation = htmlSanitizerService.sanitize(qData.explanation)
+                    val sanitizedOptionA = htmlSanitizerService.sanitize(qData.optionA ?: "")
+                    val sanitizedOptionB = htmlSanitizerService.sanitize(qData.optionB ?: "")
                     val sanitizedOptionC = htmlSanitizerService.sanitize(qData.optionC)
                     val sanitizedOptionD = htmlSanitizerService.sanitize(qData.optionD)
                     val sanitizedOptionE = htmlSanitizerService.sanitize(qData.optionE)
+                    val sanitizedCorrectAnswer = htmlSanitizerService.sanitize(qData.correctAnswer)
                     
                     // Total size validation (roughly 1MB per question)
                     val totalSize = (sanitizedInstruction?.length ?: 0) + 
+                                   (sanitizedExplanation?.length ?: 0) +
                                    sanitizedQuestionText.length + 
                                    sanitizedOptionA.length + 
                                    sanitizedOptionB.length + 
@@ -604,13 +651,14 @@ class AssessmentController(
                     val question = Question(
                         examination = examination,
                         instruction = sanitizedInstruction,
+                        explanation = sanitizedExplanation,
                         questionText = sanitizedQuestionText,
                         optionA = sanitizedOptionA,
                         optionB = sanitizedOptionB,
                         optionC = sanitizedOptionC,
                         optionD = sanitizedOptionD,
                         optionE = sanitizedOptionE,
-                        correctAnswer = qData.correctAnswer,
+                        correctAnswer = sanitizedCorrectAnswer,
                         marks = qData.marks
                     ).apply {
                         this.schoolId = examination.schoolId
@@ -622,7 +670,7 @@ class AssessmentController(
             examinationRepository.save(examination)
             model.addAttribute("message", "New questions added successfully!")
             // Return a redirect or a script to refresh the page to show new questions in the preview list
-            return "fragments/success :: success-message"
+            return "fragments/success :: oob-success-message"
         } catch (e: Exception) {
             model.addAttribute("error", "Error saving questions. Please check your input.")
             return "fragments/error :: error-message"
@@ -648,6 +696,7 @@ class AssessmentController(
             id = question.id,
             instruction = question.instruction,
             questionText = question.questionText,
+            explanation = question.explanation,
             optionA = question.optionA,
             optionB = question.optionB,
             optionC = question.optionC,
@@ -662,7 +711,7 @@ class AssessmentController(
     fun updateSingleQuestion(
         @PathVariable id: UUID,
         @PathVariable questionId: UUID,
-        @ModelAttribute qData: QuestionDto,
+        @ModelAttribute questionDto: QuestionDto,
         session: HttpSession,
         model: Model
     ): String {
@@ -679,20 +728,23 @@ class AssessmentController(
                 return "fragments/error :: error-message"
             }
 
-            val sanitizedQuestionText = htmlSanitizerService.sanitize(qData.questionText)
+            val sanitizedInstruction = htmlSanitizerService.sanitize(questionDto.instruction)
+            val sanitizedQuestionText = htmlSanitizerService.sanitize(questionDto.questionText)
+            val sanitizedExplanation = htmlSanitizerService.sanitize(questionDto.explanation)
+            
             if (sanitizedQuestionText.isBlank()) {
                 throw RuntimeException("Question text cannot be empty")
             }
 
-            val sanitizedInstruction = htmlSanitizerService.sanitize(qData.instruction)
-            val sanitizedOptionA = htmlSanitizerService.sanitize(qData.optionA)
-            val sanitizedOptionB = htmlSanitizerService.sanitize(qData.optionB)
-            val sanitizedOptionC = htmlSanitizerService.sanitize(qData.optionC)
-            val sanitizedOptionD = htmlSanitizerService.sanitize(qData.optionD)
-            val sanitizedOptionE = htmlSanitizerService.sanitize(qData.optionE)
+            val sanitizedOptionA = htmlSanitizerService.sanitize(questionDto.optionA)
+            val sanitizedOptionB = htmlSanitizerService.sanitize(questionDto.optionB)
+            val sanitizedOptionC = htmlSanitizerService.sanitize(questionDto.optionC)
+            val sanitizedOptionD = htmlSanitizerService.sanitize(questionDto.optionD)
+            val sanitizedOptionE = htmlSanitizerService.sanitize(questionDto.optionE)
 
             // Total size validation
             val totalSize = (sanitizedInstruction?.length ?: 0) + 
+                           (sanitizedExplanation?.length ?: 0) +
                            sanitizedQuestionText.length + 
                            sanitizedOptionA.length + 
                            sanitizedOptionB.length + 
@@ -707,13 +759,14 @@ class AssessmentController(
             question.apply {
                 instruction = sanitizedInstruction
                 questionText = sanitizedQuestionText
+                explanation = sanitizedExplanation
                 optionA = sanitizedOptionA
                 optionB = sanitizedOptionB
                 optionC = sanitizedOptionC
                 optionD = sanitizedOptionD
                 optionE = sanitizedOptionE
-                correctAnswer = qData.correctAnswer
-                marks = qData.marks
+                correctAnswer = questionDto.correctAnswer
+                marks = questionDto.marks
             }
 
             questionRepository.save(question)

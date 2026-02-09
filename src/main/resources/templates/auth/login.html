@@ -19,7 +19,7 @@
         <!-- School Branding -->
         <div class="auth-header">
             <div class="school-brand">
-                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 42px; width: auto;">
             </div>
         </div>
 
@@ -246,9 +246,15 @@
                         }
 
                         // Add event listeners
-                        emailMethod.addEventListener('change', switchLoginMethod);
-                        phoneMethod.addEventListener('change', switchLoginMethod);
-                        studentMethod.addEventListener('change', switchLoginMethod);
+                        emailMethod.addEventListener('change', function () { switchLoginMethod(); saveLoginPreference(); });
+                        phoneMethod.addEventListener('change', function () { switchLoginMethod(); saveLoginPreference(); });
+                        studentMethod.addEventListener('change', function () { switchLoginMethod(); saveLoginPreference(); });
+
+                        function saveLoginPreference() {
+                            if (emailMethod.checked) localStorage.setItem('preferred_login_method', 'EMAIL');
+                            if (phoneMethod.checked) localStorage.setItem('preferred_login_method', 'PHONE');
+                            if (studentMethod.checked) localStorage.setItem('preferred_login_method', 'STUDENT');
+                        }
 
                         // Update combined username on input changes
                         emailIdentifier.addEventListener('input', updateCombinedUsername);
@@ -265,6 +271,14 @@
                         });
 
                         // Initialize on page load
+                        // Initialize on page load
+                        const savedMethod = localStorage.getItem('preferred_login_method');
+                        if (savedMethod) {
+                            if (savedMethod === 'EMAIL' && emailMethod) emailMethod.checked = true;
+                            if (savedMethod === 'PHONE' && phoneMethod) phoneMethod.checked = true;
+                            if (savedMethod === 'STUDENT' && studentMethod) studentMethod.checked = true;
+                        }
+
                         switchLoginMethod();
                     });
                 </script>

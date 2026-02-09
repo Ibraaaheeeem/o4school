@@ -19,7 +19,7 @@
         <!-- School Branding -->
         <div class="auth-header">
             <div class="school-brand">
-                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 60px; width: auto;">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 42px; width: auto;">
             </div>
         </div>
 
@@ -36,22 +36,103 @@
                 <span th:unless="${param.error[0] == 'invalid_school'}">An error occurred. Please try again.</span>
             </div>
 
-            <form th:action="@{/select-school}" method="post" class="auth-form">
-                <div class="form-group">
-                    <label for="schoolId">Select School</label>
-                    <select id="schoolId" name="schoolId" required class="form-input">
-                        <option value="">Choose a school...</option>
-                        <option th:each="school : ${userSchools}" th:value="${school.id}" th:text="${school.name}">
-                            School Name
-                        </option>
-                    </select>
-                </div>
+            <form th:action="@{/select-school}" method="post" class="auth-form" id="schoolForm">
+                <input type="hidden" name="schoolId" id="schoolId">
 
-                <button type="submit" class="auth-btn primary">
-                    <span>Continue</span>
-                    <i class="btn-icon">→</i>
-                </button>
+                <div class="school-list-grid">
+                    <div th:each="school : ${userSchools}" class="school-card"
+                        onclick="selectSchool(this.getAttribute('data-id'))" th:data-id="${school.id}">
+                        <div class="school-icon">
+                            <span class="school-initial" th:text="${school.name.substring(0, 1)}">S</span>
+                        </div>
+                        <div class="school-details">
+                            <h3 th:text="${school.name}">School Name</h3>
+                            <span class="select-label">Click to enter</span>
+                        </div>
+                        <div class="arrow-icon">→</div>
+                    </div>
+                </div>
             </form>
+
+            <style>
+                .school-list-grid {
+                    display: grid;
+                    gap: 1rem;
+                    margin-bottom: 1.5rem;
+                }
+
+                .school-card {
+                    display: flex;
+                    align-items: center;
+                    padding: 1.25rem;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .school-card:hover {
+                    border-color: #3b82f6;
+                    background: #eff6ff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                }
+
+                .school-icon {
+                    width: 48px;
+                    height: 48px;
+                    background: #e0e7ff;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-right: 1rem;
+                    flex-shrink: 0;
+                }
+
+                .school-initial {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #4f46e5;
+                }
+
+                .school-details {
+                    flex: 1;
+                }
+
+                .school-details h3 {
+                    margin: 0;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #1e293b;
+                }
+
+                .select-label {
+                    font-size: 0.8rem;
+                    color: #64748b;
+                }
+
+                .arrow-icon {
+                    color: #cbd5e1;
+                    font-size: 1.25rem;
+                    transition: all 0.2s;
+                }
+
+                .school-card:hover .arrow-icon {
+                    color: #3b82f6;
+                    transform: translateX(4px);
+                }
+            </style>
+
+            <script>
+                function selectSchool(id) {
+                    document.getElementById('schoolId').value = id;
+                    document.getElementById('schoolForm').submit();
+                }
+            </script>
 
             <!-- Alternative Actions -->
             <div class="auth-links">

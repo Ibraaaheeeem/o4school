@@ -30,6 +30,28 @@ interface SchoolCalendarRepository : JpaRepository<SchoolCalendar, UUID> {
     @Query("SELECT sc FROM SchoolCalendar sc JOIN FETCH sc.session WHERE sc.schoolId = :schoolId AND sc.isActive = :isActive ORDER BY sc.startDate")
     fun findBySchoolIdAndIsActiveWithSession(@Param("schoolId") schoolId: UUID, @Param("isActive") isActive: Boolean): List<SchoolCalendar>
     
-    @Query("SELECT sc FROM SchoolCalendar sc WHERE sc.schoolId = :schoolId AND sc.isActive = :isActive AND :date BETWEEN sc.startDate AND COALESCE(sc.endDate, sc.startDate)")
+    @Query("""
+        SELECT sc FROM SchoolCalendar sc 
+        WHERE sc.schoolId = :schoolId 
+        AND sc.isActive = :isActive 
+        AND :date BETWEEN sc.startDate AND COALESCE(sc.endDate, sc.startDate)
+    """)
     fun findBySchoolIdAndDate(@Param("schoolId") schoolId: UUID, @Param("isActive") isActive: Boolean, @Param("date") date: LocalDate): List<SchoolCalendar>
+    
+    @Query("""
+        SELECT sc FROM SchoolCalendar sc 
+        WHERE sc.schoolId = :schoolId 
+        AND sc.session.id = :sessionId 
+        AND (:termId IS NULL OR sc.term.id = :termId OR sc.term IS NULL)
+        AND sc.startDate >= :currentDate 
+        AND sc.isActive = true 
+        ORDER BY sc.startDate ASC
+    """)
+    fun findUpcomingEvents(
+        @Param("schoolId") schoolId: UUID,
+        @Param("sessionId") sessionId: UUID,
+        @Param("termId") termId: UUID?,
+        @Param("currentDate") currentDate: LocalDate,
+        pageable: org.springframework.data.domain.Pageable
+    ): List<SchoolCalendar>
 }

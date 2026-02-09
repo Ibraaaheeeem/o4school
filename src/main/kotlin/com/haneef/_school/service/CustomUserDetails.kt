@@ -9,7 +9,8 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.slf4j.LoggerFactory
 
 class CustomUserDetails(
-    val user: User
+    val user: User,
+    val forcedSchoolId: UUID? = null
 ) : UserDetails {
 
     private val logger = LoggerFactory.getLogger(CustomUserDetails::class.java)
@@ -88,7 +89,7 @@ class CustomUserDetails(
 
     override fun getPassword(): String = user.passwordHash ?: ""
 
-    override fun getUsername(): String = user.email ?: user.phoneNumber ?: ""
+    override fun getUsername(): String = user.email ?: user.phoneNumber ?: user.id?.toString() ?: ""
 
     override fun isAccountNonExpired(): Boolean = true
 

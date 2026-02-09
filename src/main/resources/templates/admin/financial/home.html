@@ -37,37 +37,40 @@
             <!-- Financial Overview Cards -->
             <div class="financial-overview">
                 <div class="overview-cards">
-                    <div class="overview-card financial-card">
+                    <div class="overview-card financial-card card-purple">
                         <div class="card-icon">💰</div>
                         <div class="card-number" th:text="${financialStats.feeItems}">0</div>
-                        <div class="card-description">Fee Items</div>
+                        <div class="card-description">Fee Items Created</div>
                         <div class="card-actions">
-                            <a th:href="@{/admin/financial/fee-items}" class="card-link">Manage Fee Items</a>
+                            <a th:href="@{/admin/financial/fee-items}" class="card-link">Manage Fee Items <i
+                                    class="fas fa-arrow-right" style="margin-left: 5px;"></i></a>
                         </div>
                     </div>
 
                     <!-- Wallet Section -->
-                    <div id="wallet-section" class="overview-card financial-card" th:fragment="wallet-section">
+                    <div id="wallet-section" class="overview-card financial-card card-emerald"
+                        th:fragment="wallet-section">
                         <div th:if="${success}" class="alert alert-success" th:text="${success}"
-                            style="margin-bottom: 15px; font-size: 0.85rem; padding: 8px; background: #d1e7dd; color: #0f5132; border-radius: 6px;">
+                            style="margin-bottom: 15px; font-size: 0.85rem; padding: 10px; border-radius: 8px;">
                         </div>
                         <div th:if="${error}" class="alert alert-danger" th:text="${error}"
-                            style="margin-bottom: 15px; font-size: 0.85rem; padding: 8px; background: #f8d7da; color: #842029; border-radius: 6px;">
+                            style="margin-bottom: 15px; font-size: 0.85rem; padding: 10px; border-radius: 8px;">
                         </div>
 
                         <div th:if="${wallet != null}">
                             <div class="card-icon">🏦</div>
                             <div class="card-number" th:text="${wallet.accountNumber}"
-                                style="font-size: 1.5rem; letter-spacing: 1px;">0000000000</div>
-                            <div class="card-description">
+                                style="font-size: 1.75rem; letter-spacing: 2px;">0000000000</div>
+                            <div class="card-description" style="margin-bottom: 1rem;">
                                 <strong th:text="${wallet.bankName}">Bank Name</strong><br />
-                                <span th:text="${wallet.accountName}" style="font-size: 0.8rem; color: #6b7280;">Account
+                                <span th:text="${wallet.accountName}" style="font-size: 0.85rem; opacity: 0.8;">Account
                                     Name</span>
                             </div>
-                            <div class="card-actions" style="margin-top: 10px;">
+                            <div class="card-actions">
                                 <span class="badge"
-                                    style="background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Active
-                                    Wallet</span>
+                                    style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
+                                    <i class="fas fa-check-circle" style="margin-right: 4px;"></i> ACTIVE WALLET
+                                </span>
                             </div>
                         </div>
 

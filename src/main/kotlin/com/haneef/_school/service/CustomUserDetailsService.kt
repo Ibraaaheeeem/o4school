@@ -75,15 +75,32 @@ class CustomUserDetailsService(
                 CustomUserDetails(user)
             }
             "STUDENT" -> {
-                logger.debug("Loading student by admission number: $identifier")
-                val student = studentRepository.findByAdmissionNumber(identifier)
-                    ?: throw UsernameNotFoundException("Student not found with admission number: $identifier")
-                // Load the student's user with roles
-                val userWithRoles = userRepository.findByEmailWithRoles(student.user.email ?: "")
-                    .or { student.user.phoneNumber?.let { userRepository.findByPhoneNumberWithRoles(it) } ?: java.util.Optional.empty() }
-                    .orElseThrow { UsernameNotFoundException("User roles not found for student: $identifier") }
-                logger.info("Student user loaded: ${userWithRoles.email} with ${userWithRoles.schoolRoles.size} school roles and ${userWithRoles.globalRoles.size} global roles")
-                CustomUserDetails(userWithRoles)
+                logger.info("Loading student by admission number: $identifier")
+                val students = studentRepository.findByAdmissionNumber(identifier)
+                
+                if (students.isEmpty()) {
+                    logger.warn("Student not found with admission number: $identifier")
+                    throw UsernameNotFoundException("Student not found with admission number: $identifier")
+                }
+                
+                if (students.size > 1) {
+                    logger.warn("Multiple students found with admission number: $identifier:")
+                    students.forEachIndexed { index, s ->
+                        logger.warn("  [$index] Name: ${s.user.fullName}, SchoolID: ${s.schoolId}, Active: ${s.isActive}, Created: ${s.createdAt}")
+                    }
+                }
+                
+                val student = students.first()
+                val user = student.user
+                
+                logger.info("Student loaded: [Name: ${user.fullName}, Admission: ${student.admissionNumber}, SchoolID: ${student.schoolId}, StudentID: ${student.id}, UserID: ${user.id}]")
+                
+                val userId = user.id ?: throw UsernameNotFoundException("Student user has no ID")
+                val userWithRoles = userRepository.findById(userId)
+                    .orElseThrow { UsernameNotFoundException("User not found for student: $identifier") }
+                    
+                logger.info("Student user account verified: ${userWithRoles.email ?: "No Email"} with ${userWithRoles.schoolRoles.size} school roles")
+                CustomUserDetails(userWithRoles, student.schoolId)
             }
             else -> throw UsernameNotFoundException("Invalid login method: $method")
         }
@@ -95,7 +112,7 @@ class CustomUserDetailsService(
     
     fun createStudentUserDetails(student: Student): UserDetails {
         // Create a UserDetails for student login using their user account
-        return CustomUserDetails(student.user)
+        return CustomUserDetails(student.user, student.schoolId)
     }
 }
 

@@ -34,7 +34,8 @@
             </div>
 
             <!-- Sessions List -->
-            <div class="sessions-container">
+            <div class="sessions-container" id="sessions-container" th:fragment="sessions-list"
+                th:attr="hx-swap-oob=${swapOob}">
                 <div class="sessions-grid" th:if="${!#lists.isEmpty(academicSessions)}">
                     <div th:each="academicSession : ${academicSessions}" class="session-card"
                         th:classappend="${academicSession.isCurrentSession ? 'current-session' : ''}">
@@ -127,9 +128,11 @@
         // HTMX event handlers
         document.addEventListener('htmx:afterRequest', function (event) {
             if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
+                const modalId = 'sessionModal';
+                const modal = document.getElementById(modalId);
+                if (modal && modal.classList.contains('active')) {
+                    setTimeout(() => closeModal(modalId), 1000);
+                }
             }
         });
     </script>

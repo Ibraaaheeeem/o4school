@@ -30,7 +30,10 @@ class ExaminationSubmission(
     var startedAt: LocalDateTime? = null,
     
     @Column(name = "submitted_at")
-    var submittedAt: LocalDateTime? = null
+    var submittedAt: LocalDateTime? = null,
+
+    @Column(name = "answers_json", columnDefinition = "TEXT")
+    var answersJson: String? = null
 ) : TenantAwareEntity() {
     
     constructor() : this(

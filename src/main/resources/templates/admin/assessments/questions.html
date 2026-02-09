@@ -76,6 +76,12 @@
                                 <strong>Instruction:</strong>
                                 <div class="html-content" th:utext="${question.instruction}"></div>
                             </div>
+                            <div th:if="${question.explanation}" class="preview-explanation"
+                                style="margin-bottom: 1rem; padding: 0.75rem; background: #eff6ff; border-radius: 4px; border: 1px solid #bfdbfe;">
+                                <strong style="color: #1e40af;">Explanation:</strong>
+                                <div class="html-content" th:utext="${question.explanation}" style="color: #1e3a8a;">
+                                </div>
+                            </div>
                             <div class="preview-question-text">
                                 <strong>Question:</strong>
                                 <div class="html-content" th:utext="${question.questionText}"></div>
@@ -121,8 +127,7 @@
                 <!-- New Questions Form -->
                 <form id="questionsForm"
                     th:action="@{/admin/assessments/examinations/{id}/questions/save(id=${examination.id})}"
-                    method="POST" hx-post="" hx-target="#notification-container" hx-swap="innerHTML"
-                    th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                    method="POST">
 
                     <h3 class="section-title">Add New Questions</h3>
                     <div id="newQuestionsList" class="questions-list">
@@ -154,6 +159,12 @@
                     <div class="quill-editor" data-placeholder="e.g., Read the passage below and answer the question">
                     </div>
                     <input type="hidden" name="questions[__INDEX__].instruction" class="quill-hidden-input">
+                </div>
+                <div class="form-group full-width">
+                    <label>Explanation (Optional)</label>
+                    <div class="quill-editor" data-placeholder="Explain why the answer is correct...">
+                    </div>
+                    <input type="hidden" name="questions[__INDEX__].explanation" class="quill-hidden-input">
                 </div>
                 <div class="form-group full-width">
                     <label>Question Text</label>
@@ -219,6 +230,10 @@
                     <div class="form-group full-width">
                         <label>Instruction (Optional)</label>
                         <div id="edit-instruction-editor" class="quill-editor"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Explanation (Optional)</label>
+                        <div id="edit-explanation-editor" class="quill-editor"></div>
                     </div>
                     <div class="form-group full-width">
                         <label>Question Text</label>
@@ -412,6 +427,7 @@
 
                     // Set Quill content
                     quillInstances.get(document.getElementById('edit-instruction-editor')).root.innerHTML = data.instruction || '';
+                    quillInstances.get(document.getElementById('edit-explanation-editor')).root.innerHTML = data.explanation || '';
                     quillInstances.get(document.getElementById('edit-questionText-editor')).root.innerHTML = data.questionText || '';
                     quillInstances.get(document.getElementById('edit-optionA-editor')).root.innerHTML = data.optionA || '';
                     quillInstances.get(document.getElementById('edit-optionB-editor')).root.innerHTML = data.optionB || '';
@@ -435,6 +451,7 @@
             const formData = new FormData();
 
             formData.append('instruction', quillInstances.get(document.getElementById('edit-instruction-editor')).root.innerHTML);
+            formData.append('explanation', quillInstances.get(document.getElementById('edit-explanation-editor')).root.innerHTML);
             formData.append('questionText', quillInstances.get(document.getElementById('edit-questionText-editor')).root.innerHTML);
             formData.append('optionA', quillInstances.get(document.getElementById('edit-optionA-editor')).root.innerHTML);
             formData.append('optionB', quillInstances.get(document.getElementById('edit-optionB-editor')).root.innerHTML);
@@ -506,21 +523,39 @@
                 return;
             }
 
-            // Submit via HTMX
+            // Submit via standard fetch (bypassing HTMX for better control here)
             const form = e.target;
             const formData = new FormData(form);
+
+            // Append Quill content for new questions
+            quillInstances.forEach((quill, editor) => {
+                if (document.getElementById('newQuestionsList').contains(editor)) {
+                    const hiddenInput = editor.nextElementSibling;
+                    if (hiddenInput && hiddenInput.classList.contains('quill-hidden-input')) {
+                        const html = quill.root.innerHTML;
+                        // Update the formData with the actual quill content
+                        formData.set(hiddenInput.name, html === '<p><br></p>' ? '' : html);
+                    }
+                }
+            });
 
             const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
             const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
 
-            fetch(form.action, {
+            // Use the action URL from the form
+            const actionUrl = form.getAttribute('action');
+
+            fetch(actionUrl, {
                 method: 'POST',
                 headers: {
                     [csrfHeader]: csrfToken
                 },
                 body: formData
             })
-                .then(response => response.text())
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.text();
+                })
                 .then(html => {
                     // Check if success or error
                     if (html.includes('alert-success')) {
@@ -530,7 +565,7 @@
                         questionCount = 0;
                         // Reload to show new questions in preview
                         setTimeout(() => location.reload(), 1500);
-                    } else if (html.includes('alert-danger')) {
+                    } else {
                         // Extract error message
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, 'text/html');
@@ -539,6 +574,7 @@
                     }
                 })
                 .catch(error => {
+                    console.error('Error:', error);
                     showNotification('An error occurred while saving questions', 'error');
                 });
         });

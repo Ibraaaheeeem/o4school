@@ -14,4 +14,8 @@ interface ExaminationSubmissionRepository : JpaRepository<ExaminationSubmission,
     
     @Query("SELECT es FROM ExaminationSubmission es JOIN FETCH es.student s WHERE es.examination.id = :examinationId ORDER BY s.admissionNumber ASC, es.attemptCount ASC")
     fun findByExaminationIdWithStudent(examinationId: UUID): List<ExaminationSubmission>
+
+    fun findFirstByExaminationIdAndStudentIdOrderByStartedAtDesc(examinationId: UUID, studentId: UUID): ExaminationSubmission?
+
+    fun findByStudentIdAndExaminationIdIn(studentId: UUID, examinationIds: List<UUID>): List<ExaminationSubmission>
 }

@@ -61,7 +61,8 @@
             </div>
 
             <!-- Terms List -->
-            <div class="terms-container" id="terms-list-container">
+            <div class="terms-container" id="terms-list-container" th:fragment="terms-list"
+                th:attr="hx-swap-oob=${swapOob}">
                 <th:block th:fragment="terms-list-content">
                     <div class="terms-grid" th:if="${!#lists.isEmpty(terms)}">
                         <div th:each="term : ${terms}" class="term-card"
@@ -69,9 +70,14 @@
                             <div class="term-header">
                                 <div class="term-info">
                                     <h3 th:text="${term.termName}">First Term</h3>
-                                    <span th:if="${term.isCurrentTerm}" class="badge badge-success">Current Term</span>
-                                    <span th:unless="${term.isCurrentTerm}" class="badge badge-secondary"
-                                        th:text="${term.status}">Planned</span>
+                                    <div class="term-badges">
+                                        <span th:if="${term.termNumber != null}" class="badge badge-info"
+                                            th:text="'Term ' + ${term.termNumber}">Term 1</span>
+                                        <span th:if="${term.isCurrentTerm}" class="badge badge-success">Current
+                                            Term</span>
+                                        <span th:unless="${term.isCurrentTerm}" class="badge badge-secondary"
+                                            th:text="${term.status}">Planned</span>
+                                    </div>
                                 </div>
                                 <div class="term-actions">
                                     <button class="btn btn-sm btn-outline"
@@ -84,8 +90,7 @@
                                         th:hx-post="@{/admin/academic/terms/delete/{id}(id=${term.id})}"
                                         hx-target="#response-container" hx-swap="innerHTML"
                                         hx-confirm="Are you sure you want to delete this term?"
-                                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-                                        onclick="setTimeout(() => window.location.reload(), 1500)">
+                                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>

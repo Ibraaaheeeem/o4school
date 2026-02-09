@@ -12,7 +12,9 @@ import java.util.UUID
 @Controller
 @RequestMapping("/admin/header")
 @PreAuthorize("hasRole('SCHOOL_ADMIN')")
-class HeaderContextController {
+class HeaderContextController(
+    private val termRepository: com.haneef._school.repository.TermRepository
+) {
 
     @PostMapping("/set-session")
     fun setSession(
@@ -35,6 +37,12 @@ class HeaderContextController {
         request: HttpServletRequest
     ): String {
         session.setAttribute("selectedTermId", termId)
+        
+        // Also update the session context to match the term's session
+        val term = termRepository.findById(termId).orElse(null)
+        if (term != null) {
+            session.setAttribute("selectedSessionId", term.academicSession.id)
+        }
         
         val referer = request.getHeader("Referer") ?: "/admin/dashboard"
         return "redirect:$referer"

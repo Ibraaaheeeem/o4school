@@ -76,18 +76,18 @@ BEGIN
     FROM terms 
     WHERE academic_session_id = session_uuid 
     AND is_active = true
-    ORDER BY term_order ASC
+    ORDER BY (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='terms' AND column_name='term_number') THEN term_number ELSE 0 END) ASC
     LIMIT 1;
     
     -- If not found, create default term
     IF term_uuid IS NULL THEN
         term_uuid := gen_random_uuid();
         INSERT INTO terms (
-            id, academic_session_id, term_name, term_order,
+            id, academic_session_id, term_name,
             start_date, end_date, is_current_term,
             status, is_active, created_at, updated_at
         ) VALUES (
-            term_uuid, session_uuid, 'First Term', 1,
+            term_uuid, session_uuid, 'First Term',
             (SELECT start_date FROM academic_sessions WHERE id = session_uuid),
             (SELECT start_date FROM academic_sessions WHERE id = session_uuid) + INTERVAL '4 months',
             false, -- We'll set current term separately
@@ -103,11 +103,24 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Update student_classes table with session and term data
-UPDATE student_classes 
-SET 
-    academic_session_id = get_or_create_academic_session_sc(school_id, COALESCE(academic_year, '2024-2025')),
-    term_id = get_or_create_default_term_sc(get_or_create_academic_session_sc(school_id, COALESCE(academic_year, '2024-2025')))
-WHERE academic_session_id IS NULL OR term_id IS NULL;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'student_classes' AND column_name = 'academic_year') THEN
+        UPDATE student_classes 
+        SET 
+            academic_session_id = get_or_create_academic_session_sc(school_id, COALESCE(academic_year, '2024-2025')),
+            term_id = get_or_create_default_term_sc(get_or_create_academic_session_sc(school_id, COALESCE(academic_year, '2024-2025')))
+        WHERE academic_session_id IS NULL OR term_id IS NULL;
+    ELSE
+        -- If academic_year doesn't exist, we still want to set some default if they are null
+        UPDATE student_classes
+        SET 
+            academic_session_id = get_or_create_academic_session_sc(school_id, '2024-2025'),
+            term_id = get_or_create_default_term_sc(get_or_create_academic_session_sc(school_id, '2024-2025'))
+        WHERE academic_session_id IS NULL OR term_id IS NULL;
+    END IF;
+END $$;
 
 -- Add foreign key constraints (if they don't exist)
 DO $$
@@ -133,32 +146,38 @@ ALTER COLUMN academic_session_id SET NOT NULL,
 ALTER COLUMN term_id SET NOT NULL;
 
 -- Update unique constraints to use new columns
-ALTER TABLE student_classes 
-DROP CONSTRAINT IF EXISTS unique_student_track_session_term;
+DO $$
+BEGIN
+    -- unique_student_track_session_term
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'student_classes' AND column_name = 'track_id') THEN
+        ALTER TABLE student_classes DROP CONSTRAINT IF EXISTS unique_student_track_session_term;
+        ALTER TABLE student_classes ADD CONSTRAINT unique_student_track_session_term 
+        UNIQUE (student_id, track_id, academic_session_id, term_id, school_id);
+    END IF;
 
-ALTER TABLE student_classes
-ADD CONSTRAINT unique_student_track_session_term 
-UNIQUE (student_id, track_id, academic_session_id, term_id, school_id);
-
-ALTER TABLE student_classes
-DROP CONSTRAINT IF EXISTS unique_admission_track_session_term;
-
-ALTER TABLE student_classes  
-ADD CONSTRAINT unique_admission_track_session_term
-UNIQUE (admission_number, track_id, academic_session_id, term_id, school_id);
+    -- unique_admission_track_session_term
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'student_classes' AND column_name = 'admission_number') 
+       AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'student_classes' AND column_name = 'track_id') THEN
+        ALTER TABLE student_classes DROP CONSTRAINT IF EXISTS unique_admission_track_session_term;
+        ALTER TABLE student_classes ADD CONSTRAINT unique_admission_track_session_term
+        UNIQUE (admission_number, track_id, academic_session_id, term_id, school_id);
+    END IF;
+END $$;
 
 -- Create indexes for better performance (if they don't exist)
-CREATE INDEX IF NOT EXISTS idx_student_classes_school
-ON student_classes (school_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_student_classes_school ON student_classes (school_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_student_classes_student ON student_classes (student_id, is_active);
 
-CREATE INDEX IF NOT EXISTS idx_student_classes_student
-ON student_classes (student_id, is_active);
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'student_classes' AND column_name = 'track_id') THEN
+        CREATE INDEX IF NOT EXISTS idx_student_classes_track ON student_classes (track_id, is_active);
+    END IF;
 
-CREATE INDEX IF NOT EXISTS idx_student_classes_track
-ON student_classes (track_id, is_active);
-
-CREATE INDEX IF NOT EXISTS idx_student_classes_admission
-ON student_classes (admission_number, school_id);
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'student_classes' AND column_name = 'admission_number') THEN
+        CREATE INDEX IF NOT EXISTS idx_student_classes_admission ON student_classes (admission_number, school_id);
+    END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_student_classes_class
 ON student_classes (class_id, is_active);

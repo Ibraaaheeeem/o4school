@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>4School - Custom Domain</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}" />
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <h1>Custom Domain</h1>
+                <p>Configure a custom domain for your school (e.g. www.myschool.com).</p>
+            </div>
+
+            <div class="setup-form-card">
+                <div class="alert alert-success" th:if="${success}">
+                    <span th:text="${success}"></span>
+                </div>
+                <div class="alert alert-danger" th:if="${error}">
+                    <span th:text="${error}"></span>
+                </div>
+
+                <div class="form-section">
+                    <h3>Domain Configuration</h3>
+
+                    <!-- Connected State -->
+                    <div th:if="${school.customDomain != null && !school.customDomain.isBlank()}"
+                        class="connected-domain-info">
+                        <div class="success-box"
+                            style="padding: 20px; background: #ecfdf5; border: 1px solid #d1fae5; border-radius: 8px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px;">✅</span>
+                                <div>
+                                    <h4 style="margin: 0; color: #065f46;">Domain Connected</h4>
+                                    <p style="margin: 5px 0 0; color: #047857;"
+                                        th:text="${'Your school is accessible at ' + school.customDomain}"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Current Domain</label>
+                            <input type="text" th:value="${school.customDomain}" class="form-input" readonly disabled />
+                        </div>
+                    </div>
+
+                    <!-- Not Connected State -->
+                    <div th:unless="${school.customDomain != null && !school.customDomain.isBlank()}">
+                        <p class="section-description">Search for a domain to register or connect an existing one.</p>
+
+                        <div class="form-group">
+                            <label for="domainSearch">Domain Name</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="domainSearch" class="form-input" placeholder="example.com" />
+                                <button type="button" class="btn btn-secondary" onclick="checkDomain()">Check
+                                    Availability</button>
+                            </div>
+                            <p id="domainStatus" style="margin-top: 10px; font-weight: 500;"></p>
+                        </div>
+
+                        <form id="connectForm" th:action="@{/admin/school-setup/custom-domain/save}" method="post"
+                            style="display: none; margin-top: 20px;">
+                            <input type="hidden" id="domainInput" name="domain" />
+
+                            <div class="alert alert-info">
+                                <strong>Good news!</strong> This domain is available to be connected.
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Connect Domain</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 20px;">
+                    <a th:href="@{/admin/school-setup}" class="btn btn-outline">Back to Overview</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function checkDomain() {
+            const domain = document.getElementById('domainSearch').value;
+            const statusP = document.getElementById('domainStatus');
+            const connectForm = document.getElementById('connectForm');
+            const domainInput = document.getElementById('domainInput');
+
+            if (!domain) return;
+
+            statusP.innerHTML = 'Checking...';
+            statusP.className = '';
+            statusP.style.color = '#6b7280';
+            connectForm.style.display = 'none';
+
+            fetch(`/admin/school-setup/custom-domain/check?domain=${encodeURIComponent(domain)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available) {
+                        statusP.innerHTML = `✓ '${domain}' is available!`;
+                        statusP.style.color = '#059669';
+
+                        domainInput.value = domain;
+                        connectForm.style.display = 'block';
+                    } else {
+                        statusP.innerHTML = `✗ '${domain}' is not available or taken.`;
+                        statusP.style.color = '#dc2626';
+                        connectForm.style.display = 'none';
+                    }
+                })
+                .catch(err => {
+                    statusP.innerHTML = 'Error checking domain availability.';
+                    statusP.style.color = '#dc2626';
+                    console.error(err);
+                });
+        }
+    </script>
+</body>
+
+</html>

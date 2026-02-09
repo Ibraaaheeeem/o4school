@@ -4,6 +4,7 @@ import java.util.UUID
 import com.haneef._school.entity.*
 import com.haneef._school.dto.*
 import com.haneef._school.repository.*
+import com.haneef._school.service.CustomUserDetails
 import com.haneef._school.service.CustomUserDetailsService
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpSession
@@ -43,7 +44,8 @@ class StaffDashboardController(
     private val departmentRepository: DepartmentRepository,
     private val parentStudentRepository: ParentStudentRepository,
     private val htmlSanitizerService: com.haneef._school.service.HtmlSanitizerService,
-    private val examinationSubmissionRepository: ExaminationSubmissionRepository
+    private val examinationSubmissionRepository: ExaminationSubmissionRepository,
+    private val geminiService: com.haneef._school.service.GeminiService
 ) {
     private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
     private val logger = LoggerFactory.getLogger(StaffDashboardController::class.java)
@@ -188,6 +190,7 @@ class StaffDashboardController(
                     }
                     
                     model.addAttribute("classes", classMap.values.toList())
+                    model.addAttribute("currentTerm", currentTerm)
                 } else {
                     model.addAttribute("classes", emptyList<Any>())
                 }
@@ -319,10 +322,16 @@ class StaffDashboardController(
                 }
                 
                 // Get students in this class
-                val studentEnrollments = studentClassRepository
-                    .findBySchoolClassIdAndIsActive(classId, true)
+                // Get students in this class (Paginated - Initial Page 0)
+                val studentsPage = studentClassRepository.findBySchoolClassIdAndIsActive(
+                    classId, true, org.springframework.data.domain.PageRequest.of(0, 24)
+                )
                 
-                model.addAttribute("students", studentEnrollments.map { it.student })
+                model.addAttribute("students", studentsPage.content.map { it.student })
+                model.addAttribute("studentsPage", studentsPage) // To access currentPage, totalPages etc.
+                model.addAttribute("studentCurrentPage", studentsPage.number)
+                model.addAttribute("studentTotalPages", studentsPage.totalPages)
+                model.addAttribute("studentTotalItems", studentsPage.totalElements)
                 
                 // Get all subjects for this class
                 val classSubjects = classSubjectRepository
@@ -359,13 +368,54 @@ class StaffDashboardController(
         return "staff/class-details :: class-detail-fragment"
     }
     
-    @GetMapping("/classes/{classId}/assessments")
-    fun getClassAssessments(
+    @GetMapping("/classes/{classId}/students")
+    fun getClassStudents(
         @org.springframework.web.bind.annotation.PathVariable classId: UUID,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "24") size: Int,
         model: Model,
         authentication: Authentication,
         session: HttpSession
     ): String {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+        if (selectedSchoolId != null) {
+            val schoolClass = schoolClassRepository.findById(classId).orElse(null)
+            if (schoolClass != null && schoolClass.schoolId == selectedSchoolId) {
+                
+                val studentsPage = studentClassRepository.findBySchoolClassIdAndIsActive(
+                    classId, true, org.springframework.data.domain.PageRequest.of(page, size)
+                )
+                
+                model.addAttribute("students", studentsPage.content.map { it.student })
+                model.addAttribute("studentsPage", studentsPage)
+                model.addAttribute("studentCurrentPage", studentsPage.number)
+                model.addAttribute("studentTotalPages", studentsPage.totalPages)
+                model.addAttribute("studentTotalItems", studentsPage.totalElements)
+                model.addAttribute("schoolClass", schoolClass)
+            }
+        }
+        return "staff/class-details :: students-list-content"
+    }
+
+    @GetMapping("/classes/{classId}/assessments")
+    fun getClassAssessments(
+        @org.springframework.web.bind.annotation.PathVariable classId: UUID,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "24") size: Int,
+        @RequestParam(required = false) examType: String?,
+        @RequestParam(required = false) isOnline: Boolean?,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) startDate: java.time.LocalDate?,
+        @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) endDate: java.time.LocalDate?,
+        model: Model,
+        authentication: Authentication,
+        session: HttpSession
+    ): String {
+        // Sanitize inputs
+        val sanitizedExamType = if (examType.isNullOrBlank()) null else examType
+        val sanitizedSearch = if (search.isNullOrBlank()) null else search
+        
+        
         val userDetails = userDetailsService.loadUserByUsername(authentication.name)
         val customUser = userDetails as com.haneef._school.service.CustomUserDetails
         
@@ -394,32 +444,54 @@ class StaffDashboardController(
                         staff.id!!, classId, currentSession.id!!, currentTerm.id!!, selectedSchoolId, true
                     )
                 
-                val examinations = if (isClassTeacher) {
-                    // Class teacher sees all examinations for this class
-                    examinationRepository.findBySchoolIdAndFilters(
-                        selectedSchoolId, true, null, classId, null, null, null
-                    )
+                // Parse dates to LocalDateTime if provided
+                val startDateTime = startDate?.atStartOfDay()
+                val endDateTime = endDate?.atTime(23, 59, 59)
+
+                val pageable = org.springframework.data.domain.PageRequest.of(page, size)
+                val subjectIds = if (isClassTeacher) {
+                    null
                 } else {
-                    // Subject teacher sees only examinations for subjects they teach
-                    val subjectsTaught = subjectTeacherRepository
+                    val subjects = subjectTeacherRepository
                         .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
                             staff.id!!, currentSession.id!!, currentTerm.id!!, true
                         )
                         .filter { it.schoolClass.id == classId }
-                        .map { it.subject.id }
+                        .map { it.subject.id!! }
                     
-                    if (subjectsTaught.isNotEmpty()) {
-                        subjectsTaught.flatMap { subjectId ->
-                            examinationRepository.findBySchoolIdAndFilters(
-                                selectedSchoolId, true, subjectId, classId, null, null, null
-                            )
-                        }.distinctBy { it.id }
-                    } else {
-                        emptyList()
+                    if (subjects.isEmpty()) {
+                        // Not a class teacher and no subjects taught -> no access (return empty page)
+                        val emptyPage = org.springframework.data.domain.Page.empty<com.haneef._school.entity.Examination>(pageable)
+                        model.addAttribute("examinations", emptyPage.content)
+                        model.addAttribute("currentPage", 0)
+                        model.addAttribute("totalPages", 0)
+                        model.addAttribute("totalItems", 0)
+                        return "staff/class-assessments :: assessments-content"
                     }
+                    subjects
                 }
+
+                logger.info("getClassAssessments: classId={}, page={}, size={}", classId, page, size)
+                logger.info("getClassAssessments: isClassTeacher={}, subjectIds={}, session={}, term={}", isClassTeacher, subjectIds, currentSession.id, currentTerm.id)
+
+                val examinationsPage = examinationRepository.findBySchoolIdAndAdvancedFilters(
+                    selectedSchoolId, true, classId, subjectIds, sanitizedExamType, currentTerm.id, currentSession.id,
+                    isOnline, sanitizedSearch, startDateTime, endDateTime, pageable
+                )
+                logger.info("getClassAssessments: Found {} results", examinationsPage.content.size)
                 
-                model.addAttribute("examinations", examinations)
+                model.addAttribute("examinations", examinationsPage.content)
+                model.addAttribute("currentPage", examinationsPage.number)
+                model.addAttribute("totalPages", examinationsPage.totalPages)
+                model.addAttribute("totalItems", examinationsPage.totalElements)
+                
+                // Pass filter current values back to view
+                model.addAttribute("paramExamType", examType)
+                model.addAttribute("paramIsOnline", isOnline)
+                model.addAttribute("paramSearch", search)
+                model.addAttribute("paramStartDate", startDate)
+                model.addAttribute("paramEndDate", endDate)
+                
                 model.addAttribute("isClassTeacher", isClassTeacher)
                 model.addAttribute("classId", classId)
             }
@@ -713,6 +785,7 @@ class StaffDashboardController(
                         examination = examination,
                         instruction = sanitizedInstruction,
                         questionText = sanitizedQuestionText,
+                        explanation = htmlSanitizerService.sanitize(qData.explanation),
                         optionA = sanitizedOptionA,
                         optionB = sanitizedOptionB,
                         optionC = sanitizedOptionC,
@@ -750,6 +823,7 @@ class StaffDashboardController(
         @org.springframework.web.bind.annotation.RequestParam optionE: String?,
         @org.springframework.web.bind.annotation.RequestParam correctAnswer: String,
         @org.springframework.web.bind.annotation.RequestParam marks: Double,
+        @org.springframework.web.bind.annotation.RequestParam(required = false) explanation: String?,
         authentication: Authentication,
         session: HttpSession
     ): Map<String, Any> {
@@ -819,6 +893,7 @@ class StaffDashboardController(
                 this.optionE = htmlSanitizerService.sanitize(optionE)
                 this.correctAnswer = correctAnswer
                 this.marks = marks
+                this.explanation = htmlSanitizerService.sanitize(explanation)
             }
             
             questionRepository.save(question)
@@ -1090,15 +1165,37 @@ class StaffDashboardController(
         val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId) ?: return "redirect:/staff/dashboard"
 
         // Staff only sees their assigned classes
-        // Determine session to use for assignments
-        val targetSession = if (sessionYear != null) {
-            academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, sessionYear, true)
+        
+        // 1. Resolve Session Year
+        // a. Try parameter
+        // b. Try session attribute
+        // c. Default to current session
+        var effectiveSessionYear = sessionYear
+        if (effectiveSessionYear == null) {
+            effectiveSessionYear = session.getAttribute("lastSelectedSessionYear") as? String
+        }
+        
+        // Get current session for fallback and default
+        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+        
+        if (effectiveSessionYear == null) {
+            effectiveSessionYear = currentSession?.sessionYear
+        }
+        
+        // Save resolved session to http session
+        if (effectiveSessionYear != null) {
+            session.setAttribute("lastSelectedSessionYear", effectiveSessionYear)
+        }
+
+        // Determine session entity to use for assignments lookup
+        val targetSession = if (effectiveSessionYear != null) {
+            academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, effectiveSessionYear, true)
         } else {
-            academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+            currentSession
         }
         
         val assignedClassIds = if (targetSession != null) {
-            // Get assignments for the specific session (we don't filter by term here as reports might cover any term in the session)
+            // Get assignments for the specific session
             val classTeacherAssignments = classTeacherRepository.findByStaffIdAndAcademicSessionIdAndIsActive(
                 staff.id!!, targetSession.id!!, true
             )
@@ -1113,8 +1210,33 @@ class StaffDashboardController(
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
         val educationTracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         val departments = departmentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-        val classes = schoolClassRepository.findAllById(assignedClassIds).filter { it.isActive }
+        val classes = schoolClassRepository.findAllById(assignedClassIds).filter { it.isActive }.sortedBy { it.className }
         val terms = listOf("First Term", "Second Term", "Third Term")
+
+        // 2. Resolve Class ID
+        // a. Try parameter
+        // b. Try session attribute
+        // c. Default to first available class
+        var effectiveClassId = classId
+        if (effectiveClassId == null) {
+            effectiveClassId = session.getAttribute("lastSelectedClassId") as? UUID
+        }
+        
+        // Validation: Ensure effectiveClassId is actually accessible to the user
+        // (User might have switched terms/schools or lost access)
+        if (effectiveClassId != null && !classes.any { it.id == effectiveClassId }) {
+            effectiveClassId = null
+        }
+        
+        // Fallback: Default to first class if still null
+        if (effectiveClassId == null && classes.isNotEmpty()) {
+            effectiveClassId = classes[0].id
+        }
+        
+        // Save resolved class to http session
+        if (effectiveClassId != null) {
+            session.setAttribute("lastSelectedClassId", effectiveClassId)
+        }
 
         model.addAttribute("school", school)
         model.addAttribute("academicSessions", academicSessions)
@@ -1125,21 +1247,28 @@ class StaffDashboardController(
         
         model.addAttribute("selectedTrackId", trackId)
         model.addAttribute("selectedDepartmentId", departmentId)
-        model.addAttribute("selectedClassId", classId)
+        // Use effective values for view rendering
+        model.addAttribute("selectedClassId", effectiveClassId) 
         model.addAttribute("selectedTerm", term)
-        model.addAttribute("selectedSession", sessionYear)
+        model.addAttribute("selectedSession", effectiveSessionYear)
         
         model.addAttribute("showFilters", true)
         model.addAttribute("hideSubjectFilter", true)
         model.addAttribute("hideExamTypeFilter", true)
 
-        if (classId != null && sessionYear != null && assignedClassIds.contains(classId)) {
-            val session = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, sessionYear, true)
-            if (session != null) {
+        // Load students if we have a valid context
+        if (effectiveClassId != null && effectiveSessionYear != null) {
+             val sessionEntity = if (targetSession != null && targetSession.sessionYear == effectiveSessionYear) {
+                 targetSession
+             } else {
+                 academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, effectiveSessionYear, true)
+             }
+             
+            if (sessionEntity != null) {
                 val enrollments = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndIsActive(
-                    classId, session.id!!, true
+                    effectiveClassId, sessionEntity.id!!, true
                 )
-                model.addAttribute("students", enrollments.map { it.student })
+                model.addAttribute("students", enrollments.map { it.student }.sortedBy { it.user.fullName })
             } else {
                 model.addAttribute("students", emptyList<com.haneef._school.entity.Student>())
             }
@@ -1171,6 +1300,14 @@ class StaffDashboardController(
             if (staff == null) {
                 logger.warn("Staff record not found for userId={} and schoolId={}", customUser.getUserId(), selectedSchoolId)
                 return "fragments/error :: error-message"
+            }
+            
+            // Persist selections to session
+            if (classId != null) {
+                session.setAttribute("lastSelectedClassId", classId)
+            }
+            if (sessionYear != null) {
+                session.setAttribute("lastSelectedSessionYear", sessionYear)
             }
 
             // Determine session to use for assignments
@@ -1284,13 +1421,13 @@ class StaffDashboardController(
         val student = studentRepository.findById(request.studentId).orElseThrow { RuntimeException("Student not found") }
 
         val assessment = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            request.studentId, request.session, request.term, selectedSchoolId, true
+            request.studentId, sessionEntity.sessionYear, termEntity.termName, selectedSchoolId, true
         ).orElseGet {
             val a = Assessment(
                 admissionNumber = student.admissionNumber ?: "",
                 student = student,
-                session = request.session,
-                term = request.term
+                session = sessionEntity.sessionYear,
+                term = termEntity.termName
             )
             a.schoolId = selectedSchoolId
             a
@@ -1325,28 +1462,65 @@ class StaffDashboardController(
             }
 
             val subject = subjectRepository.findById(scoreInput.subjectId).orElseThrow { RuntimeException("Subject not found") }
+            
+            val classSubject = classSubjectRepository.findBySchoolClassIdAndSubjectIdAndIsActive(
+                classId, scoreInput.subjectId, true
+            ) ?: throw RuntimeException("ClassSubject not found for subject ${subject.subjectName}")
+
+            // VALIDATION: Check Maximum Scores
+            val schemeJson = classSubject.schoolClass.scoringScheme
+            val maxMap = mutableMapOf<String, Int>()
+            
+            if (!schemeJson.isNullOrBlank()) {
+                try {
+                    val schemeList = objectMapper.readValue(schemeJson, object : com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Any>>>() {})
+                    schemeList.forEach { item ->
+                        val name = item["name"] as? String ?: ""
+                        val alias = item["alias"] as? String ?: name
+                        val max = (item["max"] as? Number)?.toInt() ?: 100
+                        if (name.isNotBlank()) maxMap[name] = max
+                        if (alias.isNotBlank()) maxMap[alias] = max
+                    }
+                } catch (e: Exception) {
+                    // Fallback to defaults on parse error
+                    maxMap["CA"] = 40
+                    maxMap["Exam"] = 60
+                }
+            } else {
+                // Default Scheme
+                maxMap["CA"] = 40
+                maxMap["Exam"] = 60
+            }
+
+            // Validate Dynamic Scores
+            scoreInput.scores.forEach { (component, score) ->
+                if (score != null) {
+                    // Match component to maxMap (handling potential casing or partial matches if needed, but strict for now)
+                    // The frontend sends "CA", "Exam" usually.
+                    // If component not found, default to 100? Or strict error? 
+                    // Let's assume 100 for unknown components to allow flexibility, or restrict?
+                    // Given the goal is "prevent entering score higher than max", we should be strict if we know the component.
+                    
+                    val max = maxMap[component] ?: if (component.contains("CA", true)) 40 else if (component.contains("Exam", true)) 60 else 100
+                    
+                    if (score > max) {
+                        throw RuntimeException("Score $score for '$component' in subject '${subject.subjectName}' exceeds maximum of $max")
+                    }
+                }
+            }
+
             val subjectScore = subjectScoreRepository.findByAssessmentIdAndSubjectIdAndSchoolIdAndIsActive(
                 assessment.id!!, scoreInput.subjectId, selectedSchoolId, true
-            ).firstOrNull() ?: {
-                // Find the ClassSubject for this subject and the student's class
-                val classSubject = classSubjectRepository.findBySchoolClassIdAndSubjectIdAndIsActive(
-                    classId, scoreInput.subjectId, true
-                ) ?: throw RuntimeException("ClassSubject not found for subject ${subject.subjectName}")
-                
-                SubjectScore(
-                    assessment = assessment,
-                    subject = subject,
-                    classSubject = classSubject
-                ).apply {
-                    this.schoolId = selectedSchoolId
-                }
-            }()
+            ).firstOrNull() ?: SubjectScore(
+                assessment = assessment,
+                subject = subject,
+                classSubject = classSubject
+            ).apply {
+                this.schoolId = selectedSchoolId
+            }
 
             // Ensure classSubject is set for existing records too
             if (subjectScore.classSubject == null) {
-                val classSubject = classSubjectRepository.findBySchoolClassIdAndSubjectIdAndIsActive(
-                    classId, scoreInput.subjectId, true
-                ) ?: throw RuntimeException("ClassSubject not found for subject ${subject.subjectName}")
                 subjectScore.classSubject = classSubject
             }
 
@@ -1434,23 +1608,57 @@ class StaffDashboardController(
         
         logger.info("Checking access for Staff: ${staff.id}, Class: $classId, Session: ${sessionEntity.id}, Term: ${termEntity.id}")
 
-        // Verify staff has access to this class
-        val isClassTeacher = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-            staff.id!!, classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
-        )
+        // Administrative bypass
+        val hasAdministrativeAccess = customUser.hasRole("ADMIN") || 
+                                     customUser.hasRole("SCHOOL_ADMIN") || 
+                                     customUser.hasRole("SYSTEM_ADMIN") || 
+                                     customUser.hasRole("PRINCIPAL")
         
-        val subjectsTaught = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-            staff.id!!, sessionEntity.id!!, termEntity.id!!, true
-        ).filter { it.schoolClass.id == classId }.map { it.subject.id }
-        
-        logger.info("Access Check Result - Is Class Teacher: $isClassTeacher, Subjects Taught Count: ${subjectsTaught.size}")
-        if (subjectsTaught.isNotEmpty()) {
-             logger.info("Subjects Taught IDs: $subjectsTaught")
-        }
+        var isClassTeacher = false
+        var allowedSubjectIds: Set<UUID>? = null
 
-        if (!isClassTeacher && subjectsTaught.isEmpty()) {
-            logger.error("ACCESS DENIED: Staff ${staff.id} is neither a class teacher nor a subject teacher for Class $classId in Session ${sessionEntity.id} Term ${termEntity.id}")
-            throw RuntimeException("Access denied to this class")
+        if (hasAdministrativeAccess) {
+            logger.info("Granting administrative access for user: ${customUser.username}")
+            isClassTeacher = true
+        } else {
+            // Verify staff has access to this class (Original requested term)
+            val isClassTeacherForRequestedTerm = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
+            )
+            
+            val subjectsTaughtInRequestedTerm = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                staff.id!!, sessionEntity.id!!, termEntity.id!!, true
+            ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+
+            // Secondary check: Are they assigned to this class in the CURRENT active context?
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
+            
+            val isCurrentlyClassTeacher = if (effectiveSession != null && effectiveTerm != null) {
+                classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                    staff.id!!, classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
+                )
+            } else false
+            
+            val currentlyTaughtSubjects = if (effectiveSession != null && effectiveTerm != null) {
+                subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
+                ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+            } else emptyList()
+
+            isClassTeacher = isClassTeacherForRequestedTerm || isCurrentlyClassTeacher
+            
+            if (!isClassTeacher) {
+                allowedSubjectIds = (subjectsTaughtInRequestedTerm + currentlyTaughtSubjects).filterNotNull().toSet()
+            }
+
+            val isAuthorized = isClassTeacher || (allowedSubjectIds != null && allowedSubjectIds.isNotEmpty())
+
+            logger.info("Access Check Result - Manual Check (Requested Term): ${(isClassTeacherForRequestedTerm || subjectsTaughtInRequestedTerm.isNotEmpty())}, Current Context Check: ${(isCurrentlyClassTeacher || currentlyTaughtSubjects.isNotEmpty())}")
+
+            if (!isAuthorized) {
+                logger.error("ACCESS DENIED: Staff ${staff.id} is neither a class teacher nor a subject teacher for Class $classId in requested Context (Session ${sessionEntity.id}, Term ${termEntity.id}) OR Current Context (Session ${effectiveSession?.id}, Term ${effectiveTerm?.id})")
+                throw RuntimeException("Access denied to this class")
+            }
         }
 
         val student = studentRepository.findById(studentId).orElseThrow { RuntimeException("Student not found") }
@@ -1458,14 +1666,21 @@ class StaffDashboardController(
         // Get all subjects for this class
         val classSubjects = classSubjectRepository.findBySchoolClassIdAndIsActive(classId, true)
         
+        // Filter subjects based on staff role/assignments
+        val filteredClassSubjects = if (allowedSubjectIds != null) {
+            classSubjects.filter { allowedSubjectIds.contains(it.subject.id) }
+        } else {
+            classSubjects
+        }
+        
         // Get existing assessment if any
         val assessmentOpt = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            studentId, session, term, selectedSchoolId, true
+            studentId, sessionEntity.sessionYear, termEntity.termName, selectedSchoolId, true
         )
 
         val assessment = assessmentOpt.orElse(null)
 
-        val subjectDataList = classSubjects.map { cs ->
+        val subjectDataList = filteredClassSubjects.map { cs ->
             var ca1: Int? = null
             var ca2: Int? = null
             var exam: Int? = null
@@ -1871,6 +2086,497 @@ class StaffDashboardController(
         } catch (e: Exception) {
             logger.error("Error saving attendance", e)
             return mapOf("success" to false, "message" to "Error saving attendance: ${e.message}")
+        }
+    }
+
+    // Helper method for resolving session/term context
+    private fun getEffectiveSessionAndTerm(session: HttpSession, schoolId: UUID): Pair<AcademicSession?, Term?> {
+        val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
+        val selectedTermId = session.getAttribute("selectedTermId") as? UUID
+        
+        // 1. Try to get from session attributes (User selection)
+        var effectiveSession = if (selectedSessionId != null) {
+            academicSessionRepository.findById(selectedSessionId).orElse(null)
+        } else {
+            null
+        }
+        
+        var effectiveTerm = if (selectedTermId != null) {
+            termRepository.findById(selectedTermId).orElse(null)
+        } else {
+            null
+        }
+
+        // 2. If not selected, fallback to current session/term
+        if (effectiveSession == null) {
+            val sessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(schoolId, true)
+            effectiveSession = sessions.find { it.isCurrentSession } ?: sessions.firstOrNull()
+        }
+        
+        if (effectiveTerm == null && effectiveSession != null) {
+             val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(effectiveSession.id!!, true)
+             effectiveTerm = terms.find { it.isCurrentTerm } ?: terms.firstOrNull()
+        }
+        
+        return Pair(effectiveSession, effectiveTerm)
+    }
+
+    @GetMapping("/classes/{classId}/assessments/new")
+    fun getNewClassAssessmentModal(
+        @PathVariable classId: UUID,
+        model: Model,
+        authentication: Authentication,
+        session: HttpSession
+    ): String {
+        val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+        val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+        
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+            
+        // Security Check: Ensure class belongs to the selected school
+        val schoolClass = schoolClassRepository.findById(classId).orElse(null)
+        if (schoolClass == null || schoolClass.schoolId != selectedSchoolId) {
+            return "fragments/error :: error-message"
+        }
+
+        // Get staff record
+        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+        if (staff == null || !staff.isActive) {
+             return "fragments/error :: error-message"
+        }
+        
+        // Get effective session and term
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        
+        if (effectiveSession == null || effectiveTerm == null) {
+            model.addAttribute("error", "No active session or term found.")
+            return "fragments/error :: error-message"
+        }
+
+        // Determine permissions and locked subjects
+        val isClassTeacher = classTeacherRepository
+            .existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
+            )
+            
+        val subjects = if (isClassTeacher) {
+            classSubjectRepository.findBySchoolClassIdAndIsActive(classId, true).map { it.subject }
+        } else {
+            subjectTeacherRepository
+                .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
+                )
+                .filter { it.schoolClass.id == classId }
+                .map { it.subject }
+        }
+
+        val lockedSubject = if (isClassTeacher) {
+            null // Class teacher can select any subject
+        } else {
+            if (subjects.size == 1) subjects.first() else null
+        }
+        
+        // Prepare model for the modal
+        model.addAttribute("user", customUser.user)
+        model.addAttribute("examination", Examination().apply { 
+            this.schoolClass = schoolClass 
+            if (lockedSubject != null) this.subject = lockedSubject
+        })
+        
+        // Required lists for the modal
+        val academicSessions = listOf(effectiveSession) // Lock to current/selected session
+        val educationTracks = listOf(schoolClass.track) // Lock to class track
+        
+        model.addAttribute("academicSessions", academicSessions)
+        model.addAttribute("educationTracks", educationTracks)
+        model.addAttribute("examTypes", listOf("Assignment", "Continuous Assessment", "Mid-Term Test", "End-of-Term Examination"))
+        val termNames = listOf("First Term", "Second Term", "Third Term")
+        model.addAttribute("terms", if (effectiveTerm != null && termNames.contains(effectiveTerm.termName)) listOf(effectiveTerm.termName) else termNames)
+        model.addAttribute("isEdit", false)
+        
+        // Staff-specific context variables
+        model.addAttribute("isStaffMode", true)
+        model.addAttribute("lockedClass", schoolClass)
+        model.addAttribute("lockedSubject", lockedSubject)
+        model.addAttribute("headerContextTerm", effectiveTerm) 
+        model.addAttribute("isCurrentTermSelected", effectiveTerm.isCurrentTerm) 
+        model.addAttribute("formAction", "/staff/classes/$classId/assessments/save-htmx") 
+        model.addAttribute("subjects", subjects) 
+
+        return "admin/assessments/examination-modal"
+    }
+
+    @GetMapping("/classes/{classId}/assessments/{examId}/edit")
+    fun getEditClassAssessmentModal(
+        @PathVariable classId: UUID,
+        @PathVariable examId: UUID,
+        model: Model,
+        authentication: Authentication,
+        session: HttpSession
+    ): String {
+        val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+        val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+        
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/select-school"
+            
+        val examination = examinationRepository.findById(examId).orElse(null)
+            ?: return "fragments/error :: error-message"
+            
+        if (examination.schoolId != selectedSchoolId || examination.schoolClass.id != classId) {
+             return "fragments/error :: error-message"
+        }
+
+        // Staff validation
+        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+        if (staff == null || !staff.isActive) {
+             return "fragments/error :: error-message"
+        }
+        
+        // Check permissions
+        val isClassTeacher = classTeacherRepository
+            .existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, classId, examination.academicSession!!.id!!, examination.term!!.id!!, selectedSchoolId, true
+            )
+            
+        val canEdit = if (isClassTeacher) {
+            true
+        } else {
+             val subjectsTaught = subjectTeacherRepository
+                .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    staff.id!!, examination.academicSession!!.id!!, examination.term!!.id!!, true
+                )
+                .filter { it.schoolClass.id == classId }
+                .map { it.subject.id }
+             subjectsTaught.contains(examination.subject.id)
+        }
+        
+        if (!canEdit) {
+            return "fragments/error :: error-message"
+        }
+
+        // Prepare locked context
+        val subjects = if (isClassTeacher) {
+            classSubjectRepository.findBySchoolClassIdAndIsActive(classId, true).map { it.subject }
+        } else {
+             subjectTeacherRepository
+                .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    staff.id!!, examination.academicSession!!.id!!, examination.term!!.id!!, true
+                )
+                .filter { it.schoolClass.id == classId }
+                .map { it.subject }
+        }
+
+        val lockedSubject = if (!isClassTeacher) examination.subject else null
+        
+        model.addAttribute("user", customUser.user)
+        model.addAttribute("examination", examination)
+        
+        model.addAttribute("academicSessions", listOf(examination.academicSession))
+        model.addAttribute("educationTracks", listOf(examination.schoolClass.track))
+        model.addAttribute("examTypes", listOf("Assignment", "Continuous Assessment", "Mid-Term Test", "End-of-Term Examination"))
+        model.addAttribute("terms", listOf("First Term", "Second Term", "Third Term")) 
+        model.addAttribute("isEdit", true)
+        
+        model.addAttribute("isStaffMode", true)
+        model.addAttribute("lockedClass", examination.schoolClass)
+        model.addAttribute("lockedSubject", lockedSubject)
+        
+        val (_, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+        model.addAttribute("headerContextTerm", effectiveTerm) 
+        model.addAttribute("isCurrentTermSelected", effectiveTerm?.isCurrentTerm == true) 
+        model.addAttribute("formAction", "/staff/classes/$classId/assessments/save-htmx") 
+        model.addAttribute("subjects", subjects) 
+
+        return "admin/assessments/examination-modal"
+    }
+
+    @PostMapping("/classes/{classId}/assessments/save-htmx")
+    fun saveStaffAssessmentHtmx(
+        @PathVariable classId: UUID,
+        @ModelAttribute examinationDto: ExaminationDto,
+        authentication: Authentication,
+        session: HttpSession,
+        model: Model,
+        response: jakarta.servlet.http.HttpServletResponse
+    ): String {
+        val customUser = authentication.principal as CustomUserDetails
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "fragments/error :: error-message"
+
+        try {
+            val subject = subjectRepository.findById(examinationDto.subjectId).orElseThrow()
+            val schoolClass = schoolClassRepository.findById(classId).orElseThrow()
+
+            if (schoolClass.schoolId != selectedSchoolId) {
+                return "fragments/error :: error-message"
+            }
+
+            // Get staff and verify permissions
+            val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+                ?: return "fragments/error :: error-message"
+
+            val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+            val currentTerm = effectiveTerm ?: throw RuntimeException("No active term found")
+            val currentSession = effectiveSession ?: throw RuntimeException("No active session found")
+
+            // Basic permission check
+            val isClassTeacher = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, classId, currentSession.id!!, currentTerm.id!!, selectedSchoolId, true
+            )
+            
+            // Allow subject teachers to proceed if they teach a subject in the class (simplified check, real app might be stricter)
+            // Ideally we check if they teach THE subject of the exam if not class teacher.
+            
+            if (examinationDto.id != null) {
+                // Update
+                val existingExamination = examinationRepository.findById(examinationDto.id).orElseThrow()
+                if (existingExamination.schoolId != selectedSchoolId) return "fragments/error :: error-message"
+
+                existingExamination.apply {
+                    this.title = examinationDto.title
+                    this.examType = examinationDto.examType
+                    this.isOnline = examinationDto.isOnline
+                    this.subject = subject
+                    this.schoolClass = schoolClass
+                    this.durationMinutes = examinationDto.durationMinutes
+                    this.totalMarks = examinationDto.totalMarks
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                    this.startTime = if (!examinationDto.startTime.isNullOrBlank()) {
+                        try {
+                            java.time.LocalDateTime.parse(examinationDto.startTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.startTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+                    
+                    this.endTime = if (!examinationDto.endTime.isNullOrBlank()) {
+                         try {
+                            java.time.LocalDateTime.parse(examinationDto.endTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.endTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+                    this.isPublished = examinationDto.isPublished
+                    // term and session usually stay consistent with creation time context or updated context? 
+                    // Let's assume we keep them or update if logic dictates. 
+                    this.term = currentTerm
+                    this.academicSession = currentSession
+                }
+                examinationRepository.save(existingExamination)
+                model.addAttribute("examination", existingExamination)
+                model.addAttribute("classId", classId)
+                model.addAttribute("isNew", false)
+            } else {
+                // Create
+                val newExamination = Examination(
+                    title = examinationDto.title,
+                    examType = examinationDto.examType,
+                    isOnline = examinationDto.isOnline,
+                    subject = subject,
+                    schoolClass = schoolClass,
+                    term = currentTerm,
+                    academicSession = currentSession,
+                    createdBy = customUser.user.id!!
+                ).apply {
+                    this.schoolId = selectedSchoolId
+                    this.durationMinutes = examinationDto.durationMinutes
+                    this.totalMarks = examinationDto.totalMarks
+                    this.isActive = true
+                    
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                    this.startTime = if (!examinationDto.startTime.isNullOrBlank()) {
+                        try {
+                            java.time.LocalDateTime.parse(examinationDto.startTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.startTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+                    
+                    this.endTime = if (!examinationDto.endTime.isNullOrBlank()) {
+                         try {
+                            java.time.LocalDateTime.parse(examinationDto.endTime, formatter)
+                        } catch (e: Exception) {
+                             try { java.time.LocalDateTime.parse(examinationDto.endTime) } catch (e2: Exception) { null }
+                        }
+                    } else null
+
+                    this.isPublished = examinationDto.isPublished
+                }
+                val savedExamination = examinationRepository.save(newExamination)
+                model.addAttribute("examination", savedExamination)
+                model.addAttribute("classId", classId)
+                model.addAttribute("isNew", true)
+            }
+
+            // Check if triggers are supported by the client lib, otherwise rely on the header
+            // Trigger refresh only for new assessments
+            val refreshTrigger = if (examinationDto.id == null) ", \"refreshAssessments\": true" else ""
+            response.setHeader("HX-Trigger", "{\"closeModal\": \"examinationModal\", \"showNotification\": \"Assessment saved successfully!\"$refreshTrigger}")
+
+            return "staff/class-assessments :: examination-save-response"
+        } catch (e: Exception) {
+            model.addAttribute("error", "Error saving examination: ${e.message}")
+            return "fragments/error :: error-message"
+        }
+    }
+
+    @PostMapping("/classes/{classId}/examinations/{examId}/toggle-publish")
+    @ResponseBody
+    fun toggleExaminationPublish(
+        @PathVariable classId: UUID,
+        @PathVariable examId: UUID,
+        authentication: Authentication,
+        session: HttpSession
+    ): String {
+        val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+        val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+        
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "<span class='badge bg-danger'>Error</span>"
+            
+        val examination = examinationRepository.findById(examId).orElse(null)
+            ?: return "<span class='badge bg-danger'>Not Found</span>"
+            
+        if (examination.schoolId != selectedSchoolId || examination.schoolClass.id != classId) {
+             return "<span class='badge bg-danger'>Unauthorized</span>"
+        }
+
+        // Check permissions
+        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+        if (staff == null || !staff.isActive) {
+             return "<span class='badge bg-danger'>Unauthorized</span>"
+        }
+
+        val isClassTeacher = classTeacherRepository
+            .existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, classId, examination.academicSession!!.id!!, examination.term!!.id!!, selectedSchoolId, true
+            )
+            
+        val canEdit = if (isClassTeacher) {
+            true
+        } else {
+             val subjectsTaught = subjectTeacherRepository
+                .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    staff.id!!, examination.academicSession!!.id!!, examination.term!!.id!!, true
+                )
+                .filter { it.schoolClass.id == classId }
+                .map { it.subject.id }
+             subjectsTaught.contains(examination.subject.id)
+        }
+        
+        if (!canEdit) {
+            return "<span class='badge bg-danger'>Unauthorized</span>"
+        }
+        
+        // Toggle status
+        examination.isPublished = !examination.isPublished
+        examinationRepository.save(examination)
+        
+        val statusClass = if (examination.isPublished) "published" else "draft"
+        val statusText = if (examination.isPublished) "Published" else "Draft"
+        val bgStyle = if (examination.isPublished) "background: #dcfce7; color: #166534;" else "background: #fef9c3; color: #854d0e;"
+        
+        // Return updated badge HTML
+        return """
+            <span class="badge $statusClass" 
+                  style="font-size: 0.7rem; padding: 0.25rem 0.75rem; border-radius: 999px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; $bgStyle; cursor: pointer;"
+                  hx-post="/staff/classes/$classId/examinations/$examId/toggle-publish"
+                  hx-swap="outerHTML"
+                  title="Click to toggle status">
+                $statusText
+            </span>
+        """.trimIndent()
+    }
+    @DeleteMapping("/classes/{classId}/examinations/{examId}")
+    @ResponseBody
+    fun deleteExamination(
+        @PathVariable classId: UUID,
+        @PathVariable examId: UUID,
+        authentication: Authentication,
+        session: HttpSession
+    ): String {
+        val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+        val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+        
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return ""
+            
+        val examination = examinationRepository.findById(examId).orElse(null)
+            ?: return ""
+            
+        if (examination.schoolId != selectedSchoolId || examination.schoolClass.id != classId) {
+             return ""
+        }
+
+        // Check permissions
+        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+        if (staff == null || !staff.isActive) {
+             return ""
+        }
+
+        val isClassTeacher = classTeacherRepository
+            .existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, classId, examination.academicSession!!.id!!, examination.term!!.id!!, selectedSchoolId, true
+            )
+            
+        val canDelete = if (isClassTeacher) {
+            true
+        } else {
+             val subjectsTaught = subjectTeacherRepository
+                .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    staff.id!!, examination.academicSession!!.id!!, examination.term!!.id!!, true
+                )
+                .filter { it.schoolClass.id == classId }
+                .map { it.subject.id }
+             subjectsTaught.contains(examination.subject.id)
+        }
+        
+        if (!canDelete) {
+            return ""
+        }
+        
+        // Soft delete
+        examination.isActive = false
+        examinationRepository.save(examination)
+        
+        return "" // Return empty response to remove element from DOM
+    }
+
+    @PostMapping("/classes/{classId}/examinations/{examId}/ai-generate")
+    @org.springframework.web.bind.annotation.ResponseBody
+    fun generateAiQuestions(
+        @org.springframework.web.bind.annotation.PathVariable classId: java.util.UUID,
+        @org.springframework.web.bind.annotation.PathVariable examId: java.util.UUID,
+        @org.springframework.web.bind.annotation.RequestBody request: com.haneef._school.dto.AiQuestionRequest,
+        authentication: org.springframework.security.core.Authentication,
+        session: jakarta.servlet.http.HttpSession
+    ): Map<String, Any> {
+        return try {
+            val selectedSchoolId = session.getAttribute("selectedSchoolId") as? java.util.UUID
+                ?: return mapOf("success" to false, "message" to "School not selected")
+
+            val examination = examinationRepository.findById(examId).orElse(null)
+                ?: return mapOf("success" to false, "message" to "Examination not found")
+
+            // Security Check
+            if (examination.schoolId != selectedSchoolId) {
+                return mapOf("success" to false, "message" to "Unauthorized access")
+            }
+
+            // Add subject and class context to request for better prompt
+            val enhancedRequest = request.copy(
+                subjectName = examination.subject.subjectName,
+                className = examination.schoolClass.className,
+                gradeLevel = examination.schoolClass.gradeLevelDisplayName
+            )
+
+            val generatedQuestions = geminiService.generateQuestions(enhancedRequest)
+            mapOf("success" to true, "questions" to generatedQuestions)
+        } catch (e: Exception) {
+            logger.error("AI Generation failed", e)
+            mapOf("success" to false, "message" to (e.message ?: "Failed to generate questions"))
         }
     }
 }

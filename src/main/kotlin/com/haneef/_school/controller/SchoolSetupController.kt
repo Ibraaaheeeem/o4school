@@ -32,7 +32,9 @@ class SchoolSetupController(
     private val bankService: BankService,
     private val paystackRecipientService: PaystackRecipientService,
     private val authorizationService: com.haneef._school.service.AuthorizationService,
-    private val schoolContentService: SchoolContentService
+    private val schoolContentService: SchoolContentService,
+    private val hostAfricaService: HostAfricaService,
+    private val learningContentService: LearningContentService
 ) {
 
     @GetMapping("/academic-structure")
@@ -687,6 +689,7 @@ class SchoolSetupController(
         model.addAttribute("selectedClassId", classId)
         model.addAttribute("searchQuery", query)
         model.addAttribute("newSubject", Subject())
+        model.addAttribute("elearnerSubjects", learningContentService.listAllSubjects())
         
         return if (hxRequest == true) {
             "admin/school-setup/subjects :: subjects-list-fragment"
@@ -732,10 +735,15 @@ class SchoolSetupController(
                         subjectCode = subjectDto.subjectCode,
                         isCoreSubject = subjectDto.isCoreSubject,
                         description = subjectDto.description
-                    ).apply { isActive = true }
+                    ).apply { 
+                        isActive = true 
+                        // elearnerSubjectId removed
+                    }
                     subjectRepository.save(subject)
                 }
             }
+            
+
             
             updateSubjectClassAssignments(savedSubject.id!!, subjectDto.assignedClassIds.filterNotNull(), selectedSchoolId)
             
@@ -840,7 +848,8 @@ class SchoolSetupController(
                 className = schoolClass.className,
                 departmentName = schoolClass.department?.name,
                 trackId = schoolClass.track?.id ?: UUID.randomUUID(),
-                trackName = schoolClass.track?.name
+                trackName = schoolClass.track?.name,
+                gradeLevel = schoolClass.gradeLevel ?: 0
             )
         }
     }
@@ -882,7 +891,8 @@ class SchoolSetupController(
                 className = schoolClass.className,
                 departmentName = schoolClass.department?.name,
                 trackId = schoolClass.track?.id ?: UUID.randomUUID(),
-                trackName = schoolClass.track?.name
+                trackName = schoolClass.track?.name,
+                gradeLevel = schoolClass.gradeLevel ?: 0
             )
         }
         
@@ -894,7 +904,8 @@ class SchoolSetupController(
             description = subject.description,
             assignedClassIds = assignedClassIds,
             availableTracks = availableTracks,
-            availableClasses = availableClasses
+            availableClasses = availableClasses,
+            mappings = subject.mappings.associate { it.gradeLevel to it.elearnerSubjectId }
         )
     }
 
@@ -983,6 +994,7 @@ class SchoolSetupController(
             schoolContentService.hasCustomContent(schoolId, section)
         }
         steps["landingPage"] = hasCustomContent
+        steps["customDomain"] = !school?.customDomain.isNullOrBlank()
         
         val completedSteps = steps.values.count { it }
         val totalSteps = steps.size
@@ -1035,6 +1047,56 @@ class SchoolSetupController(
         return mapOf("available" to isAvailable)
     }
 
+    // Step 7: Custom Domain
+    @GetMapping("/custom-domain")
+    fun customDomain(model: Model, authentication: Authentication, session: HttpSession): String {
+        val customUser = authentication.principal as CustomUserDetails
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/admin/school-setup/school-details"
+        
+        val school = schoolRepository.findById(selectedSchoolId).orElse(null)
+            ?: return "redirect:/admin/school-setup/school-details"
+            
+        model.addAttribute("user", customUser.user)
+        model.addAttribute("school", school)
+        
+        return "admin/school-setup/custom-domain"
+    }
+
+    @GetMapping("/custom-domain/check")
+    @ResponseBody
+    fun checkDomainAvailability(@RequestParam domain: String): Map<String, Any> {
+        val isAvailable = hostAfricaService.checkDomainAvailability(domain)
+        return mapOf("available" to isAvailable)
+    }
+
+    @PostMapping("/custom-domain/save")
+    fun saveCustomDomain(
+        @RequestParam domain: String,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return "redirect:/admin/school-setup/school-details"
+            
+        val school = schoolRepository.findById(selectedSchoolId).orElseThrow()
+        
+        try {
+            // Register/Connect via HostAfrica
+             hostAfricaService.registerDomain(domain, school)
+             
+             // Save to DB
+             school.customDomain = domain
+             schoolRepository.save(school)
+             
+             redirectAttributes.addFlashAttribute("success", "Custom domain configured successfully!")
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("error", "Error configuring domain: ${e.message}")
+        }
+        
+        return "redirect:/admin/school-setup/custom-domain"
+    }
+
     data class SubjectWithClasses(
         val subject: Subject,
         val assignedClasses: List<SchoolClass>
@@ -1048,7 +1110,9 @@ class SchoolSetupController(
         val description: String?,
         val assignedClassIds: List<UUID>,
         val availableTracks: List<TrackOption>,
-        val availableClasses: List<ClassOption>
+        val availableClasses: List<ClassOption>,
+        val elearnerSubjectId: UUID? = null,
+        val mappings: Map<Int, UUID> = emptyMap()
     )
     
     data class TrackOption(
@@ -1061,6 +1125,7 @@ class SchoolSetupController(
         val className: String,
         val departmentName: String?,
         val trackId: UUID,
-        val trackName: String?
+        val trackName: String?,
+        val gradeLevel: Int
     )
 }

@@ -43,8 +43,8 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
     
     fun findByAdmissionNumberAndSchoolId(admissionNumber: String, schoolId: UUID): Student?
     
-    @Query("SELECT s FROM Student s JOIN FETCH s.user WHERE s.admissionNumber = :admissionNumber")
-    fun findByAdmissionNumber(@Param("admissionNumber") admissionNumber: String): Student?
+    @Query("SELECT s FROM Student s JOIN FETCH s.user WHERE s.admissionNumber = :admissionNumber ORDER BY s.isActive DESC, s.createdAt DESC")
+    fun findByAdmissionNumber(@Param("admissionNumber") admissionNumber: String): List<Student>
     
     @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
     @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +

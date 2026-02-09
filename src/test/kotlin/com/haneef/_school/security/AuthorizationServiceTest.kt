@@ -91,7 +91,6 @@ class AuthorizationServiceTest {
         val subjectId = UUID.randomUUID()
         val subject = Subject().apply {
             id = subjectId
-            this.schoolId = schoolId
         }
 
         `when`(subjectRepository.findById(subjectId)).thenReturn(Optional.of(subject))
@@ -100,22 +99,7 @@ class AuthorizationServiceTest {
         assert(result.id == subjectId)
     }
 
-    @Test
-    fun `validateAndGetSubject should throw exception when school doesn't match`() {
-        val schoolId = UUID.randomUUID()
-        val differentSchoolId = UUID.randomUUID()
-        val subjectId = UUID.randomUUID()
-        val subject = Subject().apply {
-            id = subjectId
-            this.schoolId = differentSchoolId
-        }
-
-        `when`(subjectRepository.findById(subjectId)).thenReturn(Optional.of(subject))
-
-        assertThrows<AccessDeniedException> {
-            authorizationService.validateAndGetSubject(subjectId, schoolId)
-        }
-    }
+    // Subjects are global, so AccessDeniedException is no longer applicable for them in validateAndGetSubject
 
     @Test
     fun `validateSchoolAccess should return schoolId when not null`() {

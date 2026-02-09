@@ -101,27 +101,26 @@
                             <div class="section-header">
                                 <h2 class="section-title">Upcoming Events</h2>
                             </div>
-                            <div class="activity-list">
-                                <div class="activity-item">
-                                    <div class="activity-icon-wrapper">
-                                        <i class="fas fa-calendar-alt"></i>
+                            <div class="activity-list" th:if="${not #lists.isEmpty(upcomingEvents)}">
+                                <div class="activity-item" th:each="event : ${upcomingEvents}">
+                                    <div class="activity-icon-wrapper"
+                                        th:classappend="${event.eventType.name() == 'HOLIDAY' ? 'bg-info' : (event.eventType.name() == 'EXAM' ? 'bg-warning' : 'bg-primary')}">
+                                        <i class="fas"
+                                            th:classappend="${event.eventType.name() == 'HOLIDAY' ? 'fa-snowflake' : (event.eventType.name() == 'EXAM' ? 'fa-pencil-alt' : 'fa-calendar-alt')}"></i>
                                     </div>
                                     <div class="activity-details">
-                                        <h4>Parent-Teacher Conference</h4>
-                                        <p>Individual meetings with teachers</p>
-                                        <span class="activity-time">Dec 15</span>
+                                        <h4 th:text="${event.eventName}">Event Name</h4>
+                                        <p th:text="${event.description ?: 'No description available'}">Description</p>
+                                        <span class="activity-time"
+                                            th:text="${#temporals.format(event.startDate, 'MMM d, yyyy')}">Date</span>
                                     </div>
                                 </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon-wrapper">
-                                        <i class="fas fa-snowflake"></i>
-                                    </div>
-                                    <div class="activity-details">
-                                        <h4>Winter Break Begins</h4>
-                                        <p>School closes for winter holidays</p>
-                                        <span class="activity-time">Dec 20</span>
-                                    </div>
-                                </div>
+                            </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(upcomingEvents)}"
+                                style="padding: 2rem; text-align: center;">
+                                <i class="fas fa-calendar-times"
+                                    style="font-size: 2rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                                <p style="color: #64748b; margin: 0;">No upcoming events scheduled</p>
                             </div>
                         </div>
 
@@ -129,27 +128,30 @@
                             <div class="section-header">
                                 <h2 class="section-title">Recent Activity</h2>
                             </div>
-                            <div class="activity-list">
-                                <div class="activity-item">
+                            <div class="activity-list" th:if="${not #lists.isEmpty(recentActivities)}">
+                                <div class="activity-item" th:each="activity : ${recentActivities}">
                                     <div class="activity-icon-wrapper">
-                                        <i class="fas fa-chart-bar"></i>
+                                        <!-- Dynamic Icon Logic -->
+                                        <i class="fas"
+                                            th:classappend="${#strings.contains(activity.activityType.name(), 'PAYMENT') ? 'fa-money-bill-wave' : 
+                                                            (#strings.contains(activity.activityType.name(), 'GRADE') ? 'fa-chart-bar' : 
+                                                            (#strings.contains(activity.activityType.name(), 'ASSIGNMENT') ? 'fa-book' : 
+                                                            (#strings.contains(activity.activityType.name(), 'ATTENDANCE') ? 'fa-clock' : 'fa-bell')))}">
+                                        </i>
                                     </div>
                                     <div class="activity-details">
-                                        <h4>Grade Update - Emma</h4>
-                                        <p>Mathematics test: 92/100</p>
-                                        <span class="activity-time">2 hours ago</span>
+                                        <h4 th:text="${activity.title}">Activity Title</h4>
+                                        <p th:text="${activity.description}">Description</p>
+                                        <span class="activity-time"
+                                            th:text="${#temporals.format(activity.createdAt, 'MMM d, h:mm a')}">Time</span>
                                     </div>
                                 </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon-wrapper">
-                                        <i class="fas fa-pen"></i>
-                                    </div>
-                                    <div class="activity-details">
-                                        <h4>Assignment Due - Michael</h4>
-                                        <p>Science project due tomorrow</p>
-                                        <span class="activity-time">5 hours ago</span>
-                                    </div>
-                                </div>
+                            </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(recentActivities)}"
+                                style="padding: 2rem; text-align: center;">
+                                <i class="fas fa-history"
+                                    style="font-size: 2rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                                <p style="color: #64748b; margin: 0;">No recent activity to show</p>
                             </div>
                         </div>
                     </div>

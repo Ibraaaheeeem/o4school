@@ -236,7 +236,9 @@
         // Staff-specific functions
         window.confirmDeleteStaff = function (staffId, staffName) {
             document.getElementById('staffName').textContent = staffName;
-            document.getElementById('deleteForm').action = `/admin/community/staff/${staffId}/delete`;
+            const deleteForm = document.getElementById('deleteForm');
+            deleteForm.setAttribute('hx-post', `/admin/community/staff/${staffId}/delete`);
+            htmx.process(deleteForm);
             document.getElementById('deleteModal').classList.add('active');
         };
 
@@ -245,6 +247,15 @@
             if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
                 // Update community stats in sidebar
                 htmx.trigger('#community-stats', 'refresh');
+            }
+        });
+
+        // Listen for server-side modal close events
+        document.body.addEventListener('closeModal', function (evt) {
+            if (evt.detail && typeof evt.detail === 'string') {
+                closeModal(evt.detail);
+            } else if (evt.detail && evt.detail.value) {
+                closeModal(evt.detail.value);
             }
         });
     </script>

@@ -214,6 +214,15 @@
             }
         }
 
+        // Student-specific functions
+        window.confirmDelete = function (studentId, studentName) {
+            document.getElementById('studentName').textContent = studentName;
+            const deleteForm = document.getElementById('deleteForm');
+            deleteForm.setAttribute('hx-post', `/admin/community/students/${studentId}/delete`);
+            htmx.process(deleteForm);
+            document.getElementById('deleteModal').classList.add('active');
+        };
+
         // Debug: Check if container exists
         document.addEventListener('DOMContentLoaded', function () {
             const container = document.getElementById('student-cards-container');
@@ -224,7 +233,25 @@
             }
         });
 
+        // HTMX event listeners
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                // Update community stats in sidebar
+                const stats = document.getElementById('community-stats');
+                if (stats) {
+                    htmx.trigger(stats, 'refresh');
+                }
+            }
+        });
 
+        // Listen for server-side modal close events
+        document.body.addEventListener('closeModal', function (evt) {
+            if (evt.detail && typeof evt.detail === 'string') {
+                closeModal(evt.detail);
+            } else if (evt.detail && evt.detail.value) {
+                closeModal(evt.detail.value);
+            }
+        });
     </script>
 </body>
 

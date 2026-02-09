@@ -43,5 +43,7 @@ data class SubjectDto(
     var subjectCode: String? = null,
     var isCoreSubject: Boolean = false,
     var description: String? = null,
-    var assignedClassIds: List<UUID?> = emptyList()
+    var assignedClassIds: List<UUID?> = emptyList(),
+    // Map of Grade Level (Int) -> Elearner Subject ID (UUID)
+    var mappings: Map<Int, UUID> = emptyMap()
 )

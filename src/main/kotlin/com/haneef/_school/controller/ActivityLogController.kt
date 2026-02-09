@@ -15,7 +15,7 @@ import java.util.UUID
 
 @Controller
 @RequestMapping("/admin/activities")
-@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')")
+@PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'STUDENT', 'PARENT', 'STAFF')")
 class ActivityLogController(
     private val activityLogService: ActivityLogService
 ) {
@@ -70,7 +70,11 @@ class ActivityLogController(
         session: HttpSession,
         @RequestParam(defaultValue = "10") limit: Int
     ): List<Map<String, Any?>> {
-        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+        val customUser = authentication.principal as CustomUserDetails
+        val selectedSchoolId = (session.getAttribute("selectedSchoolId") as? UUID)
+            ?: customUser.forcedSchoolId
+            ?: customUser.user.studentProfiles.firstOrNull { it.isActive }?.schoolId
+            ?: customUser.user.schoolRoles.firstOrNull { it.isActive }?.schoolId
             ?: return emptyList()
             
         val activities = activityLogService.getRecentActivities(selectedSchoolId, limit)
@@ -100,7 +104,11 @@ class ActivityLogController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int
     ): Map<String, Any> {
-        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+        val customUser = authentication.principal as CustomUserDetails
+        val selectedSchoolId = (session.getAttribute("selectedSchoolId") as? UUID)
+            ?: customUser.forcedSchoolId
+            ?: customUser.user.studentProfiles.firstOrNull { it.isActive }?.schoolId
+            ?: customUser.user.schoolRoles.firstOrNull { it.isActive }?.schoolId
             ?: return mapOf("error" to "No school selected")
             
         val pageable = PageRequest.of(page, size, Sort.by("createdAt").descending())

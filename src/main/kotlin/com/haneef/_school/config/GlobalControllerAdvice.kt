@@ -14,17 +14,26 @@ class GlobalControllerAdvice {
     @Autowired
     private lateinit var termRepository: com.haneef._school.repository.TermRepository
 
+    @Autowired
+    private lateinit var schoolRepository: com.haneef._school.repository.SchoolRepository
+
     @ModelAttribute
     fun populateHeaderContext(
         model: org.springframework.ui.Model,
         authentication: org.springframework.security.core.Authentication?,
         session: jakarta.servlet.http.HttpSession
     ) {
-        if (authentication != null && authentication.isAuthenticated && 
-            authentication.authorities.any { it.authority == "ROLE_SCHOOL_ADMIN" }) {
-            
-            val selectedSchoolId = session.getAttribute("selectedSchoolId") as? java.util.UUID
+        if (authentication != null && authentication.isAuthenticated) {
+            val customUser = authentication.principal as? com.haneef._school.service.CustomUserDetails
+            val selectedSchoolId = (session.getAttribute("selectedSchoolId") as? java.util.UUID)
+                ?: customUser?.forcedSchoolId
+                
             if (selectedSchoolId != null) {
+                // Fetch and add school entity
+                schoolRepository.findById(selectedSchoolId).ifPresent { school ->
+                    model.addAttribute("school", school)
+                }
+
                 // Fetch all active sessions
                 val sessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
                 model.addAttribute("headerSessions", sessions)
@@ -66,31 +75,25 @@ class GlobalControllerAdvice {
                         model.addAttribute("headerContextTerm", contextTerm)
                         
                         // Current Term & Week Logic
+                        val now = java.time.LocalDate.now()
+                        val startDate = contextTerm.startDate
+                        
+                        // Determine the start of Week 1
+                        var week1Start = startDate
+                        if (startDate.dayOfWeek != java.time.DayOfWeek.SUNDAY) {
+                            week1Start = startDate.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY))
+                        }
+                        
+                        val weekNum = if (now.isBefore(startDate) || now.isBefore(week1Start)) {
+                            0
+                        } else {
+                            val days = java.time.temporal.ChronoUnit.DAYS.between(week1Start, now)
+                            (days / 7) + 1
+                        }
+                        model.addAttribute("currentWeekNumber", weekNum)
+
                         if (contextTerm.isCurrentTerm) {
                             model.addAttribute("isCurrentTermSelected", true)
-                            
-                            val now = java.time.LocalDate.now()
-                            val startDate = contextTerm.startDate
-                            
-                            // Determine the start of Week 1
-                            // "Week 1 starts the first sunday after the term start date or on the term start date if it is a Sunday"
-                            var week1Start = startDate
-                            if (startDate.dayOfWeek != java.time.DayOfWeek.SUNDAY) {
-                                week1Start = startDate.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY))
-                            }
-                            
-                            if (now.isBefore(startDate)) {
-                                // Before term starts
-                                model.addAttribute("currentWeekNumber", 0)
-                            } else if (now.isBefore(week1Start)) {
-                                // In the partial week before Week 1 starts (Week 0)
-                                model.addAttribute("currentWeekNumber", 0)
-                            } else {
-                                // Calculate week number
-                                val days = java.time.temporal.ChronoUnit.DAYS.between(week1Start, now)
-                                val weekNum = (days / 7) + 1
-                                model.addAttribute("currentWeekNumber", weekNum)
-                            }
                         }
                     } else {
                          model.addAttribute("headerContextTermWarning", true)
@@ -99,7 +102,10 @@ class GlobalControllerAdvice {
                      model.addAttribute("headerContextSessionWarning", true)
                 }
                 
-                model.addAttribute("isSchoolAdmin", true)
+                val authorities = authentication.authorities.map { it.authority }
+                model.addAttribute("isSchoolAdmin", authorities.any { it == "ROLE_SCHOOL_ADMIN" || it == "ROLE_ADMIN" })
+                model.addAttribute("isParent", authorities.contains("ROLE_PARENT"))
+                model.addAttribute("isStudent", authorities.contains("ROLE_STUDENT"))
             }
         }
     }

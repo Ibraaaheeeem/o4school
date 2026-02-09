@@ -1,7 +1,7 @@
 <div class="modal-content">
     <div class="modal-header">
         <h3>Success!</h3>
-        <button class="close-modal" onclick="closeModal('parentStudentModal')">&times;</button>
+        <button class="close-modal" onclick="closeAllModals()">&times;</button>
     </div>
     <div class="modal-body" style="text-align: center; padding: 40px 20px;">
         <i class="fas fa-check-circle" style="font-size: 64px; color: #10b981; margin-bottom: 20px;"></i>
@@ -9,7 +9,7 @@
         <p style="color: #6b7280; margin-top: 10px;">You can now close this dialog.</p>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal('parentStudentModal')">Close</button>
+        <button type="button" class="btn btn-outline" onclick="closeAllModals()">Close</button>
     </div>
 </div>
 <div id="global-toast-container" hx-swap-oob="beforeend">
@@ -26,3 +26,6 @@
     }, 3000);
     /*]]>*/
 </script>
+<th:block th:if="${isOob}">
+    <div th:replace="~{admin/community/parents/parent-cards :: single-parent-card(parent=${parent})}"></div>
+</th:block>

@@ -37,20 +37,144 @@ class AcademicController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
 
-        // Get current academic session
-        val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+        // Get all sessions first (needed for fallback logic)
         val allSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
+        
+        // Get current academic session (with fallback to latest if not set)
+        var currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+        if (currentSession == null && allSessions.isNotEmpty()) {
+            currentSession = allSessions.first() // Fallback to latest active session
+        }
+        
+        // Get current term - ONLY the term marked as is_current=true within the current session
+        val currentTerm = if (currentSession != null) {
+            termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(currentSession.id!!, true, true).orElse(null)
+        } else {
+            null
+        }
         
         // Get upcoming calendar events
         val upcomingEvents = schoolCalendarRepository.findBySchoolIdAndDateRange(
             selectedSchoolId, true, LocalDate.now(), LocalDate.now().plusMonths(3)
         ).take(5)
 
+        // Get Timetable Info
+        val todayDate = LocalDate.now()
+        val todayDay = todayDate.dayOfWeek
+        val currentTime = LocalTime.now()
+        
+        // Map Java DayOfWeek to Entity DayOfWeek (Enum names should match)
+        val entityDay = try {
+            DayOfWeek.valueOf(todayDay.name)
+        } catch (e: IllegalArgumentException) {
+            // Handle edge case if names differ or weekend not in enum (unlikely given previous code)
+            DayOfWeek.MONDAY // Fallback or handle appropriately
+        }
+        
+        
+        val currentPeriod = schoolTimetableRepository.findCurrentPeriod(selectedSchoolId, entityDay, currentTime, true).orElse(null)
+        val nextPeriods = schoolTimetableRepository.findNextPeriod(selectedSchoolId, entityDay, currentTime, true, PageRequest.of(0, 1))
+        val nextPeriod = if (nextPeriods.isNotEmpty()) nextPeriods[0] else null
+        
+        // Get full timetable for today
+        val todayTimetable = schoolTimetableRepository.findBySchoolIdAndDayOfWeekOrderByStartTime(selectedSchoolId, entityDay, true)
+
+        // Context Management: Auto-set default session/term if missing
+        
+        // 1. Resolve Session
+        var headerContextSession = session.getAttribute("selectedSessionId")?.let { id ->
+             academicSessionRepository.findById(id as UUID).orElse(null)
+        }
+        
+        if (headerContextSession == null) {
+            // No session in session-store. Try to find "Current" active session.
+            var defaultSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+            
+            if (defaultSession == null && allSessions.isNotEmpty()) {
+                // If no "Current" session, fallback to the latest active session (first in the list sorted by year desc)
+                defaultSession = allSessions.first()
+            }
+            
+            if (defaultSession != null) {
+                // Persist choice to session
+                session.setAttribute("selectedSessionId", defaultSession.id)
+                headerContextSession = defaultSession
+            }
+        }
+        
+        // 2. Resolve Term (dependant on Session)
+        var headerContextTerm = session.getAttribute("selectedTermId")?.let { id ->
+             termRepository.findById(id as UUID).orElse(null)
+        }
+        
+        if (headerContextTerm == null && headerContextSession != null) {
+            // Check if stored term belongs to current session (logic reset check) - optional but good for consistency
+            // For now, just find default if null.
+            
+            // Try to find "Current" active term for this session
+            var defaultTerm = termRepository.findByAcademicSessionIdAndIsCurrentTermAndIsActive(headerContextSession.id!!, true, true).orElse(null)
+            
+            if (defaultTerm == null) {
+                 // Fallback: Find term containing "today"
+                 val today = LocalDate.now()
+                 val allTerms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(headerContextSession.id!!, true)
+                 
+                 defaultTerm = allTerms.find { !today.isBefore(it.startDate) && (it.endDate == null || !today.isAfter(it.endDate)) }
+                 
+                 // Fallback: First term
+                 if (defaultTerm == null) {
+                     defaultTerm = allTerms.firstOrNull()
+                 }
+            }
+            
+            if (defaultTerm != null) {
+                session.setAttribute("selectedTermId", defaultTerm.id)
+                headerContextTerm = defaultTerm
+            }
+        }
+
         model.addAttribute("user", customUser.user)
         model.addAttribute("userRole", "School Administrator")
         model.addAttribute("currentSession", currentSession)
+        model.addAttribute("currentTerm", currentTerm)
         model.addAttribute("allSessions", allSessions)
         model.addAttribute("upcomingEvents", upcomingEvents)
+        model.addAttribute("currentPeriod", currentPeriod)
+        model.addAttribute("nextPeriod", nextPeriod)
+        model.addAttribute("todayDate", todayDate)
+        model.addAttribute("todayTimetable", todayTimetable)
+        model.addAttribute("currentTime", currentTime)
+        
+        // Ensure header context is passed and fully populated (overriding Advice if needed)
+        model.addAttribute("isSchoolAdmin", true) // Force true for this dashboard
+        model.addAttribute("headerContextSession", headerContextSession)
+        model.addAttribute("headerContextTerm", headerContextTerm)
+        
+        // Populate Dropdown Lists for Header
+        model.addAttribute("headerSessions", allSessions) // Reuse allSessions
+        if (headerContextSession != null) {
+            val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(headerContextSession.id!!, true)
+            model.addAttribute("headerTerms", terms)
+        }
+        
+        // Explicitly set 'isCurrentTermSelected' for the badge if applicable
+        if (headerContextTerm != null && headerContextTerm.isCurrentTerm) {
+            model.addAttribute("isCurrentTermSelected", true)
+            // Week calculation logic can optionally be added here or rely on Advice default if robust enough
+             val now = LocalDate.now()
+             val startDate = headerContextTerm.startDate
+             var week1Start = startDate
+             if (startDate.dayOfWeek != java.time.DayOfWeek.SUNDAY) {
+                 week1Start = startDate.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY))
+             }
+             if (!now.isBefore(week1Start)) {
+                 val days = java.time.temporal.ChronoUnit.DAYS.between(week1Start, now)
+                 val weekNum = (days / 7) + 1
+                 model.addAttribute("currentWeekNumber", weekNum)
+             } else {
+                 model.addAttribute("currentWeekNumber", 0)
+             }
+        }
 
         return "admin/academic/home"
     }
@@ -172,7 +296,10 @@ class AcademicController(
                 model.addAttribute("message", "Academic session created successfully!")
             }
 
-            return "fragments/success :: success-message"
+            // Refund list for OOB
+            populateSessionModel(model, session, selectedSchoolId)
+
+            return "admin/academic/htmx-responses :: session-save-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error saving academic session: ${e.message}")
             return "fragments/error :: error-message"
@@ -267,6 +394,7 @@ class AcademicController(
         @RequestParam startDate: String,
         @RequestParam(required = false) endDate: String?,
         @RequestParam(required = false) isCurrentTerm: Boolean = false,
+        @RequestParam(required = false) termNumber: Int?,
         @RequestParam(required = false) description: String?,
         session: HttpSession,
         model: Model
@@ -457,6 +585,7 @@ class AcademicController(
                     this.startDate = startDateObj
                     this.endDate = endDateObj
                     this.isCurrentTerm = isCurrentTerm
+                    this.termNumber = termNumber
                     this.description = description
                 }
                 
@@ -476,6 +605,7 @@ class AcademicController(
                     this.startDate = startDateObj
                     this.endDate = endDateObj
                     this.isCurrentTerm = isCurrentTerm
+                    this.termNumber = termNumber
                     this.description = description
                     this.isActive = true
                     this.status = "planned"
@@ -493,6 +623,7 @@ class AcademicController(
                 ).apply {
                     this.schoolId = selectedSchoolId
                     this.isCurrentTerm = isCurrentTerm
+                    this.termNumber = termNumber
                     this.description = description
                     this.isActive = true
                     this.status = "planned"
@@ -503,11 +634,10 @@ class AcademicController(
             }
 
             // Fetch updated terms list for OOB update
-            val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(sessionId, true)
-            model.addAttribute("terms", terms)
+            populateTermModel(model, sessionId)
             model.addAttribute("academicSession", academicSession)
 
-            return "admin/academic/term-success"
+            return "admin/academic/htmx-responses :: term-save-success"
         } catch (e: Exception) {
             logger.error("Error saving term", e)
             model.addAttribute("error", "Error saving term: ${e.message}")
@@ -532,10 +662,43 @@ class AcademicController(
             term.isActive = false
             termRepository.save(term)
             model.addAttribute("message", "Term deleted successfully!")
-            return "fragments/success :: success-message"
+            
+            // Refund list for OOB
+            populateTermModel(model, term.academicSession.id!!)
+            
+            return "admin/academic/htmx-responses :: term-delete-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error deleting term: ${e.message}")
             return "fragments/error :: error-message"
+        }
+    }
+
+    @PostMapping("/terms/migrate")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
+    fun migrateTerms(session: HttpSession): Map<String, Any> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: return mapOf("success" to false, "message" to "No school selected")
+
+        return try {
+            val terms = termRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
+            var count = 0
+            terms.forEach { term ->
+                val name = term.termName.lowercase()
+                val oldNumber = term.termNumber
+                
+                if (name.contains("first")) term.termNumber = 1
+                else if (name.contains("second")) term.termNumber = 2
+                else if (name.contains("third")) term.termNumber = 3
+                
+                if (term.termNumber != oldNumber) {
+                    termRepository.save(term)
+                    count++
+                }
+            }
+            mapOf("success" to true, "message" to "Migrated $count terms")
+        } catch (e: Exception) {
+            mapOf("success" to false, "message" to "Migration failed: ${e.message}")
         }
     }
 
@@ -545,9 +708,31 @@ class AcademicController(
         val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
+        val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
+        val selectedTermId = session.getAttribute("selectedTermId") as? UUID
 
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
-        val calendarEvents = schoolCalendarRepository.findBySchoolIdAndIsActiveWithSession(selectedSchoolId, true)
+        
+        val calendarEvents = if (selectedTermId != null) {
+            // Filter by Term Context (Date Range)
+            val term = termRepository.findById(selectedTermId).orElse(null)
+            if (term != null && term.schoolId == selectedSchoolId) {
+                // Use term dates. If term is open-ended (current term), use a far future date or reasonable range
+                val endDate = term.endDate ?: term.startDate.plusMonths(6)
+                schoolCalendarRepository.findBySchoolIdAndDateRange(
+                    selectedSchoolId, true, term.startDate, endDate
+                )
+            } else {
+                 // Fallback if term not found/invalid
+                 schoolCalendarRepository.findBySchoolIdAndIsActiveWithSession(selectedSchoolId, true)
+            }
+        } else if (selectedSessionId != null) {
+            // Filter by Session Context
+            schoolCalendarRepository.findBySchoolIdAndSessionIdAndIsActive(selectedSchoolId, selectedSessionId, true)
+        } else {
+            // Show all (or maybe default to current session if preferred, but existing behavior was all)
+            schoolCalendarRepository.findBySchoolIdAndIsActiveWithSession(selectedSchoolId, true)
+        }
 
         model.addAttribute("user", customUser.user)
         model.addAttribute("userRole", "School Administrator")
@@ -602,15 +787,11 @@ class AcademicController(
     @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
     fun saveCalendarHtmx(
         @RequestParam(required = false) id: UUID?,
-        @RequestParam sessionId: UUID,
         @RequestParam eventName: String,
         @RequestParam eventType: CalendarEventType,
         @RequestParam startDate: String,
         @RequestParam(required = false) endDate: String?,
         @RequestParam(required = false) description: String?,
-        @RequestParam(required = false) isHoliday: Boolean = false,
-        @RequestParam(required = false) isExamPeriod: Boolean = false,
-        @RequestParam(required = false) color: String = "#3b82f6",
         session: HttpSession,
         model: Model
     ): String {
@@ -618,7 +799,31 @@ class AcademicController(
             ?: return "fragments/error :: error-message"
 
         try {
-            val academicSession = academicSessionRepository.findById(sessionId).orElseThrow()
+            // Get session from context or fallback to current session
+            val sessionId = session.getAttribute("selectedSessionId") as? UUID
+            val termId = session.getAttribute("selectedTermId") as? UUID
+            
+            val academicSession = if (sessionId != null) {
+                academicSessionRepository.findById(sessionId).orElseThrow()
+            } else if (termId != null) {
+                 // Fallback: Check if term is selected but session wasn't explicitly set
+                 val term = termRepository.findById(termId).orElse(null)
+                 term?.academicSession ?: (academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+                    ?: throw RuntimeException("No active academic session found. Please select a session."))
+            } else {
+                academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(selectedSchoolId, true, true)
+                    ?: throw RuntimeException("No active academic session found. Please select a session.")
+            }
+            
+            if (academicSession.schoolId != selectedSchoolId) {
+                model.addAttribute("error", "Unauthorized access to academic session")
+                return "fragments/error :: error-message"
+            }
+
+            // Default settings since we removed the settings section
+            val isHoliday = false
+            val isExamPeriod = false
+            val color = "#3b82f6" // Default blue
             
             if (id != null) {
                 // Update existing event
@@ -629,12 +834,14 @@ class AcademicController(
                     return "fragments/error :: error-message"
                 }
                 
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                
                 existingEvent.apply {
                     this.session = academicSession
                     this.eventName = eventName
                     this.eventType = eventType
-                    this.startDate = LocalDate.parse(startDate)
-                    this.endDate = if (endDate.isNullOrBlank()) null else LocalDate.parse(endDate)
+                    this.startDate = LocalDate.parse(startDate, formatter)
+                    this.endDate = if (endDate.isNullOrBlank()) null else LocalDate.parse(endDate, formatter)
                     this.description = description
                     this.isHoliday = isHoliday
                     this.isExamPeriod = isExamPeriod
@@ -644,25 +851,31 @@ class AcademicController(
                 model.addAttribute("message", "Calendar event updated successfully!")
             } else {
                 // Create new event
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                
                 val newEvent = SchoolCalendar(
                     session = academicSession,
                     eventName = eventName,
                     eventType = eventType,
-                    startDate = LocalDate.parse(startDate)
+                    startDate = LocalDate.parse(startDate, formatter)
                 ).apply {
                     this.schoolId = selectedSchoolId
-                    this.endDate = if (endDate.isNullOrBlank()) null else LocalDate.parse(endDate)
+                    this.endDate = if (endDate.isNullOrBlank()) null else LocalDate.parse(endDate, formatter)
                     this.description = description
                     this.isHoliday = isHoliday
                     this.isExamPeriod = isExamPeriod
                     this.color = color
                     this.isActive = true
                 }
+
                 schoolCalendarRepository.save(newEvent)
                 model.addAttribute("message", "Calendar event created successfully!")
             }
 
-            return "fragments/success :: success-message"
+            // Refund list for OOB
+            populateCalendarModel(model, session, selectedSchoolId)
+
+            return "admin/academic/htmx-responses :: calendar-save-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error saving calendar event: ${e.message}")
             return "fragments/error :: error-message"
@@ -676,15 +889,11 @@ class AcademicController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return "redirect:/select-school"
 
-        val timetableEntries = schoolTimetableRepository.findBySchoolIdAndIsActiveOrderByDayAndTime(selectedSchoolId, true)
-        val timetableByDay = timetableEntries.groupBy { it.dayOfWeek }
+        populateTimetableModel(model, selectedSchoolId)
 
         model.addAttribute("user", customUser.user)
         model.addAttribute("userRole", "School Administrator")
-        model.addAttribute("timetableByDay", timetableByDay)
-        model.addAttribute("daysOfWeek", DayOfWeek.values())
-        model.addAttribute("activityTypes", TimetableActivityType.values())
-
+        
         return "admin/academic/timetable"
     }
 
@@ -819,37 +1028,16 @@ class AcademicController(
                     
                     if (existingEntryOpt.isPresent) {
                         val existing = existingEntryOpt.get()
-                        // We already checked for overlaps with ACTIVE entries above.
-                        // If we are here and it is active, it means it has the EXACT SAME start time.
-                        // The overlap check might have caught it, but let's be safe.
-                        if (existing.isActive) {
-                             // This should ideally be caught by overlap check, but strictly speaking:
-                             // Overlap check finds: start < end AND end > start.
-                             // If existing is 8:00-9:00 and new is 8:00-9:00, it overlaps.
-                             // So we shouldn't reach here if it's active.
-                             // But if we do, we update it? No, user intended to create NEW.
-                             // But we can't create new because of unique constraint.
-                             // So we update the existing one.
-                             existing.apply {
-                                this.endTime = endTimeObj
-                                this.activityName = activityName
-                                this.description = description
-                                this.activityType = activityType
-                                this.isBreak = isBreak
-                             }
-                             schoolTimetableRepository.save(existing)
-                        } else {
-                            // Resurrect inactive entry
-                            existing.apply {
-                                this.endTime = endTimeObj
-                                this.activityName = activityName
-                                this.description = description
-                                this.activityType = activityType
-                                this.isBreak = isBreak
-                                this.isActive = true
-                            }
-                            schoolTimetableRepository.save(existing)
+                        // Resurrect inactive entry or update existing active one
+                        existing.apply {
+                            this.endTime = endTimeObj
+                            this.activityName = activityName
+                            this.description = description
+                            this.activityType = activityType
+                            this.isBreak = isBreak
+                            this.isActive = true // Ensure it's active if we're reusing it
                         }
+                        schoolTimetableRepository.save(existing)
                     } else {
                         // Create brand new entry
                         val newEntry = SchoolTimetable(
@@ -877,7 +1065,10 @@ class AcademicController(
                 model.addAttribute("message", message)
             }
 
-            return "fragments/success :: success-message"
+            // Refund list for OOB check
+            populateTimetableModel(model, selectedSchoolId)
+
+            return "admin/academic/htmx-responses :: timetable-save-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error saving timetable entry: ${e.message}")
             return "fragments/error :: error-message"
@@ -900,11 +1091,35 @@ class AcademicController(
             event.isActive = false
             schoolCalendarRepository.save(event)
             model.addAttribute("message", "Calendar event deleted successfully!")
-            return "fragments/success :: success-message"
+            
+            // Refund the list for OOB update
+            populateCalendarModel(model, session, selectedSchoolId)
+            
+            return "admin/academic/htmx-responses :: calendar-delete-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error deleting calendar event: ${e.message}")
             return "fragments/error :: error-message"
         }
+    }
+
+    private fun populateCalendarModel(model: Model, session: HttpSession, selectedSchoolId: UUID) {
+        val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
+        val selectedTermId = session.getAttribute("selectedTermId") as? UUID
+        
+        val calendarEvents = if (selectedTermId != null) {
+            val term = termRepository.findById(selectedTermId).orElse(null)
+            if (term != null && term.schoolId == selectedSchoolId) {
+                val endDate = term.endDate ?: term.startDate.plusMonths(6)
+                schoolCalendarRepository.findBySchoolIdAndDateRange(selectedSchoolId, true, term.startDate, endDate)
+            } else {
+                 schoolCalendarRepository.findBySchoolIdAndIsActiveWithSession(selectedSchoolId, true)
+            }
+        } else if (selectedSessionId != null) {
+            schoolCalendarRepository.findBySchoolIdAndSessionIdAndIsActive(selectedSchoolId, selectedSessionId, true)
+        } else {
+            schoolCalendarRepository.findBySchoolIdAndIsActiveWithSession(selectedSchoolId, true)
+        }
+        model.addAttribute("calendarEvents", calendarEvents)
     }
 
     @PostMapping("/timetable/delete/{id}")
@@ -923,10 +1138,39 @@ class AcademicController(
             entry.isActive = false
             schoolTimetableRepository.save(entry)
             model.addAttribute("message", "Timetable entry deleted successfully!")
-            return "fragments/success :: success-message"
+            
+            // Refund list for OOB
+            populateTimetableModel(model, selectedSchoolId)
+            
+            return "admin/academic/htmx-responses :: timetable-delete-success"
         } catch (e: Exception) {
             model.addAttribute("error", "Error deleting timetable entry: ${e.message}")
             return "fragments/error :: error-message"
         }
+    }
+    
+    private fun populateTimetableModel(model: Model, selectedSchoolId: UUID) {
+        val timetableEntries = schoolTimetableRepository.findBySchoolIdAndIsActiveOrderByDayAndTime(selectedSchoolId, true)
+        val timetableByDay = timetableEntries.groupBy { it.dayOfWeek }
+        model.addAttribute("timetableByDay", timetableByDay)
+        model.addAttribute("daysOfWeek", DayOfWeek.values())
+        model.addAttribute("activityTypes", TimetableActivityType.values())
+    }
+    
+    // OOB Helper Methods
+    private fun populateSessionModel(model: Model, session: HttpSession, selectedSchoolId: UUID) {
+        val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
+        model.addAttribute("academicSessions", academicSessions)
+    }
+    
+    private fun populateTermModel(model: Model, sessionId: UUID) {
+         val terms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(sessionId, true)
+         model.addAttribute("terms", terms)
+         
+         // Add academicSession for the template's "New Term" button links
+         val academicSession = academicSessionRepository.findById(sessionId).orElse(null)
+         if (academicSession != null) {
+             model.addAttribute("academicSession", academicSession)
+         }
     }
 }

@@ -106,7 +106,12 @@ END $$;
 ALTER TABLE subjects DROP COLUMN IF EXISTS school_id;
 
 -- Add new global unique constraint
-ALTER TABLE subjects ADD CONSTRAINT unique_subject_name UNIQUE (subject_name);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_subject_name') THEN
+        ALTER TABLE subjects ADD CONSTRAINT unique_subject_name UNIQUE (subject_name);
+    END IF;
+END $$;
 
 -- Add index on subject_code
 CREATE INDEX IF NOT EXISTS idx_subject_code ON subjects(subject_code);

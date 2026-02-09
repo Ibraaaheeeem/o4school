@@ -25,7 +25,7 @@ class RoleSelectionController(
     private val requestCache = HttpSessionRequestCache()
 
     @GetMapping("/select-school")
-    fun selectSchool(authentication: Authentication, model: Model): String {
+    fun selectSchool(authentication: Authentication, model: Model, request: HttpServletRequest, response: HttpServletResponse): String {
         val customUser = authentication.principal as CustomUserDetails
         val userId = customUser.getUserId() ?: return "redirect:/login?error=true"
         
@@ -39,6 +39,33 @@ class RoleSelectionController(
         }
         
         val userSchools = userSchoolRoleService.getUserSchoolsWithDetails(userId)
+        
+        // Optimization: If user has only ONE school, auto-select it
+        if (userSchools.size == 1) {
+            val school = userSchools.first()
+            val schoolId = school.id ?: return "redirect:/select-school?error=missing_school_id"
+            
+            request.session.setAttribute("selectedSchoolId", schoolId)
+            
+            // Check if user has multiple roles in this school
+            if (userSchoolRoleService.hasMultipleRolesInSchool(userId, schoolId)) {
+                return "redirect:/select-role"
+            }
+            
+            // Single role - set it and redirect
+            val userSchoolRoles = userSchoolRoleService.getActiveRolesByUserIdAndSchoolId(userId, schoolId)
+            if (userSchoolRoles.isNotEmpty()) {
+                val userSchoolRole = userSchoolRoles.first()
+                request.session.setAttribute("selectedRoleId", userSchoolRole.role?.id)
+                request.session.setAttribute("selectedRole", userSchoolRole.role?.name)
+                
+                val defaultRedirectUrl = getDefaultRedirectUrl(userSchoolRole.role?.name)
+                val targetUrl = getTargetUrlAfterRoleSelection(request, response, defaultRedirectUrl)
+                
+                return "redirect:$targetUrl"
+            }
+        }
+
         model.addAttribute("userSchools", userSchools)
         
         return "auth/select-school"

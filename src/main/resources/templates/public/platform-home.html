@@ -21,7 +21,7 @@
     <header class="public-header">
         <div class="header-container">
             <div class="school-logo">
-                <img src="/images/header-logo.svg" alt="4School" style="height: 40px; width: auto;">
+                <img src="/images/header-logo.svg" alt="4School" style="height: 32px; width: auto;">
             </div>
 
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
@@ -42,7 +42,8 @@
                     <div sec:authorize="isAuthenticated()" class="auth-buttons-group authenticated">
                         <a href="/select-school" class="btn btn-primary">Dashboard</a>
                         <form th:action="@{/auth/logout}" method="post" style="margin: 0;">
-                            <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}"
+                                th:value="${_csrf.token}" />
                             <button type="submit" class="btn btn-outline"
                                 style="border-color: #dc3545; color: #dc3545;">Logout</button>
                         </form>

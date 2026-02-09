@@ -83,6 +83,11 @@ class SchoolContentController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return mapOf("success" to false, "message" to "No school selected")
 
+        // Validate section name to prevent path traversal
+        if (section !in schoolContentService.getCustomizableSections()) {
+            return mapOf("success" to false, "message" to "Invalid section name")
+        }
+
         val success = schoolContentService.saveSchoolContent(selectedSchoolId, section, content)
         
         return if (success) {
@@ -100,6 +105,11 @@ class SchoolContentController(
     ): Map<String, Any> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return mapOf("success" to false, "message" to "No school selected")
+
+        // Validate section name to prevent path traversal
+        if (section !in schoolContentService.getCustomizableSections()) {
+            return mapOf("success" to false, "message" to "Invalid section name")
+        }
 
         // Reset by saving empty content (will fallback to default)
         val success = schoolContentService.saveSchoolContent(selectedSchoolId, section, "")

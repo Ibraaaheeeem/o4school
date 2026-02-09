@@ -30,6 +30,7 @@ class RegistrationController(
 
     @GetMapping("/auth/register")
     fun showRegistrationForm(model: Model): String {
+        model.addAttribute("registrationDto", com.haneef._school.dto.RegistrationDto())
         return "auth/register"
     }
 
@@ -63,24 +64,24 @@ class RegistrationController(
         val confirmPassword = registrationDto.confirmPassword
         val schoolCode = registrationDto.schoolCode
         if (password != confirmPassword) {
-            redirectAttributes.addFlashAttribute("error", "Passwords do not match")
-            return "redirect:/auth/register"
+            model.addAttribute("error", "Passwords do not match")
+            return "auth/register"
         }
 
         // Validate school code for Staff and Parents
         if ((role == "STAFF" || role == "PARENT") && schoolCode.isNullOrBlank()) {
-            redirectAttributes.addFlashAttribute("error", "School code is required for Staff and Parent registration.")
-            return "redirect:/auth/register"
+            model.addAttribute("error", "School code is required for Staff and Parent registration.")
+            return "auth/register"
         }
 
         if (!schoolCode.isNullOrBlank() && !schoolRepository.existsBySlug(schoolCode)) {
-            redirectAttributes.addFlashAttribute("error", "Invalid school code. Please check with your school administrator.")
-            return "redirect:/auth/register"
+            model.addAttribute("error", "Invalid school code. Please check with your school administrator.")
+            return "auth/register"
         }
 
         if (userRepository.findByEmail(email).isPresent) {
-            redirectAttributes.addFlashAttribute("error", "A user with this email address already exists.")
-            return "redirect:/auth/register"
+            model.addAttribute("error", "A user with this email address already exists.")
+            return "auth/register"
         }
         
 
@@ -132,8 +133,8 @@ class RegistrationController(
 
             
         } catch (e: Exception) {
-            redirectAttributes.addFlashAttribute("error", handleDatabaseError(e, "Error during registration"))
-            return "redirect:/auth/register"
+            model.addAttribute("error", handleDatabaseError(e, "Error during registration"))
+            return "auth/register"
         }
 
         // Send OTP

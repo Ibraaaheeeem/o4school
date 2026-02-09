@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Learning Content</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .content-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary-color);
+        }
+
+        .content-header {
+            background: white;
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .subject-info h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .subject-info p {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+
+        .week-badge {
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .topic-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .topic-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .topic-icon {
+            width: 48px;
+            height: 48px;
+            background: #f1f5f9;
+            color: #64748b;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .topic-title h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .topic-title p {
+            color: #64748b;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .lesson-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .lesson-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            text-decoration: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #f1f5f9;
+        }
+
+        .lesson-card:hover {
+            background: white;
+            border-color: var(--primary-color);
+            transform: translateX(6px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .lesson-play {
+            width: 42px;
+            height: 42px;
+            background: white;
+            color: #cbd5e1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .lesson-card:hover .lesson-play {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+        }
+
+        .lesson-info h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #334155;
+            transition: color 0.2s;
+        }
+
+        .lesson-card:hover .lesson-info h3 {
+            color: var(--primary-color);
+        }
+
+        .lesson-meta {
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .empty-content {
+            text-align: center;
+            padding: 6rem 2rem;
+            background: white;
+            border-radius: 24px;
+            border: 2px dashed #e2e8f0;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="content-container">
+        <a th:href="@{/elearner/landing(gradeLevel=${gradeLevel}, term=${term}, week=${week})}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Subjects</span>
+        </a>
+
+        <div class="content-header" th:if="${content != null}">
+            <div class="subject-info">
+                <h1 th:text="${subject?.subjectName ?: content.subjectName}">Mathematics</h1>
+                <p th:if="${content.weekTheme}" th:text="${content.weekTheme}">Exploring the wonders of geometry</p>
+            </div>
+            <div class="week-badge">
+                <i class="fas fa-calendar-check"></i>
+                <span>Week <span th:text="${content.weekNumber}">1</span></span>
+            </div>
+        </div>
+
+        <th:block
+            th:with="hasTopics=${content != null and !#lists.isEmpty(content.topics)}, hasUnassigned=${content != null and !#lists.isEmpty(content.unassignedLessons)}">
+
+            <!-- Debug Info: Topics: [[${hasTopics}]], Unassigned: [[${hasUnassigned}]] -->
+
+            <div th:if="${hasTopics or hasUnassigned}" class="topics-wrapper">
+                <div th:each="topic : ${content.topics}" class="topic-section">
+                    <div class="topic-header">
+                        <div class="topic-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="topic-title">
+                            <h2 th:text="${topic.name}">Calculus Basics</h2>
+                            <p th:if="${topic.description}" th:text="${topic.description}">Introduction to limits and
+                                differentiation.</p>
+                        </div>
+                    </div>
+
+                    <div class="lesson-list">
+                        <a th:each="lesson : ${topic.lessons}" th:href="@{'/elearner/lesson/' + ${lesson.id}}"
+                            class="lesson-card">
+                            <div class="lesson-play">
+                                <i class="fas fa-play" th:if="${lesson.lessonType != 'quiz'}"></i>
+                                <i class="fas fa-question" th:if="${lesson.lessonType == 'quiz'}"></i>
+                            </div>
+                            <div class="lesson-info">
+                                <h3 th:text="${lesson.title}">The Concept of Infinity</h3>
+                            </div>
+                            <div class="lesson-meta">
+                                <span th:if="${lesson.durationMinutes != null}"
+                                    th:text="${lesson.durationMinutes + ' min'}">15 min</span>
+                                <span th:if="${lesson.durationMinutes == null}">Ready</span>
+                            </div>
+                        </a>
+                        <div th:if="${#lists.isEmpty(topic.lessons)}" class="text-sm text-gray-500 italic p-2">
+                            No lessons in this topic.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fallback for unassigned lessons -->
+                <div th:if="${hasUnassigned}" class="topic-section">
+                    <div class="topic-header">
+                        <div class="topic-icon">
+                            <i class="fas fa-list-ul"></i>
+                        </div>
+                        <div class="topic-title">
+                            <h2>Other Lessons</h2>
+                            <p>Additional learning materials for this week.</p>
+                        </div>
+                    </div>
+                    <div class="lesson-list">
+                        <a th:each="lesson : ${content.unassignedLessons}"
+                            th:href="@{'/elearner/lesson/' + ${lesson.id}}" class="lesson-card">
+                            <div class="lesson-play">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div class="lesson-info">
+                                <h3 th:text="${lesson.title}">Lesson Title</h3>
+                            </div>
+                            <div class="lesson-meta">
+                                <span th:if="${lesson.durationMinutes != null}"
+                                    th:text="${lesson.durationMinutes + ' min'}">15 min</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${content == null or (!hasTopics and !hasUnassigned)}" class="empty-content">
+                <div style="font-size: 4rem; margin-bottom: 1.5rem;">📅</div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem;">No Content for
+                    this
+                    Week</h3>
+                <p style="color: #64748b; margin-bottom: 2rem;">It seems there is no digital content scheduled for this
+                    subject in Week <span th:text="${week}">1</span>.</p>
+                <a th:href="@{/elearner/landing(gradeLevel=${gradeLevel}, term=${term}, week=${week})}"
+                    class="btn btn-outline" style="border-radius: 12px;">Go Back</a>
+            </div>
+    </main>
+</body>
+
+</html>

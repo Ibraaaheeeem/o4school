@@ -165,15 +165,6 @@
             text-transform: uppercase;
         }
 
-        .distribution-badge.sequential {
-            background: #e0f2fe;
-            color: #0369a1;
-        }
-
-        .distribution-badge.spread {
-            background: #f0fdf4;
-            color: #15803d;
-        }
 
         .child-name {
             font-weight: 600;
@@ -235,20 +226,6 @@
             font-weight: 600;
         }
 
-        .status-success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status-pending {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-failed {
-            background: #fee2e2;
-            color: #991b1b;
-        }
 
         .settlement-period {
             margin-top: 0.5rem;
@@ -462,20 +439,6 @@
             font-weight: 600;
         }
 
-        .badge.high {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .badge.medium {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge.low {
-            background: #fee2e2;
-            color: #991b1b;
-        }
 
         .no-data {
             text-align: center;
@@ -754,7 +717,7 @@
                                     </td>
                                     <td>
                                         <span class="badge" th:text="${data.childrenCount}"
-                                            th:classappend="${data.childrenCount > 2 ? 'high' : (data.childrenCount > 1 ? 'medium' : 'low')}">0</span>
+                                            th:classappend="${data.childrenCount > 2 ? 'badge-payment-high' : (data.childrenCount > 1 ? 'badge-payment-medium' : 'badge-payment-low')}">0</span>
                                     </td>
                                     <td>
                                         <span class="amount"
@@ -1243,7 +1206,7 @@
                             <div><strong>Reference:</strong> <span style="font-family: monospace;">${data.reference}</span></div>
                             <div><strong>Date:</strong> ${date}</div>
                             <div><strong>Amount:</strong> <span class="positive">₦${formatNumber(data.amount)}</span></div>
-                            <div><strong>Status:</strong> <span class="badge ${data.status === 'SUCCESS' ? 'high' : 'medium'}">${data.status}</span></div>
+                            <div><strong>Status:</strong> <span class="badge ${data.status === 'SUCCESS' ? 'badge-payment-high' : 'badge-payment-medium'}">${data.status}</span></div>
                             <div><strong>Channel:</strong> ${data.paymentChannel || 'N/A'}</div>
                             <div><strong>Payer Email:</strong> ${data.payerEmail || 'N/A'}</div>
                         </div>

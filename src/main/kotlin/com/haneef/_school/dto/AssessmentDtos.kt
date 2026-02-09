@@ -12,18 +12,21 @@ data class ExaminationDto(
     val classId: UUID,
     val termId: UUID? = null,
     val sessionId: UUID? = null,
-    val startTime: LocalDateTime? = null,
-    val endTime: LocalDateTime? = null,
+    val startTime: String? = null,
+    val endTime: String? = null,
     val durationMinutes: Int = 60,
-    val totalMarks: Int? = null
+    val totalMarks: Int? = null,
+    val isPublished: Boolean = false
 )
 
 data class QuestionDto(
     val id: UUID? = null,
     val instruction: String? = null,
     val questionText: String,
-    val optionA: String,
-    val optionB: String,
+    val explanation: String? = null,
+    val questionType: String = "multiple_choice",
+    val optionA: String? = null,
+    val optionB: String? = null,
     val optionC: String? = null,
     val optionD: String? = null,
     val optionE: String? = null,

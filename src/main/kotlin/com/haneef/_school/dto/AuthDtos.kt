@@ -20,27 +20,27 @@ data class ResetPasswordRequest(
 
 data class RegistrationDto(
     @field:jakarta.validation.constraints.NotBlank(message = "First name is required")
-    val firstName: String,
+    val firstName: String = "",
 
     @field:jakarta.validation.constraints.NotBlank(message = "Last name is required")
-    val lastName: String,
+    val lastName: String = "",
 
     @field:jakarta.validation.constraints.NotBlank(message = "Email is required")
     @field:jakarta.validation.constraints.Email(message = "Invalid email format")
-    val email: String,
+    val email: String = "",
 
     @field:jakarta.validation.constraints.NotBlank(message = "Phone number is required")
-    val phoneNumber: String,
+    val phoneNumber: String = "",
 
     @field:jakarta.validation.constraints.NotBlank(message = "Role is required")
-    val role: String,
+    val role: String = "",
 
     @field:jakarta.validation.constraints.NotBlank(message = "Password is required")
     @field:jakarta.validation.constraints.Size(min = 8, message = "Password must be at least 8 characters")
-    val password: String,
+    val password: String = "",
 
     @field:jakarta.validation.constraints.NotBlank(message = "Confirm password is required")
-    val confirmPassword: String,
+    val confirmPassword: String = "",
 
     val schoolCode: String? = null
 )

@@ -53,35 +53,71 @@
                     </a>
                 </div>
 
-                <div th:if="${#lists.isEmpty(students)}" class="empty-state"
-                    style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                    <p>No students enrolled.</p>
-                </div>
+                <div id="students-list-container" th:fragment="students-list-content">
+                    <div th:if="${#lists.isEmpty(students)}" class="empty-state"
+                        style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                        <p>No students enrolled.</p>
+                    </div>
 
-                <div class="dashboard-grid" th:unless="${#lists.isEmpty(students)}"
-                    style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
-                    <div th:each="student : ${students}" class="dashboard-card"
-                        style="padding: 1.5rem; align-items: center; text-align: center;">
-                        <div
-                            style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 1rem; border: 3px solid var(--border-color);">
-                            <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
-                                style="width: 100%; height: 100%; object-fit: cover;"
-                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div th:unless="${student.passportPhotoUrl}"
-                                style="width: 100%; height: 100%; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 2rem;"
-                                th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
-                            <div th:if="${student.passportPhotoUrl}"
-                                style="display: none; width: 100%; height: 100%; background: var(--bg-hover); align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 2rem;"
-                                th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                    <div class="dashboard-grid" th:unless="${#lists.isEmpty(students)}"
+                        style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+                        <div th:each="student : ${students}" class="dashboard-card"
+                            style="padding: 1.5rem; align-items: center; text-align: center;">
+                            <div
+                                style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 1rem; border: 3px solid var(--border-color);">
+                                <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
+                                    style="width: 100%; height: 100%; object-fit: cover;"
+                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div th:unless="${student.passportPhotoUrl}"
+                                    style="width: 100%; height: 100%; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 2rem;"
+                                    th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                                <div th:if="${student.passportPhotoUrl}"
+                                    style="display: none; width: 100%; height: 100%; background: var(--bg-hover); align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 2rem;"
+                                    th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                            </div>
+                            <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-main);"
+                                th:text="${student.user.fullName}">Name</h4>
+                            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;"
+                                th:text="${student.admissionNumber}">ID</p>
+                            <a th:href="@{/staff/students/{id}(id=${student.id})}" class="card-link"
+                                style="width: 100%; justify-content: center; border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: auto;">
+                                View Profile <i class="fas fa-arrow-right"></i>
+                            </a>
                         </div>
-                        <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-main);"
-                            th:text="${student.user.fullName}">Name</h4>
-                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;"
-                            th:text="${student.admissionNumber}">ID</p>
-                        <a th:href="@{/staff/students/{id}(id=${student.id})}" class="card-link"
-                            style="width: 100%; justify-content: center; border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: auto;">
-                            View Profile <i class="fas fa-arrow-right"></i>
-                        </a>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div th:if="${studentTotalPages > 1}"
+                        style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                        <div style="font-size: 0.9rem; color: var(--text-muted);">
+                            Showing <span th:text="${studentCurrentPage * 24 + 1}">1</span> to
+                            <span
+                                th:text="${(studentCurrentPage + 1) * 24 > studentTotalItems ? studentTotalItems : (studentCurrentPage + 1) * 24}">24</span>
+                            of <span th:text="${studentTotalItems}">0</span> results
+                        </div>
+
+                        <div class="pagination-buttons" style="display: flex; gap: 0.5rem;">
+                            <a th:if="${studentCurrentPage > 0}"
+                                th:href="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage - 1}, size=24)}"
+                                hx-get="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage - 1}, size=24)}"
+                                hx-target="#students-list-container" class="btn-outline"
+                                style="padding: 0.4rem 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; text-decoration: none;">
+                                Previous
+                            </a>
+
+                            <span style="padding: 0.4rem 0.8rem; font-size: 0.9rem; color: var(--text-muted);">
+                                Page <span th:text="${studentCurrentPage + 1}">1</span> of <span
+                                    th:text="${studentTotalPages}">1</span>
+                            </span>
+
+                            <a th:if="${studentCurrentPage < studentTotalPages - 1}"
+                                th:href="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage + 1}, size=24)}"
+                                hx-get="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage + 1}, size=24)}"
+                                hx-target="#students-list-container" class="btn-outline"
+                                style="padding: 0.4rem 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; text-decoration: none;">
+                                Next
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -89,7 +125,10 @@
             <!-- Subjects Tab -->
             <div id="subjects-tab" class="tab-pane">
                 <div class="dashboard-grid" th:unless="${#lists.isEmpty(classSubjects)}">
-                    <div th:each="classSubject : ${classSubjects}" class="dashboard-card" style="padding: 1.5rem;">
+                    <a th:each="classSubject : ${classSubjects}"
+                        th:href="@{/elearner/landing(classId=${schoolClass.id}, gradeLevel=${schoolClass.gradeLevel}, term=${currentTerm != null ? (currentTerm.termNumber ?: 1) : 1})}"
+                        class="dashboard-card"
+                        style="padding: 1.5rem; text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.2s, box-shadow 0.2s;">
                         <div class="card-header">
                             <div class="card-icon" style="background: #f0f9ff; color: #0ea5e9;">
                                 <i class="fas fa-book"></i>
@@ -105,7 +144,7 @@
                         <div th:if="${#lists.contains(subjectsTaught, classSubject.subject)}" style="margin-top: 1rem;">
                             <span class="role-badge subject-teacher">You teach this</span>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 

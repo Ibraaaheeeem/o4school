@@ -21,8 +21,8 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
         pageable: org.springframework.data.domain.Pageable
     ): org.springframework.data.domain.Page<Examination>
     
-    @Query("SELECT e FROM Examination e WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND e.isPublished = :isPublished ORDER BY e.createdAt DESC")
-    fun findBySchoolIdAndIsActiveAndIsPublished(
+    @Query("SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass LEFT JOIN FETCH e.questions WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND e.isPublished = :isPublished")
+    fun findBySchoolIdAndIsActiveAndIsPublishedWithRelationships(
         @Param("schoolId") schoolId: UUID, 
         @Param("isActive") isActive: Boolean, 
         @Param("isPublished") isPublished: Boolean
@@ -91,6 +91,44 @@ interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExamin
         @Param("examType") examType: String?,
         @Param("termId") termId: UUID?,
         @Param("sessionId") sessionId: UUID?,
+        pageable: org.springframework.data.domain.Pageable
+    ): org.springframework.data.domain.Page<Examination>
+
+    @Query(value = "SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
+           "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
+           "((:subjectIds) IS NULL OR e.subject.id IN (:subjectIds)) AND " +
+           "(:examType IS NULL OR e.examType = :examType) AND " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) AND " +
+           "(:isOnline IS NULL OR e.isOnline = :isOnline) AND " +
+           "(:search IS NULL OR LOWER(e.title) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
+           "(cast(:startDate as timestamp) IS NULL OR e.startTime >= :startDate) AND " +
+           "(cast(:endDate as timestamp) IS NULL OR e.startTime <= :endDate) " +
+           "ORDER BY e.createdAt DESC",
+           countQuery = "SELECT COUNT(DISTINCT e) FROM Examination e " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
+           "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
+           "((:subjectIds) IS NULL OR e.subject.id IN (:subjectIds)) AND " +
+           "(:examType IS NULL OR e.examType = :examType) AND " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) AND " +
+           "(:isOnline IS NULL OR e.isOnline = :isOnline) AND " +
+           "(:search IS NULL OR LOWER(e.title) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
+           "(cast(:startDate as timestamp) IS NULL OR e.startTime >= :startDate) AND " +
+           "(cast(:endDate as timestamp) IS NULL OR e.startTime <= :endDate)")
+    fun findBySchoolIdAndAdvancedFilters(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("classId") classId: UUID?,
+        @Param("subjectIds") subjectIds: List<UUID>?,
+        @Param("examType") examType: String?,
+        @Param("termId") termId: UUID?,
+        @Param("sessionId") sessionId: UUID?,
+        @Param("isOnline") isOnline: Boolean?,
+        @Param("search") search: String?,
+        @Param("startDate") startDate: java.time.LocalDateTime?,
+        @Param("endDate") endDate: java.time.LocalDateTime?,
         pageable: org.springframework.data.domain.Pageable
     ): org.springframework.data.domain.Page<Examination>
 

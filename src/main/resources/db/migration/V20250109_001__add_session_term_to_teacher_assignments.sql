@@ -3,13 +3,13 @@
 
 -- Add new columns to class_teachers table
 ALTER TABLE class_teachers 
-ADD COLUMN academic_session_id UUID,
-ADD COLUMN term_id UUID;
+ADD COLUMN IF NOT EXISTS academic_session_id UUID,
+ADD COLUMN IF NOT EXISTS term_id UUID;
 
 -- Add new columns to subject_teachers table  
 ALTER TABLE subject_teachers
-ADD COLUMN academic_session_id UUID,
-ADD COLUMN term_id UUID;
+ADD COLUMN IF NOT EXISTS academic_session_id UUID,
+ADD COLUMN IF NOT EXISTS term_id UUID;
 
 -- Create a function to get or create academic session based on academic year
 CREATE OR REPLACE FUNCTION get_or_create_academic_session(school_uuid UUID, academic_year_str VARCHAR)
@@ -64,18 +64,18 @@ BEGIN
     FROM terms 
     WHERE academic_session_id = session_uuid 
     AND is_active = true
-    ORDER BY term_order ASC
+    ORDER BY (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='terms' AND column_name='term_number') THEN term_number ELSE 0 END) ASC
     LIMIT 1;
     
     -- If not found, create default term
     IF term_uuid IS NULL THEN
         term_uuid := gen_random_uuid();
         INSERT INTO terms (
-            id, academic_session_id, term_name, term_order,
+            id, academic_session_id, term_name, 
             start_date, end_date, is_current_term,
             status, is_active, created_at, updated_at
         ) VALUES (
-            term_uuid, session_uuid, 'First Term', 1,
+            term_uuid, session_uuid, 'First Term', 
             (SELECT start_date FROM academic_sessions WHERE id = session_uuid),
             (SELECT start_date FROM academic_sessions WHERE id = session_uuid) + INTERVAL '4 months',
             false, -- We'll set current term separately
@@ -91,31 +91,62 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Update class_teachers table with session and term data
-UPDATE class_teachers 
-SET 
-    academic_session_id = get_or_create_academic_session(school_id, academic_year),
-    term_id = get_or_create_default_term(get_or_create_academic_session(school_id, academic_year))
-WHERE academic_year IS NOT NULL;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'class_teachers' AND column_name = 'academic_year') THEN
+        UPDATE class_teachers 
+        SET 
+            academic_session_id = get_or_create_academic_session(school_id, academic_year),
+            term_id = get_or_create_default_term(get_or_create_academic_session(school_id, academic_year))
+        WHERE academic_year IS NOT NULL;
+    END IF;
+END $$;
 
 -- Update subject_teachers table with session and term data  
-UPDATE subject_teachers
-SET 
-    academic_session_id = get_or_create_academic_session(school_id, academic_year),
-    term_id = get_or_create_default_term(get_or_create_academic_session(school_id, academic_year))
-WHERE academic_year IS NOT NULL;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'subject_teachers' AND column_name = 'academic_year') THEN
+        UPDATE subject_teachers
+        SET 
+            academic_session_id = get_or_create_academic_session(school_id, academic_year),
+            term_id = get_or_create_default_term(get_or_create_academic_session(school_id, academic_year))
+        WHERE academic_year IS NOT NULL;
+    END IF;
+END $$;
 
--- Add foreign key constraints
-ALTER TABLE class_teachers
-ADD CONSTRAINT fk_class_teachers_academic_session 
-FOREIGN KEY (academic_session_id) REFERENCES academic_sessions(id),
-ADD CONSTRAINT fk_class_teachers_term 
-FOREIGN KEY (term_id) REFERENCES terms(id);
+-- Add foreign key constraints (if they don't exist)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'fk_class_teachers_academic_session') THEN
+        ALTER TABLE class_teachers
+        ADD CONSTRAINT fk_class_teachers_academic_session 
+        FOREIGN KEY (academic_session_id) REFERENCES academic_sessions(id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'fk_class_teachers_term') THEN
+        ALTER TABLE class_teachers
+        ADD CONSTRAINT fk_class_teachers_term 
+        FOREIGN KEY (term_id) REFERENCES terms(id);
+    END IF;
 
-ALTER TABLE subject_teachers  
-ADD CONSTRAINT fk_subject_teachers_academic_session
-FOREIGN KEY (academic_session_id) REFERENCES academic_sessions(id),
-ADD CONSTRAINT fk_subject_teachers_term
-FOREIGN KEY (term_id) REFERENCES terms(id);
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'fk_subject_teachers_academic_session') THEN
+        ALTER TABLE subject_teachers  
+        ADD CONSTRAINT fk_subject_teachers_academic_session
+        FOREIGN KEY (academic_session_id) REFERENCES academic_sessions(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'fk_subject_teachers_term') THEN
+        ALTER TABLE subject_teachers
+        ADD CONSTRAINT fk_subject_teachers_term
+        FOREIGN KEY (term_id) REFERENCES terms(id);
+    END IF;
+END $$;
 
 -- Make the new columns NOT NULL after data migration
 ALTER TABLE class_teachers 
@@ -161,6 +192,9 @@ CREATE INDEX IF NOT EXISTS idx_subject_teacher_session_term
 ON subject_teachers (academic_session_id, term_id);
 
 -- Set one session as current for each school (the most recent one)
+-- First, reset all to false to avoid multiple current sessions
+UPDATE academic_sessions SET is_current_session = false;
+
 UPDATE academic_sessions 
 SET is_current_session = true
 WHERE id IN (
@@ -171,6 +205,9 @@ WHERE id IN (
 );
 
 -- Set one term as current for each current session
+-- First, reset all to false to avoid multiple current terms
+UPDATE terms SET is_current_term = false;
+
 UPDATE terms
 SET is_current_term = true  
 WHERE id IN (
@@ -179,7 +216,7 @@ WHERE id IN (
     JOIN academic_sessions s ON t.academic_session_id = s.id
     WHERE s.is_current_session = true 
     AND t.is_active = true
-    ORDER BY t.academic_session_id, t.term_order ASC
+    ORDER BY t.academic_session_id, (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='terms' AND column_name='term_number') THEN t.term_number ELSE 0 END) ASC
 );
 
 -- Clean up functions

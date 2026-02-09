@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+
+    <!-- Calendar Responses -->
+    <div th:fragment="calendar-save-success">
+        <div th:replace="~{fragments/success :: oob-success-message}"></div>
+        <div th:replace="~{admin/academic/calendar :: calendar-events-list (swapOob='true')}"></div>
+    </div>
+
+    <div th:fragment="calendar-delete-success">
+        <div th:replace="~{fragments/success :: oob-success-message}"></div>
+        <div th:replace="~{admin/academic/calendar :: calendar-events-list (swapOob='true')}"></div>
+    </div>
+
+    <!-- Timetable Responses -->
+    <div th:fragment="timetable-save-success">
+        <div th:replace="~{fragments/success :: oob-success-message}"></div>
+        <div th:replace="~{admin/academic/timetable :: timetable-grid (swapOob='true')}"></div>
+    </div>
+
+    <div th:fragment="timetable-delete-success">
+        <div th:replace="~{fragments/success :: oob-success-message}"></div>
+        <div th:replace="~{admin/academic/timetable :: timetable-grid (swapOob='true')}"></div>
+    </div>
+
+    <!-- Session Responses -->
+    <div th:fragment="session-save-success">
+        <div th:replace="~{fragments/success :: oob-success-message}"></div>
+        <div th:replace="~{admin/academic/sessions :: sessions-list (swapOob='true')}"></div>
+    </div>
+
+    <!-- Term Responses -->
+    <div th:fragment="term-save-success">
+        <div th:replace="~{fragments/success :: oob-success-message}"></div>
+        <div th:replace="~{admin/academic/terms :: terms-list (swapOob='true')}"></div>
+        <script>
+            closeModal('termModal');
+        </script>
+    </div>
+
+    <div th:fragment="term-delete-success">
+        <div th:replace="~{fragments/success :: oob-success-message}"></div>
+        <div th:replace="~{admin/academic/terms :: terms-list (swapOob='true')}"></div>
+    </div>
+
+</body>
+
+</html>

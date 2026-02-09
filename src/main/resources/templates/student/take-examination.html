@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${examination.title} + ' - 4School'">Examination</title>
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+    <style>
+        .exam-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            display: none;
+            /* Hidden until exam starts */
+        }
+
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .exam-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            position: sticky;
+            top: 1rem;
+            z-index: 10;
+        }
+
+        .question-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-item:hover {
+            background: #f8fafc;
+            border-color: var(--primary-color);
+        }
+
+        .option-item input[type="radio"] {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+
+        .instruction {
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .option-item.correct {
+            background: #ecfdf5 !important;
+            border-color: #10b981 !important;
+            color: #064e3b !important;
+        }
+
+        .option-item.incorrect {
+            background: #fef2f2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+        }
+
+        .option-item.correct i.fa-check-circle {
+            color: #10b981;
+        }
+
+        .option-item.incorrect i.fa-times-circle {
+            color: #ef4444;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <!-- Start Overlay (Hidden in viewOnly) -->
+    <div id="startOverlay" class="start-overlay" th:if="${viewOnly == null or !viewOnly}">
+        <h1 th:text="${examination.title}" style="margin-bottom: 1rem;">Exam Title</h1>
+        <div style="margin-bottom: 2rem;">
+            <div style="display: flex; gap: 2rem; justify-content: center; color: var(--text-muted); font-size: 1rem;">
+                <span><i class="fas fa-book"></i> <span
+                        th:text="${examination.subject.subjectName}">Subject</span></span>
+                <span><i class="fas fa-hourglass-half"></i> <span
+                        th:text="${examination.durationMinutes ?: 60} + ' minutes'">60 mins</span></span>
+                <span><i class="fas fa-question-circle"></i> <span
+                        th:text="${#lists.size(examination.questions)} + ' Questions'">0</span></span>
+            </div>
+        </div>
+        <div
+            style="background: #fff3f3; color: #991b1b; padding: 1.5rem; border-radius: 8px; border: 1px solid #fee2e2; margin-bottom: 2rem; max-width: 600px;">
+            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-exclamation-triangle"></i> Important Rules</h3>
+            <ul style="text-align: left; list-style: disc; padding-left: 1.5rem; font-size: 0.95rem; line-height: 1.6;">
+                <li>The examination will open in <strong>fullscreen mode</strong>.</li>
+                <li>Do NOT use the browser's back button or refresh the page.</li>
+                <li>Attempting to exit fullscreen or switch tabs may result in automatic submission.</li>
+                <li>Ensure you have a stable internet connection before starting.</li>
+                <li>Your progress is <strong>automatically saved</strong> as you answer.</li>
+            </ul>
+        </div>
+        <button id="startBtn" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.2rem; font-weight: 600;">
+            Begin Examination
+        </button>
+    </div>
+
+    <!-- Exit button for Results View -->
+    <div th:if="${viewOnly == true}"
+        style="background: white; border-bottom: 1px solid var(--border-color); padding: 1rem; position: sticky; top: 0; z-index: 100;">
+        <div class="container"
+            style="max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+            <a th:href="@{/student/dashboard}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <div style="text-align: right;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Your Score</div>
+                <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);"
+                    th:text="${submission.score} + ' / ' + ${#aggregates.sum(examination.questions.![marks]) ?: #lists.size(examination.questions)}">
+                    0 / 0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="exam-container" id="examContainer" th:style="${viewOnly == true ? 'display: block;' : ''}">
+        <div class="exam-header" th:if="${viewOnly == null or !viewOnly}">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <h1 th:text="${examination.title}"
+                        style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main);">Exam Title</h1>
+                    <div style="display: flex; gap: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                        <span><i class="fas fa-book"></i> <span
+                                th:text="${examination.subject.subjectName}">Subject</span></span>
+                        <span><i class="fas fa-hourglass-half"></i> <span
+                                th:text="${examination.durationMinutes ?: 60} + ' minutes'">60 mins</span></span>
+                        <span><i class="fas fa-question-circle"></i> <span
+                                th:text="${#lists.size(examination.questions)} + ' Questions'">0</span></span>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <button id="fullscreenToggle" class="btn btn-sm btn-outline-secondary"
+                        style="margin-bottom: 0.5rem; font-size: 0.8rem;">
+                        <i class="fas fa-expand"></i> Rententer Fullscreen
+                    </button>
+                    <div id="timer" style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">00:00:00
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Remaining Time</div>
+                </div>
+            </div>
+        </div>
+
+        <form th:action="@{'/student/examination/' + ${examination.id} + '/submit'}" method="POST" id="examForm">
+            <div th:each="question, iter : ${examination.questions}" class="question-card">
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                    <span
+                        style="background: var(--primary-color); color: white; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 700; flex-shrink: 0;"
+                        th:text="${iter.count}">1</span>
+                    <div style="width: 100%;">
+                        <div th:if="${question.instruction}" class="instruction" th:utext="${question.instruction}">
+                            Instruction text</div>
+                        <div style="font-size: 1.1rem; line-height: 1.6; color: var(--text-main);"
+                            th:utext="${question.questionText}">Question text</div>
+                    </div>
+                </div>
+
+                <div class="options-list">
+                    <label th:each="optEntry : ${ {'A', 'B', 'C', 'D', 'E'} }"
+                        th:if="${optEntry == 'A' ? question.optionA : (optEntry == 'B' ? question.optionB : (optEntry == 'C' ? question.optionC : (optEntry == 'D' ? question.optionD : (optEntry == 'E' ? question.optionE : null))))}"
+                        class="option-item"
+                        th:classappend="${viewOnly != null and viewOnly} ? ( ${optEntry == question.correctAnswer} ? 'correct' : '' ) : ''">
+
+                        <input type="radio" th:name="'q_' + ${question.id}" th:value="${optEntry}" class="answer-radio"
+                            th:disabled="${viewOnly}">
+
+                        <span
+                            th:utext="${optEntry == 'A' ? question.optionA : (optEntry == 'B' ? question.optionB : (optEntry == 'C' ? question.optionC : (optEntry == 'D' ? question.optionD : question.optionE)))}">Option</span>
+
+                        <span th:if="${viewOnly == true}" style="margin-left: auto;">
+                            <i th:if="${optEntry == question.correctAnswer}" class="fas fa-check-circle"></i>
+                            <i th:attr="data-incorrect-for='q_' + ${question.id}, data-value=${optEntry}"
+                                class="fas fa-times-circle" style="display: none;"></i>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Explanation Section (Correction Mode) -->
+                <div th:if="${viewOnly == true and question.explanation != null and question.explanation != '' and question.explanation != '<p><br></p>'}"
+                    style="margin-top: 1.5rem; padding: 1.25rem; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
+                    <div style="display: flex; gap: 0.75rem; color: #0369a1;">
+                        <i class="fas fa-info-circle" style="margin-top: 0.25rem;"></i>
+                        <div>
+                            <div
+                                style="font-weight: 700; margin-bottom: 0.25rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.025em;">
+                                Explanation</div>
+                            <div style="font-size: 1rem; line-height: 1.6; color: #0c4a6e;"
+                                th:utext="${question.explanation}">
+                                Explanation text here.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${viewOnly == null or !viewOnly}" style="text-align: center; padding: 2rem 0;">
+                <button type="button" onclick="confirmSubmit()" class="btn btn-primary"
+                    style="padding: 1rem 3rem; font-size: 1.1rem; font-weight: 600;">Finish & Submit</button>
+            </div>
+        </form>
+    </div>
+
+    <script th:inline="javascript">
+        const viewOnly = /*[[${viewOnly ?: false}]]*/ false;
+        const durationMinutes = /*[[${examination.durationMinutes ?: 60}]]*/ 60;
+        let timeLeft = durationMinutes * 60;
+        let examStarted = false;
+
+        const startOverlay = document.getElementById('startOverlay');
+        const examContainer = document.getElementById('examContainer');
+        const startBtn = document.getElementById('startBtn');
+        const examForm = document.getElementById('examForm');
+
+        // Pre-fill answers
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedAnswers = /*[[${submission.answersJson}]]*/ null;
+            if (savedAnswers) {
+                try {
+                    const answers = JSON.parse(savedAnswers);
+                    answers.forEach(a => {
+                        const radio = document.querySelector(`input[name="q_${a.question_id}"][value="${a.answer}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                            if (viewOnly) {
+                                // For viewOnly, highlight incorrect if student picked it
+                                const parent = radio.closest('.option-item');
+                                if (!parent.classList.contains('correct')) {
+                                    parent.classList.add('incorrect');
+                                    const icon = parent.querySelector('.fa-times-circle');
+                                    if (icon) icon.style.display = 'inline';
+                                }
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.error("Error parsing saved answers", e);
+                }
+            }
+            const fullscreenBtn = document.getElementById('fullscreenToggle');
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', enterFullscreen);
+            }
+        });
+
+        function enterFullscreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+            const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            if (requestFullScreen) {
+                requestFullScreen.call(docEl);
+            }
+        }
+
+        if (!viewOnly && startBtn) {
+            startBtn.addEventListener('click', () => {
+                enterFullscreen();
+                if (startOverlay) startOverlay.style.display = 'none';
+                if (examContainer) examContainer.style.display = 'block';
+                examStarted = true;
+
+                // Start Timer
+                const timerInterval = setInterval(() => {
+                    const hours = Math.floor(timeLeft / 3600);
+                    const minutes = Math.floor((timeLeft % 3600) / 60);
+                    const seconds = timeLeft % 60;
+
+                    const timerEl = document.getElementById('timer');
+                    if (timerEl) {
+                        timerEl.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        alert("Time is up! Your examination will be submitted automatically.");
+                        examForm.submit();
+                    } else {
+                        timeLeft--;
+                    }
+                }, 1000);
+
+                // Trap back button
+                window.history.pushState(null, null, window.location.href);
+                window.onpopstate = function () {
+                    if (examStarted) {
+                        const result = confirm("CAUTION: Clicking 'Back' will submit your examination with current answers. Proceed?");
+                        if (result) {
+                            examForm.submit();
+                        } else {
+                            window.history.pushState(null, null, window.location.href);
+                        }
+                    }
+                };
+
+                // Warn on refresh/tab close
+                window.onbeforeunload = function (e) {
+                    if (examStarted) {
+                        const msg = "You are currently taking an examination. Leaving this page will submit your answers.";
+                        e.returnValue = msg;
+                        return msg;
+                    }
+                };
+            });
+
+            // Auto-save logic
+            document.querySelectorAll('.answer-radio').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (!viewOnly) saveState();
+                });
+            });
+        }
+
+        function saveState() {
+            if (viewOnly) return;
+            const answers = [];
+            document.querySelectorAll('.answer-radio:checked').forEach(checked => {
+                answers.push({
+                    question_id: checked.name.replace('q_', ''),
+                    answer: checked.value
+                });
+            });
+
+            const formData = new FormData();
+            formData.append('answersJson', JSON.stringify(answers));
+
+            const autoSaveUrl = /*[[@{'/student/examination/' + ${examination.id} + '/auto-save'}]]*/ '';
+
+            fetch(autoSaveUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+                },
+                body: formData
+            }).then(response => response.json())
+                .then(data => {
+                    if (!data.success) console.error("Auto-save failed:", data.error);
+                })
+                .catch(err => console.error("Auto-save request failed:", err));
+        }
+
+        function confirmSubmit() {
+            if (confirm("Are you sure you want to finish and submit your answers? This action cannot be undone.")) {
+                examStarted = false; // Disable exit warning
+                examForm.submit();
+            }
+        }
+    </script>
+</body>
+
+</html>

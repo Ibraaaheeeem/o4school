@@ -2,6 +2,7 @@ package com.haneef._school.config
 
 import com.haneef._school.service.CustomUserDetails
 import com.haneef._school.service.UserSchoolRoleService
+import java.util.UUID
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.core.Authentication
@@ -48,6 +49,14 @@ class CustomAuthenticationSuccessHandler(
             return
         }
         
+        // Check if user has a forced school context (e.g. from Student Login)
+        val forcedSchoolId = customUser.forcedSchoolId
+        if (forcedSchoolId != null) {
+            logger.info("Forced school context detected: $forcedSchoolId. Using this school.")
+            handleSchoolAndRoleRedirection(request, response, userId, forcedSchoolId)
+            return
+        }
+
         // Check if user has multiple schools
         val hasMultipleSchools = userSchoolRoleService.hasMultipleSchools(userId)
         logger.info("Has multiple schools: $hasMultipleSchools")
@@ -77,7 +86,18 @@ class CustomAuthenticationSuccessHandler(
             return
         }
         
-        // Check if user has multiple roles in the single school
+        handleSchoolAndRoleRedirection(request, response, userId, schoolId)
+        
+        logger.info("=== AUTHENTICATION SUCCESS HANDLER COMPLETED ===")
+    }
+    
+    private fun handleSchoolAndRoleRedirection(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        userId: UUID,
+        schoolId: UUID
+    ) {
+        // Check if user has multiple roles in the school
         val hasMultipleRoles = userSchoolRoleService.hasMultipleRolesInSchool(userId, schoolId)
         logger.info("Has multiple roles in school: $hasMultipleRoles")
         
@@ -89,7 +109,7 @@ class CustomAuthenticationSuccessHandler(
             return
         }
         
-        // User has single school and single role - redirect directly
+        // User has single role - redirect directly
         val userSchoolRoles = userSchoolRoleService.getActiveRolesByUserIdAndSchoolId(userId, schoolId)
         logger.info("User school roles: ${userSchoolRoles.map { "${it.role?.name} (active: ${it.isActive})" }}")
         
@@ -97,10 +117,7 @@ class CustomAuthenticationSuccessHandler(
             val userSchoolRole = userSchoolRoles.first()
             val roleName = userSchoolRole.role?.name
             
-            logger.info("Setting session attributes:")
-            logger.info("  - selectedSchoolId: $schoolId")
-            logger.info("  - selectedRoleId: ${userSchoolRole.role?.id}")
-            logger.info("  - selectedRole: $roleName")
+            logger.info("Setting session attributes for school: $schoolId")
             
             request.session.setAttribute("selectedSchoolId", schoolId)
             request.session.setAttribute("selectedRoleId", userSchoolRole.role?.id)
@@ -114,8 +131,6 @@ class CustomAuthenticationSuccessHandler(
             logger.warn("No active school roles found, using fallback redirect")
             handleSuccessfulLogin(request, response, "/admin/dashboard") // Fallback
         }
-        
-        logger.info("=== AUTHENTICATION SUCCESS HANDLER COMPLETED ===")
     }
     
     private fun getRoleBasedDashboardUrl(roleName: String?): String {

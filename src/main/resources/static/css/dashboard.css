@@ -431,11 +431,13 @@
 
     .welcome-stats {
         width: 100%;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
     }
 
     .stat-badge {
-        flex: 1;
+        flex: 1; padding: 0.5rem 0.25rem;
     }
 
     .dashboard-grid,
@@ -463,11 +465,15 @@
     }
 
     .stat-badge {
-        padding: 0.5rem;
+        padding: 0.4rem 0.2rem;
     }
 
     .stat-badge .value {
-        font-size: 1rem;
+        font-size: 0.95rem;
+    }
+
+    .stat-badge .label {
+        font-size: 0.6rem;
     }
 }
 

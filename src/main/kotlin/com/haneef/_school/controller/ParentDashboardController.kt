@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import com.haneef._school.service.PaystackService
+import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import java.util.UUID
 
 @Controller
@@ -46,7 +48,11 @@ class ParentDashboardController(
     private val educationTrackRepository: com.haneef._school.repository.EducationTrackRepository,
     private val parentStudentRepository: com.haneef._school.repository.ParentStudentRepository,
     private val schoolClassRepository: com.haneef._school.repository.SchoolClassRepository,
-    private val squadService: com.haneef._school.service.SquadService
+    private val squadService: com.haneef._school.service.SquadService,
+    private val schoolCalendarRepository: com.haneef._school.repository.SchoolCalendarRepository,
+    private val activityLogRepository: com.haneef._school.repository.ActivityLogRepository,
+    private val userRepository: com.haneef._school.repository.UserRepository,
+    private val passwordEncoder: PasswordEncoder
 ) {
 
     @GetMapping("/dashboard")
@@ -115,6 +121,28 @@ class ParentDashboardController(
         if (selectedSchoolId != null) {
             val school = schoolRepository.findById(selectedSchoolId).orElse(null)
             model.addAttribute("school", school)
+            
+            // Fetch current session and term for parent dashboard logic (events, etc.)
+            val currentSession = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
+                .find { it.isCurrentSession }
+            val currentTerm = if (currentSession != null) {
+                termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(currentSession.id!!, true)
+                    .find { it.isCurrentTerm }
+            } else null
+            
+            if (currentSession != null && currentTerm != null) {
+                val now = java.time.LocalDate.now()
+                // Fetch upcoming events for current session/term
+                val pageable = org.springframework.data.domain.PageRequest.of(0, 5)
+                val upcomingEvents = schoolCalendarRepository.findUpcomingEvents(
+                    selectedSchoolId,
+                    currentSession.id!!,
+                    currentTerm.id,
+                    now,
+                    pageable
+                )
+                model.addAttribute("upcomingEvents", upcomingEvents)
+            }
         }
         
         // Ensure wallet is loaded (it's a OneToOne, so it might be lazy)
@@ -160,6 +188,39 @@ class ParentDashboardController(
         val totalSettled = financialData["totalSettled"] as java.math.BigDecimal
         val paymentLocked = totalSettled > java.math.BigDecimal.ZERO
         model.addAttribute("paymentLocked", paymentLocked)
+        
+        // Fetch recent activities related to parent's children
+        if (selectedSchoolId != null && children.isNotEmpty()) {
+            val studentIds = children.mapNotNull { it.user.id }
+            
+            // Define activity types relevant to parents
+            val relevantActivityTypes = listOf(
+                com.haneef._school.entity.ActivityType.STUDENT_ENROLLED,
+                com.haneef._school.entity.ActivityType.STUDENT_UPDATED,
+                com.haneef._school.entity.ActivityType.GRADE_ENTERED,
+                com.haneef._school.entity.ActivityType.ASSIGNMENT_SUBMITTED,
+                com.haneef._school.entity.ActivityType.PAYMENT_RECEIVED,
+                com.haneef._school.entity.ActivityType.EXAM_SCHEDULED,
+                com.haneef._school.entity.ActivityType.ATTENDANCE,
+                com.haneef._school.entity.ActivityType.ASSIGNMENT_CREATED
+            )
+            
+            val pageable = org.springframework.data.domain.PageRequest.of(0, 5)
+            val recentActivities = if (studentIds.isNotEmpty()) {
+                activityLogRepository.findRecentActivitiesByTargetUserIds(
+                    selectedSchoolId,
+                    studentIds,
+                    relevantActivityTypes,
+                    pageable
+                )
+            } else {
+                emptyList()
+            }
+            
+            model.addAttribute("recentActivities", recentActivities)
+        } else {
+            model.addAttribute("recentActivities", emptyList<com.haneef._school.entity.ActivityLog>())
+        }
     }
 
     @PostMapping("/create-wallet")
@@ -490,5 +551,58 @@ class ParentDashboardController(
         model.addAttribute("userRole", "Parent")
         
         return "staff/student-profile" // Reuse the same template
+    }
+
+    @PostMapping("/student/{studentId}/set-password")
+    @Transactional
+    fun setStudentPassword(
+        @org.springframework.web.bind.annotation.PathVariable studentId: UUID,
+        @RequestParam password: String,
+        @RequestParam confirmPassword: String,
+        authentication: Authentication,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+        val customUser = userDetails as CustomUserDetails
+        
+        val parents = parentRepository.findByUserIdWithWallet(customUser.user.id!!)
+        val parent = parents.firstOrNull() ?: return "redirect:/login"
+        
+        // Validate parent access - ensure parent belongs to user
+        if (parent.user.id != customUser.user.id) {
+            throw org.springframework.security.access.AccessDeniedException("Unauthorized access to parent data")
+        }
+        
+        // Validate student belongs to parent
+        if (!parent.activeStudentRelationships.any { it.student.id == studentId }) {
+            throw org.springframework.security.access.AccessDeniedException("Unauthorized access to student data")
+        }
+        
+        if (password != confirmPassword) {
+            redirectAttributes.addFlashAttribute("error", "Passwords do not match")
+            return "redirect:/parent/child/$studentId"
+        }
+        
+        if (password.length < 6) {
+            redirectAttributes.addFlashAttribute("error", "Password must be at least 6 characters long")
+            return "redirect:/parent/child/$studentId"
+        }
+        
+        val student = studentRepository.findById(studentId).orElseThrow()
+        val studentUser = student.user
+        
+        studentUser.passwordHash = passwordEncoder.encode(password)
+        
+        // Activate user if not already
+        if (studentUser.status != com.haneef._school.entity.UserStatus.ACTIVE) {
+            studentUser.status = com.haneef._school.entity.UserStatus.ACTIVE
+            studentUser.isVerified = true
+            studentUser.emailVerified = true // Assuming verify means capable of login
+        }
+        
+        userRepository.save(studentUser)
+        
+        redirectAttributes.addFlashAttribute("success", "Student login password has been set successfully")
+        return "redirect:/parent/child/$studentId"
     }
 }

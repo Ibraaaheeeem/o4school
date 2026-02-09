@@ -5,8 +5,7 @@
     </div>
 
     <div class="modal-body">
-        <form th:hx-post="@{/admin/assessments/examinations/save-htmx}" hx-target="#messageContainer"
-            hx-swap="innerHTML" id="examinationForm"
+        <form th:hx-post="${formAction}" hx-target="#messageContainer" hx-swap="innerHTML" id="examinationForm"
             th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
             <input type="hidden" name="id" th:value="${examination.id}" th:if="${isEdit}">
 
@@ -30,26 +29,57 @@
                 <!-- Row 2: Track | Class -->
                 <div class="form-group">
                     <label for="trackId">Education Track</label>
-                    <select id="trackId" class="form-select" required onchange="loadClassesFromTrack()">
-                        <option value="">Select Track</option>
-                        <option th:each="track : ${educationTracks}" th:value="${track.id}" th:text="${track.name}">
-                        </option>
-                    </select>
+                    <th:block th:if="${lockedClass != null}">
+                        <input type="hidden" id="trackId" name="trackId" th:value="${lockedClass.track.id}">
+                        <input type="text" class="form-input" th:value="${lockedClass.track.name}" readonly
+                            style="background-color: #f3f4f6; cursor: not-allowed;">
+                    </th:block>
+                    <th:block th:unless="${lockedClass != null}">
+                        <select id="trackId" class="form-select" required onchange="loadClassesFromTrack()">
+                            <option value="">Select Track</option>
+                            <option th:each="track : ${educationTracks}" th:value="${track.id}" th:text="${track.name}">
+                            </option>
+                        </select>
+                    </th:block>
                 </div>
 
                 <div class="form-group">
                     <label for="classId">Class</label>
-                    <select id="classId" name="classId" class="form-select" required disabled onchange="loadSubjects()">
-                        <option value="">Select Track First</option>
-                    </select>
+                    <th:block th:if="${lockedClass != null}">
+                        <input type="hidden" id="classId" name="classId" th:value="${lockedClass.id}">
+                        <input type="text" class="form-input" th:value="${lockedClass.className}" readonly
+                            style="background-color: #f3f4f6; cursor: not-allowed;">
+                    </th:block>
+                    <th:block th:unless="${lockedClass != null}">
+                        <select id="classId" name="classId" class="form-select" required disabled
+                            onchange="loadSubjects()">
+                            <option value="">Select Track First</option>
+                        </select>
+                    </th:block>
                 </div>
 
                 <!-- Row 3: Subject | Exam Type -->
                 <div class="form-group">
                     <label for="subjectId">Subject</label>
-                    <select id="subjectId" name="subjectId" class="form-select" required disabled>
-                        <option value="">Select Class First</option>
-                    </select>
+                    <th:block th:if="${lockedSubject != null}">
+                        <input type="hidden" id="subjectId" name="subjectId" th:value="${lockedSubject.id}">
+                        <input type="text" class="form-input" th:value="${lockedSubject.subjectName}" readonly
+                            style="background-color: #f3f4f6; cursor: not-allowed;">
+                    </th:block>
+                    <th:block th:unless="${lockedSubject != null}">
+                        <select id="subjectId" name="subjectId" class="form-select" required
+                            th:disabled="${subjects == null || subjects.isEmpty()}">
+                            <option value="">Select Subject</option>
+                            <!-- Use subjects from model if available -->
+                            <option th:if="${subjects != null}" th:each="subject : ${subjects}" th:value="${subject.id}"
+                                th:text="${subject.subjectName}"
+                                th:selected="${examination.subject != null && examination.subject.id == subject.id}">
+                            </option>
+                            <!-- Fallback/Loading state if no subjects provided -->
+                            <option th:if="${subjects == null && lockedClass != null}" value="">Loading subjects...
+                            </option>
+                        </select>
+                    </th:block>
                 </div>
 
                 <div class="form-group">
@@ -75,17 +105,24 @@
                         th:value="${examination.totalMarks}" min="1" max="1000">
                 </div>
 
-                <!-- Row 5: Start Time | End Time -->
                 <div class="form-group">
-                    <label for="startTime">Start Time</label>
-                    <input type="datetime-local" id="startTime" name="startTime" class="form-input"
-                        th:value="${examination.startTime}">
+                    <label for="startTime">Start Date & Time</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                        <input type="text" id="startTime" name="startTime" class="form-input date-time-picker"
+                            th:value="${examination.startTime != null ? #temporals.format(examination.startTime, 'dd/MM/yyyy HH:mm') : ''}"
+                            placeholder="Select Start Date & Time" readonly>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="endTime">End Time</label>
-                    <input type="datetime-local" id="endTime" name="endTime" class="form-input"
-                        th:value="${examination.endTime}">
+                    <label for="endTime">End Date & Time</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-calendar-check"></i>
+                        <input type="text" id="endTime" name="endTime" class="form-input date-time-picker"
+                            th:value="${examination.endTime != null ? #temporals.format(examination.endTime, 'dd/MM/yyyy HH:mm') : ''}"
+                            placeholder="Select End Date & Time" readonly>
+                    </div>
                 </div>
 
                 <!-- Row 6: Examination Mode -->
@@ -110,18 +147,32 @@
                 </div>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="closeModal('examinationModal')">Cancel</button>
-                <button type="submit" class="btn btn-primary" th:disabled="${headerContextTerm == null}">
-                    <i class="fas fa-save me-2"></i>
-                    <span th:text="${isEdit ? 'Update Examination' : 'Create Examination'}">Create Examination</span>
-                </button>
+            <!-- Publish Immediately Checkbox -->
+            <div class="form-group full-width" style="margin-top: 0.5rem;">
+                <label class="custom-checkbox"
+                    style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="isPublished" value="true" th:checked="${examination.isPublished}"
+                        style="width: 1.2rem; height: 1.2rem; accent-color: var(--primary-color);">
+                    <span style="font-weight: 500; color: var(--text-main);">Publish Immediately</span>
+                </label>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-left: 1.7rem; margin-top: 0.2rem;">
+                    If checked, students will be able to see this examination immediately after creation/update.
+                </p>
             </div>
-        </form>
-
-        <!-- Message Container -->
-        <div id="messageContainer" class="mt-3"></div>
     </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('examinationModal')">Cancel</button>
+        <button type="submit" form="examinationForm" class="btn btn-primary" th:disabled="${headerContextTerm == null}">
+            <i class="fas fa-save me-2"></i>
+            <span th:text="${isEdit ? 'Update Examination' : 'Create Examination'}">Create Examination</span>
+        </button>
+    </div>
+    </form>
+
+    <!-- Message Container -->
+    <div id="messageContainer" class="mt-3"></div>
+</div>
 </div>
 
 <script th:inline="javascript">
@@ -136,14 +187,44 @@
     // Initialize the form when modal opens
     (function () {
         initializeHierarchicalSelection();
+        initializeDatePickers();
     })();
+
+    function initializeDatePickers() {
+        const config = {
+            enableTime: true,
+            dateFormat: "d/m/Y H:i",
+            allowInput: true,
+            time_24hr: true,
+            minuteIncrement: 1,
+            static: true // Ensures it appears correctly in modally-positioned containers
+        };
+
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr("#startTime", config);
+            flatpickr("#endTime", config);
+        } else {
+            console.warn('Flatpickr not loaded yet, retrying...');
+            setTimeout(initializeDatePickers, 500);
+        }
+    }
 
     function initializeHierarchicalSelection() {
         // Check if this is edit mode
         const examinationId = document.querySelector('input[name="id"]');
         window.isEditMode = examinationId && examinationId.value;
+        const lockedClassId = document.getElementById('classId') && document.getElementById('classId').type === 'hidden' ? document.getElementById('classId').value : null;
 
-        if (window.isEditMode) {
+        if (lockedClassId) {
+            // If class is locked but subject is NOT locked (Class Teacher creating exam), load subjects
+            const subjectInput = document.getElementById('subjectId');
+            if (subjectInput && subjectInput.tagName === 'SELECT') {
+                // Only load if not already populated by server (more than just the placeholder)
+                if (subjectInput.options.length <= 1) {
+                    loadSubjects();
+                }
+            }
+        } else if (window.isEditMode) {
             // Store examination data for edit mode
             window.editExamination = {
                 classId: /*[[${examination.schoolClass?.id}]]*/ null,
@@ -156,8 +237,6 @@
             }
         }
     }
-
-
 
     async function loadClassesFromTrack() {
         const trackId = document.getElementById('trackId').value;
@@ -191,10 +270,9 @@
         }
     }
 
-
-
     async function loadSubjects() {
-        const classId = document.getElementById('classId').value;
+        const classInput = document.getElementById('classId');
+        const classId = classInput.value;
         const subjectSelect = document.getElementById('subjectId');
 
         // Reset subject dropdown
@@ -216,10 +294,9 @@
 
             subjectSelect.disabled = false;
 
-            // If edit mode, select the subject
-            if (window.isEditMode && window.editExamination.subjectId) {
-                subjectSelect.value = window.editExamination.subjectId;
-            }
+            // If edit mode or context logic requires selecting the subject
+            // If locked class is present (Staff mode), allowing subject selection
+            // If we have a pre-selected subject from model (though that case usually renders hidden input), handle it
         } catch (error) {
             console.error('Error loading subjects:', error);
         }

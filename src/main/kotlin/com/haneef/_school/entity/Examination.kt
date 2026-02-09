@@ -75,6 +75,9 @@ class Examination(
     @OneToMany(mappedBy = "examination", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var submissions: MutableList<ExaminationSubmission> = mutableListOf()
 
+    @org.hibernate.annotations.Formula("(SELECT COUNT(q.id) FROM questions q WHERE q.examination_id = id)")
+    var questionCount: Int = 0
+
     @org.hibernate.annotations.Formula("(SELECT COUNT(es.id) FROM examination_submissions es WHERE es.examination_id = id)")
     var submissionCount: Int = 0
 }

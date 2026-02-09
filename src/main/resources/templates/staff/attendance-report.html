@@ -125,6 +125,59 @@
                 white-space: nowrap;
             }
         }
+
+
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-print {
+            background: #3498db;
+            color: white;
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-print:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .btn-back {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #7f8c8d;
+        }
+
+        @media print {
+
+            .action-buttons,
+            .view-selector,
+            .report-header .btn-back {
+                display: none !important;
+            }
+
+            .report-container {
+                padding: 0;
+            }
+
+            .report-table {
+                box-shadow: none;
+            }
+        }
     </style>
 
     <div class="report-container">
@@ -134,19 +187,22 @@
                 <p style="margin: 5px 0 0 0; color: #7f8c8d;" th:if="${currentTerm}"
                     th:text="'Summary for ' + ${currentTerm.termName}"></p>
             </div>
-            <div class="action-buttons">
+            <div class="action-buttons" style="display: flex; gap: 10px; align-items: center;">
                 <div class="view-selector"
-                    style="display: inline-flex; background: #f0f2f5; padding: 4px; border-radius: 8px; margin-right: 15px;">
+                    style="display: inline-flex; background: #f0f2f5; padding: 4px; border-radius: 8px; margin-right: 5px;">
                     <button class="view-btn active" onclick="switchReportView('summary', this)"
-                        style="padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Student
-                        Summary</button>
+                        style="padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #2c3e50;">Summary</button>
                     <button class="view-btn" onclick="switchReportView('daily', this)"
-                        style="padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; background: transparent; color: #666;">Daily
-                        Breakdown</button>
+                        style="padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; background: transparent; color: #666;">Daily</button>
                 </div>
-                <button class="action-btn secondary" onclick="window.print()">🖨️ Print Report</button>
-                <a href="javascript:void(0)" class="action-btn" style="background: #95a5a6; color: white;"
-                    onclick="goBackToAttendanceTab()">Back</a>
+
+                <button class="btn-action btn-print" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+
+                <a href="javascript:void(0)" class="btn-action btn-back" onclick="goBackToAttendanceTab()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
             </div>
         </div>
 
@@ -235,6 +291,7 @@
     </div>
 
     <script th:inline="javascript">
+        // ... existing switchReportView ...
         window.switchReportView = function (view, btn) {
             document.getElementById('summary-view').style.display = view === 'summary' ? 'block' : 'none';
             document.getElementById('daily-view').style.display = view === 'daily' ? 'block' : 'none';
@@ -253,13 +310,12 @@
         };
 
         window.goBackToAttendanceTab = function () {
-            const activeClassItem = document.querySelector('.class-item.active');
+            const activeClassItem = document.querySelector('.class-card.active');
             if (activeClassItem && typeof loadClassDetails === 'function') {
-                loadClassDetails(activeClassItem);
-                setTimeout(() => {
+                loadClassDetails(activeClassItem).then(() => {
                     const attendanceTab = document.querySelector('[data-tab="attendance"]');
                     if (attendanceTab) attendanceTab.click();
-                }, 500);
+                });
             }
         };
     </script>

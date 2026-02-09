@@ -32,6 +32,11 @@
                 <span class="icon">🌐</span>
                 Landing Page
             </a>
+            <a th:href="@{/admin/school-setup/custom-domain}"
+                th:classappend="${requestURI.contains('custom-domain') ? 'active' : ''}" class="nav-item">
+                <span class="icon">🌍</span>
+                Custom Domain
+            </a>
         </nav>
 
         <div class="setup-progress-widget" th:if="${setupProgress != null}">

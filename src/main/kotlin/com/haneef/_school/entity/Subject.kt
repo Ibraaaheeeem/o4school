@@ -1,6 +1,7 @@
 package com.haneef._school.entity
 
 import jakarta.persistence.*
+import java.util.UUID
 
 @Entity
 @Table(
@@ -34,7 +35,8 @@ class Subject(
     var maxGradeLevel: Int = 12,
 
     @Column(name = "category")
-    var category: String? = null
+    var category: String? = null,
+
 ) : GlobalEntity() {
     
     constructor() : this(subjectName = "")
@@ -48,4 +50,7 @@ class Subject(
     
     @OneToMany(mappedBy = "subject", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var subjectScores: MutableList<SubjectScore> = mutableListOf()
+    
+    @OneToMany(mappedBy = "subject", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    var mappings: MutableList<SubjectMapping> = mutableListOf()
 }

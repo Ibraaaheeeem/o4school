@@ -59,11 +59,13 @@ class MultiModeAuthenticationService(
             }
             
             LoginMethod.STUDENT -> {
-                val student = studentRepository.findByAdmissionNumber(identifier)
-                    ?: throw UsernameNotFoundException("Student not found with admission number: $identifier")
+                val students = studentRepository.findByAdmissionNumber(identifier)
+                if (students.isEmpty()) {
+                    throw UsernameNotFoundException("Student not found with admission number: $identifier")
+                }
                 
-                // Create UserDetails for student
-                customUserDetailsService.createStudentUserDetails(student)
+                // Create UserDetails for the first match (prioritized by isActive and createdAt in repo)
+                customUserDetailsService.createStudentUserDetails(students.first())
             }
         }
     }

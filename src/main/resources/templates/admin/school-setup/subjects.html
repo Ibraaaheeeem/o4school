@@ -109,8 +109,8 @@
                                 <th>Subject Name</th>
                                 <th>Code</th>
                                 <th>Type</th>
+                                <th>E-Learner Mapping</th>
                                 <th>Assigned Classes</th>
-                                <th>Description</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -125,6 +125,16 @@
                                         class="badge badge-secondary">Elective</span>
                                 </td>
                                 <td>
+                                    <span th:if="${!subjectWithClasses.subject.mappings.empty}"
+                                        class="badge badge-success">
+                                        Linked
+                                    </span>
+                                    <span th:unless="${!subjectWithClasses.subject.mappings.empty}"
+                                        class="badge badge-outline">
+                                        Not Linked
+                                    </span>
+                                </td>
+                                <td>
                                     <div class="assigned-classes">
                                         <span th:if="${subjectWithClasses.assignedClasses.empty}" class="text-muted">No
                                             classes assigned</span>
@@ -136,11 +146,10 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td th:text="${subjectWithClasses.subject.description}">Description</td>
                                 <td>
                                     <button class="btn btn-sm btn-outline" th:data-id="${subjectWithClasses.subject.id}"
                                         onclick="editSubject(this.getAttribute('data-id'))">
-                                        Edit
+                                        Assign to classes
                                     </button>
                                 </td>
                             </tr>
@@ -207,7 +216,8 @@
                     <div class="alert alert-info premium-alert"
                         style="padding: 0.75rem; margin-bottom: 1rem; font-size: 0.9rem;">
                         <i class="icon">ℹ️</i> <strong>Note:</strong> Only new, unique subject names are allowed. If the
-                        subject already exists, please find it in the list and click "Edit" to manage assignments.
+                        subject already exists, please find it in the list and click "Assign to classes" to manage
+                        assignments.
                     </div>
 
                     <div class="form-row">
@@ -240,6 +250,17 @@
                                 <small>Mark this subject as mandatory for all students</small>
                             </span>
                         </label>
+                    </div>
+
+                    <!-- Hidden Select for Template Cloning (Used by JS) -->
+                    <div style="display: none;">
+                        <select id="elearnerSubjectTemplate">
+                            <option value="">-- Select E-Learner Subject --</option>
+                            <option th:each="eSubject : ${elearnerSubjects}" th:value="${eSubject.id}"
+                                th:text="${eSubject.name}">
+                                Subject Name
+                            </option>
+                        </select>
                     </div>
                 </div>
 
@@ -357,11 +378,16 @@
             document.getElementById('subjectCode').disabled = false;
             document.getElementById('isCoreSubject').disabled = false;
             document.getElementById('description').disabled = false;
+            // document.getElementById('elearnerSubjectId').disabled = false;
+            // document.getElementById('elearnerSubjectId').value = '';
 
             document.getElementById('classAssignmentSection').style.display = 'none';
             document.getElementById('trackCheckboxes').innerHTML = '';
             document.getElementById('classCheckboxes').innerHTML = '';
             document.getElementById('classSelectionContainer').style.display = 'none';
+
+            // Reset Grade Level Mapping Section
+            // Removed as per request
 
             // Remove any read-only info if added
             const infoBox = document.getElementById('readOnlySubjectInfo');
@@ -382,6 +408,13 @@
                     document.getElementById('subjectCode').disabled = true;
                     document.getElementById('isCoreSubject').disabled = true;
                     document.getElementById('description').disabled = true;
+                    // document.getElementById('elearnerSubjectId').disabled = false;
+                    // document.getElementById('elearnerSubjectId').value = subject.elearnerSubjectId || '';
+
+                    // Show grade mapping section
+                    // populateGradeLevelMappings(subject.availableClasses, subject.assignedClassIds, subject.mappings);
+                    // document.getElementById('gradeLevelMappingSection').style.display = 'block';
+                    // document.getElementById('simpleMappingSection').style.display = 'none';
 
                     // Add Read-Only Info at top
                     const form = document.getElementById('subjectForm');
@@ -567,16 +600,8 @@
         }
 
         // Update class dropdown when track filter changes
-        document.addEventListener('DOMContentLoaded', function () {
-            const trackFilter = document.getElementById('trackFilter');
-            const classFilter = document.getElementById('classFilter');
+        // Helper to get grade level name
 
-            if (trackFilter && classFilter) {
-                trackFilter.addEventListener('change', function () {
-                    // This will be handled by filterByTrack() function
-                });
-            }
-        });
     </script>
 </body>
 

@@ -16,6 +16,9 @@ class Question(
     
     @Column(columnDefinition = "TEXT")
     var instruction: String? = null,
+
+    @Column(columnDefinition = "TEXT")
+    var explanation: String? = null,
     
     @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
     var questionText: String,

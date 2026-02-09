@@ -1,6 +1,7 @@
 <!-- Single Staff Card Fragment -->
 <div th:fragment="single-staff-card"
-    th:attr="id=${'staff-card-' + staff.id},hx-swap-oob=${isOob == true ? 'true' : null}" class="staff-card">
+    th:attr="id=${'staff-card-' + staff.id},hx-swap-oob=${isOob == true ? (oobSelector ?: 'true') : null}"
+    class="staff-card">
     <div class="staff-card-header">
         <div class="staff-avatar">
             <span class="default-avatar"
@@ -106,7 +107,7 @@
                 title="Edit Details">
                 <i class="fas fa-edit"></i>
             </button>
-            
+
             <button class="btn btn-sm" style="background: #ef4444; color: white; border: none;"
                 th:data-staff-id="${staff.id}" th:data-staff-name="${staff.user.fullName}"
                 onclick="confirmDeleteStaff(this.dataset.staffId, this.dataset.staffName)" title="Delete Staff">

@@ -21,12 +21,26 @@
             min-height: calc(100vh - 80px);
         }
 
+        @media (max-width: 1024px) {
+            .staff-reports-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .staff-sidebar {
             background: white;
             border-right: 1px solid rgba(0, 0, 0, 0.05);
             padding: 1.5rem;
             height: 100%;
             overflow-y: auto;
+        }
+
+        @media (max-width: 1024px) {
+            .staff-sidebar {
+                border-right: none;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                height: auto;
+            }
         }
 
         .staff-content {
@@ -207,16 +221,16 @@
                         </div>
                         <div class="student-info-main">
                             <h2 class="h4 fw-bold mb-1" id="studentNameHeader">Student Name</h2>
-                            <div class="student-info-meta d-flex gap-3 text-muted small">
-                                <span class="meta-item"><i class="fas fa-id-card me-1"></i> <span
+                            <div class="report-meta-rows d-flex gap-3 text-muted small">
+                                <span class="report-meta-item"><i class="fas fa-id-card me-1"></i> <span
                                         id="studentAdmissionMeta">ADM-001</span></span>
-                                <span class="meta-item"><i class="fas fa-layer-group me-1"></i> <span
+                                <span class="report-meta-item"><i class="fas fa-layer-group me-1"></i> <span
                                         id="studentTrackMeta">Track</span></span>
-                                <span class="meta-item"><i class="fas fa-school me-1"></i> <span
+                                <span class="report-meta-item"><i class="fas fa-school me-1"></i> <span
                                         id="studentClassMeta">Class</span></span>
                             </div>
                         </div>
-                        <div class="ms-auto">
+                        <div class="header-actions">
                             <button id="editModeBtn" class="btn btn-outline-primary btn-sm" onclick="toggleEditMode()">
                                 <i class="fas fa-edit me-1"></i> Edit Mode
                             </button>
@@ -243,6 +257,19 @@
                         <div class="p-4">
                             <!-- Academic Tab -->
                             <div id="academicTab" class="tab-content active">
+                                <div id="scoringFallbackAlert" class="alert alert-info border-0 shadow-sm mb-4"
+                                    style="display: none; background: #eff6ff; border-left: 4px solid #3b82f6 !important;">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0 me-3">
+                                            <i class="fas fa-info-circle text-primary fs-4"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="h6 fw-bold mb-1 text-primary">Standard Scoring Active</h4>
+                                            <p class="mb-0 small text-muted">Standard components (CA 1, CA 2, Exam) are
+                                                being used for some subjects as they lack a defined scoring scheme.</p>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle">
                                         <thead class="table-light">
@@ -359,25 +386,25 @@
         </div>
     </div>
 
+    <!-- Move Bootstrap before custom scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script th:inline="javascript">
+        // --- State Management ---
         let currentStudentData = null;
         let isEditMode = false;
 
+        // --- Core Filter Logic ---
         function updateFilters() {
-            // Auto-apply filters when any dropdown changes
             const session = document.getElementById('sessionFilter').value;
             const term = document.getElementById('termFilter').value;
             const classId = document.getElementById('classFilter').value;
 
-            // Only auto-apply if all required fields are selected
             if (session && term && classId) {
                 applyFilters();
             } else {
-                // Clear student selector if any required filter is missing
                 const container = document.getElementById('studentSelectorContainer');
                 container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">Select session, term & class first</option></select>';
-
-                // Hide assessment card
                 document.getElementById('assessmentCard').style.display = 'none';
                 document.getElementById('emptyState').style.display = 'block';
             }
@@ -388,18 +415,7 @@
             const term = document.getElementById('termFilter').value;
             const classId = document.getElementById('classFilter').value;
 
-            console.log('Applying filters:', { session, term, classId });
-
-            if (!session || !term || !classId) {
-                // Clear student selector if any required filter is missing
-                const container = document.getElementById('studentSelectorContainer');
-                container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">Select filters first</option></select>';
-
-                // Hide assessment card
-                document.getElementById('assessmentCard').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'block';
-                return;
-            }
+            if (!session || !term || !classId) return;
 
             const container = document.getElementById('studentSelectorContainer');
             container.innerHTML = '<div class="text-center py-2"><i class="fas fa-spinner fa-spin text-primary"></i> Loading students...</div>';
@@ -407,37 +423,19 @@
             const baseUrl = /*[[@{/staff/reports/class/filter}]]*/ '/staff/reports/class/filter';
             const url = `${baseUrl}?sessionYear=${session}&term=${term}&classId=${classId}`;
 
-            console.log('Fetching URL:', url);
-
             try {
                 const response = await fetch(url);
-                console.log('Response status:', response.status);
                 if (response.ok) {
-                    const html = await response.text();
-                    console.log('Received HTML length:', html.length);
-
-                    // Update the container with the new student selector
-                    container.innerHTML = html;
-
-                    // Check if students were loaded
-                    const studentSelect = document.getElementById('studentSelect');
-                    if (studentSelect && studentSelect.options.length > 1) {
-                        console.log('Students loaded successfully:', studentSelect.options.length - 1, 'students');
-                    } else {
-                        console.log('No students found for the selected filters');
-                        container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">No students found</option></select>';
-                    }
+                    container.innerHTML = await response.text();
                 } else {
-                    const errorText = await response.text();
-                    console.error('Response error:', errorText);
-                    container.innerHTML = '<div class="text-danger small">Error loading students: ' + response.status + '</div>';
+                    container.innerHTML = '<div class="text-danger small">Error loading students</div>';
                 }
             } catch (error) {
-                console.error('Fetch error:', error);
-                container.innerHTML = '<div class="text-danger small">Network error loading students</div>';
+                container.innerHTML = '<div class="text-danger small">Network error</div>';
             }
         }
 
+        // --- Student Data Management ---
         async function loadStudentData() {
             const studentId = document.getElementById('studentSelect').value;
             const session = document.getElementById('sessionFilter').value;
@@ -457,7 +455,7 @@
 
                 currentStudentData = await response.json();
 
-                // Update UI
+                // Update Profile Info
                 document.getElementById('studentNameHeader').textContent = currentStudentData.studentName;
                 document.getElementById('studentAdmissionMeta').textContent = currentStudentData.admissionNumber;
                 document.getElementById('studentClassMeta').textContent = currentStudentData.className;
@@ -468,34 +466,34 @@
                 const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0][0].toUpperCase();
                 document.getElementById('studentAvatar').textContent = initials;
 
-                // Fields
+                // Basic Fields
                 document.getElementById('attendanceInput').value = currentStudentData.attendance || 0;
                 document.getElementById('classTeacherComment').value = currentStudentData.classTeacherComment || '';
                 document.getElementById('headTeacherComment').value = currentStudentData.headTeacherComment || '';
 
+                // Render Complex UI
+                isEditMode = false;
+                document.getElementById('scoringFallbackAlert').style.display = 'none';
                 renderAssessmentTable();
                 renderBehavioralAssessment();
+                updateEditModeUI();
 
                 document.getElementById('emptyState').style.display = 'none';
                 document.getElementById('assessmentCard').style.display = 'block';
-
-                isEditMode = false;
-                updateEditModeUI();
                 switchTab('academic');
-
-                // Ensure edit button state is correct
-                updateEditModeUI();
-
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error loading student data:', error);
                 alert('Error loading student data');
             }
         }
 
+        // --- UI Rendering ---
         function renderAssessmentTable() {
             const headerRow = document.getElementById('tableHeaderRow');
             const tbody = document.getElementById('assessmentTableBody');
+            if (!currentStudentData) return;
 
+            let usesFallback = false;
             const components = new Set();
             currentStudentData.subjects.forEach(s => {
                 if (s.scoringScheme) {
@@ -507,55 +505,53 @@
             });
 
             if (components.size === 0) {
-                components.add('CA 1');
-                components.add('CA 2');
-                components.add('Exam');
+                ['CA', 'Exam'].forEach(c => components.add(c));
+                usesFallback = true;
             }
 
             const componentList = Array.from(components);
 
-            // Header
+            // Table Header
             headerRow.innerHTML = '<th style="width: 30%;">Subject</th>';
-            componentList.forEach(c => {
-                headerRow.innerHTML += `<th class="text-center">${c}</th>`;
-            });
+            componentList.forEach(c => headerRow.innerHTML += `<th class="text-center">${c}</th>`);
             headerRow.innerHTML += `
                 <th class="text-center" style="width: 80px;">Total</th>
                 <th class="text-center" style="width: 80px;">Grade</th>
                 <th class="text-center" style="width: 100px;">Remark</th>
             `;
 
-            // Body
+            // Table Body
             tbody.innerHTML = '';
             currentStudentData.subjects.forEach(s => {
                 const tr = document.createElement('tr');
-                let rowHtml = `<td><div class="fw-bold">${s.subjectName}</div></td>`;
-
                 let scheme = [];
                 try { scheme = s.scoringScheme ? JSON.parse(s.scoringScheme) : []; } catch (e) { }
 
+                let rowHtml = `<td><div class="fw-bold">${s.subjectName}</div></td>`;
                 componentList.forEach(c => {
-                    const schemeItem = scheme.find(item => (item.alias || item.name) === c);
+                    let schemeItem = scheme.find(item => (item.alias || item.name) === c);
+
+                    // Fallback: If no scheme item, provide default max and render input
                     if (!schemeItem) {
-                        rowHtml += `<td class="text-center text-muted">-</td>`;
-                        return;
+                        schemeItem = { name: c, max: c === 'CA' ? 40 : (c === 'Exam' ? 60 : 100) };
+                        usesFallback = true;
                     }
 
-                    const max = schemeItem.max;
-                    let value = '';
-                    if (s.scores && s.scores[c] !== undefined && s.scores[c] !== null) value = s.scores[c];
-                    else if (c.toLowerCase().includes('ca 1') && s.ca1 !== null) value = s.ca1;
-                    else if (c.toLowerCase().includes('ca 2') && s.ca2 !== null) value = s.ca2;
-                    else if (c.toLowerCase().includes('exam') && s.exam !== null) value = s.exam;
+                    let val = '';
+                    if (s.scores && s.scores[c] !== undefined && s.scores[c] !== null) val = s.scores[c];
+                    else if (c.toLowerCase().includes('ca 1') && s.ca1 !== null) val = s.ca1;
+                    else if (c.toLowerCase().includes('ca 2') && s.ca2 !== null) val = s.ca2;
+                    else if (c.toLowerCase().includes('exam') && s.exam !== null) val = s.exam;
 
                     rowHtml += `
                         <td>
                             <div class="d-flex align-items-center justify-content-center gap-1">
                                 <input type="number" class="form-control form-control-sm text-center score-input" 
                                        style="width: 60px;" data-subject-id="${s.subjectId}" data-component="${c}"
-                                       value="${value}" min="0" max="${max}" ${isEditMode ? '' : 'disabled'}
+                                       value="${val}" min="0" max="${schemeItem.max}" ${isEditMode ? '' : 'disabled'}
+                                       oninput="if(this.value !== '' && Number(this.value) > Number(this.max)) this.value = this.max; updateRowTotal(this)"
                                        onchange="updateRowTotal(this)">
-                                <span class="text-muted small">/ ${max}</span>
+                                <span class="text-muted small">/ ${schemeItem.max}</span>
                             </div>
                         </td>
                     `;
@@ -569,33 +565,33 @@
                 tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
             });
+
+            document.getElementById('scoringFallbackAlert').style.display = usesFallback ? 'block' : 'none';
         }
 
         function updateRowTotal(input) {
             const tr = input.closest('tr');
             const inputs = tr.querySelectorAll('.score-input');
-            let total = 0;
-            let allFilled = true;
+            let total = 0, allFilled = true;
 
             inputs.forEach(inp => {
-                if (inp.value === '') {
-                    allFilled = false;
-                } else {
-                    total += parseInt(inp.value) || 0;
-                }
+                if (inp.value === '') allFilled = false;
+                else total += parseInt(inp.value) || 0;
             });
 
+            const totalCell = tr.querySelector('.row-total');
+            const gradeBadge = tr.querySelector('.row-grade');
+            const remarkCell = tr.querySelector('.row-remark');
+
             if (!allFilled) {
-                tr.querySelector('.row-total').textContent = '';
-                tr.querySelector('.row-grade').textContent = '-';
-                tr.querySelector('.row-grade').className = 'badge bg-light text-dark border row-grade';
-                tr.querySelector('.row-remark').textContent = '-';
+                totalCell.textContent = '';
+                gradeBadge.textContent = '-';
+                gradeBadge.className = 'badge bg-light text-dark border row-grade';
+                remarkCell.textContent = '-';
                 return;
             }
 
-            tr.querySelector('.row-total').textContent = total;
-
-            // Simple grading logic
+            totalCell.textContent = total;
             let grade = 'F', remark = 'Fail', badgeClass = 'bg-danger';
             if (total >= 70) { grade = 'A'; remark = 'Excellent'; badgeClass = 'bg-success'; }
             else if (total >= 60) { grade = 'B'; remark = 'Very Good'; badgeClass = 'bg-primary'; }
@@ -603,15 +599,16 @@
             else if (total >= 45) { grade = 'D'; remark = 'Fair'; badgeClass = 'bg-warning text-dark'; }
             else if (total >= 40) { grade = 'E'; remark = 'Pass'; badgeClass = 'bg-secondary'; }
 
-            const gradeBadge = tr.querySelector('.row-grade');
             gradeBadge.textContent = grade;
             gradeBadge.className = `badge ${badgeClass} row-grade`;
-            tr.querySelector('.row-remark').textContent = remark;
+            remarkCell.textContent = remark;
         }
 
         function renderBehavioralAssessment() {
             const container = document.getElementById('behaviorContainer');
+            if (!container || !currentStudentData) return;
             container.innerHTML = '';
+
             const traits = [
                 { key: 'fluency', label: 'Fluency', icon: 'fa-comment-dots', color: '#3b82f6' },
                 { key: 'handwriting', label: 'Handwriting', icon: 'fa-pen-nib', color: '#8b5cf6' },
@@ -626,121 +623,161 @@
             ];
 
             traits.forEach(trait => {
-                const value = currentStudentData[trait.key] || 0;
+                const val = currentStudentData[trait.key] || 0;
                 let buttons = '';
                 for (let i = 1; i <= 5; i++) {
-                    buttons += `<button type="button" class="behavior-score-btn ${i === value ? 'active' : ''}" 
+                    buttons += `<button type="button" class="behavior-score-btn ${i === val ? 'active' : ''}" 
                                 ${!isEditMode ? 'disabled' : ''} onclick="selectBehavior(this, '${trait.key}', ${i})">${i}</button>`;
                 }
-
                 container.innerHTML += `
                     <div class="behavioral-trait-card">
                         <div class="d-flex align-items-center gap-3">
                             <div class="p-2 rounded" style="background: ${trait.color}15; color: ${trait.color};"><i class="fas ${trait.icon}"></i></div>
                             <span class="fw-bold small">${trait.label}</span>
                         </div>
-                        <div class="d-flex gap-2 justify-content-center">
-                            ${buttons}
-                        </div>
-                        <input type="hidden" id="behavior_${trait.key}" value="${value}">
-                    </div>
-                `;
+                        <div class="d-flex gap-2 justify-content-center">${buttons}</div>
+                        <input type="hidden" id="behavior_${trait.key}" value="${val}">
+                    </div>`;
             });
         }
 
-        // window.selectBehavior = (btn, key, val) => {
-        //     btn.parentElement.querySelectorAll('.behavior-score-btn').forEach(b => b.classList.remove('active'));
-        //     btn.classList.add('active');
-        //     document.getElementById(`behavior_${key}`).value = val;
-        // };
+        // --- Interaction Handlers ---
+        window.switchTab = function (tabId) {
+            document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+            const tabBtn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+            if (tabBtn) tabBtn.classList.add('active');
 
-        // // --- Tab Switching ---
-        // window.switchTab = function (tabId) {
-        //     console.log('Switching to tab:', tabId);
-        //     document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
-        //     document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
-        //     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        //     document.getElementById(tabId + 'Tab').classList.add('active');
-        // };
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const content = document.getElementById(tabId + 'Tab');
+            if (content) content.classList.add('active');
+        };
 
-        // // --- Edit Mode Functions ---
-        // window.toggleEditMode = function () {
-        //     console.log('Staff toggleEditMode called, current isEditMode:', isEditMode);
-        //     isEditMode = !isEditMode;
-        //     console.log('Staff new isEditMode:', isEditMode);
+        window.toggleEditMode = function () {
+            isEditMode = !isEditMode;
+            updateEditModeUI();
+        };
 
-        //     // First render the table with the new edit mode state
-        //     renderAssessmentTable();
-        //     renderBehavioralAssessment();
+        function updateEditModeUI() {
+            const btn = document.getElementById('editModeBtn');
+            if (btn) {
+                btn.innerHTML = isEditMode ? '<i class="fas fa-times me-1"></i> Cancel Edit' : '<i class="fas fa-edit me-1"></i> Edit Mode';
+                btn.className = isEditMode ? 'btn btn-outline-danger btn-sm' : 'btn btn-outline-primary btn-sm';
+            }
 
-        //     // Then update the UI elements
-        //     updateEditModeUI();
-        // };
+            // Sync all inputs and textareas
+            const selectors = ['input.score-input', 'textarea.form-control', 'input#attendanceInput', 'button.behavior-score-btn'];
+            selectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                    el.disabled = !isEditMode;
+                });
+            });
+        }
 
-        // function updateEditModeUI() {
-        //     console.log('updateEditModeUI called, isEditMode:', isEditMode);
-        //     const btn = document.getElementById('editModeBtn');
-        //     if (!btn) {
-        //         console.error('Edit mode button not found');
-        //         return;
-        //     }
+        window.selectBehavior = function (btn, key, val) {
+            if (!isEditMode) return;
+            const card = btn.closest('.behavioral-trait-card');
+            card.querySelectorAll('.behavior-score-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const input = document.getElementById(`behavior_${key}`);
+            if (input) input.value = val;
+        };
 
-        //     btn.innerHTML = isEditMode ? '<i class="fas fa-times me-1"></i> Cancel' : '<i class="fas fa-edit me-1"></i> Edit Mode';
-        //     btn.className = isEditMode ? 'btn btn-outline-danger btn-sm' : 'btn btn-outline-primary btn-sm';
+        // --- Save Logic ---
+        async function saveAssessment() {
+            const studentId = document.getElementById('studentSelect').value;
+            if (!studentId) return;
 
-        //     // Update form elements
-        //     ['attendanceInput', 'classTeacherComment', 'headTeacherComment'].forEach(id => {
-        //         const element = document.getElementById(id);
-        //         if (element) {
-        //             element.disabled = !isEditMode;
-        //             console.log(`Updated ${id} disabled to:`, !isEditMode);
-        //         } else {
-        //             console.warn(`Element ${id} not found`);
-        //         }
-        //     });
+            const scores = [];
+            document.querySelectorAll('#assessmentTableBody tr').forEach(row => {
+                const inputs = row.querySelectorAll('.score-input');
+                if (inputs.length === 0) return;
 
-        //     // Update score inputs
-        //     const scoreInputs = document.querySelectorAll('.score-input');
-        //     console.log('Found score inputs:', scoreInputs.length);
-        //     scoreInputs.forEach(input => {
-        //         input.disabled = !isEditMode;
-        //     });
+                const subjectId = inputs[0].dataset.subjectId;
+                const subjectScores = {};
+                inputs.forEach(inp => subjectScores[inp.dataset.component] = inp.value === '' ? null : parseInt(inp.value));
 
-        //     // Update behavioral score buttons
-        //     const behaviorButtons = document.querySelectorAll('.behavior-score-btn');
-        //     console.log('Found behavior buttons:', behaviorButtons.length);
-        //     behaviorButtons.forEach(button => {
-        //         button.disabled = !isEditMode;
-        //     });
-        // }
+                scores.push({
+                    subjectId: subjectId,
+                    scores: subjectScores,
+                    ca1: subjectScores['CA 1'] || 0,
+                    ca2: subjectScores['CA 2'] || 0,
+                    exam: subjectScores['Exam'] || 0
+                });
+            });
 
+            const payload = {
+                studentId: studentId,
+                classId: document.getElementById('classFilter').value,
+                session: document.getElementById('sessionFilter').value,
+                term: document.getElementById('termFilter').value,
+                scores: scores,
+                attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
+                classTeacherComment: document.getElementById('classTeacherComment').value,
+                headTeacherComment: document.getElementById('headTeacherComment').value,
+                fluency: parseInt(document.getElementById('behavior_fluency')?.value) || 0,
+                handwriting: parseInt(document.getElementById('behavior_handwriting')?.value) || 0,
+                game: parseInt(document.getElementById('behavior_game')?.value) || 0,
+                initiative: parseInt(document.getElementById('behavior_initiative')?.value) || 0,
+                criticalThinking: parseInt(document.getElementById('behavior_criticalThinking')?.value) || 0,
+                punctuality: parseInt(document.getElementById('behavior_punctuality')?.value) || 0,
+                attentiveness: parseInt(document.getElementById('behavior_attentiveness')?.value) || 0,
+                neatness: parseInt(document.getElementById('behavior_neatness')?.value) || 0,
+                selfDiscipline: parseInt(document.getElementById('behavior_selfDiscipline')?.value) || 0,
+                politeness: parseInt(document.getElementById('behavior_politeness')?.value) || 0
+            };
 
+            try {
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+
+                const response = await fetch('/staff/reports/class/save', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                const res = await response.json();
+                if (res.success) {
+                    alert('Saved successfully');
+                    loadStudentData();
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        }
 
         // --- Import Logic ---
-        function openImportModal() {
+        window.openImportModal = function () {
             const select = document.getElementById('importComponent');
             select.innerHTML = '';
             document.querySelectorAll('#tableHeaderRow th').forEach((th, i) => {
                 if (i > 0 && i < document.querySelectorAll('#tableHeaderRow th').length - 3) {
-                    select.innerHTML += `<option value="${th.textContent}">${th.textContent}</option>`;
+                    const opt = document.createElement('option');
+                    opt.value = th.textContent;
+                    opt.textContent = th.textContent;
+                    select.appendChild(opt);
                 }
             });
             document.getElementById('sourceExamsContainer').innerHTML = '';
             addSourceExamRow();
-            new bootstrap.Modal(document.getElementById('importModal')).show();
-        }
+            const modal = new bootstrap.Modal(document.getElementById('importModal'));
+            modal.show();
+        };
 
-        function closeModal(id) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById(id));
-            if (modal) modal.hide();
-        }
+        window.closeModal = function (id) {
+            const m = bootstrap.Modal.getInstance(document.getElementById(id));
+            if (m) m.hide();
+            else document.getElementById(id).style.display = 'none';
+        };
 
         function addSourceExamRow() {
-            const id = Date.now();
             const container = document.getElementById('sourceExamsContainer');
             const div = document.createElement('div');
-            div.className = 'd-flex gap-2 align-items-center';
-            div.id = `source-${id}`;
+            div.className = 'd-flex gap-2 align-items-center mb-2';
             div.innerHTML = `
                 <select class="form-select form-select-sm exam-type-select">
                     <option value="Assignment">Assignment</option>
@@ -749,8 +786,7 @@
                     <option value="End-of-Term Examination">End-of-Term Examination</option>
                 </select>
                 <input type="number" class="form-control form-control-sm factor-input" style="width: 70px; display: none;" value="1" step="0.1">
-                <button class="btn btn-link text-danger p-0" onclick="this.parentElement.remove(); updateImportUI();"><i class="fas fa-times"></i></button>
-            `;
+                <button class="btn btn-link text-danger p-0" onclick="this.parentElement.remove(); updateImportUI();"><i class="fas fa-times"></i></button>`;
             container.appendChild(div);
             updateImportUI();
         }
@@ -763,13 +799,10 @@
         }
 
         async function executeImport() {
-            const sources = [];
-            document.querySelectorAll('#sourceExamsContainer > div').forEach(r => {
-                sources.push({
-                    examType: r.querySelector('.exam-type-select').value,
-                    factor: parseFloat(r.querySelector('.factor-input').value) || 1.0
-                });
-            });
+            const sources = Array.from(document.querySelectorAll('#sourceExamsContainer > div')).map(r => ({
+                examType: r.querySelector('.exam-type-select').value,
+                factor: parseFloat(r.querySelector('.factor-input').value) || 1.0
+            }));
 
             const data = {
                 classId: document.getElementById('classFilter').value,
@@ -785,292 +818,27 @@
                 const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
                 const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
                 const headers = { 'Content-Type': 'application/json' };
-                if (csrfToken && csrfHeader) {
-                    headers[csrfHeader] = csrfToken;
-                }
+                if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
 
                 const response = await fetch('/staff/reports/class/import', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify(data)
                 });
-                const result = await response.json();
-                if (result.success) {
-                    alert(result.message);
+                const res = await response.json();
+                if (res.success) {
+                    alert(res.message);
                     closeModal('importModal');
                     loadStudentData();
-                }
-            } catch (error) {
-                alert('Import failed');
-            }
+                } else alert('Import failed: ' + res.message);
+            } catch (e) { alert('Network error during import'); }
         }
 
-        // --- Modal Functions ---
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.style.display = 'none';
-            }
-        }
-
-        function openImportModal() {
-            const modal = document.getElementById('importModal');
-            const select = document.getElementById('importComponent');
-            select.innerHTML = '';
-
-            // Get components from table header
-            const headers = document.querySelectorAll('#tableHeaderRow th');
-            headers.forEach((th, index) => {
-                if (index > 0 && index < headers.length - 3) { // Skip Subject, Total, Grade, Remark
-                    const option = document.createElement('option');
-                    option.value = th.textContent;
-                    option.textContent = th.textContent;
-                    select.appendChild(option);
-                }
-            });
-
-            // Reset Source Exams
-            document.getElementById('sourceExamsContainer').innerHTML = '';
-            addSourceExamRow(); // Add first row by default
-
-            modal.style.display = 'block';
-        }
-
-        // --- Save Assessment Function ---
-        async function saveAssessment() {
-            const studentId = document.getElementById('studentSelect').value;
-            const session = document.getElementById('sessionFilter').value;
-            const term = document.getElementById('termFilter').value;
-
-            console.log('Saving assessment for student:', studentId);
-
-            // Gather Scores
-            const scores = [];
-            const rows = document.querySelectorAll('#assessmentTableBody tr');
-            rows.forEach(row => {
-                const firstInput = row.querySelector('.score-input');
-                if (!firstInput) return;
-
-                const subjectId = firstInput.dataset.subjectId; // Keep as UUID string
-                const subjectScores = {};
-
-                row.querySelectorAll('.score-input').forEach(input => {
-                    const componentName = input.dataset.component;
-                    const val = input.value === '' ? null : (parseInt(input.value) || 0);
-                    subjectScores[componentName] = val;
-                });
-
-                // For backward compatibility, we still send ca1, ca2, exam if they exist in the map
-                let ca1 = 0, ca2 = 0, exam = 0;
-                Object.keys(subjectScores).forEach(key => {
-                    const k = key.toLowerCase();
-                    if (k.includes('ca 1') || k.includes('continuous assessment 1')) ca1 = subjectScores[key];
-                    else if (k.includes('ca 2')) ca2 = subjectScores[key];
-                    else if (k.includes('exam')) exam = subjectScores[key];
-                });
-
-                console.log('Adding score for subject:', subjectId, subjectScores);
-
-                scores.push({
-                    subjectId: subjectId, // Keep as UUID string, don't parse as int
-                    ca1: ca1,
-                    ca2: ca2,
-                    exam: exam,
-                    scores: subjectScores
-                });
-            });
-
-            // Gather Other Data
-            const requestData = {
-                studentId: studentId,
-                classId: document.getElementById('classFilter').value,
-                session: session,
-                term: term,
-                scores: scores,
-                attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
-                classTeacherComment: document.getElementById('classTeacherComment').value,
-                headTeacherComment: document.getElementById('headTeacherComment').value,
-                // Behavior
-                fluency: parseInt(document.getElementById('behavior_fluency')?.value) || 0,
-                handwriting: parseInt(document.getElementById('behavior_handwriting')?.value) || 0,
-                game: parseInt(document.getElementById('behavior_game')?.value) || 0,
-                initiative: parseInt(document.getElementById('behavior_initiative')?.value) || 0,
-                criticalThinking: parseInt(document.getElementById('behavior_criticalThinking')?.value) || 0,
-                punctuality: parseInt(document.getElementById('behavior_punctuality')?.value) || 0,
-                attentiveness: parseInt(document.getElementById('behavior_attentiveness')?.value) || 0,
-                neatness: parseInt(document.getElementById('behavior_neatness')?.value) || 0,
-                selfDiscipline: parseInt(document.getElementById('behavior_selfDiscipline')?.value) || 0,
-                politeness: parseInt(document.getElementById('behavior_politeness')?.value) || 0
-            };
-
-            console.log('Sending request data:', requestData);
-
-            try {
-                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
-                const headers = { 'Content-Type': 'application/json' };
-                if (csrfToken && csrfHeader) {
-                    headers[csrfHeader] = csrfToken;
-                }
-
-                const response = await fetch('/staff/reports/class/save', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(requestData)
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Response error:', response.status, errorText);
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-
-                const result = await response.json();
-                if (result.success) {
-                    alert('Assessment updated successfully!');
-                    // Optionally reload the student data to reflect changes
-                    loadStudentData();
-                } else {
-                    alert('Error: ' + (result.message || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error saving assessment:', error);
-                alert('Error saving assessment: ' + error.message);
-            }
-        }
-
-        // --- Missing Functions for Edit Mode ---
-        window.toggleEditMode = function () {
-            console.log('Staff toggleEditMode called, current isEditMode:', isEditMode);
-            console.log('Button clicked, about to toggle edit mode');
-            isEditMode = !isEditMode;
-            console.log('Staff new isEditMode:', isEditMode);
-
-            // Re-render the table with new edit mode state
-            renderAssessmentTable();
-            renderBehavioralAssessment();
-
-            // Update UI elements
-            updateEditModeUI();
-        };
-
-        // Also define it without window for compatibility
-        function toggleEditMode() {
-            console.log('Staff toggleEditMode (non-window) called, current isEditMode:', isEditMode);
-            window.toggleEditMode();
-        }
-
-        function updateEditModeUI() {
-            console.log('Staff updateEditModeUI called, isEditMode:', isEditMode);
-            const btn = document.getElementById('editModeBtn');
-            const attendanceInput = document.getElementById('attendanceInput');
-            const classTeacherComment = document.getElementById('classTeacherComment');
-            const headTeacherComment = document.getElementById('headTeacherComment');
-
-            if (!btn) {
-                console.error('Edit mode button not found');
-                return;
-            }
-
-            // Enforce clickability
-            btn.style.position = 'relative';
-            btn.style.zIndex = '100';
-            btn.onclick = function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Edit button clicked (JS handler)');
-                toggleEditMode();
-            };
-
-            if (isEditMode) {
-                btn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel Edit';
-                btn.className = 'btn btn-outline-danger btn-sm';
-                if (attendanceInput) attendanceInput.disabled = false;
-                if (classTeacherComment) classTeacherComment.disabled = false;
-                if (headTeacherComment) headTeacherComment.disabled = false;
-
-                // Enable all score inputs
-                const scoreInputs = document.querySelectorAll('.score-input');
-                console.log('Staff: Found score inputs:', scoreInputs.length);
-                scoreInputs.forEach(input => {
-                    input.disabled = false;
-                });
-
-                // Enable behavioral score buttons
-                const behaviorButtons = document.querySelectorAll('.behavior-score-btn');
-                console.log('Staff: Found behavior buttons:', behaviorButtons.length);
-                behaviorButtons.forEach(btn => {
-                    btn.disabled = false;
-                });
-            } else {
-                btn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit Mode';
-                btn.className = 'btn btn-outline-primary btn-sm';
-                if (attendanceInput) attendanceInput.disabled = true;
-                if (classTeacherComment) classTeacherComment.disabled = true;
-                if (headTeacherComment) headTeacherComment.disabled = true;
-
-                // Disable all score inputs
-                const scoreInputs = document.querySelectorAll('.score-input');
-                console.log('Staff: Disabling score inputs:', scoreInputs.length);
-                scoreInputs.forEach(input => {
-                    input.disabled = true;
-                });
-
-                // Disable behavioral score buttons
-                document.querySelectorAll('.behavior-score-btn').forEach(btn => {
-                    btn.disabled = true;
-                });
-            }
-        }
-
-        // --- Tab Switching ---
-        window.switchTab = function (tabId) {
-            // Update buttons
-            document.querySelectorAll('.report-tab').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('onclick').includes(tabId)) {
-                    btn.classList.add('active');
-                }
-            });
-
-            // Update content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(tabId + 'Tab').classList.add('active');
-        };
-
-        // --- Behavioral Assessment Functions ---
-        window.selectBehavior = function (btn, key, value) {
-            const ratingButtons = btn.parentElement;
-            ratingButtons.querySelectorAll('.behavior-score-btn').forEach(b => {
-                b.classList.remove('active');
-            });
-            btn.classList.add('active');
-            document.getElementById(`behavior_${key}`).value = value;
-        };
-
-        // Test function availability on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('DOM loaded, testing function availability');
-            console.log('toggleEditMode function exists:', typeof window.toggleEditMode);
-            console.log('toggleEditMode function exists (global):', typeof toggleEditMode);
-
-            // Test if we can call the function
-            try {
-                console.log('Testing function call...');
-                // Don't actually call it, just test if it's callable
-                if (typeof window.toggleEditMode === 'function') {
-                    console.log('window.toggleEditMode is callable');
-                } else {
-                    console.error('window.toggleEditMode is not a function');
-                }
-            } catch (e) {
-                console.error('Error testing function:', e);
-            }
+        // Initialize state
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Class Reports Manager Initialized');
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

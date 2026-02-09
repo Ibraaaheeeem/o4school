@@ -93,6 +93,7 @@ enum class ActivityType {
     GRADE_ENTERED,
     EXAM_CREATED,
     EXAM_SCHEDULED,
+    ATTENDANCE,
     
     // Financial
     FEE_CREATED,

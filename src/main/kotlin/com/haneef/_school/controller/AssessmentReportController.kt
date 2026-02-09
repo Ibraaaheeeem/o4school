@@ -560,6 +560,10 @@ class AssessmentReportController(
         val effectiveSessionId = resolvedSessionId!!
         val effectiveTermId = resolvedTermId!!
 
+        // Resolve Session and Term Names to ensure consistency with Assessment entity
+        val sessionName = academicSessionRepository.findById(effectiveSessionId).map { it.sessionYear }.orElse(effectiveSessionId.toString())
+        val termName = termRepository.findById(effectiveTermId).map { it.termName }.orElse(effectiveTermId.toString())
+
         // Validate student and class belong to school
         val student = authorizationService.validateAndGetStudent(studentId, selectedSchoolId)
         authorizationService.validateAndGetSchoolClass(classId, selectedSchoolId)
@@ -569,7 +573,7 @@ class AssessmentReportController(
         
         // Get existing assessment if any
         val assessmentOpt = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            studentId, effectiveSessionId.toString(), effectiveTermId.toString(), selectedSchoolId, true
+            studentId, sessionName, termName, selectedSchoolId, true
         )
 
         val assessment = assessmentOpt.orElse(null)
@@ -715,18 +719,53 @@ class AssessmentReportController(
         
         val effectiveSessionId = resolvedSessionId!!
         val effectiveTermId = resolvedTermId!!
+        
+        // Resolve Session and Term Names for Assessment entity
+        val sessionName = academicSessionRepository.findById(effectiveSessionId).map { it.sessionYear }.orElse(effectiveSessionId.toString())
+        val termName = termRepository.findById(effectiveTermId).map { it.termName }.orElse(effectiveTermId.toString())
 
         // Validate student belongs to school
         val student = authorizationService.validateAndGetStudent(request.studentId, selectedSchoolId)
 
         // Get student enrollment to find class
-        val studentEnrollment = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
+        // Fetch all potential enrollments first
+        var enrollments = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
             request.studentId, effectiveSessionId, effectiveTermId, true
-        ).filter { it.schoolId == selectedSchoolId }.firstOrNull()
-            ?: studentClassRepository.findByStudentIdAndAcademicSessionIdAndIsActive(
+        ).filter { it.schoolId == selectedSchoolId }
+
+        if (enrollments.isEmpty()) {
+             enrollments = studentClassRepository.findByStudentIdAndAcademicSessionIdAndIsActive(
                 request.studentId, effectiveSessionId, true
-            ).filter { it.schoolId == selectedSchoolId }.firstOrNull()
-            ?: throw RuntimeException("Student enrollment not found")
+            ).filter { it.schoolId == selectedSchoolId }
+        }
+        
+        if (enrollments.isEmpty()) {
+            throw RuntimeException("Student enrollment not found")
+        }
+
+        // Determine the correct enrollment (Class) to use
+        val studentEnrollment = if (enrollments.size == 1) {
+            enrollments[0]
+        } else {
+            if (request.scores.isNotEmpty()) {
+                // If scores are being saved, pick the class that supports these subjects
+                val subjectIds = request.scores.map { it.subjectId }.toSet()
+                
+                // For each enrollment, count how many of the requested subjects are valid for that class
+                enrollments.maxByOrNull { enrollment ->
+                    val clsId = enrollment.schoolClass.id!!
+                    // Check if this class has ClassSubjects for the requested subjects
+                    classSubjectRepository.findBySchoolClassIdAndIsActive(clsId, true)
+                        .count { it.subject.id in subjectIds }
+                } ?: enrollments[0]
+            } else {
+                 // Fallback: Pick the one with the most subjects overall (likely main class)
+                 enrollments.maxByOrNull { enrollment ->
+                    val clsId = enrollment.schoolClass.id!!
+                    classSubjectRepository.findBySchoolClassIdAndIsActive(clsId, true).size
+                 } ?: enrollments[0]
+            }
+        }
             
         val classId = studentEnrollment.schoolClass.id!!
 
@@ -739,13 +778,13 @@ class AssessmentReportController(
         }
 
         val assessment = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            request.studentId, effectiveSessionId.toString(), effectiveTermId.toString(), selectedSchoolId, true
+            request.studentId, sessionName, termName, selectedSchoolId, true
         ).orElseGet {
             Assessment(
                 admissionNumber = student.admissionNumber ?: "",
                 student = student,
-                session = effectiveSessionId.toString(),
-                term = effectiveTermId.toString()
+                session = sessionName,
+                term = termName
             ).apply {
                 this.schoolId = selectedSchoolId
             }
@@ -792,7 +831,7 @@ class AssessmentReportController(
             
             val classSubject = classSubjectRepository.findBySchoolClassIdAndSubjectIdAndIsActive(
                 classId, scoreInput.subjectId, true
-            ) ?: throw RuntimeException("ClassSubject not found for subject ${subject.subjectName}")
+            ) ?: throw RuntimeException("ClassSubject not found for subject ${subject.subjectName} (ID: ${scoreInput.subjectId}) in class ${studentEnrollment.schoolClass.className} (ID: $classId)")
             
             val subjectScore = subjectScoreRepository.findByAssessmentIdAndSubjectIdAndSchoolIdAndIsActive(
                 assessment.id!!, scoreInput.subjectId, selectedSchoolId, true

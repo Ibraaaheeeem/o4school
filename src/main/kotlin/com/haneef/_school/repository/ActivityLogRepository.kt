@@ -97,4 +97,19 @@ interface ActivityLogRepository : JpaRepository<ActivityLog, UUID> {
         @Param("schoolId") schoolId: UUID,
         @Param("since") since: LocalDateTime
     ): List<Array<Any>>
+    
+    // Find recent activities for a parent's children (for parent dashboard)
+    @Query("""
+        SELECT a FROM ActivityLog a 
+        WHERE a.schoolId = :schoolId 
+        AND a.targetUserId IN :targetUserIds 
+        AND a.activityType IN :activityTypes
+        ORDER BY a.createdAt DESC
+    """)
+    fun findRecentActivitiesByTargetUserIds(
+        @Param("schoolId") schoolId: UUID,
+        @Param("targetUserIds") targetUserIds: List<UUID>,
+        @Param("activityTypes") activityTypes: List<ActivityType>,
+        pageable: Pageable
+    ): List<ActivityLog>
 }

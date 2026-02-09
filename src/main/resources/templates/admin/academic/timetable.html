@@ -9,6 +9,9 @@
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
 </head>
 
 <body>
@@ -33,8 +36,12 @@
                 </button>
             </div>
 
+            <!-- Calendar Events List -->
+            <div class="calendar-container" id="calendar-container" th:fragment="calendar-events-list"></div>
+
             <!-- Timetable Grid -->
-            <div class="timetable-container">
+            <div class="timetable-container" id="timetable-container" th:fragment="timetable-grid"
+                th:attr="hx-swap-oob=${swapOob}">
                 <style>
                     .timetable-grid {
                         display: flex;
@@ -268,11 +275,18 @@
         // Delete timetable entry
         window.deleteTimetableEntry = function (entryId) {
             if (confirm('Are you sure you want to delete this timetable entry?')) {
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+                const headers = {};
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader] = csrfToken;
+                }
+
                 htmx.ajax('POST', `/admin/academic/timetable/delete/${entryId}`, {
                     target: 'body',
-                    swap: 'none'
-                }).then(() => {
-                    window.location.reload();
+                    swap: 'none',
+                    headers: headers
                 });
             }
         };
@@ -280,9 +294,11 @@
         // HTMX event handlers
         document.addEventListener('htmx:afterRequest', function (event) {
             if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
+                const modalId = 'timetableModal';
+                const modal = document.getElementById(modalId);
+                if (modal && modal.classList.contains('active')) {
+                    setTimeout(() => closeModal(modalId), 1000);
+                }
             }
         });
     </script>

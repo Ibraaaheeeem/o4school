@@ -44,4 +44,20 @@ interface SchoolTimetableRepository : JpaRepository<SchoolTimetable, UUID> {
         @Param("endTime") endTime: LocalTime,
         @Param("isActive") isActive: Boolean
     ): List<SchoolTimetable>
+    @Query("SELECT st FROM SchoolTimetable st WHERE st.schoolId = :schoolId AND st.dayOfWeek = :dayOfWeek AND st.isActive = :isActive AND st.startTime <= :time AND st.endTime > :time")
+    fun findCurrentPeriod(
+        @Param("schoolId") schoolId: UUID,
+        @Param("dayOfWeek") dayOfWeek: DayOfWeek,
+        @Param("time") time: LocalTime,
+        @Param("isActive") isActive: Boolean
+    ): java.util.Optional<SchoolTimetable>
+
+    @Query("SELECT st FROM SchoolTimetable st WHERE st.schoolId = :schoolId AND st.dayOfWeek = :dayOfWeek AND st.isActive = :isActive AND st.startTime > :time ORDER BY st.startTime ASC")
+    fun findNextPeriod(
+        @Param("schoolId") schoolId: UUID,
+        @Param("dayOfWeek") dayOfWeek: DayOfWeek,
+        @Param("time") time: LocalTime,
+        @Param("isActive") isActive: Boolean,
+        pageable: org.springframework.data.domain.Pageable
+    ): List<SchoolTimetable>
 }

@@ -7,10 +7,14 @@
     <title>My Classes - 4School Management System</title>
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
     <!-- CSRF Token -->
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <style>
         /* Page Specific Styles extending Dashboard System */
@@ -291,8 +295,10 @@
                                     Grade <span th:text="${classInfo.schoolClass.gradeLevelDisplayName}"></span>
                                 </span>
                                 <div th:if="${!classInfo.subjects.isEmpty()}" class="subject-tags">
-                                    <span th:each="subject : ${classInfo.subjects}" class="subject-tag"
-                                        th:text="${subject.subjectName}">Math</span>
+                                    <a th:each="subject : ${classInfo.subjects}" class="subject-tag"
+                                        th:href="@{/elearner/landing(classId=${classInfo.schoolClass.id}, gradeLevel=${classInfo.schoolClass.gradeLevel}, term=${currentTerm != null ? (currentTerm.termNumber ?: 1) : 1})}"
+                                        style="text-decoration: none; cursor: pointer;"
+                                        onclick="event.stopPropagation()" th:text="${subject.subjectName}">Math</a>
                                 </div>
                             </div>
                         </div>
@@ -361,7 +367,7 @@
             `;
 
             // Fetch Content
-            fetch('/staff/classes/' + classId + '/details')
+            return fetch('/staff/classes/' + classId + '/details')
                 .then(response => response.text())
                 .then(html => {
                     contentArea.innerHTML = html;
@@ -445,7 +451,9 @@
 
         // HTMX Modal Handling
         document.body.addEventListener('htmx:afterSwap', function (evt) {
-            if (evt.target.closest('#examinationModal')) {
+            // Only auto-open modal on GET requests (loading the modal content)
+            // On POST (submission), we let the response logic (closeModal event) handle visibility
+            if (evt.detail.requestConfig && evt.detail.requestConfig.verb === 'get' && evt.target.closest('#examinationModal')) {
                 const modal = document.getElementById('examinationModal');
                 if (typeof openModal === 'function') {
                     openModal('examinationModal');
@@ -455,6 +463,22 @@
                 }
             }
         });
+
+        // Listen for closeModal event from backend
+        document.body.addEventListener('closeModal', function (evt) {
+            const modalId = evt.detail.value || 'examinationModal';
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                modal.style.display = 'none';
+            }
+        });
+
+        // Listen for refreshAssessments event
+        document.body.addEventListener('refreshAssessments', function (evt) {
+            loadAssessments();
+        });
+
 
         // Generic function to load sub-views (like questions, attendance)
         function loadSubView(event, element) {

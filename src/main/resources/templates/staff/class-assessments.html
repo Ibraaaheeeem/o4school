@@ -3,86 +3,213 @@
 
 <body>
     <div th:fragment="assessments-content">
-        <div class="action-buttons" style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
-            <a th:href="@{/staff/reports/class(classId=${classId})}" class="action-btn"
-                style="background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
-                <i class="fas fa-chart-line"></i> Class Report
-            </a>
-        </div>
+        <!-- Filter and Actions Bar -->
+        <div
+            style="margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
 
-        <div th:if="${#lists.isEmpty(examinations)}" class="empty-state"
-            style="padding: 3rem; text-align: center; color: var(--text-muted); background: var(--bg-body); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
-            <i class="fas fa-clipboard-list" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-            <p th:if="${isClassTeacher}" style="margin: 0;">No assessments created yet.</p>
-            <p th:unless="${isClassTeacher}" style="margin: 0;">No assessments found for your subjects.</p>
-        </div>
+            <!-- Filters -->
+            <!-- Filters Removed -->
+            <div style="flex: 1;"></div>
 
-        <div class="dashboard-grid" th:unless="${#lists.isEmpty(examinations)}"
-            style="grid-template-columns: 1fr; gap: 1rem;">
-            <div class="dashboard-card" th:each="examination : ${examinations}"
-                style="flex-direction: row; align-items: center; padding: 1.5rem; gap: 1.5rem; flex-wrap: wrap;">
+            <div class="action-buttons" style="display: flex; gap: 1rem;">
+                <a th:href="@{/staff/reports/class(classId=${classId})}" class="action-btn"
+                    style="background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
+                    <i class="fas fa-chart-line"></i> Report
+                </a>
 
-                <!-- Icon/Status -->
-                <div class="card-icon"
-                    style="background: #fdf2f8; color: #db2777; width: 56px; height: 56px; font-size: 1.5rem; flex-shrink: 0;">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-
-                <!-- Main Info -->
-                <div style="flex: 1; min-width: 250px;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-main);"
-                            th:text="${examination.title}">Title</h4>
-                        <span class="badge" th:classappend="${examination.isPublished ? 'published' : 'draft'}"
-                            style="font-size: 0.7rem; padding: 0.25rem 0.75rem; border-radius: 999px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;"
-                            th:styleappend="${examination.isPublished ? 'background: #dcfce7; color: #166534;' : 'background: #fef9c3; color: #854d0e;'}"
-                            th:text="${examination.isPublished ? 'Published' : 'Draft'}">Status</span>
-                    </div>
-                    <div
-                        style="display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--text-muted); flex-wrap: wrap;">
-                        <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-book"
-                                style="color: var(--text-light);"></i> <span
-                                th:text="${examination.subject.subjectName}">Subject</span></span>
-                        <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-tag"
-                                style="color: var(--text-light);"></i> <span
-                                th:text="${examination.examType}">Type</span></span>
-                        <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-clock"
-                                style="color: var(--text-light);"></i> <span
-                                th:text="${examination.durationMinutes + ' mins'}">Duration</span></span>
-                        <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-star"
-                                style="color: var(--text-light);"></i> <span
-                                th:text="${examination.totalMarks + ' marks'}">Marks</span></span>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="assessment-actions" style="display: flex; gap: 0.75rem; align-items: center;">
-                    <a th:href="@{/staff/classes/{classId}/examinations/{examId}/questions(classId=${classId},examId=${examination.id})}"
-                        class="action-btn"
-                        style="background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;"
-                        onclick="loadExaminationQuestions(event, this)">
-                        <i class="fas fa-list-ol" style="color: var(--text-muted);"></i> Questions
-                    </a>
-
-                    <button type="button" class="action-btn"
-                        style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"
-                        th:hx-get="@{/staff/classes/{classId}/examinations/{examId}/submissions(classId=${classId},examId=${examination.id})}"
-                        hx-target="#examinationModal .modal-dialog" hx-swap="innerHTML" hx-trigger="click">
-                        <i class="fas fa-file-signature"></i> Submissions
-                        <span th:text="'(' + ${examination.submissionCount} + ')'"
-                            style="font-weight: 700; background: rgba(255,255,255,0.5); padding: 0 0.4rem; border-radius: 4px; font-size: 0.8rem;">(0)</span>
-                    </button>
-
-                    <a th:href="@{/admin/assessments/examinations/{id}/modal(id=${examination.id})}" class="action-btn"
-                        style="background: var(--primary-color); color: white; border: 1px solid var(--primary-color); padding: 0.6rem; border-radius: var(--radius-md); font-size: 0.9rem; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;"
-                        th:hx-get="@{/admin/assessments/examinations/{id}/modal(id=${examination.id})}"
-                        hx-target="#examinationModal .modal-dialog" hx-trigger="click" title="Edit Examination">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                </div>
-
+                <button class="action-btn"
+                    style="background: var(--primary-color); color: white; border: 1px solid var(--primary-color); padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; cursor: pointer;"
+                    th:hx-get="@{/staff/classes/{classId}/assessments/new(classId=${classId})}"
+                    hx-target="#examinationModal" hx-swap="innerHTML" hx-trigger="click">
+                    <i class="fas fa-plus"></i> Create
+                </button>
             </div>
         </div>
+
+        <div id="assessments-results">
+            <div th:if="${#lists.isEmpty(examinations)}" class="empty-state"
+                style="padding: 3rem; text-align: center; color: var(--text-muted); background: var(--bg-body); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+                <i class="fas fa-clipboard-list" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <p th:if="${isClassTeacher}" style="margin: 0;">No assessments found matching your filters.</p>
+                <p th:unless="${isClassTeacher}" style="margin: 0;">No assessments found for your subjects.</p>
+            </div>
+
+            <div class="dashboard-grid" id="examinationsGrid" style="grid-template-columns: 1fr; gap: 1rem;">
+                <!-- Loop in the main view, calling the fragment -->
+                <th:block th:each="examination : ${examinations}">
+                    <div
+                        th:replace="~{staff/class-assessments :: assessment-card(examination=${examination}, swapOob='false')}">
+                    </div>
+                </th:block>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div th:if="${totalPages > 1}"
+                style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <div style="font-size: 0.9rem; color: var(--text-muted);">
+                    Showing <span th:text="${currentPage * 24 + 1}">1</span> to
+                    <span
+                        th:text="${(currentPage + 1) * 24 > totalItems ? totalItems : (currentPage + 1) * 24}">24</span>
+                    of <span th:text="${totalItems}">0</span> results
+                </div>
+
+                <div class="pagination-buttons" style="display: flex; gap: 0.5rem;">
+                    <a th:if="${currentPage > 0}"
+                        th:href="@{/staff/classes/{classId}/assessments(classId=${classId}, page=${currentPage - 1}, size=24, examType=${paramExamType}, isOnline=${paramIsOnline}, search=${paramSearch}, startDate=${paramStartDate}, endDate=${paramEndDate})}"
+                        th:hx-get="@{/staff/classes/{classId}/assessments(classId=${classId}, page=${currentPage - 1}, size=24, examType=${paramExamType}, isOnline=${paramIsOnline}, search=${paramSearch}, startDate=${paramStartDate}, endDate=${paramEndDate})}"
+                        hx-target="#assessments-results" hx-select="#assessments-results" hx-swap="outerHTML"
+                        class="btn-outline"
+                        style="padding: 0.4rem 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; text-decoration: none;">
+                        Previous
+                    </a>
+
+                    <span style="padding: 0.4rem 0.8rem; font-size: 0.9rem; color: var(--text-muted);">
+                        Page <span th:text="${currentPage + 1}">1</span> of <span th:text="${totalPages}">1</span>
+                    </span>
+
+                    <a th:if="${currentPage < totalPages - 1}"
+                        th:href="@{/staff/classes/{classId}/assessments(classId=${classId}, page=${currentPage + 1}, size=24, examType=${paramExamType}, isOnline=${paramIsOnline}, search=${paramSearch}, startDate=${paramStartDate}, endDate=${paramEndDate})}"
+                        th:hx-get="@{/staff/classes/{classId}/assessments(classId=${classId}, page=${currentPage + 1}, size=24, examType=${paramExamType}, isOnline=${paramIsOnline}, search=${paramSearch}, startDate=${paramStartDate}, endDate=${paramEndDate})}"
+                        hx-target="#assessments-results" hx-select="#assessments-results" hx-swap="outerHTML"
+                        class="btn-outline"
+                        style="padding: 0.4rem 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; text-decoration: none;">
+                        Next
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- End of assessments-content -->
+
+    <!-- Reusable Card Content Fragment -->
+    <th:block th:fragment="assessment-card-content(examination)">
+        <!-- Icon/Status -->
+        <div class="card-icon"
+            style="background: #fdf2f8; color: #db2777; width: 56px; height: 56px; font-size: 1.5rem; flex-shrink: 0;">
+            <i class="fas fa-file-alt"></i>
+        </div>
+
+        <!-- Main Info -->
+        <div style="flex: 1; min-width: 250px;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                <h4 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-main);"
+                    th:text="${examination.title}">Title</h4>
+
+                <!-- Status Badge -->
+                <span class="badge" th:classappend="${examination.isPublished ? 'published' : 'draft'}"
+                    style="font-size: 0.7rem; padding: 0.25rem 0.75rem; border-radius: 999px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; cursor: pointer;"
+                    th:styleappend="${examination.isPublished ? 'background: #dcfce7; color: #166534;' : 'background: #fef9c3; color: #854d0e;'}"
+                    th:text="${examination.isPublished ? 'Published' : 'Draft'}"
+                    th:hx-post="@{/staff/classes/{classId}/examinations/{examId}/toggle-publish(classId=${classId}, examId=${examination.id})}"
+                    hx-swap="outerHTML" title="Click to toggle status">Status</span>
+
+                <!-- Mode Badge -->
+                <span class="badge"
+                    style="font-size: 0.7rem; padding: 0.25rem 0.75rem; border-radius: 999px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;"
+                    th:styleappend="${examination.isOnline ? 'background: #e0e7ff; color: #3730a3;' : 'background: #f1f5f9; color: #64748b;'}"
+                    th:text="${examination.isOnline ? 'Online (CBT)' : 'Paper / Offline'}">Mode</span>
+            </div>
+
+            <div style="display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--text-muted); flex-wrap: wrap;">
+                <span style="display: flex; align-items: center; gap: 0.5rem;" title="Subject"><i class="fas fa-book"
+                        style="color: var(--text-light);"></i> <span
+                        th:text="${examination.subject.subjectName}">Subject</span></span>
+
+                <span style="display: flex; align-items: center; gap: 0.5rem;" title="Exam Type"><i class="fas fa-tag"
+                        style="color: var(--text-light);"></i> <span
+                        th:text="${examination.examType}">Type</span></span>
+
+                <span style="display: flex; align-items: center; gap: 0.5rem;" title="Duration"><i
+                        class="fas fa-hourglass-half" style="color: var(--text-light);"></i> <span
+                        th:text="${examination.durationMinutes + ' mins'}">Duration</span></span>
+
+                <span style="display: flex; align-items: center; gap: 0.5rem;" title="Total Marks"><i
+                        class="fas fa-star" style="color: var(--text-light);"></i> <span
+                        th:text="${examination.totalMarks + ' marks'}">Marks</span></span>
+
+                <span style="display: flex; align-items: center; gap: 0.5rem;" title="Questions">
+                    <i class="fas fa-list-ol" style="color: var(--text-light);"></i>
+                    <span th:text="${examination.questionCount + ' questions'}">Questions</span>
+                </span>
+
+                <!-- Date & Time -->
+                <span th:if="${examination.startTime != null}" style="display: flex; align-items: center; gap: 0.5rem;"
+                    title="Schedule">
+                    <i class="fas fa-calendar-alt" style="color: var(--text-light);"></i>
+                    <span
+                        th:text="${#temporals.format(examination.startTime, 'dd MMM, HH:mm')} + (${examination.endTime != null} ? ' - ' + ${#temporals.format(examination.endTime, 'HH:mm')} : '')">Date</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="assessment-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+            <a th:href="@{/staff/classes/{classId}/examinations/{examId}/questions(classId=${classId},examId=${examination.id})}"
+                class="action-btn"
+                style="background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;"
+                onclick="loadExaminationQuestions(event, this)">
+                <i class="fas fa-list-ol" style="color: var(--text-muted);"></i> Questions
+            </a>
+
+            <button type="button" class="action-btn"
+                style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;"
+                th:hx-get="@{/staff/classes/{classId}/examinations/{examId}/submissions(classId=${classId},examId=${examination.id})}"
+                hx-target="#examinationModal" hx-trigger="click">
+                <i class="fas fa-file-signature"></i> Submissions
+                <span th:text="'(' + ${examination.submissionCount} + ')'"
+                    style="font-weight: 700; background: rgba(255,255,255,0.5); padding: 0 0.4rem; border-radius: 4px; font-size: 0.8rem;">(0)</span>
+            </button>
+
+            <a th:href="@{/staff/classes/{classId}/assessments/{examId}/edit(classId=${classId}, examId=${examination.id})}"
+                class="action-btn"
+                style="background: var(--primary-color); color: white; border: 1px solid var(--primary-color); padding: 0.6rem; border-radius: var(--radius-md); font-size: 0.9rem; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;"
+                th:hx-get="@{/staff/classes/{classId}/assessments/{examId}/edit(classId=${classId}, examId=${examination.id})}"
+                hx-target="#examinationModal" hx-trigger="click" title="Edit Examination">
+                <i class="fas fa-edit"></i>
+            </a>
+
+            <button type="button" class="action-btn-danger"
+                style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 0.6rem; border-radius: var(--radius-md); font-size: 0.9rem; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;"
+                th:hx-delete="@{/staff/classes/{classId}/examinations/{examId}(classId=${classId}, examId=${examination.id})}"
+                th:hx-target="'#examination-card-' + ${examination.id}"
+                hx-confirm="Are you sure you want to delete this examination? This cannot be undone."
+                hx-swap="outerHTML" title="Delete Examination">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </th:block>
+
+    <!-- Reusable Card Shell Fragment -->
+    <th:block th:fragment="assessment-card(examination, swapOob)">
+        <div class="dashboard-card" th:id="'examination-card-' + ${examination.id}"
+            th:attr="hx-swap-oob=${swapOob == 'true' ? 'true' : null}"
+            style="flex-direction: row; align-items: center; padding: 1.5rem; gap: 1.5rem; flex-wrap: wrap; display: flex; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+            <th:block th:replace="~{staff/class-assessments :: assessment-card-content(examination=${examination})}">
+            </th:block>
+        </div>
+    </th:block>
+    </div>
+
+
+    <!-- Examination Modal -->
+    <div id="examinationModal" class="modal">
+        <!-- Modal content will be loaded here via HTMX -->
+    </div>
+
+    <!-- HTMX Response Fragment for Save -->
+    <th:block th:fragment="examination-save-response">
+        <!-- New Examination Case: Handled by refreshAssessments trigger -->
+
+        <!-- Update Examination Case -->
+        <th:block th:unless="${isNew}">
+            <div class="dashboard-card" th:id="'examination-card-' + ${examination.id}" hx-swap-oob="true"
+                style="flex-direction: row; align-items: center; padding: 1.5rem; gap: 1.5rem; flex-wrap: wrap; display: flex; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+                <th:block
+                    th:replace="~{staff/class-assessments :: assessment-card-content(examination=${examination})}">
+                </th:block>
+            </div>
+        </th:block>
+    </th:block>
     </div>
 </body>
 

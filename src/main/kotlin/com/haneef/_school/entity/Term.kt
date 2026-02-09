@@ -31,6 +31,9 @@ class Term(
     @Column(name = "is_current_term")
     var isCurrentTerm: Boolean = false,
     
+    @Column(name = "term_number")
+    var termNumber: Int? = null,
+    
     var status: String = "planned", // planned, active, completed
     
     var description: String? = null
