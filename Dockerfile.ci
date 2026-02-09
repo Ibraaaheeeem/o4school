@@ -27,7 +27,7 @@ RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
 RUN chmod +x gradlew
-RUN ./gradlew dependencies -x test --no-daemon
+RUN ./gradlew dependencies -x test --no-daemon --no-configuration-cache
 
 # Build native image
 COPY . .
@@ -36,10 +36,12 @@ COPY . .
 RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
     sed -i '/org.gradle.jvmargs/d' gradle.properties && \
     sed -i '/kotlin.daemon.jvmargs/d' gradle.properties && \
-    sed -i '/org.gradle.parallel/d' gradle.properties
+    sed -i '/org.gradle.parallel/d' gradle.properties && \
+    sed -i '/org.gradle.configuration-cache/d' gradle.properties && \
+    sed -i '/org.gradle.caching/d' gradle.properties
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
-RUN ./gradlew nativeCompile -x test --no-daemon --info
+RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache
 
 FROM debian:12-slim
 WORKDIR /app
