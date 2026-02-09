@@ -1,3 +1,4 @@
+# Triggering fresh build with proven stable configuration
 FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 # Install build essentials and dependencies
