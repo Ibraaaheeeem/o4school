@@ -38,6 +38,10 @@ class Term(
     
     var description: String? = null
 ) : TenantAwareEntity() {
+
+    @get:Transient
+    val durationInDays: Long?
+        get() = if (endDate != null) java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) else null
     
     constructor() : this(
         academicSession = AcademicSession(),

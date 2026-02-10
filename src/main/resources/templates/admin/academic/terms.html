@@ -116,8 +116,7 @@
                                 <div class="detail-item">
                                     <span class="detail-label">Duration:</span>
                                     <span class="detail-value">
-                                        <span th:if="${term.endDate != null}"
-                                            th:text="${term.endDate.toEpochDay() - term.startDate.toEpochDay()}">95</span>
+                                        <span th:if="${term.endDate != null}" th:text="${term.durationInDays}">95</span>
                                         <span th:unless="${term.endDate != null}">-</span> days
                                     </span>
                                 </div>
