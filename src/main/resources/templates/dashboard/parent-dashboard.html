@@ -1114,7 +1114,7 @@
         }
 
         function payWithPaystack(amount, email) {
-            const key = /*[[${@environment.getProperty('paystack.public.key')}]]*/ '';
+            const key = /*[[${paystackPublicKey}]]*/ '';
             console.log("Initializing Paystack with:", { amount, email });
 
             // Calculate Paystack fee to pass to user
@@ -1160,7 +1160,7 @@
         }
 
         function payWithSquad(amount, email) {
-            const key = /*[[${@environment.getProperty('squad.public.key')}]]*/ '';
+            const key = /*[[${squadPublicKey}]]*/ '';
             console.log("Initializing Squad with:", { amount, email });
 
             // Convert amount to kobo (lowest currency unit)

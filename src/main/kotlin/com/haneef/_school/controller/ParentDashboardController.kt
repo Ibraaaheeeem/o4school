@@ -52,7 +52,9 @@ class ParentDashboardController(
     private val schoolCalendarRepository: com.haneef._school.repository.SchoolCalendarRepository,
     private val activityLogRepository: com.haneef._school.repository.ActivityLogRepository,
     private val userRepository: com.haneef._school.repository.UserRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    @org.springframework.beans.factory.annotation.Value("${paystack.public.key:}") private val paystackPublicKey: String,
+    @org.springframework.beans.factory.annotation.Value("${squad.public.key:}") private val squadPublicKey: String
 ) {
 
     @GetMapping("/dashboard")
@@ -183,6 +185,8 @@ class ParentDashboardController(
         model.addAttribute("totalSettled", financialData["totalSettled"])
         model.addAttribute("balance", financialData["balance"])
         model.addAttribute("feeBreakdown", financialData["feeBreakdown"])
+        model.addAttribute("paystackPublicKey", paystackPublicKey)
+        model.addAttribute("squadPublicKey", squadPublicKey)
         
         // Lock settings if any payment has been made
         val totalSettled = financialData["totalSettled"] as java.math.BigDecimal
