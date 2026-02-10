@@ -53,8 +53,8 @@ class ParentDashboardController(
     private val activityLogRepository: com.haneef._school.repository.ActivityLogRepository,
     private val userRepository: com.haneef._school.repository.UserRepository,
     private val passwordEncoder: PasswordEncoder,
-    @org.springframework.beans.factory.annotation.Value("${paystack.public.key:}") private val paystackPublicKey: String,
-    @org.springframework.beans.factory.annotation.Value("${squad.public.key:}") private val squadPublicKey: String
+    @org.springframework.beans.factory.annotation.Value("\${paystack.public.key:}") private val paystackPublicKey: String,
+    @org.springframework.beans.factory.annotation.Value("\${squad.public.key:}") private val squadPublicKey: String
 ) {
 
     @GetMapping("/dashboard")
