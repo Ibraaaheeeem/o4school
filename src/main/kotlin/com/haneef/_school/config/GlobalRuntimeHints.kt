@@ -154,5 +154,27 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
                     MemberCategory.DECLARED_FIELDS)
             } catch (e: Exception) {}
         }
+
+        // 11. Register types for Serialization (Native fix)
+        // This is necessary because Hibernate serializes certain query parameters/caching data
+        val serializableTypes = listOf(
+            UUID::class.java,
+            ArrayList::class.java,
+            LinkedList::class.java,
+            HashMap::class.java,
+            LinkedHashMap::class.java,
+            HashSet::class.java,
+            java.lang.Long::class.java,
+            java.lang.Integer::class.java,
+            java.lang.Double::class.java,
+            java.lang.Boolean::class.java,
+            java.lang.String::class.java,
+            java.time.LocalDateTime::class.java,
+            java.time.LocalDate::class.java
+        )
+        
+        serializableTypes.forEach {
+            hints.serialization().registerType(it)
+        }
     }
 }

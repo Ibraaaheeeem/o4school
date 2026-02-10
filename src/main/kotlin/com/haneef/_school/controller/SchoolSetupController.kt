@@ -57,7 +57,9 @@ class SchoolSetupController(
         model.addAttribute("newTrack", EducationTrack())
         model.addAttribute("newDepartment", Department())
         model.addAttribute("newClass", SchoolClass())
-        model.addAttribute("gradeLevels", SchoolClass.GradeLevel.values().toList())
+        model.addAttribute("gradeLevels", SchoolClass.GradeLevel.values().map { 
+            mapOf("value" to it.value, "displayName" to it.displayName)
+        })
         
         return "admin/school-setup/academic-structure"
     }
