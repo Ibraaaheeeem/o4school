@@ -584,8 +584,6 @@
                     <!-- Session Custom Dropdown -->
                     <form th:if="${headerSessions != null && !headerSessions.empty}"
                         th:action="@{/admin/header/set-session}" method="post" id="sessionForm" style="margin: 0;">
-                        <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}"
-                            th:value="${_csrf.token}" />
                         <input type="hidden" name="sessionId" id="sessionIdInput" />
 
                         <div class="custom-dropdown" id="sessionDropdown">
@@ -611,8 +609,6 @@
                     <!-- Term Custom Dropdown -->
                     <form th:if="${headerContextSession != null}" th:action="@{/admin/header/set-term}" method="post"
                         id="termForm" style="margin: 0;">
-                        <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}"
-                            th:value="${_csrf.token}" />
                         <input type="hidden" name="termId" id="termIdInput" />
 
                         <div class="custom-dropdown" id="termDropdown">
@@ -709,7 +705,6 @@
                 </div>
 
                 <form th:action="@{/auth/logout}" method="post">
-                    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <button type="submit" class="logout-button" title="Sign Out">
                         <i class="fas fa-arrow-right-from-bracket"></i>
                     </button>

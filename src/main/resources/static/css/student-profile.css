@@ -144,7 +144,7 @@
 
 .milestone-node {
     position: absolute;
-    left: -8px;
+    left: -31px;
     top: 6px;
     width: 14px;
     height: 14px;
@@ -155,6 +155,7 @@
 
 .topic-header {
     margin-bottom: 0.75rem;
+    padding-left: 8px;
 }
 
 .topic-title {

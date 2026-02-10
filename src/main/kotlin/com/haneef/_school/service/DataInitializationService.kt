@@ -652,6 +652,7 @@ class DataInitializationService(
                 ).apply {
                     isCurrentTerm = true
                     status = "active"
+                    termNumber = 1
                     schoolId = demoSchool.id!!
                     isActive = true
                 }
@@ -664,6 +665,7 @@ class DataInitializationService(
                 ).apply {
                     isCurrentTerm = false
                     status = "planned"
+                    termNumber = 2
                     schoolId = demoSchool.id!!
                     isActive = true
                 }
@@ -676,6 +678,7 @@ class DataInitializationService(
                 ).apply {
                     isCurrentTerm = false
                     status = "planned"
+                    termNumber = 3
                     schoolId = demoSchool.id!!
                     isActive = true
                 }
@@ -693,6 +696,7 @@ class DataInitializationService(
                 ).apply {
                     isCurrentTerm = false
                     status = "planned"
+                    termNumber = 1
                     schoolId = demoSchool.id!!
                     isActive = true
                 }
@@ -705,6 +709,7 @@ class DataInitializationService(
                 ).apply {
                     isCurrentTerm = false
                     status = "planned"
+                    termNumber = 2
                     schoolId = demoSchool.id!!
                     isActive = true
                 }
@@ -717,6 +722,7 @@ class DataInitializationService(
                 ).apply {
                     isCurrentTerm = false
                     status = "planned"
+                    termNumber = 3
                     schoolId = demoSchool.id!!
                     isActive = true
                 }

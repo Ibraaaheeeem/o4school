@@ -34,7 +34,7 @@ class SecurityConfig(
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { csrf ->
-                csrf.ignoringRequestMatchers("/paystack/webhooks", "/squad/webhooks", "/h2-console/**")
+                csrf.ignoringRequestMatchers("/paystack/webhooks", "/squad/webhooks", "/h2-console/**", "/auth/login", "/auth/logout")
             }
             .authorizeHttpRequests { requests ->
                 requests

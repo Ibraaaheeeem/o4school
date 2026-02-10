@@ -42,9 +42,6 @@
             </div>
 
             <form th:action="@{/auth/login}" method="post" th:object="${loginRequest}" class="auth-form" id="loginForm">
-                <!-- CSRF Token -->
-                <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
-
                 <!-- Hidden field for Spring Security -->
                 <input type="hidden" name="combinedUsername" id="combinedUsername">
 

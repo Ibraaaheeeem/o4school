@@ -25,15 +25,14 @@
                         th:text="${#dates.format(#dates.createNow(), 'EEEE, MMMM dd, yyyy')}">Date</span></p>
             </div>
             <div class="welcome-stats">
-                <th:block th:if="${trackGroups != null}" th:each="trackEntry : ${trackGroups}">
-                    <a th:each="schoolClass : ${trackEntry.value.get('classes')}"
+                <th:block th:if="${trackGroups != null}" th:each="group : ${trackGroups.values()}">
+                    <a th:each="schoolClass : ${group.get('classes')}"
                         th:href="@{/elearner/landing(classId=${schoolClass.id}, gradeLevel=${schoolClass.gradeLevel}, term=${currentTermNumber}, week=${currentWeekNumber})}"
                         class="stat-badge class-link-badge"
                         style="border-color: var(--primary-color); background: rgba(79, 70, 229, 0.05); min-width: 120px; text-decoration: none; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.2s ease;">
                         <span class="value" style="font-size: 1.1rem; color: var(--primary-color); margin-bottom: 2px;"
                             th:text="${schoolClass.className}">JSS 1</span>
-                        <span class="label" th:text="${trackEntry.value.get('name')}"
-                            style="margin-bottom: 8px;">Islamic</span>
+                        <span class="label" th:text="${group.get('name')}" style="margin-bottom: 8px;">Islamic</span>
                         <span class="go-to-class"
                             style="font-size: 0.75rem; font-weight: 600; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; margin-top: auto; border-top: 1px solid rgba(79, 70, 229, 0.1); padding-top: 6px; width: 100%; text-align: center;">
                             Go To Class <i class="fas fa-chevron-right"
@@ -59,9 +58,9 @@
             </div>
 
             <div class="tracks-container" style="display: flex; flex-direction: column; gap: 2.5rem;">
-                <div th:each="trackEntry : ${trackGroups}"
-                    th:if="${not #lists.isEmpty(trackEntry.value.get('ongoing')) or not #lists.isEmpty(trackEntry.value.get('upcoming')) or not #lists.isEmpty(trackEntry.value.get('past'))}"
-                    th:with="group=${trackEntry.value}" class="track-section">
+                <div th:each="group : ${trackGroups.values()}"
+                    th:if="${not #lists.isEmpty(group.get('ongoing')) or not #lists.isEmpty(group.get('upcoming')) or not #lists.isEmpty(group.get('past'))}"
+                    class="track-section">
 
                     <h3 th:text="${group.get('name')}"
                         style="font-size: 1.1rem; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem; width: fit-content;">
