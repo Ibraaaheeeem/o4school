@@ -45,10 +45,10 @@ class AcademicDataService(
                 schoolId, true, fromTerm.academicSession.id!!, fromTermId
             )
             classTeachers.forEach { ct ->
-                val exists = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-                    ct.staff.id!!, ct.schoolClass.id!!, toSession.id!!, toTermId, schoolId, true
+                val existing = classTeacherRepository.findByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolId(
+                    ct.staff.id!!, ct.schoolClass.id!!, toSession.id!!, toTermId, schoolId
                 )
-                if (!exists) {
+                if (existing == null) {
                     val newCt = ClassTeacher(
                         staff = ct.staff,
                         schoolClass = ct.schoolClass,
@@ -59,6 +59,9 @@ class AcademicDataService(
                         this.isActive = true
                     }
                     classTeacherRepository.save(newCt)
+                } else if (!existing.isActive) {
+                    existing.isActive = true
+                    classTeacherRepository.save(existing)
                 }
             }
 
@@ -67,10 +70,10 @@ class AcademicDataService(
                 schoolId, true, fromTerm.academicSession.id!!, fromTermId
             )
             subjectTeachers.forEach { st ->
-                val exists = subjectTeacherRepository.existsByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-                    st.staff.id!!, st.subject.id!!, st.schoolClass.id!!, toSession.id!!, toTermId, schoolId, true
+                val existing = subjectTeacherRepository.findByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolId(
+                    st.staff.id!!, st.subject.id!!, st.schoolClass.id!!, toSession.id!!, toTermId, schoolId
                 )
-                if (!exists) {
+                if (existing == null) {
                     val newSt = SubjectTeacher(
                         staff = st.staff,
                         subject = st.subject,
@@ -82,6 +85,9 @@ class AcademicDataService(
                         this.isActive = true
                     }
                     subjectTeacherRepository.save(newSt)
+                } else if (!existing.isActive) {
+                    existing.isActive = true
+                    subjectTeacherRepository.save(existing)
                 }
             }
         }
@@ -96,7 +102,7 @@ class AcademicDataService(
             val allClassesInSchool = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
 
             studentClasses.forEach { sc ->
-                val action = studentPromotions[sc.student.id!!] ?: "RETAIN"
+                val action = studentPromotions[sc.id!!] ?: "RETAIN"
                 val currentClass = sc.schoolClass
                 
                 val targetClass = when (action) {
@@ -104,35 +110,60 @@ class AcademicDataService(
                         val targetGradeLevel = (currentClass.gradeLevel ?: 0) + 1
                         allClassesInSchool.find { 
                             it.track?.id == currentClass.track?.id && it.gradeLevel == targetGradeLevel 
-                        } ?: allClassesInSchool.find { it.gradeLevel == targetGradeLevel } ?: currentClass
+                        } ?: currentClass
                     }
                     "DOWNGRADE" -> {
                         val targetGradeLevel = (currentClass.gradeLevel ?: 0) - 1
                         allClassesInSchool.find { 
                             it.track?.id == currentClass.track?.id && it.gradeLevel == targetGradeLevel 
-                        } ?: allClassesInSchool.find { it.gradeLevel == targetGradeLevel } ?: currentClass
+                        } ?: currentClass
                     }
                     else -> currentClass // RETAIN
                 }
 
                 // Check if student already enrolled in this term
-                val existing = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
-                    sc.student.id!!, toSession.id!!, toTermId, true
+                val existingList = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermId(
+                    sc.student.id!!, toSession.id!!, toTermId
                 )
                 
-                if (existing.isEmpty()) {
-                    val newSc = StudentClass(
-                        student = sc.student,
-                        schoolClass = targetClass,
-                        academicSession = toSession,
-                        term = toTerm
-                    ).apply {
-                        this.schoolId = schoolId
-                        this.isActive = true
-                        this.enrollmentDate = java.time.LocalDate.now()
+                // We find if there is an enrollment for the TARGET class specifically
+                val sameClassExisting = existingList.find { it.schoolClass.id == targetClass.id }
+
+                if (sameClassExisting == null) {
+                    // Check if they are enrolled in an ACTIVE class within the SAME TRACK
+                    val activeInTrack = existingList.find { 
+                        it.isActive && it.schoolClass.track?.id == targetClass.track?.id 
                     }
-                    studentClassRepository.save(newSc)
+                    
+                    if (activeInTrack != null) {
+                        // OVERSIGHT FIX: If they are in a DIFFERENT class within the same track, MOVE them
+                        activeInTrack.schoolClass = targetClass
+                        studentClassRepository.save(activeInTrack)
+                    } else {
+                        // Check for inactive record in the TARGET class to reactivate
+                        val inactiveInSameClass = existingList.find { it.schoolClass.id == targetClass.id && !it.isActive }
+                        if (inactiveInSameClass != null) {
+                            inactiveInSameClass.isActive = true
+                            studentClassRepository.save(inactiveInSameClass)
+                        } else {
+                            val newSc = StudentClass(
+                                student = sc.student,
+                                schoolClass = targetClass,
+                                academicSession = toSession,
+                                term = toTerm
+                            ).apply {
+                                this.schoolId = schoolId
+                                this.isActive = true
+                                this.enrollmentDate = java.time.LocalDate.now()
+                            }
+                            studentClassRepository.save(newSc)
+                        }
+                    }
+                } else if (!sameClassExisting.isActive) {
+                    sameClassExisting.isActive = true
+                    studentClassRepository.save(sameClassExisting)
                 }
+                // If it exists and is already active, we assume it's correct because sameClassExisting found it.
             }
         }
 
@@ -143,8 +174,8 @@ class AcademicDataService(
             ).filter { it.termId?.id == fromTermId }
             
             classFeeItems.forEach { cfi ->
-                 val existing = classFeeItemRepository.findBySchoolClassIdAndFeeItemIdAndAcademicSessionIdAndTermIdAndIsActive(
-                    cfi.schoolClass.id!!, cfi.feeItem.id!!, toSession.id!!, toTerm, true
+                 val existing = classFeeItemRepository.findBySchoolClassIdAndFeeItemIdAndAcademicSessionIdAndTermId(
+                    cfi.schoolClass.id!!, cfi.feeItem.id!!, toSession.id!!, toTerm
                 )
                 if (existing.isEmpty) {
                     val newCfi = ClassFeeItem(
@@ -162,6 +193,15 @@ class AcademicDataService(
                         this.isActive = true
                     }
                     classFeeItemRepository.save(newCfi)
+                } else {
+                    val existingItem = existing.get()
+                    // OVERSIGHT FIX: Sync values from source even if already active
+                    existingItem.isActive = true
+                    existingItem.customAmount = cfi.customAmount
+                    existingItem.isApplicable = cfi.isApplicable
+                    existingItem.isLocked = cfi.isLocked
+                    existingItem.notes = cfi.notes
+                    classFeeItemRepository.save(existingItem)
                 }
             }
         }
