@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Promotion - 4School</title>
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .promotion-selection-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+        }
+
+        .promotion-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .selection-group {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .selection-group h5 {
+            margin-bottom: 16px;
+            color: #1e293b;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .student-table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin-top: 24px;
+        }
+
+        .action-select {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <div th:replace="~{fragments/academic-sidebar :: academic-sidebar}"></div>
+
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Student Promotion</h1>
+                    <p class="text-muted">Move students to their next grade level or class.</p>
+                </div>
+            </div>
+
+            <div class="promotion-selection-card">
+                <form id="promotionFilterForm" hx-get="/admin/academic/promotion/students"
+                    hx-target="#studentListContainer" hx-indicator="#loadingIndicator">
+
+                    <div class="promotion-grid">
+                        <!-- Source Selection -->
+                        <div class="selection-group">
+                            <h5><i class="fas fa-sign-out-alt text-primary"></i> Current Placement (Source)</h5>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Academic Session</label>
+                                    <select name="sourceSessionId" class="form-select" required
+                                        hx-get="/admin/academic/promotion/terms-for-session" hx-target="#sourceTermId"
+                                        hx-trigger="change">
+                                        <option value="">Select Session</option>
+                                        <option th:each="s : ${allSessions}" th:value="${s.id}"
+                                            th:text="${s.sessionName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Term</label>
+                                    <select id="sourceTermId" name="sourceTermId" class="form-select" required>
+                                        <option value="">Select Session First</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Current Class</label>
+                                    <select name="sourceClassId" class="form-select" required>
+                                        <option value="">Select Class</option>
+                                        <option th:each="c : ${allClasses}" th:value="${c.id}" th:text="${c.className}">
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target Selection -->
+                        <div class="selection-group">
+                            <h5><i class="fas fa-sign-in-alt text-success"></i> Next Placement (Target)</h5>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Academic Session</label>
+                                    <select name="targetSessionId" class="form-select" required
+                                        hx-get="/admin/academic/promotion/terms-for-session" hx-target="#targetTermId"
+                                        hx-trigger="change">
+                                        <option value="">Select Session</option>
+                                        <option th:each="s : ${allSessions}" th:value="${s.id}"
+                                            th:text="${s.sessionName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Term</label>
+                                    <select id="targetTermId" name="targetTermId" class="form-select" required>
+                                        <option value="">Select Session First</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100 py-2">
+                                        <i class="fas fa-search me-2"></i> Fetch Students
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="loadingIndicator" class="htmx-indicator text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Fetching student enrollments...</p>
+            </div>
+
+            <div id="studentListContainer">
+                <!-- Students will be loaded here via HTMX -->
+                <div class="text-center py-5 text-muted bg-white rounded-3 border">
+                    <i class="fas fa-user-graduate fa-3x mb-3 opacity-25"></i>
+                    <p>Select source and target placement to begin promotion.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            event.detail.headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="_csrf"]').content;
+        });
+
+        // Toggle all checkboxes
+        function toggleAllStudents(source) {
+            const checkboxes = document.querySelectorAll('input[name="studentIds"]');
+            for (let i = 0; i < checkboxes.size; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+    </script>
+</body>
+
+</html>

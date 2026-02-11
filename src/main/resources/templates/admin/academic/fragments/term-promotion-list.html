@@ -1,0 +1,68 @@
+<div th:fragment="term-promotion-list">
+    <div th:if="${classesWithStudents == null || classesWithStudents.isEmpty()}" class="alert alert-info">
+        No students found in the selected source term.
+    </div>
+
+    <div th:each="entry : ${classesWithStudents}" class="class-promotion-group mb-4 p-3 border rounded">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0" th:text="${entry.key.className}">Class Name</h5>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary"
+                    th:onclick="'setAllPromotion(\'' + ${entry.key.id} + '\', \'UPGRADE\')'">Upgrade All</button>
+                <button type="button" class="btn btn-outline-secondary"
+                    th:onclick="'setAllPromotion(\'' + ${entry.key.id} + '\', \'RETAIN\')'">Retain All</button>
+                <button type="button" class="btn btn-outline-warning"
+                    th:onclick="'setAllPromotion(\'' + ${entry.key.id} + '\', \'DOWNGRADE\')'">Downgrade All</button>
+            </div>
+        </div>
+
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th class="text-center" style="width: 100px;">Upgrade</th>
+                    <th class="text-center" style="width: 100px;">Retain</th>
+                    <th class="text-center" style="width: 100px;">Downgrade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="student : ${entry.value}">
+                    <td th:text="${student.user.fullName}">Student Name</td>
+                    <td class="text-center">
+                        <input type="radio" th:name="'promotion_' + ${student.id}" value="UPGRADE"
+                            th:class="'promotion-radio class-' + ${entry.key.id}" checked
+                            th:onchange="'unselectAllButtons(\'' + ${entry.key.id} + '\')'">
+                    </td>
+                    <td class="text-center">
+                        <input type="radio" th:name="'promotion_' + ${student.id}" value="RETAIN"
+                            th:class="'promotion-radio class-' + ${entry.key.id}"
+                            th:onchange="'unselectAllButtons(\'' + ${entry.key.id} + '\')'">
+                    </td>
+                    <td class="text-center">
+                        <input type="radio" th:name="'promotion_' + ${student.id}" value="DOWNGRADE"
+                            th:class="'promotion-radio class-' + ${entry.key.id}"
+                            th:onchange="'unselectAllButtons(\'' + ${entry.key.id} + '\')'">
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script th:inline="javascript">
+        function setAllPromotion(classId, value) {
+            const radios = document.querySelectorAll('.class-' + classId + '[value="' + value + '"]');
+            radios.forEach(r => r.checked = true);
+
+            // Highlight the active button in the group
+            const group = event.target.closest('.btn-group');
+            group.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function unselectAllButtons(classId) {
+            const container = event.target.closest('.class-promotion-group');
+            const btns = container.querySelectorAll('.btn-group .btn');
+            btns.forEach(btn => btn.classList.remove('active'));
+        }
+    </script>
+</div>

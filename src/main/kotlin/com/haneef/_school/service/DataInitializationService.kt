@@ -653,6 +653,7 @@ class DataInitializationService(
                     isCurrentTerm = true
                     status = "active"
                     termNumber = 1
+                    termOrder = 1
                     schoolId = demoSchool.id!!
                     isActive = true
                 }
@@ -697,6 +698,7 @@ class DataInitializationService(
                     isCurrentTerm = false
                     status = "planned"
                     termNumber = 1
+                    termOrder = 1
                     schoolId = demoSchool.id!!
                     isActive = true
                 }

@@ -34,6 +34,9 @@ class Term(
     @Column(name = "term_number")
     var termNumber: Int? = null,
     
+    @Column(name = "term_order")
+    var termOrder: Int? = null,
+    
     var status: String = "planned", // planned, active, completed
     
     var description: String? = null
