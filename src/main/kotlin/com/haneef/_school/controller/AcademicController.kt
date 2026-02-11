@@ -34,6 +34,17 @@ class AcademicController(
 
     private val logger = org.slf4j.LoggerFactory.getLogger(AcademicController::class.java)
 
+    // DTOs for stable Thymeleaf rendering
+    data class ClassPromotionData(
+        val schoolClass: SchoolClass,
+        val studentClasses: List<StudentClass>
+    )
+
+    data class TrackPromotionData(
+        val track: EducationTrack?,
+        val classes: List<ClassPromotionData>
+    )
+
     @GetMapping
     fun academicHome(model: Model, authentication: Authentication, session: HttpSession): String {
         val customUser = authentication.principal as CustomUserDetails
@@ -705,13 +716,18 @@ class AcademicController(
         try {
             val studentClasses = studentClassRepository.findByTermIdAndIsActive(importFromTermId, true)
             
-            // Group by Track -> Class
+            // Group by Track -> Class using DTOs for stability
             val tracksWithClasses = studentClasses.groupBy { it.schoolClass.track }
-                .mapValues { trackEntry ->
-                    trackEntry.value.groupBy { it.schoolClass }
-                        .toSortedMap(compareBy { it.className })
+                .map { (track, trackStudents) ->
+                    val classDataList = trackStudents.groupBy { it.schoolClass }
+                        .map { (schoolClass, classStudents) ->
+                            ClassPromotionData(schoolClass, classStudents)
+                        }
+                        .sortedBy { it.schoolClass.className }
+                    
+                    TrackPromotionData(track, classDataList)
                 }
-                .toSortedMap(compareBy { it?.name ?: "General" })
+                .sortedBy { it.track?.name ?: "General" }
 
             model.addAttribute("tracksWithClasses", tracksWithClasses)
             return "admin/academic/fragments/term-promotion-list :: term-promotion-list"
