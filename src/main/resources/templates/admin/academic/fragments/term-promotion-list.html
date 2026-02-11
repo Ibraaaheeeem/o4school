@@ -1,5 +1,5 @@
 <div th:fragment="term-promotion-list">
-    <div th:if="${tracksWithClasses == null || tracksWithClasses.isEmpty()}" class="alert alert-info">
+    <div th:if="${tracksWithClasses == null || #maps.isEmpty(tracksWithClasses)}" class="alert alert-info">
         No students found in the selected source term.
     </div>
 
