@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Service
+
 class WalletAsyncService(
     private val paystackParentWalletRepository: PaystackParentWalletRepository,
     private val paystackService: PaystackService,

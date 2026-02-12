@@ -18,6 +18,7 @@ class WhatsAppMessage(
     var content: String,
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     var direction: MessageDirection, // OUTGOING or INCOMING
 
     @Column(nullable = false)
