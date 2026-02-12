@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration
 @ConfigurationProperties(prefix = "whatsapp.meta")
 class WhatsAppProperties {
     var accessToken: String? = null
+    
     var phoneNumberId: String? = null
     var businessAccountId: String? = null
     var apiVersion: String = "v17.0"

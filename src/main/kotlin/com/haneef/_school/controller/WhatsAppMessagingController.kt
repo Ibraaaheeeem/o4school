@@ -30,7 +30,6 @@ class WhatsAppMessagingController(
         val latestConversations = messageRepository.findLatestMessagesByRecipient(selectedSchoolId)
         val schedules = feeReminderScheduleRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         
-        model.addAttribute("recentMessages", recentMessages)
         model.addAttribute("conversations", latestConversations)
         model.addAttribute("schedules", schedules)
         model.addAttribute("school", school)

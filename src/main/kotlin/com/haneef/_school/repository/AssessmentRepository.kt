@@ -9,18 +9,18 @@ import java.util.Optional
 
 @Repository
 interface AssessmentRepository : JpaRepository<Assessment, UUID> {
-    fun findByAdmissionNumberAndSessionAndTermAndSchoolIdAndIsActive(
+    fun findByAdmissionNumberAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
         admissionNumber: String,
-        session: String,
-        term: String,
+        academicSessionId: UUID,
+        termId: UUID,
         schoolId: UUID,
         isActive: Boolean
     ): Optional<Assessment>
 
-    fun findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
+    fun findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
         studentId: UUID,
-        session: String,
-        term: String,
+        academicSessionId: UUID,
+        termId: UUID,
         schoolId: UUID,
         isActive: Boolean
     ): Optional<Assessment>

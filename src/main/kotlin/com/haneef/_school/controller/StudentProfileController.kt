@@ -92,7 +92,7 @@ class StudentProfileController(
 
         // Fetch Assessments (Gradings/History)
         val assessments = assessmentRepository.findByStudentIdAndSchoolIdAndIsActive(id, selectedSchoolId, true)
-            .sortedByDescending { it.session + it.term } // Sort by recent
+            .sortedWith(compareByDescending<Assessment> { it.academicSession.sessionYear }.thenByDescending { it.term.termName }) // Sort by recent
         
         // Eagerly fetch parent relationships to avoid LazyInitializationException in view
         // A simple way is to access the collection within the transaction or fetch join
@@ -315,8 +315,8 @@ class StudentProfileController(
             // Note: effectiveSessionName/effectiveTermName might be needed if they differ from what was resolved by ID
             // accessing sessionName/termName variables which are effectively the names.
             
-            val assessment = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-                studentId, sessionName, termName, selectedSchoolId, true
+            val assessment = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                studentId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
             ).orElse(null)
             
             assessmentDetails = assessment

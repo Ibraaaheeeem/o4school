@@ -197,8 +197,8 @@
                         <div th:each="assessment : ${assessments}" class="history-item">
                             <div class="history-header">
                                 <div class="history-title">
-                                    <h4 th:text="${assessment.session}">2023/2024</h4>
-                                    <span th:text="${assessment.term}">First Term</span>
+                                    <h4 th:text="${assessment.academicSession.sessionYear}">2023/2024</h4>
+                                    <span th:text="${assessment.term.termName}">First Term</span>
                                 </div>
                                 <div class="history-stats">
                                     <div class="history-stat-pill pill-blue">
@@ -218,7 +218,7 @@
                                     th:text="${assessment.classTeacherComment ?: 'No remarks available.'}">Remark</span>
                             </div>
 
-                            <a th:href="@{/student/report-card/{id}(id=${student.id}, session=${assessment.session}, term=${assessment.term})}"
+                            <a th:href="@{/student/report-card/{id}(id=${student.id}, session=${assessment.academicSession.sessionYear}, term=${assessment.term.termName})}"
                                 class="btn-report" target="_blank">
                                 View Full Report Card
                             </a>

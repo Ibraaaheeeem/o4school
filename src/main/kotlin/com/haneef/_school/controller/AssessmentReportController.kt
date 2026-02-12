@@ -574,8 +574,8 @@ class AssessmentReportController(
         val classSubjects = classSubjectRepository.findBySchoolClassIdAndIsActive(classId, true)
         
         // Get existing assessment if any
-        val assessmentOpt = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            studentId, sessionName, termName, selectedSchoolId, true
+        val assessmentOpt = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+            studentId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
         )
 
         val assessment = assessmentOpt.orElse(null)
@@ -803,14 +803,17 @@ class AssessmentReportController(
              isClassTeacher = isClassTeacherForRequested || isClassTeacherInHeader
         }
 
-        val assessment = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-            request.studentId, sessionName, termName, selectedSchoolId, true
+        val sessionEntity = academicSessionRepository.findById(effectiveSessionId).orElseThrow { RuntimeException("Session not found") }
+        val termEntity = termRepository.findById(effectiveTermId).orElseThrow { RuntimeException("Term not found") }
+
+        val assessment = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+            request.studentId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
         ).orElseGet {
             Assessment(
                 admissionNumber = student.admissionNumber ?: "",
                 student = student,
-                session = sessionName,
-                term = termName
+                academicSession = sessionEntity,
+                term = termEntity
             ).apply {
                 this.schoolId = selectedSchoolId
             }
@@ -1005,14 +1008,14 @@ class AssessmentReportController(
 
         var importedCount = 0
         students.forEach { student ->
-            val assessment = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
-                student.id!!, request.session, request.term, selectedSchoolId, true
+            val assessment = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                student.id!!, effectiveSessionId, effectiveTermId, selectedSchoolId, true
             ).orElseGet {
                 Assessment(
                     admissionNumber = student.admissionNumber ?: "",
                     student = student,
-                    session = request.session,
-                    term = request.term
+                    academicSession = sessionEntity,
+                    term = termEntity
                 ).apply {
                     this.schoolId = selectedSchoolId
                 }

@@ -6,10 +6,10 @@ import jakarta.persistence.*
 @Table(
     name = "assessments",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["school_id", "admission_number", "session", "term"], name = "uq_assessment_school_student_term")
+        UniqueConstraint(columnNames = ["school_id", "admission_number", "academic_session_id", "term_id"], name = "uq_assessment_school_student_term")
     ],
     indexes = [
-        Index(columnList = "school_id,session,term", name = "idx_assessment_school_session"),
+        Index(columnList = "school_id,academic_session_id,term_id", name = "idx_assessment_school_session"),
         Index(columnList = "admission_number", name = "idx_assessment_admission")
     ]
 )
@@ -21,11 +21,13 @@ class Assessment(
     @JoinColumn(name = "student_id")
     var student: Student? = null,
     
-    @Column(nullable = false)
-    var session: String, // e.g., "2024/2025"
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "academic_session_id", nullable = false)
+    var academicSession: AcademicSession,
     
-    @Column(nullable = false)
-    var term: String, // e.g., "First Term", "Second Term"
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "term_id", nullable = false)
+    var term: Term,
     
     var attendance: Int = 0,
     
@@ -57,8 +59,8 @@ class Assessment(
     
     constructor() : this(
         admissionNumber = "",
-        session = "",
-        term = ""
+        academicSession = AcademicSession(),
+        term = Term()
     )
     
     // Relationships
