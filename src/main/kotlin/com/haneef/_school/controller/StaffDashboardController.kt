@@ -1414,6 +1414,8 @@ class StaffDashboardController(
         // Check authorization in both requested term AND current active term (header context)
         val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
         
+        val isAdmin = customUser.authorities.any { it.authority in listOf("ROLE_SYSTEM_ADMIN", "ROLE_SCHOOL_ADMIN", "ROLE_ADMIN", "ROLE_PRINCIPAL") }
+
         val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
             staff.id!!, classId, sessionId, termId, selectedSchoolId, true
         )
@@ -1451,8 +1453,8 @@ class StaffDashboardController(
             a
         }
         
-        // Only class teacher can update behavioral traits and comments
-        if (isClassTeacher) {
+        // Only admin or class teacher can update behavioral traits and comments
+        if (isAdmin || isClassTeacher) {
             assessment.apply {
                 attendance = request.attendance
                 fluency = request.fluency
@@ -1474,8 +1476,8 @@ class StaffDashboardController(
 
         request.scores.forEach { scoreInput ->
             // Verify staff can grade this subject
-            if (!isClassTeacher && !subjectsTaught.contains(scoreInput.subjectId)) {
-                logger.warn("Skipping score for subject {} - User not authorized (isClassTeacher={}, subjectsTaught={})", scoreInput.subjectId, isClassTeacher, subjectsTaught)
+            if (!isAdmin && !isClassTeacher && !subjectsTaught.contains(scoreInput.subjectId)) {
+                logger.warn("Skipping score for subject {} - User not authorized (isAdmin={}, isClassTeacher={}, subjectsTaught={})", scoreInput.subjectId, isAdmin, isClassTeacher, subjectsTaught)
                 return@forEach
             }
 
@@ -1805,6 +1807,8 @@ class StaffDashboardController(
         // Check authorization in both requested term AND current active term (header context)
         val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
         
+        val isAdmin = customUser.authorities.any { it.authority in listOf("ROLE_SYSTEM_ADMIN", "ROLE_SCHOOL_ADMIN", "ROLE_ADMIN", "ROLE_PRINCIPAL") }
+
         val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
             staff.id!!, request.classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
         )
@@ -1827,7 +1831,7 @@ class StaffDashboardController(
         val isClassTeacher = isClassTeacherForRequested || isClassTeacherCurrently
         val subjectsTaught = (subjectsTaughtInRequested + subjectsTaughtCurrently).distinct()
 
-        if (!isClassTeacher && subjectsTaught.isEmpty()) {
+        if (!isAdmin && !isClassTeacher && subjectsTaught.isEmpty()) {
             throw RuntimeException("Access denied to this class")
         }
 
@@ -1866,7 +1870,7 @@ class StaffDashboardController(
             
             classSubjects.forEach { cs ->
                 // Verify staff can import for this subject
-                if (!isClassTeacher && !subjectsTaught.contains(cs.subject.id)) {
+                if (!isAdmin && !isClassTeacher && !subjectsTaught.contains(cs.subject.id)) {
                     return@forEach
                 }
 

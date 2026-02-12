@@ -18,8 +18,6 @@ class JwtService {
     @Value("\${jwt.secret:mySecretKey}")
     private lateinit var secret: String
 
-    @Value("\${jwt.expiration:86400000}")
-    private var jwtExpiration: Long = 86400000 // 24 hours
 
     private fun getSigningKey(): SecretKey {
         val keyBytes = secret.toByteArray()
@@ -53,9 +51,9 @@ class JwtService {
         }
         
         return if (isAdmin) {
-            86400000L // 1 day in milliseconds
+            86400000L // 1 day in milliseconds (24 hours)
         } else {
-            604800000L // 1 week in milliseconds
+            259200000L // 3 days in milliseconds
         }
     }
 
