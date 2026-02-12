@@ -9,46 +9,142 @@
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <style>
-        .messaging-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .chat-section,
-        .settings-section {
+        .messaging-container {
+            display: flex;
+            height: calc(100vh - 120px);
             background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            margin-top: 1rem;
         }
 
-        .message-list {
-            max-height: 500px;
+        /* Sidebar: Conversation List */
+        .chat-sidebar {
+            width: 350px;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.25rem;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .conversation-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .conversation-item:hover {
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .conversation-item.active {
+            background: rgba(79, 70, 229, 0.1);
+            border-left: 4px solid #4f46e5;
+        }
+
+        .avatar-circle {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .conv-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .conv-name {
+            display: block;
+            font-weight: 600;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conv-last-msg {
+            display: block;
+            font-size: 0.8rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Main Chat Window */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            margin-top: 1.5rem;
-            padding-right: 0.5rem;
+            background: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
         }
 
         .message-bubble {
-            max-width: 80%;
-            padding: 1rem;
-            border-radius: 15px;
-            font-size: 0.9rem;
-            line-height: 1.4;
+            max-width: 70%;
+            padding: 0.85rem 1.15rem;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            position: relative;
+            line-height: 1.5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
         }
 
         .message-bubble.outgoing {
             align-self: flex-end;
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            background: #4f46e5;
             color: white;
-            border-bottom-right-radius: 2px;
+            border-bottom-right-radius: 4px;
         }
 
         .message-bubble.incoming {
@@ -56,38 +152,90 @@
             background: white;
             color: #1e293b;
             border: 1px solid #e2e8f0;
-            border-bottom-left-radius: 2px;
+            border-bottom-left-radius: 4px;
         }
 
-        .broadcast-box {
-            margin-bottom: 2rem;
-        }
-
-        .broadcast-box textarea {
-            width: 100%;
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 1rem;
-            font-family: inherit;
-        }
-
-        .status-pill {
+        .msg-time {
             font-size: 0.7rem;
-            padding: 2px 8px;
+            margin-top: 0.35rem;
+            display: block;
+            opacity: 0.8;
+            text-align: right;
+        }
+
+        .chat-input-area {
+            padding: 1.5rem;
+            background: white;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 1rem;
+            background: #f1f5f9;
+            padding: 0.5rem;
             border-radius: 50px;
-            text-transform: uppercase;
-            font-weight: 700;
+            align-items: center;
         }
 
-        .status-sent {
-            background: #dcfce7;
-            color: #166534;
+        .chat-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.75rem 1.25rem;
+            outline: none;
+            font-size: 0.95rem;
         }
 
-        .status-failed {
-            background: #fee2e2;
-            color: #991b1b;
+        .btn-send {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-send:hover {
+            transform: scale(1.05);
+            background: #4338ca;
+        }
+
+        .empty-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .empty-chat svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1.5rem;
+            opacity: 0.3;
+        }
+
+        .broadcast-pill {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #c7d2fe;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
     </style>
 </head>
@@ -96,85 +244,200 @@
     <div th:replace="~{fragments/header :: school-header}"></div>
 
     <main class="main-content">
-        <div class="dashboard-container">
-            <div class="welcome-section">
-                <div class="welcome-text">
-                    <h1>Messaging & Notifications</h1>
-                    <p>Manage WhatsApp broadcasts and automated reminders for <strong th:text="${school?.name}">School
-                            Name</strong></p>
+        <div class="dashboard-container" style="max-width: 1400px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h1 style="font-size: 1.75rem; margin-bottom: 0.25rem;">WhatsApp Service</h1>
+                    <p class="text-secondary" th:text="${school?.name}">School Name</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="broadcast-pill" onclick="showBroadcastModal()">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                        Broadcast
+                    </button>
+                    <button class="broadcast-pill"
+                        style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;"
+                        onclick="showSettingsModal()">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        Reminders
+                    </button>
                 </div>
             </div>
 
-            <div class="messaging-grid">
-                <!-- Main Communication Area -->
-                <div class="chat-section">
-                    <div class="broadcast-box">
-                        <h3>Quick Broadcast</h3>
-                        <form th:action="@{/admin/dashboard/messaging/broadcast}" method="post">
-                            <select name="recipientType" class="form-control" style="margin-bottom: 1rem; width: 100%;">
-                                <option value="ALL_PARENTS">All Parents</option>
-                            </select>
-                            <textarea name="message" rows="3"
-                                placeholder="Type your school-wide announcement here..."></textarea>
-                            <button type="submit" class="btn btn-primary">Send WhatsApp Broadcast</button>
-                        </form>
+            <div class="messaging-container">
+                <!-- Sidebar -->
+                <div class="chat-sidebar">
+                    <div class="sidebar-header">
+                        <h2>Conversations</h2>
                     </div>
-
-                    <h3>Recent Messages</h3>
-                    <div class="message-list">
-                        <div th:each="msg : ${recentMessages}" class="message-bubble"
-                            th:classappend="${msg.direction.name().toLowerCase()}">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <strong th:text="${msg.recipientPhone}">Phone</strong>
-                                <span class="status-pill" th:classappend="'status-' + ${msg.status.toLowerCase()}"
-                                    th:text="${msg.status}">Status</span>
-                            </div>
-                            <p th:text="${msg.content}">Message Content</p>
-                            <small th:text="${#temporals.format(msg.createdAt, 'MMM dd, HH:mm')}"
-                                style="opacity: 0.7; display: block; margin-top: 0.5rem;"></small>
-                        </div>
-                        <div th:if="${#lists.isEmpty(recentMessages)}" class="empty-state">
-                            <p>No messages sent yet.</p>
-                        </div>
+                    <div id="conversation-list" class="conversation-list">
+                        <div th:replace="~{:: conversation-list}"></div>
                     </div>
                 </div>
 
-                <!-- Settings & Scheduling -->
-                <div class="settings-section">
-                    <h3>Fee Reminders</h3>
-                    <p class="text-secondary small">Automatically send balance alerts to parents with outstanding fees.
-                    </p>
-
-                    <form th:action="@{/admin/dashboard/messaging/schedule-reminder}" method="post"
-                        style="margin-top: 1.5rem;">
-                        <div class="form-group">
-                            <label>Frequency</label>
-                            <select name="frequency" class="form-control" style="width: 100%; margin-top: 0.5rem;">
-                                <option value="DAILY">Daily</option>
-                                <option value="WEEKLY">Weekly (Mondays)</option>
-                                <option value="MONTHLY">Monthly (1st)</option>
-                                <option value="WEEKENDS">Weekends</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-outline" style="margin-top: 1rem; width: 100%;">Add
-                            Schedule</button>
-                    </form>
-
-                    <h4 style="margin-top: 2rem;">Active Schedules</h4>
-                    <div th:each="sched : ${schedules}"
-                        style="background: white; padding: 1rem; border-radius: 12px; margin-top: 1rem; border: 1px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong th:text="${sched.frequency}">DAILY</strong>
-                            <span class="status-pill status-sent" th:if="${sched.isActive}">Active</span>
-                        </div>
-                        <small th:if="${sched.lastRunAt}"
-                            th:text="'Last run: ' + ${#temporals.format(sched.lastRunAt, 'MMM dd')}"></small>
+                <!-- Chat Area -->
+                <div class="chat-main" id="chat-window">
+                    <div class="empty-chat">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <h3>Select a conversation</h3>
+                        <p>Choose a parent from the list to start messaging or view history.</p>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Fragments -->
+    <div th:fragment="conversation-list">
+        <div th:each="conv : ${conversations}" class="conversation-item"
+            th:onclick="'loadThread(\'' + ${conv.recipientPhone} + '\', this)'"
+            th:attr="data-recipient=${conv.recipientPhone}">
+            <div class="avatar-circle" th:text="${#strings.substring(conv.recipientPhone,0,1)}">P</div>
+            <div class="conv-info">
+                <span class="conv-name" th:text="${conv.user != null ? conv.user.fullName : conv.recipientPhone}">Parent
+                    Name</span>
+                <span class="conv-last-msg" th:text="${conv.content}">Last message snippet...</span>
+            </div>
+            <div style="font-size: 0.7rem; color: #94a3b8;">
+                <span th:text="${#temporals.format(conv.createdAt, 'HH:mm')}">Time</span>
+            </div>
+        </div>
+        <div th:if="${#lists.isEmpty(conversations)}" style="padding: 2rem; text-align: center; color: #94a3b8;">
+            No conversations yet.
+        </div>
+    </div>
+
+    <div th:fragment="chat-thread">
+        <div class="chat-header">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="avatar-circle" style="width: 40px; height: 40px;"
+                    th:text="${#strings.substring(recipient,0,1)}">P</div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1rem;" th:text="${recipient}">Recipient Phone</h3>
+                    <span style="font-size: 0.75rem; color: #10b981;">Online</span>
+                </div>
+            </div>
+        </div>
+        <div class="chat-messages" id="message-container">
+            <div th:each="msg : ${messages}" class="message-bubble"
+                th:classappend="${msg.direction.name().toLowerCase()}">
+                <p th:text="${msg.content}" style="margin: 0;">Message content</p>
+                <small class="msg-time">
+                    <span th:text="${#temporals.format(msg.createdAt, 'HH:mm')}">Time</span>
+                    <span th:if="${msg.direction.name() == 'OUTGOING'}"
+                        th:classappend="${msg.status == 'READ' ? 'text-blue' : ''}">✓✓</span>
+                </small>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <input type="text" id="reply-input" class="chat-input" placeholder="Type a message..."
+                    onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button class="btn-send" onclick="sendMessage()">
+                    <svg width="20" height="20" fill="white" viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <script th:inline="javascript">
+            scrollToBottom();
+        </script>
+    </div>
+
+    <script th:inline="javascript">
+        let currentRecipient = null;
+
+        async function loadThread(recipient, element) {
+            currentRecipient = recipient;
+
+            // UI Update
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            try {
+                const response = await fetch(`/admin/dashboard/messaging/thread/${recipient}`);
+                const html = await response.text();
+                document.getElementById('chat-window').innerHTML = html;
+                scrollToBottom();
+            } catch (err) {
+                console.error("Failed to load thread:", err);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('reply-input');
+            const message = input.value.trim();
+            if (!message || !currentRecipient) return;
+
+            input.value = '';
+
+            const formData = new FormData();
+            formData.append('recipient', currentRecipient);
+            formData.append('message', message);
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await fetch('/admin/dashboard/messaging/reply', {
+                    method: 'POST',
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Reload thread
+                    loadThread(currentRecipient, document.querySelector(`.conversation-item.active`));
+                }
+            } catch (err) {
+                console.error("Failed to send message:", err);
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('message-container');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        // Auto-refresh conversations every 10 seconds
+        setInterval(async () => {
+            const response = await fetch('/admin/dashboard/messaging/conversations');
+            const html = await response.text();
+            const list = document.getElementById('conversation-list');
+            // Preserving the active state if possible
+            const activeId = document.querySelector('.conversation-item.active')?.getAttribute('data-recipient');
+            list.innerHTML = html;
+            if (activeId) {
+                const newActive = list.querySelector(`[data-recipient="${activeId}"]`);
+                if (newActive) newActive.classList.add('active');
+            }
+        }, 10000);
+
+        function showBroadcastModal() {
+            // Future implementation: Reuse existing broadcast logic in a modal
+            alert("Broadcast Modal: This will open a sleek modal to send school-wide announcements.");
+        }
+
+        function showSettingsModal() {
+            // Future implementation: Reuse existing reminder logic in a modal
+            alert("Reminder Settings: Configure automated balance alerts here.");
+        }
+    </script>
 </body>
 
 </html>

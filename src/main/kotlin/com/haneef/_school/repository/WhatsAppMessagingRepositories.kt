@@ -9,6 +9,10 @@ import java.util.UUID
 interface WhatsAppMessageRepository : JpaRepository<WhatsAppMessage, UUID> {
     fun findByRecipientPhoneOrderByCreatedAtDesc(recipientPhone: String): List<WhatsAppMessage>
     fun findBySchoolIdOrderByCreatedAtDesc(schoolId: UUID): List<WhatsAppMessage>
+    fun findByMetaMessageId(metaMessageId: String): WhatsAppMessage?
+
+    @org.springframework.data.jpa.repository.Query("SELECT m FROM WhatsAppMessage m WHERE m.school.id = :schoolId AND m.id IN (SELECT MAX(m2.id) FROM WhatsAppMessage m2 WHERE m2.school.id = :schoolId GROUP BY m2.recipientPhone)")
+    fun findLatestMessagesByRecipient(@org.springframework.data.repository.query.Param("schoolId") schoolId: UUID): List<WhatsAppMessage>
 }
 
 @Repository

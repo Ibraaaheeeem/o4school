@@ -5,6 +5,7 @@ import com.haneef._school.entity.MessageDirection
 import com.haneef._school.entity.User
 import com.haneef._school.entity.WhatsAppMessage
 import com.haneef._school.repository.SchoolRepository
+import com.haneef._school.repository.UserRepository
 import com.haneef._school.repository.WhatsAppMessageRepository
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -18,7 +19,8 @@ class WhatsAppService(
     private val properties: WhatsAppProperties,
     private val messageRepository: WhatsAppMessageRepository,
     private val phoneNumberService: PhoneNumberService,
-    private val schoolRepository: SchoolRepository
+    private val schoolRepository: SchoolRepository,
+    private val userRepository: UserRepository
 ) {
     private val restTemplate = RestTemplate()
 
@@ -91,6 +93,62 @@ class WhatsAppService(
             logMessage(to, "[Template: $templateName] Error: ${e.message}", MessageDirection.OUTGOING, "FAILED", null, user)
             false
         }
+    }
+
+    fun processWebhook(payload: Map<String, Any>) {
+        val entries = payload["entry"] as? List<*> ?: return
+        
+        for (entry in entries) {
+            val entryMap = entry as? Map<*, *> ?: continue
+            val changes = entryMap["changes"] as? List<*> ?: continue
+            
+            for (change in changes) {
+                val changeMap = change as? Map<*, *> ?: continue
+                val value = changeMap["value"] as? Map<*, *> ?: continue
+                
+                // 1. Handle Messages
+                val messages = value["messages"] as? List<*>
+                messages?.forEach { message ->
+                    val messageMap = message as? Map<*, *> ?: return@forEach
+                    val from = messageMap["from"] as? String ?: return@forEach
+                    val text = (messageMap["text"] as? Map<*, *>)?.get("body") as? String ?: ""
+                    val metaId = messageMap["id"] as? String
+                    
+                    // Link to user/school
+                    val user = findUserByPhone(from)
+                    val incoming = WhatsAppMessage(
+                        recipientPhone = from,
+                        content = text,
+                        direction = MessageDirection.INCOMING,
+                        status = "RECEIVED",
+                        metaMessageId = metaId,
+                        user = user,
+                        school = user?.getSchools()?.firstOrNull()?.let { schoolRepository.findById(it).orElse(null) }
+                    )
+                    messageRepository.save(incoming)
+                }
+
+                // 2. Handle Status Updates
+                val statuses = value["statuses"] as? List<*>
+                statuses?.forEach { status ->
+                    val statusMap = status as? Map<*, *> ?: return@forEach
+                    val metaId = statusMap["id"] as? String ?: return@forEach
+                    val newStatus = statusMap["status"] as? String ?: return@forEach
+                    
+                    val existing = messageRepository.findByMetaMessageId(metaId)
+                    if (existing != null) {
+                        existing.status = newStatus.uppercase()
+                        messageRepository.save(existing)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun findUserByPhone(phone: String): User? {
+        val cleaned = phoneNumberService.cleanPhoneNumber(phone)
+        return userRepository.findByPhoneNumber(cleaned).orElse(null) 
+            ?: userRepository.findByPhoneNumber(cleaned.removePrefix("+")).orElse(null)
     }
 
     private fun logMessage(to: String, content: String, direction: MessageDirection, status: String, metaId: String?, user: User?) {

@@ -67,4 +67,9 @@ class PublicController(
         
         return "public/school-landing-template"
     }
+
+    @GetMapping("/privacy")
+    fun privacyPolicy(model: Model): String {
+        return "public/privacy"
+    }
 }
