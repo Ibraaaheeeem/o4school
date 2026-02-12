@@ -1411,12 +1411,30 @@ class StaffDashboardController(
             ).find { it.schoolClass.id == classId && it.schoolId == selectedSchoolId }
             ?: throw RuntimeException("Student enrollment not found for this class and session")
         
-        val isClassTeacher = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+        // Check authorization in both requested term AND current active term (header context)
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
+        
+        val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
             staff.id!!, classId, sessionId, termId, selectedSchoolId, true
         )
-        val subjectsTaught = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+        val isClassTeacherCurrently = if (effectiveSession != null && effectiveTerm != null) {
+            classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
+            )
+        } else false
+
+        val subjectsTaughtInRequested = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
             staff.id!!, sessionId, termId, true
         ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+
+        val subjectsTaughtCurrently = if (effectiveSession != null && effectiveTerm != null) {
+            subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
+            ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+        } else emptyList()
+
+        val isClassTeacher = isClassTeacherForRequested || isClassTeacherCurrently
+        val subjectsTaught = (subjectsTaughtInRequested + subjectsTaughtCurrently).distinct()
 
         val student = studentRepository.findById(request.studentId).orElseThrow { RuntimeException("Student not found") }
 
@@ -1784,12 +1802,30 @@ class StaffDashboardController(
         val termEntity = termRepository.findByAcademicSessionIdAndTermNameAndIsActive(sessionEntity.id!!, request.term, true)
             .orElseThrow { RuntimeException("Term not found") }
 
-        val isClassTeacher = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+        // Check authorization in both requested term AND current active term (header context)
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
+        
+        val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
             staff.id!!, request.classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
         )
-        val subjectsTaught = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+        val isClassTeacherCurrently = if (effectiveSession != null && effectiveTerm != null) {
+            classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, request.classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
+            )
+        } else false
+
+        val subjectsTaughtInRequested = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
             staff.id!!, sessionEntity.id!!, termEntity.id!!, true
         ).filter { it.schoolClass.id == request.classId }.map { it.subject.id }
+
+        val subjectsTaughtCurrently = if (effectiveSession != null && effectiveTerm != null) {
+            subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
+            ).filter { it.schoolClass.id == request.classId }.map { it.subject.id }
+        } else emptyList()
+
+        val isClassTeacher = isClassTeacherForRequested || isClassTeacherCurrently
+        val subjectsTaught = (subjectsTaughtInRequested + subjectsTaughtCurrently).distinct()
 
         if (!isClassTeacher && subjectsTaught.isEmpty()) {
             throw RuntimeException("Access denied to this class")

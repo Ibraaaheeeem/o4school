@@ -5,11 +5,11 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: ghcr.io/ibraaaheeeem/o4school:latest
+    image: ghcr.io/ibraaaheeeem/o4school:${APP_VERSION:-latest}
     container_name: 4school_app
     restart: always
     ports:
-      - "8080:8080"
+      - "${HOST_PORT:-8080}:8080"
     environment:
       - DB_URL=jdbc:postgresql://4school_db:5432/j4school
       - DB_USERNAME=${DB_USERNAME}

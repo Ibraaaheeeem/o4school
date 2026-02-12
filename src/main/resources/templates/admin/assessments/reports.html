@@ -1447,10 +1447,11 @@
         };
 
         async function saveAssessment() {
-            const studentId = document.getElementById('studentSelect').value;
             const urlParams = new URLSearchParams(window.location.search);
-            const session = urlParams.get('sessionYear');
-            const term = urlParams.get('term');
+            const session = urlParams.get('sessionYear') || filterState.session;
+            const term = urlParams.get('term') || filterState.term;
+            const sessionId = urlParams.get('sessionId') || filterState.sessionId;
+            const termId = urlParams.get('termId') || filterState.termId;
 
             console.log('Saving assessment for student:', studentId);
 
@@ -1493,6 +1494,8 @@
             // Gather Other Data
             const requestData = {
                 studentId: studentId, // Keep as UUID string, don't parse as int
+                sessionId: sessionId || null,
+                termId: termId || null,
                 session: session,
                 term: term,
                 scores: scores,

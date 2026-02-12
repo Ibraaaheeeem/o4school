@@ -1,14 +1,72 @@
 #!/bin/bash
 
-# Navigate to the directory where this script (and docker-compose.yml) is located
+# Configuration
+IMAGE_NAME="ghcr.io/ibraaaheeeem/o4school"
+STAGING_PORT=8081
+PROD_PORT=8080
+HEALTH_CHECK_URL="http://localhost:$STAGING_PORT/auth/login"
+
+# Navigate to the directory where this script is located
 cd "$(dirname "$0")"
 
-# Pull the latest image
-echo "Pulling latest image..."
-docker compose pull app
+# 1. Pull the version
+VERSION=${1:-latest}
+echo "🚀 Preparing deployment for version: $VERSION"
 
-# Restart the containers
-echo "Restarting containers..."
-docker compose up -d
+echo "📥 Pulling latest image..."
+docker pull $IMAGE_NAME:$VERSION
 
-echo "Deployment complete!"
+# 2. Start Staging Container
+echo "🧪 Starting Staging container on port $STAGING_PORT..."
+# We use the existing docker-compose environment variables if possible, 
+# but for a standalone staging test, we can use docker run.
+# To ensure it has all DB links, we run it on the same network.
+docker run -d \
+  --name 4school_staging \
+  --network deployment_school_network \
+  -p $STAGING_PORT:8080 \
+  --env-file .env \
+  -e DB_URL=jdbc:postgresql://4school_db:5432/j4school \
+  $IMAGE_NAME:$VERSION
+
+# 3. Health Check
+echo "⏳ Waiting for application to start..."
+MAX_RETRIES=12
+COUNT=0
+until $(curl --output /dev/null --silent --head --fail $HEALTH_CHECK_URL); do
+    printf '.'
+    sleep 5
+    COUNT=$((COUNT+1))
+    if [ $COUNT -eq $MAX_RETRIES ]; then
+        echo -e "\n❌ Staging health check failed after 1 minute."
+        docker stop 4school_staging && docker rm 4school_staging
+        exit 1
+    fi
+done
+
+echo -e "\n✅ Staging is UP at http://your-vps-ip:$STAGING_PORT"
+echo "🔍 Please verify the new version before proceeding."
+
+# 4. User Approval
+read -p "❓ Do you want to push this version to PRODUCTION? (y/N): " confirm
+
+if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    echo "🚢 Promoting to Production..."
+    
+    # Update the environment for docker-compose
+    export APP_VERSION=$VERSION
+    export HOST_PORT=$PROD_PORT
+    
+    # Restart production
+    docker compose up -d app
+    
+    echo "✨ Production updated successfully!"
+else
+    echo "🛑 Deployment cancelled. Production remains on the old version."
+fi
+
+# 5. Cleanup Staging
+echo "🧹 Cleaning up staging container..."
+docker stop 4school_staging && docker rm 4school_staging
+
+echo "🏁 Finished."

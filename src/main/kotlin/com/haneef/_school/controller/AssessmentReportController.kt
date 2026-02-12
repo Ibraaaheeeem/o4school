@@ -62,6 +62,8 @@ data class SaveAssessmentRequest(
     val studentId: UUID,
     val sessionId: UUID? = null,
     val termId: UUID? = null,
+    val session: String? = null,
+    val term: String? = null,
     val scores: List<SubjectScoreInput>,
     val attendance: Int = 0,
     val fluency: Int = 0,
@@ -693,7 +695,11 @@ class AssessmentReportController(
 
         // Resolve Effective Session
         val sessionAttributeId = session_http.getAttribute("selectedSessionId") as? UUID
-        var resolvedSessionId = request.sessionId ?: sessionAttributeId
+        var resolvedSessionId = request.sessionId 
+            ?: if (!request.session.isNullOrBlank()) {
+                academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, request.session, true)?.id
+            } else null
+            ?: sessionAttributeId
         
         // Fallback to active current session logic
         if (resolvedSessionId == null) {
@@ -703,7 +709,11 @@ class AssessmentReportController(
         
         // Resolve Effective Term
         val termAttributeId = session_http.getAttribute("selectedTermId") as? UUID
-        var resolvedTermId = request.termId ?: termAttributeId
+        var resolvedTermId = request.termId
+            ?: if (resolvedSessionId != null && !request.term.isNullOrBlank()) {
+                termRepository.findByAcademicSessionIdAndTermNameAndIsActive(resolvedSessionId!!, request.term, true).map { it.id }.orElse(null)
+            } else null
+            ?: termAttributeId
         
         // Fallback Term logic
          if (resolvedTermId == null && resolvedSessionId != null) {
@@ -723,6 +733,11 @@ class AssessmentReportController(
         
         val effectiveSessionId = resolvedSessionId!!
         val effectiveTermId = resolvedTermId!!
+
+        // Check authorization in BOTH requested term AND current active term (header context)
+        // Re-use logic from getEffectiveSessionAndTerm internal equivalent
+        val headerSessionId = session_http.getAttribute("selectedSessionId") as? UUID
+        val headerTermId = session_http.getAttribute("selectedTermId") as? UUID
         
         // Resolve Session and Term Names for Assessment entity
         val sessionName = academicSessionRepository.findById(effectiveSessionId).map { it.sessionYear }.orElse(effectiveSessionId.toString())
@@ -773,12 +788,19 @@ class AssessmentReportController(
             
         val classId = studentEnrollment.schoolClass.id!!
 
-        // Check if class teacher
+        // Check if class teacher (Check both effective context AND requested context)
         var isClassTeacher = false
         if (staffId != null) {
-             isClassTeacher = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+             val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
                  staffId, classId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
              )
+             val isClassTeacherInHeader = if (headerSessionId != null && headerTermId != null) {
+                 classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                     staffId, classId, headerSessionId, headerTermId, selectedSchoolId, true
+                 )
+             } else false
+             
+             isClassTeacher = isClassTeacherForRequested || isClassTeacherInHeader
         }
 
         val assessment = assessmentRepository.findByStudentIdAndSessionAndTermAndSchoolIdAndIsActive(
@@ -819,12 +841,18 @@ class AssessmentReportController(
             // Validate subject belongs to school
             val subject = authorizationService.validateAndGetSubject(scoreInput.subjectId, selectedSchoolId)
             
-            // Check permission for this subject
+            // Check permission for this subject (Check both contexts)
             if (!isAdmin && !isClassTeacher) {
-                 val isSubjectTeacher = subjectTeacherRepository.existsByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                 val isSubjectTeacherInRequested = subjectTeacherRepository.existsByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
                      staffId!!, scoreInput.subjectId, classId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
                  )
-                 if (!isSubjectTeacher) {
+                 val isSubjectTeacherInHeader = if (headerSessionId != null && headerTermId != null) {
+                     subjectTeacherRepository.existsByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                         staffId!!, scoreInput.subjectId, classId, headerSessionId, headerTermId, selectedSchoolId, true
+                     )
+                 } else false
+                 
+                 if (!isSubjectTeacherInRequested && !isSubjectTeacherInHeader) {
                      // Skip subjects the user is not authorized to grade
                      return@forEach
                  }
@@ -925,6 +953,9 @@ class AssessmentReportController(
         // Validate class belongs to school
         authorizationService.validateAndGetSchoolClass(request.classId, selectedSchoolId)
 
+        val isAdmin = authentication.authorities.any { it.authority == "ROLE_SYSTEM_ADMIN" || it.authority == "ROLE_SCHOOL_ADMIN" }
+        val staffId = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)?.id
+
         // Resolve session and term entities once
         val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(
             selectedSchoolId, request.session, true
@@ -935,6 +966,32 @@ class AssessmentReportController(
 
         if (sessionEntity == null || termEntity == null) {
             return mapOf("success" to false, "message" to "Session or Term not found")
+        }
+
+        val effectiveSessionId = sessionEntity.id!!
+        val effectiveTermId = termEntity.id!!
+
+        // Check authorization in BOTH requested term AND current active term (header context)
+        val headerSessionId = session_http.getAttribute("selectedSessionId") as? UUID
+        val headerTermId = session_http.getAttribute("selectedTermId") as? UUID
+
+        var isClassTeacher = false
+        if (staffId != null) {
+             val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                 staffId, request.classId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
+             )
+             val isClassTeacherInHeader = if (headerSessionId != null && headerTermId != null) {
+                 classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                     staffId, request.classId, headerSessionId, headerTermId, selectedSchoolId, true
+                 )
+             } else false
+             
+             isClassTeacher = isClassTeacherForRequested || isClassTeacherInHeader
+        }
+
+        // If not admin or class teacher, we'll check subject-level permission inside the loop
+        if (!isAdmin && !isClassTeacher && staffId == null) {
+            return mapOf("success" to false, "message" to "Access denied to this class")
         }
 
         val students = if (request.studentId != null) {
@@ -966,6 +1023,23 @@ class AssessmentReportController(
             val classSubjects = classSubjectRepository.findBySchoolClassIdAndIsActive(request.classId, true)
             
             classSubjects.forEach { cs ->
+                // Check permission for this subject (Check both contexts)
+                if (!isAdmin && !isClassTeacher) {
+                     val isSubjectTeacherInRequested = subjectTeacherRepository.existsByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                         staffId!!, cs.subject.id!!, request.classId, effectiveSessionId, effectiveTermId, selectedSchoolId, true
+                     )
+                     val isSubjectTeacherInHeader = if (headerSessionId != null && headerTermId != null) {
+                         subjectTeacherRepository.existsByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                             staffId!!, cs.subject.id!!, request.classId, headerSessionId, headerTermId, selectedSchoolId, true
+                         )
+                     } else false
+                     
+                     if (!isSubjectTeacherInRequested && !isSubjectTeacherInHeader) {
+                         // Skip subjects the user is not authorized to grade
+                         return@forEach
+                     }
+                }
+
                 // Determine target max score for the component
                 var targetMax = 100 // Default
                 val scoringScheme = cs.schoolClass.scoringScheme
