@@ -53,4 +53,6 @@ interface ParentRepository : JpaRepository<Parent, UUID>, SecureParentRepository
         @Param("search") search: String,
         pageable: Pageable
     ): Page<Parent>
+
+    fun findByUserEmail(email: String): java.util.Optional<Parent>
 }

@@ -1524,24 +1524,31 @@ class StaffDashboardController(
                 subjectScore.classSubject = classSubject
             }
 
-            subjectScore.ca1Score = scoreInput.ca1
-            subjectScore.ca2Score = scoreInput.ca2
-            subjectScore.examScore = scoreInput.exam
-            
+            // Source of Truth: JSON Map
             if (scoreInput.scores.isNotEmpty()) {
                 subjectScore.scoresJson = objectMapper.writeValueAsString(scoreInput.scores)
                 subjectScore.totalScore = scoreInput.scores.values.filterNotNull().sumOf { it }
             } else {
-                val ca1 = scoreInput.ca1 ?: 0
-                val ca2 = scoreInput.ca2 ?: 0
-                val exam = scoreInput.exam ?: 0
+                // Fallback for legacy inputs if JSON map is empty
+                val legacyScores = mutableMapOf<String, Int?>()
+                if (scoreInput.ca1 != null) legacyScores["1st CA"] = scoreInput.ca1
+                if (scoreInput.ca2 != null) legacyScores["2nd CA"] = scoreInput.ca2
+                if (scoreInput.exam != null) legacyScores["Exam"] = scoreInput.exam
                 
-                if (scoreInput.ca1 != null || scoreInput.ca2 != null || scoreInput.exam != null) {
-                    subjectScore.totalScore = ca1 + ca2 + exam
+                if (legacyScores.isNotEmpty()) {
+                    subjectScore.scoresJson = objectMapper.writeValueAsString(legacyScores)
+                    subjectScore.totalScore = legacyScores.values.filterNotNull().sumOf { it }
                 } else {
                     subjectScore.totalScore = null
+                    subjectScore.scoresJson = null
                 }
             }
+            
+            // Sync legacy columns for backward compatibility (optional, but keep for now until formal removal)
+            // Note: We only set them if they exist in the map to avoid overwriting with null
+            scoreInput.scores["1st CA"]?.let { subjectScore.ca1Score = it }
+            scoreInput.scores["2nd CA"]?.let { subjectScore.ca2Score = it }
+            scoreInput.scores["Exam"]?.let { subjectScore.examScore = it }
             
             val total = subjectScore.totalScore
             if (total != null) {
@@ -1706,6 +1713,10 @@ class StaffDashboardController(
                     if (!ss.scoresJson.isNullOrBlank()) {
                         try {
                             scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})
+                            // Sync legacy variables from map if they exist for consistent DTO response
+                            scoresMap["1st CA"]?.let { ca1 = it }
+                            scoresMap["2nd CA"]?.let { ca2 = it }
+                            scoresMap["Exam"]?.let { exam = it }
                         } catch (e: Exception) {
                             println("Error parsing scoresJson for subject ${cs.subject.subjectName}: ${e.message}")
                         }

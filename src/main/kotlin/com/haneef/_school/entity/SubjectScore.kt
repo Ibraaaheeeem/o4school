@@ -27,13 +27,16 @@ class SubjectScore(
     @JoinColumn(name = "class_subject_id", nullable = false)
     var classSubject: ClassSubject? = null,
     
-    // Assessment scores
+    // Assessment scores (Legacy - Deprecated)
+    @Deprecated("Use scoresJson instead")
     @Column(name = "ca1_score")
     var ca1Score: Int? = null,
     
+    @Deprecated("Use scoresJson instead")
     @Column(name = "ca2_score")
     var ca2Score: Int? = null,
     
+    @Deprecated("Use scoresJson instead")
     @Column(name = "exam_score")
     var examScore: Int? = null,
     

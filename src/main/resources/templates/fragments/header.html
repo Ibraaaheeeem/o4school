@@ -740,6 +740,7 @@
                     else if (currentPath.includes('/school-setup')) setSectionInfo('Setup');
                     else if (currentPath.includes('/community')) setSectionInfo('Community');
                     else if (currentPath.includes('/academic')) setSectionInfo('Academics');
+                    else if (currentPath.includes('/messaging')) setSectionInfo('Messaging');
                 } else if (currentPath.startsWith('/system-admin/') && currentPath !== '/system-admin/dashboard') {
                     if (dashboardLink) dashboardLink.href = '/system-admin/dashboard';
                     if (dashboardText) dashboardText.textContent = 'System';

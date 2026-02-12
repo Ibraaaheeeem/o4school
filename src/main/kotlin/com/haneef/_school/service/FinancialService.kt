@@ -29,8 +29,8 @@ open class FinancialService(
     private val userSchoolRoleRepository: com.haneef._school.repository.UserSchoolRoleRepository,
     private val studentOptionalFeeRepository: com.haneef._school.repository.StudentOptionalFeeRepository,
     private val studentRepository: com.haneef._school.repository.StudentRepository,
-    private val schoolReimbursementRepository: com.haneef._school.repository.SchoolReimbursementRepository
-
+    private val schoolReimbursementRepository: com.haneef._school.repository.SchoolReimbursementRepository,
+    private val whatsappService: WhatsAppService
 ) {
 
     @Transactional
@@ -603,6 +603,40 @@ open class FinancialService(
         // Trigger payment distribution logic
         // This distributes the settlement amount to student invoices based on parent's preference
         paymentDistributionService.distributePaymentSequentially(settlement)
+
+        // Send WhatsApp Notification
+        try {
+            sendWhatsAppPaymentNotification(settlement)
+        } catch (e: Exception) {
+            println("Failed to send WhatsApp payment notification: ${e.message}")
+        }
+    }
+
+    private fun sendWhatsAppPaymentNotification(settlement: com.haneef._school.entity.Settlement) {
+        val parent = settlement.paystackWallet?.parent 
+            ?: settlement.squadWallet?.parent
+            ?: parentRepository.findByUserEmail(settlement.payerEmail ?: "").orElse(null)
+            ?: return
+
+        val phoneNumber = parent.user.phoneNumber ?: return
+        val currentBalance = calculateParentBalance(parent)
+        val schoolName = "4School" // Default name
+
+        val message = """
+            Dear Parent,
+            
+            We have received your payment of ${settlement.currency} ${settlement.amount}.
+            
+            Reference: ${settlement.reference}
+            Date: ${settlement.transactionDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}
+            
+            Your current outstanding balance is: ${settlement.currency} $currentBalance
+            
+            Thank you for your payment.
+            $schoolName Team
+        """.trimIndent()
+
+        whatsappService.sendTextMessage(phoneNumber, message, parent.user)
     }
 
 }

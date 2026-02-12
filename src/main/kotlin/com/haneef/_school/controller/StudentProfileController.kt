@@ -3,6 +3,7 @@ package com.haneef._school.controller
 import com.haneef._school.repository.*
 import com.haneef._school.service.CustomUserDetails
 import com.haneef._school.service.LearningContentService
+import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpSession
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication
@@ -29,7 +30,8 @@ class StudentProfileController(
     private val classSubjectRepository: ClassSubjectRepository,
     private val learningContentService: LearningContentService,
     private val subjectScoreRepository: SubjectScoreRepository,
-    private val academicSessionRepository: AcademicSessionRepository
+    private val academicSessionRepository: AcademicSessionRepository,
+    private val objectMapper: ObjectMapper
 ) {
 
     @GetMapping("/view-as/{id}")
@@ -339,6 +341,18 @@ class StudentProfileController(
                         total = ss.totalScore
                         grade = ss.grade
                         remark = ss.remark
+
+                        // Sync from JSON map if available (Source of Truth)
+                        if (!ss.scoresJson.isNullOrBlank()) {
+                            try {
+                                val scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})
+                                scoresMap["1st CA"]?.let { ca1 = it }
+                                scoresMap["2nd CA"]?.let { ca2 = it }
+                                scoresMap["Exam"]?.let { exam = it }
+                            } catch (e: Exception) {
+                                // Fallback to existing ca1, ca2, exam values if JSON parsing fails
+                            }
+                        }
                     }
                 }
                 
