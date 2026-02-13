@@ -1715,7 +1715,7 @@ class StaffDashboardController(
             var grade: String? = null
             var remark: String? = null
 
-            var scoresMap = emptyMap<String, Int?>()
+            var scoresMap = mutableMapOf<String, Int?>()
 
             if (assessment != null) {
                 val subjectScores = subjectScoreRepository.findByAssessmentIdAndSubjectIdAndSchoolIdAndIsActive(
