@@ -1380,8 +1380,12 @@ class StaffDashboardController(
         val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID ?: throw RuntimeException("School not selected")
         val userDetails = userDetailsService.loadUserByUsername(authentication.name)
         val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+        val isAdmin = customUser.authorities.any { it.authority in listOf("ROLE_SYSTEM_ADMIN", "ROLE_SCHOOL_ADMIN", "ROLE_ADMIN", "ROLE_PRINCIPAL") }
 
-        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId) ?: throw RuntimeException("Staff record not found")
+        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+        if (staff == null && !isAdmin) {
+            throw RuntimeException("Staff record not found")
+        }
         
         // Resolve Session
         val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, request.session, true)
@@ -1412,28 +1416,31 @@ class StaffDashboardController(
             ?: throw RuntimeException("Student enrollment not found for this class and session")
         
         // Check authorization in both requested term AND current active term (header context)
-        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
-        
-        val isAdmin = customUser.authorities.any { it.authority in listOf("ROLE_SYSTEM_ADMIN", "ROLE_SCHOOL_ADMIN", "ROLE_ADMIN", "ROLE_PRINCIPAL") }
-
-        val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+    val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
+    
+    val isClassTeacherForRequested = if (staff != null) {
+        classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
             staff.id!!, classId, sessionId, termId, selectedSchoolId, true
         )
-        val isClassTeacherCurrently = if (effectiveSession != null && effectiveTerm != null) {
-            classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-                staff.id!!, classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
-            )
-        } else false
+    } else false
 
-        val subjectsTaughtInRequested = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+    val isClassTeacherCurrently = if (staff != null && effectiveSession != null && effectiveTerm != null) {
+        classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+            staff.id!!, classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
+        )
+    } else false
+
+    val subjectsTaughtInRequested = if (staff != null) {
+        subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
             staff.id!!, sessionId, termId, true
         ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+    } else emptyList()
 
-        val subjectsTaughtCurrently = if (effectiveSession != null && effectiveTerm != null) {
-            subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-                staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
-            ).filter { it.schoolClass.id == classId }.map { it.subject.id }
-        } else emptyList()
+    val subjectsTaughtCurrently = if (staff != null && effectiveSession != null && effectiveTerm != null) {
+        subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+            staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
+        ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+    } else emptyList()
 
         val isClassTeacher = isClassTeacherForRequested || isClassTeacherCurrently
         val subjectsTaught = (subjectsTaughtInRequested + subjectsTaughtCurrently).distinct()
@@ -1547,7 +1554,8 @@ class StaffDashboardController(
             // Source of Truth: JSON Map
             if (scoreInput.scores.isNotEmpty()) {
                 subjectScore.scoresJson = objectMapper.writeValueAsString(scoreInput.scores)
-                subjectScore.totalScore = scoreInput.scores.values.filterNotNull().sumOf { it }
+                // Use filterNotNull and takeIf to return null if all values are null
+                subjectScore.totalScore = scoreInput.scores.values.filterNotNull().let { if (it.isEmpty()) null else it.sumOf { s -> s } }
             } else {
                 // Fallback for legacy inputs if JSON map is empty
                 val legacyScores = mutableMapOf<String, Int?>()
@@ -1564,11 +1572,11 @@ class StaffDashboardController(
                 }
             }
             
-            // Sync legacy columns for backward compatibility (optional, but keep for now until formal removal)
-            // Note: We only set them if they exist in the map to avoid overwriting with null
-            scoreInput.scores["1st CA"]?.let { subjectScore.ca1Score = it }
-            scoreInput.scores["2nd CA"]?.let { subjectScore.ca2Score = it }
-            scoreInput.scores["Exam"]?.let { subjectScore.examScore = it }
+            // Sync legacy columns for backward compatibility
+            // Fixed: use containsKey to allow setting to null (emptying scores)
+            if (scoreInput.scores.containsKey("1st CA")) subjectScore.ca1Score = scoreInput.scores["1st CA"]
+            if (scoreInput.scores.containsKey("2nd CA")) subjectScore.ca2Score = scoreInput.scores["2nd CA"]
+            if (scoreInput.scores.containsKey("Exam")) subjectScore.examScore = scoreInput.scores["Exam"]
             
             val total = subjectScore.totalScore
             if (total != null) {
@@ -1613,8 +1621,15 @@ class StaffDashboardController(
         val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID ?: throw RuntimeException("School not selected")
         val userDetails = userDetailsService.loadUserByUsername(authentication.name)
         val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+        val hasAdministrativeAccess = customUser.hasRole("ADMIN") || 
+                                     customUser.hasRole("SCHOOL_ADMIN") || 
+                                     customUser.hasRole("SYSTEM_ADMIN") || 
+                                     customUser.hasRole("PRINCIPAL")
 
-        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId) ?: throw RuntimeException("Staff record not found")
+        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+        if (staff == null && !hasAdministrativeAccess) {
+            throw RuntimeException("Staff record not found")
+        }
         
         // Verify staff has access to this class
         val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, session, true)
@@ -1633,13 +1648,9 @@ class StaffDashboardController(
             }
             ?: throw RuntimeException("Term '$term' not found in session '$session'. Available terms: ${sessionTerms.joinToString { it.termName }}")
         
-        logger.info("Checking access for Staff: ${staff.id}, Class: $classId, Session: ${sessionEntity.id}, Term: ${termEntity.id}")
+        logger.info("Checking access for Staff: ${staff?.id}, Class: $classId, Session: ${sessionEntity.id}, Term: ${termEntity.id}")
 
-        // Administrative bypass
-        val hasAdministrativeAccess = customUser.hasRole("ADMIN") || 
-                                     customUser.hasRole("SCHOOL_ADMIN") || 
-                                     customUser.hasRole("SYSTEM_ADMIN") || 
-                                     customUser.hasRole("PRINCIPAL")
+        // Administrative bypass check is now handled above via hasAdministrativeAccess
         
         var isClassTeacher = false
         var allowedSubjectIds: Set<UUID>? = null
@@ -1649,24 +1660,28 @@ class StaffDashboardController(
             isClassTeacher = true
         } else {
             // Verify staff has access to this class (Original requested term)
-            val isClassTeacherForRequestedTerm = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-                staff.id!!, classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
-            )
+            val isClassTeacherForRequestedTerm = if (staff != null) {
+                classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                    staff.id!!, classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
+                )
+            } else false
             
-            val subjectsTaughtInRequestedTerm = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-                staff.id!!, sessionEntity.id!!, termEntity.id!!, true
-            ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+            val subjectsTaughtInRequestedTerm = if (staff != null) {
+                subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    staff.id!!, sessionEntity.id!!, termEntity.id!!, true
+                ).filter { it.schoolClass.id == classId }.map { it.subject.id }
+            } else emptyList()
 
             // Secondary check: Are they assigned to this class in the CURRENT active context?
             val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
             
-            val isCurrentlyClassTeacher = if (effectiveSession != null && effectiveTerm != null) {
+            val isCurrentlyClassTeacher = if (staff != null && effectiveSession != null && effectiveTerm != null) {
                 classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
                     staff.id!!, classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
                 )
             } else false
             
-            val currentlyTaughtSubjects = if (effectiveSession != null && effectiveTerm != null) {
+            val currentlyTaughtSubjects = if (staff != null && effectiveSession != null && effectiveTerm != null) {
                 subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
                     staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
                 ).filter { it.schoolClass.id == classId }.map { it.subject.id }
@@ -1683,7 +1698,7 @@ class StaffDashboardController(
             logger.info("Access Check Result - Manual Check (Requested Term): ${(isClassTeacherForRequestedTerm || subjectsTaughtInRequestedTerm.isNotEmpty())}, Current Context Check: ${(isCurrentlyClassTeacher || currentlyTaughtSubjects.isNotEmpty())}")
 
             if (!isAuthorized) {
-                logger.error("ACCESS DENIED: Staff ${staff.id} is neither a class teacher nor a subject teacher for Class $classId in requested Context (Session ${sessionEntity.id}, Term ${termEntity.id}) OR Current Context (Session ${effectiveSession?.id}, Term ${effectiveTerm?.id})")
+                logger.error("ACCESS DENIED: Staff ${staff?.id} is neither a class teacher nor a subject teacher for Class $classId in requested Context (Session ${sessionEntity.id}, Term ${termEntity.id})")
                 throw RuntimeException("Access denied to this class")
             }
         }
@@ -1734,9 +1749,10 @@ class StaffDashboardController(
                         try {
                             scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<MutableMap<String, Int?>>() {})
                             // Sync legacy variables from map if they exist for consistent DTO response
-                            scoresMap["1st CA"]?.let { ca1 = it }
-                            scoresMap["2nd CA"]?.let { ca2 = it }
-                            scoresMap["Exam"]?.let { exam = it }
+                            // Fixed: use containsKey to allow nulls (emptied scores) to correctly overwrite legacy columns
+                            if (scoresMap.containsKey("1st CA")) ca1 = scoresMap["1st CA"]
+                            if (scoresMap.containsKey("2nd CA")) ca2 = scoresMap["2nd CA"]
+                            if (scoresMap.containsKey("Exam")) exam = scoresMap["Exam"]
                         } catch (e: Exception) {
                             println("Error parsing scoresJson for subject ${cs.subject.subjectName}: ${e.message}")
                         }
@@ -1797,8 +1813,12 @@ class StaffDashboardController(
         val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID ?: throw RuntimeException("School not selected")
         val userDetails = userDetailsService.loadUserByUsername(authentication.name)
         val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+        val isAdmin = customUser.authorities.any { it.authority in listOf("ROLE_SYSTEM_ADMIN", "ROLE_SCHOOL_ADMIN", "ROLE_ADMIN", "ROLE_PRINCIPAL") }
 
-        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId) ?: throw RuntimeException("Staff record not found")
+        val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+        if (staff == null && !isAdmin) {
+            throw RuntimeException("Staff record not found")
+        }
         val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, request.session, true)
             ?: throw RuntimeException("Session not found")
         val termEntity = termRepository.findByAcademicSessionIdAndTermNameAndIsActive(sessionEntity.id!!, request.term, true)
@@ -1807,22 +1827,25 @@ class StaffDashboardController(
         // Check authorization in both requested term AND current active term (header context)
         val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
         
-        val isAdmin = customUser.authorities.any { it.authority in listOf("ROLE_SYSTEM_ADMIN", "ROLE_SCHOOL_ADMIN", "ROLE_ADMIN", "ROLE_PRINCIPAL") }
-
-        val isClassTeacherForRequested = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-            staff.id!!, request.classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
-        )
-        val isClassTeacherCurrently = if (effectiveSession != null && effectiveTerm != null) {
+        val isClassTeacherForRequested = if (staff != null) {
+            classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                staff.id!!, request.classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
+            )
+        } else false
+        
+        val isClassTeacherCurrently = if (staff != null && effectiveSession != null && effectiveTerm != null) {
             classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
                 staff.id!!, request.classId, effectiveSession.id!!, effectiveTerm.id!!, selectedSchoolId, true
             )
         } else false
 
-        val subjectsTaughtInRequested = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-            staff.id!!, sessionEntity.id!!, termEntity.id!!, true
-        ).filter { it.schoolClass.id == request.classId }.map { it.subject.id }
+        val subjectsTaughtInRequested = if (staff != null) {
+            subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                staff.id!!, sessionEntity.id!!, termEntity.id!!, true
+            ).filter { it.schoolClass.id == request.classId }.map { it.subject.id }
+        } else emptyList()
 
-        val subjectsTaughtCurrently = if (effectiveSession != null && effectiveTerm != null) {
+        val subjectsTaughtCurrently = if (staff != null && effectiveSession != null && effectiveTerm != null) {
             subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
                 staff.id!!, effectiveSession.id!!, effectiveTerm.id!!, true
             ).filter { it.schoolClass.id == request.classId }.map { it.subject.id }
