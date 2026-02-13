@@ -1732,7 +1732,7 @@ class StaffDashboardController(
                     
                     if (!ss.scoresJson.isNullOrBlank()) {
                         try {
-                            scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})
+                            scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<MutableMap<String, Int?>>() {})
                             // Sync legacy variables from map if they exist for consistent DTO response
                             scoresMap["1st CA"]?.let { ca1 = it }
                             scoresMap["2nd CA"]?.let { ca2 = it }
