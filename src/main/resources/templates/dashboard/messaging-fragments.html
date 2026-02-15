@@ -170,9 +170,15 @@
                                 <div
                                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                                     <div class="category-title" style="margin: 0;">4. Recipient Preview</div>
-                                    <span id="recipient-preview-badge"
-                                        style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Recipients:
-                                        0</span>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <button type="button" onclick="clearAllRecipients()"
+                                            style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                            Remove All
+                                        </button>
+                                        <span id="recipient-preview-badge"
+                                            style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Recipients:
+                                            0</span>
+                                    </div>
                                 </div>
                                 <div
                                     style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; height: 220px; overflow-y: auto;">

@@ -1106,13 +1106,6 @@
 
                 const parents = await response.json();
 
-                // Set recipient type to NONE to avoid mixing with other filters
-                const noneRadio = document.querySelector('input[name="recipientType"][value="NONE"]');
-                if (noneRadio) {
-                    noneRadio.checked = true;
-                    toggleAcademicFilters();
-                }
-
                 // Add each AI-found parent as a manual recipient
                 parents.forEach(p => {
                     addManualRecipient(p.id, p.name, p.phone, ['AI Found']);
@@ -1590,6 +1583,34 @@
             } catch (err) {
                 console.error("Delete error:", err);
             }
+        }
+
+        function clearAllRecipients() {
+            if (!confirm("Remove all selected recipients?")) return;
+
+            // Clear manual IDs
+            document.getElementById('manual-ids-container').innerHTML = '';
+
+            // Clear manual phones
+            document.getElementById('manual-phones-container').innerHTML = '';
+
+            // Clear exclusions
+            document.getElementById('excluded-ids-container').innerHTML = '';
+            document.getElementById('excluded-phones-container').innerHTML = '';
+
+            // Reset filters
+            const noneFilter = document.querySelector('input[name="recipientType"][value="NONE"]');
+            if (noneFilter) {
+                noneFilter.checked = true;
+                toggleAcademicFilters();
+            }
+
+            // Clear search inputs
+            document.getElementById('ai-query-input').value = '';
+            document.getElementById('recipient-search').value = '';
+            document.getElementById('unregistered-phone').value = '';
+
+            updateRecipientCount();
         }
     </script>
 </body>

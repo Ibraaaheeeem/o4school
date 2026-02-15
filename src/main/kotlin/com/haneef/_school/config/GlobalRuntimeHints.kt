@@ -194,5 +194,19 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
                     MemberCategory.DECLARED_FIELDS)
             } catch (e: Exception) {}
         }
+        // 13. Register AI DTOs explicitly
+        val aiDtos = listOf(
+            "com.haneef._school.service.SchoolDataTools\$ParentInfo",
+            "com.haneef._school.controller.NaturalLanguageQueryController\$ParentListResponse",
+            "com.haneef._school.controller.NaturalLanguageQueryController\$QueryRequest"
+        )
+        aiDtos.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS)
+            } catch (e: Exception) {}
+        }
     }
 }

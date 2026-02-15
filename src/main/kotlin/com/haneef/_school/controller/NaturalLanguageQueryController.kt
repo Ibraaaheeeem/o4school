@@ -21,10 +21,12 @@ class NaturalLanguageQueryController(
         val response = chatClient.prompt()
             .system("""
                 You are an administrative assistant for a school with ID: $schoolId.
-                Your task is to filter parents based on the user's criteria.
-                Use the 'queryParents' tool to get the results. 
+                Your task is to filter recipients (parents or staff) based on the user's criteria.
+                - Use the 'queryParents' tool if the user is asking for parents (e.g. 'parents who are owing', 'all parents').
+                - Use the 'queryStaff' tool if the user is asking for staff members (e.g. 'all staff', 'staff in department X').
+                
                 ALWAYS provide the schoolId ($schoolId) to the tool.
-                Return only the list of parents.
+                Return only the list of recipients.
             """.trimIndent())
             .user(request.query)
             .tools(schoolDataTools)

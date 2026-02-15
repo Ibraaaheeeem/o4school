@@ -12,6 +12,7 @@ import java.util.*
 @Component
 class SchoolDataTools(
     private val parentRepository: ParentRepository,
+    private val staffRepository: StaffRepository,
     private val studentRepository: StudentRepository,
     private val financialService: FinancialService,
     private val userRepository: UserRepository,
@@ -46,6 +47,34 @@ class SchoolDataTools(
                     balance = financialService.calculateParentBalance(parent)
                 )
             }
+        }
+    }
+
+    @Tool(description = "Query staff members based on criteria like department, designation, or name. Always provide the schoolId.")
+    fun queryStaff(
+        @ToolParam(description = "The criteria for filtering staff") criteria: String,
+        @ToolParam(description = "The school ID of the current school") schoolId: UUID
+    ): List<ParentInfo> {
+        val allStaff = staffRepository.findBySchoolIdAndIsActive(schoolId, true)
+        
+        // Basic filtering by criteria if provided
+        val filteredStaff = if (criteria.isNotBlank() && !criteria.contains("all", ignoreCase = true)) {
+            allStaff.filter { staff ->
+                staff.user.fullName?.contains(criteria, ignoreCase = true) == true ||
+                staff.department?.contains(criteria, ignoreCase = true) == true ||
+                staff.designation.contains(criteria, ignoreCase = true)
+            }
+        } else {
+            allStaff
+        }
+
+        return filteredStaff.map { staff ->
+            ParentInfo(
+                id = staff.user.id!!,
+                name = staff.user.fullName ?: "Unknown",
+                phone = staff.user.phoneNumber ?: "N/A",
+                balance = BigDecimal.ZERO
+            )
         }
     }
 
