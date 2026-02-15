@@ -3,9 +3,7 @@ FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
 # Install build essentials and dependencies
 # We need findutils for xargs which gradlew uses
-RUN microdnf remove -y glibc-static && \
-    microdnf update -y && \
-    microdnf install -y findutils tar gzip gcc zlib-devel glibc-static
+RUN microdnf install -y --allowerasing --best findutils tar gzip gcc zlib-devel
 ENV CI=true
 
 WORKDIR /app
