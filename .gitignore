@@ -50,6 +50,7 @@ out/
 
 # Logs
 *.log
+*.pid
 logs/
 
 # OS specific

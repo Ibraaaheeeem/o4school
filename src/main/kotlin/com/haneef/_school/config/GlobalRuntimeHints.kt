@@ -176,5 +176,22 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
         serializableTypes.forEach {
             hints.serialization().registerType(it)
         }
+
+        // 12. Register Flyway Internals for Native Image
+        val flywayClasses = listOf(
+            "org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType",
+            "org.flywaydb.core.internal.database.postgresql.PostgreSQLConnection",
+            "org.flywaydb.core.api.configuration.FluentConfiguration",
+            "org.flywaydb.core.Flyway",
+            "org.flywaydb.database.postgresql.PostgreSQLDatabaseType"
+        )
+        flywayClasses.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS)
+            } catch (e: Exception) {}
+        }
     }
 }

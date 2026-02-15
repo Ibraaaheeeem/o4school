@@ -277,6 +277,8 @@ class AssessmentReportController(
                 // If termId is provided, use it directly
                 val enrollments = if (termId != null) {
                     println("DEBUG: Filter endpoint - Fetching for Term ID: $termId")
+                    session.setAttribute("selectedTermId", termId)
+                    session.setAttribute("selectedSessionId", sessionEntity.id)
                     studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
                         classId, sessionEntity.id!!, termId, true
                     ).filter { it.schoolId == selectedSchoolId }
@@ -288,6 +290,8 @@ class AssessmentReportController(
                     
                     if (termEntity != null) {
                         println("DEBUG: Filter endpoint - Fetching for Term: ${termEntity.termName}")
+                        session.setAttribute("selectedTermId", termEntity.id)
+                        session.setAttribute("selectedSessionId", sessionEntity.id)
                         studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
                             classId, sessionEntity.id!!, termEntity.id!!, true
                         ).filter { it.schoolId == selectedSchoolId }
@@ -522,6 +526,8 @@ class AssessmentReportController(
         @RequestParam classId: UUID,
         @RequestParam(required = false) sessionId: UUID?,
         @RequestParam(required = false) termId: UUID?,
+        @RequestParam(required = false) session: String?,
+        @RequestParam(required = false) term: String?,
         session_http: HttpSession
     ): AssessmentReportData {
         val selectedSchoolId = authorizationService.validateSchoolAccess(
@@ -530,7 +536,11 @@ class AssessmentReportController(
 
         // Resolve Effective Session
         val sessionAttributeId = session_http.getAttribute("selectedSessionId") as? UUID
-        var resolvedSessionId = sessionId ?: sessionAttributeId
+        var resolvedSessionId = sessionId 
+            ?: if (!session.isNullOrBlank()) {
+                academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, session, true)?.id
+            } else null
+            ?: sessionAttributeId
         
         // Fallback to active current session logic (reused)
         if (resolvedSessionId == null) {
@@ -540,7 +550,11 @@ class AssessmentReportController(
         
         // Resolve Effective Term
         val termAttributeId = session_http.getAttribute("selectedTermId") as? UUID
-        var resolvedTermId = termId ?: termAttributeId
+        var resolvedTermId = termId 
+            ?: if (resolvedSessionId != null && !term.isNullOrBlank()) {
+                termRepository.findByAcademicSessionIdAndTermNameAndIsActive(resolvedSessionId!!, term, true).map { it.id }.orElse(null)
+            } else null
+            ?: termAttributeId
         
         // Fallback Term logic
          if (resolvedTermId == null && resolvedSessionId != null) {
@@ -607,9 +621,15 @@ class AssessmentReportController(
                         try {
                             scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})
                             // Sync legacy variables from map if they exist for consistent DTO response
-                            scoresMap["1st CA"]?.let { ca1 = it }
-                            scoresMap["2nd CA"]?.let { ca2 = it }
-                            scoresMap["Exam"]?.let { exam = it }
+                            scoresMap.forEach { (key, value) ->
+                                if (value != null) {
+                                    when (key.lowercase()) {
+                                        "ca 1", "ca1", "1st ca", "1st continuous assessment", "ca" -> ca1 = value
+                                        "ca 2", "ca2", "2nd ca", "2nd continuous assessment" -> ca2 = value
+                                        "exam", "examination", "exam score" -> exam = value
+                                    }
+                                }
+                            }
                         } catch (e: Exception) {
                             println("Error parsing scoresJson for subject ${cs.subject.subjectName}: ${e.message}")
                         }
@@ -905,9 +925,15 @@ class AssessmentReportController(
             }
 
             // Sync legacy columns for backward compatibility
-            scoreInput.scores["1st CA"]?.let { subjectScore.ca1Score = it }
-            scoreInput.scores["2nd CA"]?.let { subjectScore.ca2Score = it }
-            scoreInput.scores["Exam"]?.let { subjectScore.examScore = it }
+            scoreInput.scores.forEach { (key, value) ->
+                if (value != null) {
+                    when (key.lowercase()) {
+                        "ca 1", "ca1", "1st ca", "1st continuous assessment", "ca" -> subjectScore.ca1Score = value
+                        "ca 2", "ca2", "2nd ca", "2nd continuous assessment" -> subjectScore.ca2Score = value
+                        "exam", "examination", "exam score" -> subjectScore.examScore = value
+                    }
+                }
+            }
             
             // Calculate grade only if there are entered scores
             val total = subjectScore.totalScore

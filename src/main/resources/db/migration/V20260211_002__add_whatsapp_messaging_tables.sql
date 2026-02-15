@@ -7,11 +7,13 @@ CREATE TABLE IF NOT EXISTS whatsapp_messages (
     meta_message_id VARCHAR(255),
     user_id UUID REFERENCES users(id),
     school_id UUID REFERENCES schools(id),
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE INDEX idx_whatsapp_messages_phone ON whatsapp_messages(recipient_phone);
-CREATE INDEX idx_whatsapp_messages_school ON whatsapp_messages(school_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_phone ON whatsapp_messages(recipient_phone);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_school ON whatsapp_messages(school_id);
 
 CREATE TABLE IF NOT EXISTS fee_reminder_schedules (
     id UUID PRIMARY KEY,
@@ -19,7 +21,8 @@ CREATE TABLE IF NOT EXISTS fee_reminder_schedules (
     frequency VARCHAR(20) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     last_run_at TIMESTAMP WITHOUT TIME ZONE,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_fee_reminder_school ON fee_reminder_schedules(school_id);
+CREATE INDEX IF NOT EXISTS idx_fee_reminder_school ON fee_reminder_schedules(school_id);
