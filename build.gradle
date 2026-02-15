@@ -28,7 +28,7 @@ graalvmNative {
             // Increase memory for native image build to prevent OOM (Exit code 99)
             // Dynamic memory allocation: 10GB for local (16GB RAM), 6GB for CI (Standard GitHub Runners have 7GB)
             def isCi = System.getenv('CI') != null
-            def memory = isCi ? '6G' : '10G'
+            def memory = isCi ? '10G' : '10G'
             buildArgs.add("-J-Xmx${memory}")
             
             // Ensure headless mode is set
