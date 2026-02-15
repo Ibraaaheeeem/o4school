@@ -91,12 +91,6 @@ dependencies {
 
 dependencyManagement {
 	imports {
-		maven {
-			url "https://repo.spring.io/milestone"
-		}
-		maven {
-			url "https://repo.spring.io/snapshot"
-		}
 		mavenBom "org.springframework.ai:spring-ai-bom:1.0.0-SNAPSHOT"
 	}
 }
