@@ -15,7 +15,8 @@ class BroadcastService(
     private val studentRepository: StudentRepository,
     private val financialService: FinancialService,
     private val classTeacherRepository: ClassTeacherRepository,
-    private val subjectTeacherRepository: SubjectTeacherRepository
+    private val subjectTeacherRepository: SubjectTeacherRepository,
+    private val userRepository: UserRepository
 ) {
 
     fun getDetailedRecipients(filter: BroadcastRecipientFilter, schoolId: UUID): List<BroadcastRecipientDTO> {
@@ -28,6 +29,10 @@ class BroadcastService(
 
         if (filter.recipientType == "ALL" || filter.recipientType == "PARENTS") {
             recipients.addAll(getParentDetailed(filter, schoolId))
+        }
+
+        if (filter.recipientType == "STUDENTS") {
+            recipients.addAll(getStudentDetailed(filter, schoolId))
         }
 
         // 2. Manual Recipients (if not already included)
@@ -43,6 +48,10 @@ class BroadcastService(
                 // Check Parents
                 parentRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { parent ->
                     recipients.add(parent.toDTO())
+                }
+                // Check Students
+                studentRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { student ->
+                    recipients.add(student.toDTO())
                 }
             }
         }
@@ -79,13 +88,9 @@ class BroadcastService(
         parentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
             .forEach { results.add(it.toDTO()) }
 
-        // Search Students (to find their parents)
+        // Search Students
         studentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
-            .forEach { student ->
-                student.parentRelationships.map { it.parent }.forEach { parent ->
-                    results.add(parent.toDTO())
-                }
-            }
+            .forEach { results.add(it.toDTO()) }
 
         return results.distinctBy { it.userId }
     }
@@ -164,6 +169,31 @@ class BroadcastService(
         }.map { it.toDTO() }
     }
 
+    private fun getStudentDetailed(filter: BroadcastRecipientFilter, schoolId: UUID): List<BroadcastRecipientDTO> {
+        val students = studentRepository.findBySchoolIdAndIsActive(schoolId, true)
+        
+        return students.filter { student ->
+            val matchesClass = if (filter.classIds.isNotEmpty()) {
+                student.classEnrollments.any { it.isActive && it.schoolClass.id in filter.classIds }
+            } else true
+
+            val matchesTrack = if (filter.trackIds.isNotEmpty()) {
+                student.classEnrollments.any { it.isActive && it.schoolClass.track?.id in filter.trackIds }
+            } else true
+
+            val matchesGender = if (filter.studentGender != "ANY") {
+                student.user.gender == filter.studentGender
+            } else true
+
+            val matchesStatus = if (filter.studentStatus != "ANY") {
+                val isNewTarget = filter.studentStatus == "NEW"
+                student.isNew == isNewTarget
+            } else true
+
+            matchesClass && matchesTrack && matchesGender && matchesStatus
+        }.map { it.toDTO() }
+    }
+
     private fun Staff.toDTO(): BroadcastRecipientDTO {
         val roles = mutableListOf("Staff")
         if (this.classTeacherAssignments.isNotEmpty()) roles.add("Class Teacher")
@@ -185,6 +215,16 @@ class BroadcastService(
             phoneNumber = this.user.phoneNumber,
             roles = listOf("Parent"),
             type = "PARENT"
+        )
+    }
+
+    private fun Student.toDTO(): BroadcastRecipientDTO {
+        return BroadcastRecipientDTO(
+            userId = this.user.id!!,
+            name = "${this.user.firstName} ${this.user.lastName}",
+            phoneNumber = this.user.phoneNumber,
+            roles = listOf("Student"),
+            type = "STUDENT"
         )
     }
 }

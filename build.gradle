@@ -28,7 +28,7 @@ graalvmNative {
             // Increase memory for native image build to prevent OOM (Exit code 99)
             // Dynamic memory allocation: 10GB for local (16GB RAM), 6GB for CI (Standard GitHub Runners have 7GB)
             def isCi = System.getenv('CI') != null
-            def memory = isCi ? '6G' : '10G'
+            def memory = isCi ? '10G' : '10G'
             buildArgs.add("-J-Xmx${memory}")
             
             // Ensure headless mode is set
@@ -48,6 +48,7 @@ configurations {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
 }
 
 dependencies {
@@ -72,21 +73,18 @@ dependencies {
 	implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
 	implementation 'com.bucket4j:bucket4j-core:8.10.1'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
-	implementation 'org.springframework.ai:spring-ai-starter-mcp-client'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
+	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'
-	testImplementation 'org.springframework.boot:spring-ai-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testRuntimeOnly 'com.h2database:h2'
-	
 }
+
 
 dependencyManagement {
 	imports {

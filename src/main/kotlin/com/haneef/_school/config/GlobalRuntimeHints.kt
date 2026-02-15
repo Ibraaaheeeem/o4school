@@ -196,8 +196,8 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
         }
         // 13. Register AI DTOs explicitly
         val aiDtos = listOf(
-            "com.haneef._school.service.SchoolDataTools\$ParentInfo",
-            "com.haneef._school.controller.NaturalLanguageQueryController\$ParentListResponse",
+            "com.haneef._school.service.SchoolDataTools\$RecipientInfo",
+            "com.haneef._school.controller.NaturalLanguageQueryController\$RecipientListResponse",
             "com.haneef._school.controller.NaturalLanguageQueryController\$QueryRequest"
         )
         aiDtos.forEach { className ->

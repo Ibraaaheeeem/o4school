@@ -41,7 +41,7 @@ RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
     sed -i '/org.gradle.caching/d' gradle.properties
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
 
-RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache -Dorg.gradle.jvmargs=-Xmx1G -Dkotlin.daemon.jvmargs=-Xmx1G
+RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache -Dorg.gradle.jvmargs=-Xmx2G -Dkotlin.daemon.jvmargs=-Xmx1G
 
 FROM debian:12-slim
 WORKDIR /app

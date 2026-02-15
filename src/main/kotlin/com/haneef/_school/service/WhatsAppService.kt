@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
+import org.springframework.ai.chat.client.ChatClient
 import java.util.*
 
 @Service
@@ -27,7 +28,7 @@ class WhatsAppService(
     private val userRepository: UserRepository,
     private val templateRepository: WhatsAppTemplateRepository,
     private val objectMapper: ObjectMapper,
-    private val chatClient: org.springframework.ai.chat.client.ChatClient,
+    private val chatClient: ChatClient,
     private val schoolDataTools: SchoolDataTools,
     private val userSchoolRoleRepository: UserSchoolRoleRepository
 ) {
@@ -254,7 +255,21 @@ class WhatsAppService(
 
         try {
             val response = chatClient.prompt()
-                .system("You are a helpful school assistant for $schoolName. You can provide information about students, parents, and financial status. Use the provided tools to fetch real data. The user is ${user.fullName}.")
+                .system("""
+                    You are a helpful school assistant for $schoolName. 
+                    You are chatting with ${user.fullName} (phone: $from).
+                    Always provide the schoolId ($schoolId) to tools.
+                    
+                    AVAILABLE TOOLS:
+                    - Use 'getChildAcademicDetails' if the user asks about their children's progress, grades, subjects, or attendance. Pass parentUserId = ${user.id}.
+                    - Use 'getParentFinancialSummary' if the user asks about their fees, payments, or balance. Pass parentUserId = ${user.id}.
+                    - Use 'getSchoolInfo' if the user asks for the class timetable, school calendar, or upcoming events.
+                    - Use 'getStudentInfo' if searching for a specific student's basic details.
+                    
+                    SECURITY: You can ONLY provide academic and financial details for the user's OWN children. The tools handle this check internally if you pass the correct parentUserId.
+                    
+                    TONE: Be professional, supportive, and clear.
+                """.trimIndent())
                 .user(text)
                 .tools(schoolDataTools)
                 .call()

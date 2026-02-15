@@ -14,16 +14,19 @@ class NaturalLanguageQueryController(
 
     @PostMapping("/parents")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN')")
-    fun queryParents(@RequestBody request: QueryRequest, session: jakarta.servlet.http.HttpSession): List<SchoolDataTools.ParentInfo> {
+    fun queryParents(@RequestBody request: QueryRequest, session: jakarta.servlet.http.HttpSession): List<SchoolDataTools.RecipientInfo> {
         val schoolId = session.getAttribute("selectedSchoolId") as? java.util.UUID 
             ?: throw IllegalStateException("No school selected")
 
         val response = chatClient.prompt()
             .system("""
                 You are an administrative assistant for a school with ID: $schoolId.
-                Your task is to filter recipients (parents or staff) based on the user's criteria.
-                - Use the 'queryParents' tool if the user is asking for parents (e.g. 'parents who are owing', 'all parents').
-                - Use the 'queryStaff' tool if the user is asking for staff members (e.g. 'all staff', 'staff in department X').
+                Your task is to filter recipients (parents, staff, or students) based on the user's criteria.
+                
+                CAPABILITIES:
+                - Use 'queryParents' for parents. You can now filter by debt (e.g. 'owing > 50k'), paid amount, children's class, age, gender, or new/old status.
+                - Use 'queryStaff' for staff. You can filter by track, classes/subjects taught, role (Class/Subject teacher), or recruitment year (e.g. 'joined after 2023').
+                - Use 'queryStudents' for students.
                 
                 ALWAYS provide the schoolId ($schoolId) to the tool.
                 Return only the list of recipients.
@@ -31,11 +34,11 @@ class NaturalLanguageQueryController(
             .user(request.query)
             .tools(schoolDataTools)
             .call()
-            .entity(ParentListResponse::class.java)
+            .entity(RecipientListResponse::class.java)
 
-        return response?.parents ?: emptyList()
+        return response?.recipients ?: emptyList()
     }
 
     data class QueryRequest(val query: String)
-    data class ParentListResponse(val parents: List<SchoolDataTools.ParentInfo>)
+    data class RecipientListResponse(val recipients: List<SchoolDataTools.RecipientInfo>)
 }
