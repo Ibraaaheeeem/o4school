@@ -25,7 +25,8 @@ class SchoolDataTools(
     private val attendanceRepository: AttendanceRepository,
     private val subjectRepository: SubjectRepository,
     private val assessmentRepository: AssessmentRepository,
-    private val subjectScoreRepository: SubjectScoreRepository
+    private val subjectScoreRepository: SubjectScoreRepository,
+    private val schoolClassRepository: SchoolClassRepository
 ) {
 
     @Tool(description = "Query parents based on complex criteria like owing/paid amounts, children details (class, age, gender, status). Always provide the schoolId.")
@@ -72,28 +73,34 @@ class SchoolDataTools(
                 }
             }
 
-            if (criteria.contains("class", ignoreCase = true)) {
+            val classes = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
+            val mentionedClasses = classes.filter { criteria.contains(it.className, ignoreCase = true) }
+            
+            if (mentionedClasses.isNotEmpty() || criteria.contains("class", ignoreCase = true)) {
                 val childrenClasses = parent.studentRelationships.mapNotNull { rel ->
                     rel.student.classEnrollments.find { it.isActive }?.schoolClass?.className
                 }
-                // Check if any of the classes mentioned in criteria match
-                matches = matches && childrenClasses.any { className -> criteria.contains(className, ignoreCase = true) }
+                if (mentionedClasses.isNotEmpty()) {
+                    matches = matches && childrenClasses.any { className -> mentionedClasses.any { it.className.equals(className, ignoreCase = true) } }
+                } else if (criteria.contains("class", ignoreCase = true)) {
+                    // Check if any of the classes mentioned in criteria match (legacy behavior if 'class' is used but no specific name found yet)
+                    matches = matches && childrenClasses.any { className -> criteria.contains(className, ignoreCase = true) }
+                }
             }
 
             if (criteria.contains("new", ignoreCase = true)) {
-                matches = matches && parent.studentRelationships.any { it.student.isNew }
+                matches = matches && parent.studentRelationships.filter { it.isActive }.any { it.student.isActive && it.student.isNew }
             }
 
             if (criteria.contains("old", ignoreCase = true) || criteria.contains("returning", ignoreCase = true)) {
-                matches = matches && parent.studentRelationships.any { !it.student.isNew }
+                matches = matches && parent.studentRelationships.filter { it.isActive }.any { it.student.isActive && !it.student.isNew }
             }
 
             if (criteria.contains("gender", ignoreCase = true) || criteria.contains("boy", ignoreCase = true) || criteria.contains("girl", ignoreCase = true) || criteria.contains("male", ignoreCase = true) || criteria.contains("female", ignoreCase = true)) {
                 val isBoy = criteria.contains("boy", ignoreCase = true) || criteria.contains("male", ignoreCase = true)
                 val isGirl = criteria.contains("girl", ignoreCase = true) || criteria.contains("female", ignoreCase = true)
-                matches = matches && parent.studentRelationships.any { 
-                    (isBoy && it.student.user.gender == "MALE") || 
-                    (isGirl && it.student.user.gender == "FEMALE") 
+                matches = matches && parent.studentRelationships.filter { it.isActive }.any { 
+                    it.student.isActive && ( (isBoy && it.student.user.gender == "MALE") || (isGirl && it.student.user.gender == "FEMALE") )
                 }
             }
 
@@ -102,8 +109,8 @@ class SchoolDataTools(
                 val ageMatch = Regex("""(\d+)""").find(criteria)
                 if (ageMatch != null) {
                     val ageTarget = ageMatch.value.toInt()
-                    matches = matches && parent.studentRelationships.any { rel ->
-                        rel.student.dateOfBirth?.let { dob ->
+                    matches = matches && parent.studentRelationships.filter { it.isActive }.any { rel ->
+                        rel.student.isActive && rel.student.dateOfBirth?.let { dob ->
                             val age = LocalDate.now().year - dob.year
                             if (criteria.contains("above", ignoreCase = true) || criteria.contains("more than", ignoreCase = true)) age > ageTarget
                             else if (criteria.contains("below", ignoreCase = true) || criteria.contains("less than", ignoreCase = true)) age < ageTarget
@@ -134,15 +141,23 @@ class SchoolDataTools(
         val filteredStaff = allStaff.filter { staff ->
             var matches = true
             
-            if (criteria.contains("class", ignoreCase = true) || criteria.contains("teach", ignoreCase = true)) {
-                val assignedClasses = (staff.classTeacherAssignments.map { it.schoolClass.className } + 
-                                       staff.subjectTeacherAssignments.map { it.schoolClass.className }).distinct()
-                val classMatch = assignedClasses.any { className -> criteria.contains(className, ignoreCase = true) }
-                if (assignedClasses.isNotEmpty()) matches = matches && classMatch
+            val classes = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
+            val mentionedClasses = classes.filter { criteria.contains(it.className, ignoreCase = true) }
+
+            if (mentionedClasses.isNotEmpty() || criteria.contains("class", ignoreCase = true) || criteria.contains("teach", ignoreCase = true)) {
+                val assignedClasses = (staff.classTeacherAssignments.filter { it.isActive }.map { it.schoolClass.className } + 
+                                       staff.subjectTeacherAssignments.filter { it.isActive }.map { it.schoolClass.className }).distinct()
+                
+                if (mentionedClasses.isNotEmpty()) {
+                    matches = matches && assignedClasses.any { className -> mentionedClasses.any { it.className.equals(className, ignoreCase = true) } }
+                } else {
+                    val classMatch = assignedClasses.any { className -> criteria.contains(className, ignoreCase = true) }
+                    if (assignedClasses.isNotEmpty()) matches = matches && classMatch
+                }
             }
 
             if (criteria.contains("subject", ignoreCase = true) || criteria.contains("teacher", ignoreCase = true)) {
-                val assignedSubjects = staff.subjectTeacherAssignments.map { it.subject.subjectName }.distinct()
+                val assignedSubjects = staff.subjectTeacherAssignments.filter { it.isActive }.map { it.subject.subjectName }.distinct()
                 val subjectMatch = assignedSubjects.any { subjectName -> criteria.contains(subjectName, ignoreCase = true) }
                 if (assignedSubjects.isNotEmpty() && !criteria.contains("all staff", ignoreCase = true)) {
                     matches = matches && subjectMatch
@@ -150,8 +165,8 @@ class SchoolDataTools(
             }
 
             if (criteria.contains("track", ignoreCase = true)) {
-                val assignedTracks: List<String> = (staff.classTeacherAssignments.mapNotNull { it.schoolClass.track?.name } + 
-                                                   staff.subjectTeacherAssignments.mapNotNull { it.schoolClass.track?.name }).distinct()
+                val assignedTracks: List<String> = (staff.classTeacherAssignments.filter { it.isActive }.mapNotNull { it.schoolClass.track?.name } + 
+                                                   staff.subjectTeacherAssignments.filter { it.isActive }.mapNotNull { it.schoolClass.track?.name }).distinct()
                 val trackMatch = assignedTracks.any { trackName -> criteria.contains(trackName, ignoreCase = true) }
                 if (assignedTracks.isNotEmpty()) matches = matches && trackMatch
             }
@@ -210,9 +225,10 @@ class SchoolDataTools(
         @ToolParam(description = "The school ID") schoolId: UUID
     ): String {
         val parent = parentRepository.findByUserIdAndSchoolId(parentUserId, schoolId)
+            ?.takeIf { it.isActive }
             ?: return "I couldn't find your parent profile. Please contact the school office."
         
-        val activeChildren = parent.studentRelationships.map { it.student }.filter { it.isActive }
+        val activeChildren = parent.studentRelationships.filter { it.isActive }.map { it.student }.filter { it.isActive }
         if (activeChildren.isEmpty()) return "You don't have any active students currently enrolled."
 
         val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
@@ -289,6 +305,7 @@ class SchoolDataTools(
         @ToolParam(description = "The school ID") schoolId: UUID
     ): String {
         val parent = parentRepository.findByUserIdAndSchoolId(parentUserId, schoolId)
+            ?.takeIf { it.isActive }
             ?: return "I couldn't find your parent profile. Please contact the school office."
 
         val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
@@ -378,10 +395,17 @@ class SchoolDataTools(
         return allStudents.filter { student ->
             var matches = true
             
-            if (criteria.contains("class", ignoreCase = true)) {
+            val classes = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
+            val mentionedClasses = classes.filter { criteria.contains(it.className, ignoreCase = true) }
+
+            if (mentionedClasses.isNotEmpty() || criteria.contains("class", ignoreCase = true)) {
                 val studentClasses = student.classEnrollments.filter { it.isActive }.map { it.schoolClass.className }
-                val classMatch = studentClasses.any { className -> criteria.contains(className, ignoreCase = true) }
-                if (studentClasses.isNotEmpty()) matches = matches && classMatch
+                if (mentionedClasses.isNotEmpty()) {
+                    matches = matches && studentClasses.any { className -> mentionedClasses.any { it.className.equals(className, ignoreCase = true) } }
+                } else {
+                    val classMatch = studentClasses.any { className -> criteria.contains(className, ignoreCase = true) }
+                    if (studentClasses.isNotEmpty()) matches = matches && classMatch
+                }
             }
 
             if (criteria.contains("new", ignoreCase = true)) {
