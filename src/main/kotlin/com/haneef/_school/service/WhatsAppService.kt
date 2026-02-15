@@ -24,7 +24,10 @@ class WhatsAppService(
     private val schoolRepository: SchoolRepository,
     private val userRepository: UserRepository,
     private val templateRepository: WhatsAppTemplateRepository,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val chatClient: org.springframework.ai.chat.client.ChatClient,
+    private val schoolDataTools: SchoolDataTools,
+    private val userSchoolRoleRepository: UserSchoolRoleRepository
 ) {
     private val restTemplate = RestTemplate()
 
@@ -153,6 +156,11 @@ class WhatsAppService(
                         school = user?.getSchools()?.firstOrNull()?.let { schoolRepository.findById(it).orElse(null) }
                     )
                     messageRepository.save(incoming)
+
+                    // 1.5 Handle AI Query if it's a text message
+                    if (text.isNotBlank()) {
+                        handleAiQuery(from, text)
+                    }
                 }
 
                 // 2. Handle Status Updates
@@ -222,5 +230,34 @@ class WhatsAppService(
             school = school
         )
         messageRepository.save(message)
+    }
+
+    fun handleAiQuery(from: String, text: String) {
+        val user = findUserByPhone(from) ?: run {
+            sendTextMessage(from, "Sorry, your phone number is not linked to any account in our system. Please contact your school administrator.")
+            return
+        }
+        
+        val roles = userSchoolRoleRepository.findByUserAndIsActive(user, true)
+        if (roles.isEmpty()) {
+            sendTextMessage(from, "Sorry, you don't have permission to query school data. Please contact your school administrator.")
+            return
+        }
+
+        val schoolName = roles.firstOrNull()?.let { schoolRepository.findById(it.schoolId!!).orElse(null)?.name } ?: "the school"
+
+        try {
+            val response = chatClient.prompt()
+                .system("You are a helpful school assistant for $schoolName. You can provide information about students, parents, and financial status. Use the provided tools to fetch real data. The user is ${user.fullName}.")
+                .user(text)
+                .functions("queryParents", "getFinancialStatus", "getStudentInfo")
+                .call()
+                .content()
+
+            sendTextMessage(from, response ?: "I'm sorry, I couldn't find any information for that query.")
+        } catch (e: Exception) {
+            println("AI Query Error: ${e.message}")
+            sendTextMessage(from, "I'm sorry, I'm having trouble processing your request right now. ${e.message}")
+        }
     }
 }

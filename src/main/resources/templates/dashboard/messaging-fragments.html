@@ -16,6 +16,30 @@
 
                 <!-- Modal Body (Scrollable) -->
                 <div class="modal-body-scroll">
+                    <!-- AI Smart Filter Section -->
+                    <div class="category-group"
+                        style="margin-bottom: 2rem; background: #fdf2f8; padding: 1.5rem; border-radius: 20px; border: 1px solid #fbcfe8;">
+                        <div class="category-title"
+                            style="color: #be185d; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            AI Smart Filter
+                        </div>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <input type="text" id="ai-query-input" class="chat-input"
+                                style="flex: 1; border: 1px solid #f9a8d4; border-radius: 12px; height: 44px; background: #fff;"
+                                placeholder="e.g. 'parents who are owing' or 'staff in JSS1'">
+                            <button type="button" class="broadcast-pill" onclick="applyAiFilter()"
+                                style="background: #db2777; color: white; border: none; height: 44px; padding: 0 1.5rem; font-weight: 700;">
+                                Apply AI Magic
+                            </button>
+                        </div>
+                        <p style="font-size: 0.75rem; color: #db2777; margin: 0.5rem 0 0 0.25rem;">Type your criteria
+                            naturally and the AI will find the recipients for you.</p>
+                    </div>
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                         <!-- Left Column: Recipient Selection & Type -->
                         <div style="display: flex; flex-direction: column; gap: 1.5rem;">

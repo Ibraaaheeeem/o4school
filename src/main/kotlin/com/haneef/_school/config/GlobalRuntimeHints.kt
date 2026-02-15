@@ -183,7 +183,8 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
             "org.flywaydb.core.internal.database.postgresql.PostgreSQLConnection",
             "org.flywaydb.core.api.configuration.FluentConfiguration",
             "org.flywaydb.core.Flyway",
-            "org.flywaydb.database.postgresql.PostgreSQLDatabaseType"
+            "org.flywaydb.database.postgresql.PostgreSQLDatabaseType",
+            "org.flywaydb.core.internal.configuration.extensions.DeployScriptFilenameConfigurationExtension"
         )
         flywayClasses.forEach { className ->
             try {

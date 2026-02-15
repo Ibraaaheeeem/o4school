@@ -1076,6 +1076,60 @@
             }
         }
 
+        async function applyAiFilter() {
+            const queryInput = document.getElementById('ai-query-input');
+            const query = queryInput.value.trim();
+            if (!query) {
+                alert("Please enter a filter criteria first.");
+                return;
+            }
+
+            const btn = event.currentTarget;
+            const originalText = btn.innerText;
+            btn.innerText = 'AI is thinking...';
+            btn.disabled = true;
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await fetch('/api/admin/query/parents', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) throw new Error("AI search failed. Ensure your Gemini API Key is configured.");
+
+                const parents = await response.json();
+
+                // Set recipient type to NONE to avoid mixing with other filters
+                const noneRadio = document.querySelector('input[name="recipientType"][value="NONE"]');
+                if (noneRadio) {
+                    noneRadio.checked = true;
+                    toggleAcademicFilters();
+                }
+
+                // Add each AI-found parent as a manual recipient
+                parents.forEach(p => {
+                    addManualRecipient(p.id, p.name, p.phone, ['AI Found']);
+                });
+
+                queryInput.value = '';
+                alert(`AI found and added ${parents.length} recipients.`);
+
+            } catch (err) {
+                console.error("AI filter error:", err);
+                alert("AI Filter Error: " + err.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
         function addExclusion(userId, phone) {
             if (userId && userId !== 'null') {
                 const container = document.getElementById('excluded-ids-container');

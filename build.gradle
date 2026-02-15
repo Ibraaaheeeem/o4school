@@ -48,6 +48,8 @@ configurations {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+	maven { url 'https://repo.spring.io/snapshot' }
 }
 
 dependencies {
@@ -72,15 +74,31 @@ dependencies {
 	implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
 	implementation 'com.bucket4j:bucket4j-core:8.10.1'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation 'org.springframework.ai:spring-ai-google-ai-spring-boot-starter'
+	implementation 'org.springframework.ai:spring-ai-mcp-spring-boot-starter'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'
+	testImplementation 'org.springframework.boot:spring-ai-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testRuntimeOnly 'com.h2database:h2'
+}
+
+dependencyManagement {
+	imports {
+		maven {
+			url "https://repo.spring.io/milestone"
+		}
+		maven {
+			url "https://repo.spring.io/snapshot"
+		}
+		mavenBom "org.springframework.ai:spring-ai-bom:1.0.0-SNAPSHOT"
+	}
 }
 
 kotlin {
