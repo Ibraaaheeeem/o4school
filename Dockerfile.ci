@@ -3,7 +3,7 @@ FROM ghcr.io/graalvm/native-image-community:21-muslib AS builder
 
 # Install build essentials and dependencies
 # We need findutils for xargs which gradlew uses
-RUN microdnf install -y findutils tar gzip gcc zlib-devel glibc-static
+RUN microdnf install -y findutils
 ENV CI=true
 
 WORKDIR /app
