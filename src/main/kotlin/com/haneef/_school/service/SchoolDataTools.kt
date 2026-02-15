@@ -3,6 +3,7 @@ package com.haneef._school.service
 import com.haneef._school.repository.*
 import com.haneef._school.entity.*
 import org.springframework.ai.tool.annotation.Tool
+import org.springframework.ai.tool.annotation.ToolParam
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -17,9 +18,12 @@ class SchoolDataTools(
     private val schoolRepository: SchoolRepository
 ) {
 
-    @Tool(description = "Query parents based on criteria like owing fees, student status, or name")
-    fun queryParents(criteria: String): List<ParentInfo> {
-        val allParents = parentRepository.findAll()
+    @Tool(description = "Query parents based on criteria like owing fees, student status, or name. Always provide the schoolId.")
+    fun queryParents(
+        @ToolParam(description = "The criteria for filtering parents") criteria: String,
+        @ToolParam(description = "The school ID of the current school") schoolId: UUID
+    ): List<ParentInfo> {
+        val allParents = parentRepository.findBySchoolIdAndIsActive(schoolId, true)
         
         return if (criteria.contains("owing", ignoreCase = true)) {
             allParents.filter { parent ->
@@ -27,72 +31,53 @@ class SchoolDataTools(
                 balance > BigDecimal.ZERO
             }.map { parent ->
                 ParentInfo(
-                    parent.id!!, 
-                    parent.user.fullName, 
-                    parent.user.phoneNumber ?: "N/A", 
-                    financialService.calculateParentBalance(parent)
-                )
-            }
-        } else if (criteria.contains("new", ignoreCase = true)) {
-            val thirtyDaysAgo = LocalDateTime.now().minusDays(30)
-            val students = studentRepository.findAll()
-            val newParentIds = students.filter { it.createdAt.isAfter(thirtyDaysAgo) }
-                .flatMap { it.parentRelationships.map { rel -> rel.parent.id } }
-                .toSet()
-            
-            allParents.filter { it.id in newParentIds }.map { parent ->
-                ParentInfo(
-                    parent.id!!, 
-                    parent.user.fullName, 
-                    parent.user.phoneNumber ?: "N/A", 
-                    financialService.calculateParentBalance(parent)
+                    id = parent.user.id!!, 
+                    name = parent.user.fullName ?: "Unknown",
+                    phone = parent.user.phoneNumber ?: "N/A",
+                    balance = financialService.calculateParentBalance(parent)
                 )
             }
         } else {
-            // General search by name if no specific criteria matches
-            allParents.filter { it.user.fullName.contains(criteria, ignoreCase = true) }
-                .map { parent ->
-                    ParentInfo(
-                        parent.id!!, 
-                        parent.user.fullName, 
-                        parent.user.phoneNumber ?: "N/A", 
-                        financialService.calculateParentBalance(parent)
-                    )
-                }
+            allParents.map { parent ->
+                ParentInfo(
+                    id = parent.user.id!!,
+                    name = parent.user.fullName ?: "Unknown",
+                    phone = parent.user.phoneNumber ?: "N/A",
+                    balance = financialService.calculateParentBalance(parent)
+                )
+            }
         }
     }
 
-    @Tool(description = "Get detailed financial status for a parent")
-    fun getFinancialStatus(parentId: String): ParentFinancialStatus {
-        val parentIdUuid = UUID.fromString(parentId)
-        val parent = parentRepository.findById(parentIdUuid).orElseThrow { RuntimeException("Parent not found") }
-        val balance = financialService.calculateParentBalance(parent)
-        val breakdown = financialService.getFeeBreakdown(parent)
+    @Tool(description = "Get detailed financial status for a parent. Always provide the schoolId.")
+    fun getFinancialStatus(
+        @ToolParam(description = "The parent name or ID") parentName: String,
+        @ToolParam(description = "The school ID of the current school") schoolId: UUID
+    ): String {
+        val parents = parentRepository.findBySchoolIdAndIsActive(schoolId, true)
+            .filter { it.user.fullName?.contains(parentName, ignoreCase = true) == true }
         
-        return ParentFinancialStatus(
-            parentName = parent.user.fullName,
-            totalBalance = balance,
-            breakdown = breakdown.toString()
-        )
+        if (parents.isEmpty()) return "No parent found matching '$parentName' in this school."
+        
+        val parent = parents.first()
+        val balance = financialService.calculateParentBalance(parent)
+        return "Parent ${parent.user.fullName} has a balance of $balance."
     }
 
-    @Tool(description = "Get academic info for a student")
-    fun getStudentInfo(studentName: String): List<StudentInfo> {
-        val students = studentRepository.findAll().filter { 
-            it.user.fullName.contains(studentName, ignoreCase = true) 
-        }
-        return students.map { student ->
-            val className = student.classEnrollments.find { it.isActive }?.schoolClass?.className ?: "N/A"
-            StudentInfo(
-                student.id!!.toString(), 
-                student.user.fullName, 
-                student.admissionNumber ?: "N/A", 
-                className
-            )
-        }
+    @Tool(description = "Get student information including class and status. Always provide the schoolId.")
+    fun getStudentInfo(
+        @ToolParam(description = "The student name") studentName: String,
+        @ToolParam(description = "The school ID of the current school") schoolId: UUID
+    ): String {
+        val students = studentRepository.findBySchoolIdAndIsActive(schoolId, true)
+            .filter { it.user.fullName?.contains(studentName, ignoreCase = true) == true }
+            
+        if (students.isEmpty()) return "No student found matching '$studentName' in this school."
+        
+        val student = students.first()
+        val currentClass = student.classEnrollments.find { it.isActive }?.schoolClass?.className ?: "No class"
+        return "Student ${student.user.fullName} is in class $currentClass. Status: ${if (student.isNew) "New" else "Returning"}."
     }
 
     data class ParentInfo(val id: UUID, val name: String, val phone: String, val balance: BigDecimal)
-    data class ParentFinancialStatus(val parentName: String, val totalBalance: BigDecimal, val breakdown: String)
-    data class StudentInfo(val id: String, val name: String, val admissionNumber: String, val className: String)
 }

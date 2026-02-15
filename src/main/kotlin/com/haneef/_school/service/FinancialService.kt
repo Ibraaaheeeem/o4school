@@ -11,6 +11,7 @@ import com.haneef._school.entity.SettlementType
 import java.time.LocalDateTime
 import java.time.LocalDate
 
+import org.springframework.context.annotation.Lazy
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,7 +31,7 @@ open class FinancialService(
     private val studentOptionalFeeRepository: com.haneef._school.repository.StudentOptionalFeeRepository,
     private val studentRepository: com.haneef._school.repository.StudentRepository,
     private val schoolReimbursementRepository: com.haneef._school.repository.SchoolReimbursementRepository,
-    private val whatsappService: WhatsAppService
+    @Lazy private val whatsappService: WhatsAppService
 ) {
 
     @Transactional

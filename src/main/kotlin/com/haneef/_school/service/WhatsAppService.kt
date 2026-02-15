@@ -8,6 +8,8 @@ import com.haneef._school.repository.SchoolRepository
 import com.haneef._school.repository.UserRepository
 import com.haneef._school.repository.WhatsAppMessageRepository
 import com.haneef._school.repository.WhatsAppTemplateRepository
+import com.haneef._school.entity.UserSchoolRole
+import com.haneef._school.repository.UserSchoolRoleRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -244,13 +246,17 @@ class WhatsAppService(
             return
         }
 
-        val schoolName = roles.firstOrNull()?.let { schoolRepository.findById(it.schoolId!!).orElse(null)?.name } ?: "the school"
+        val schoolId = roles.firstOrNull()?.schoolId ?: run {
+            sendTextMessage(from, "Sorry, we couldn't determine your school affiliation.")
+            return
+        }
+        val schoolName = schoolRepository.findById(schoolId).orElse(null)?.name ?: "the school"
 
         try {
             val response = chatClient.prompt()
                 .system("You are a helpful school assistant for $schoolName. You can provide information about students, parents, and financial status. Use the provided tools to fetch real data. The user is ${user.fullName}.")
                 .user(text)
-                .functions("queryParents", "getFinancialStatus", "getStudentInfo")
+                .tools(schoolDataTools)
                 .call()
                 .content()
 

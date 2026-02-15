@@ -14,11 +14,20 @@ class NaturalLanguageQueryController(
 
     @PostMapping("/parents")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'ADMIN')")
-    fun queryParents(@RequestBody request: QueryRequest): List<SchoolDataTools.ParentInfo> {
+    fun queryParents(@RequestBody request: QueryRequest, session: jakarta.servlet.http.HttpSession): List<SchoolDataTools.ParentInfo> {
+        val schoolId = session.getAttribute("selectedSchoolId") as? java.util.UUID 
+            ?: throw IllegalStateException("No school selected")
+
         val response = chatClient.prompt()
-            .system("You are an administrative assistant for a school. Your task is to filter parents based on the user's criteria. Use the 'queryParents' tool to get the results. Return only the list of parents.")
+            .system("""
+                You are an administrative assistant for a school with ID: $schoolId.
+                Your task is to filter parents based on the user's criteria.
+                Use the 'queryParents' tool to get the results. 
+                ALWAYS provide the schoolId ($schoolId) to the tool.
+                Return only the list of parents.
+            """.trimIndent())
             .user(request.query)
-            .functions("queryParents")
+            .tools(schoolDataTools)
             .call()
             .entity(ParentListResponse::class.java)
 
