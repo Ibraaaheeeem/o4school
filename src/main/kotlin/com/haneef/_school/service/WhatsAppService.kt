@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.ai.chat.client.ChatClient
@@ -29,7 +30,7 @@ open class WhatsAppService(
     private val templateRepository: WhatsAppTemplateRepository,
     private val objectMapper: ObjectMapper,
     private val chatClient: ChatClient,
-    private val schoolDataTools: SchoolDataTools,
+    private val schoolDataToolsProvider: ObjectProvider<SchoolDataTools>,
     private val userSchoolRoleRepository: UserSchoolRoleRepository
 ) {
     private val restTemplate = RestTemplate()
@@ -271,7 +272,7 @@ open class WhatsAppService(
                     TONE: Be professional, supportive, and clear.
                 """.trimIndent())
                 .user(text)
-                .tools(schoolDataTools)
+                .tools(schoolDataToolsProvider.getObject())
                 .call()
                 .content()
 
