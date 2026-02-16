@@ -2,5 +2,23 @@
     {
         "name": "[Ljava.util.UUID;",
         "unsafeAllocated": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.configuration.extensions.PrepareScriptFilenameConfigurationExtension",
+        "allPublicMethods": true,
+        "allDeclaredMethods": true,
+        "allPublicConstructors": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.configuration.extensions.CustomSqlConfigurationExtension",
+        "allPublicMethods": true,
+        "allDeclaredMethods": true,
+        "allPublicConstructors": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.publishing.PublishingConfigurationExtension",
+        "allPublicMethods": true,
+        "allDeclaredMethods": true,
+        "allPublicConstructors": true
     }
 ]
