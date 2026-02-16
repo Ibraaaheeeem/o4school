@@ -1,47 +1,30 @@
-# Stage 1: Build (GraalVM Native Image)
+# Stage 1: Build
 FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
-# 1. Install essentials. 
-# We skip the full 'gcc' to avoid the glibc version conflict on this base image.
 RUN microdnf install -y findutils tar gzip zlib-devel && \
     microdnf clean all
 
 ENV CI=true
 WORKDIR /app
 
-# 2. Copy the entire project first
 COPY . .
 
-# 3. FIX: Redirect Gradle to the internet and clean up local properties
-# We do this AFTER 'COPY .' so we overwrite your local desktop settings
+# Fix properties and wrapper URL (Crucial for GitHub Actions)
 RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties && \
     sed -i '/org.gradle.java.home/d; /org.gradle.jvmargs/d; /kotlin.daemon.jvmargs/d; /org.gradle.parallel/d; /org.gradle.configuration-cache/d; /org.gradle.caching/d' gradle.properties && \
     chmod +x gradlew
 
-# 4. Build the native binary
-# Using --no-daemon and memory limits to fit within GitHub's 7GB runner limit
-# ... (previous stages remain the same)
-
-# Build the native binary
-# We add the okhttp3 runtime initialization fix here
+# Build with comprehensive runtime initialization
 RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache \
     -Dorg.gradle.jvmargs=-Xmx3G \
     -Dkotlin.daemon.jvmargs=-Xmx2G \
-    -PnativeImageArgs="--no-fallback --initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor"
+    -PnativeImageArgs="--no-fallback --initialize-at-build-time=org.slf4j --initialize-at-run-time=okhttp3,okio"
 
-# ... (rest of the Dockerfile)
-
-# Stage 2: Tiny Runtime Image
+# Stage 2: Runtime
 FROM debian:12-slim
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends zlib1g && rm -rf /var/lib/apt/lists/*
 
-# Install runtime dependencies (zlib is required for GraalVM binaries)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends zlib1g && \
-    rm -rf /var/lib/apt/lists/*
-
-# Final Binary Copy
-# Note: Double-check that your project name is '4school' in settings.gradle
 COPY --from=builder /app/build/native/nativeCompile/4school /app/4school
 
 EXPOSE 8080
