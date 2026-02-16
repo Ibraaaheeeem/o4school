@@ -1,53 +1,51 @@
-# Triggering fresh build with proven stable configuration
+# Stage 1: Build the native image
 FROM ghcr.io/graalvm/native-image-community:21 AS builder
 
-# Install build essentials and dependencies
-# We need findutils for xargs which gradlew uses
-RUN microdnf install -y --allowerasing --best findutils tar gzip gcc zlib-devel
-ENV CI=true
+# 1. Install dependencies (Removed --allowerasing and --best as they are unsupported)
+RUN microdnf install -y findutils tar gzip gcc zlib-devel && \
+    microdnf clean all
 
+ENV CI=true
 WORKDIR /app
 
-# Cache dependencies
-COPY gradle gradle
+# 2. Cache Gradle Wrapper and Dependencies
+# This layer only rebuilds if you change your gradle files
+COPY gradle/ gradle/
 COPY gradlew .
 COPY build.gradle .
 COPY settings.gradle .
 COPY gradle.properties .
 
-# Fix gradle.properties for CI environment
-# 1. Remove hardcoded java.home and memory-heavy settings
-RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
-    sed -i '/org.gradle.jvmargs/d' gradle.properties && \
-    sed -i '/kotlin.daemon.jvmargs/d' gradle.properties && \
-    sed -i '/org.gradle.parallel/d' gradle.properties && \
-    sed -i '/org.gradle.configuration-cache/d' gradle.properties && \
-    sed -i '/org.gradle.caching/d' gradle.properties
-# 2. Ensure distributionUrl points to the official URL
-RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
+# 3. Clean up properties for CI (Only needs to be done once here)
+RUN sed -i '/org.gradle.java.home/d; /org.gradle.jvmargs/d; /kotlin.daemon.jvmargs/d; /org.gradle.parallel/d; /org.gradle.configuration-cache/d; /org.gradle.caching/d' gradle.properties && \
+    sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties && \
+    chmod +x gradlew
 
-RUN chmod +x gradlew
-RUN ./gradlew dependencies -x test --no-daemon --no-configuration-cache
+# Pre-download dependencies to speed up subsequent builds
+RUN ./gradlew dependencies --no-daemon --no-configuration-cache
 
-# Build native image
+# 4. Copy source code and build
 COPY . .
 
-# Apply the same fixes again after copying full source (as it overwrites the previous files)
-RUN sed -i '/org.gradle.java.home/d' gradle.properties && \
-    sed -i '/org.gradle.jvmargs/d' gradle.properties && \
-    sed -i '/kotlin.daemon.jvmargs/d' gradle.properties && \
-    sed -i '/org.gradle.parallel/d' gradle.properties && \
-    sed -i '/org.gradle.configuration-cache/d' gradle.properties && \
-    sed -i '/org.gradle.caching/d' gradle.properties
-RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
-
-RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache -Dorg.gradle.jvmargs=-Xmx2G -Dkotlin.daemon.jvmargs=-Xmx2G
-
+# Run the build (The nativeCompile task)
+# Optimized nativeCompile with resource constraints for CI
+RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache \
+    -Dorg.gradle.jvmargs=-Xmx2G \
+    -Dkotlin.daemon.jvmargs=-Xmx2G \
+    -PnativeImageArgs="--no-fallback --gc=serial -O3 --static"
+    
+# Stage 2: Final Runtime Image
 FROM debian:12-slim
 WORKDIR /app
-# Install runtime dependencies (zlib)
-RUN apt-get update && apt-get install -y zlib1g && rm -rf /var/lib/apt/lists/*
 
+# Install runtime dependencies (zlib is required for the native binary)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends zlib1g && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy the binary from the builder stage
+# Note: Ensure the path /app/build/native/nativeCompile/4school matches your project structure
 COPY --from=builder /app/build/native/nativeCompile/4school /app/4school
+
 EXPOSE 8080
 ENTRYPOINT ["/app/4school"]
