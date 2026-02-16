@@ -208,5 +208,29 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
                     MemberCategory.DECLARED_FIELDS)
             } catch (e: Exception) {}
         }
+
+        // 14. Register Google GenAI library types (Fix for Native Image deserialization)
+        val googleGenAiTypes = listOf(
+            "com.google.genai.types.PartMediaResolution",
+            "com.google.genai.types.PartMediaResolution\$Builder",
+            "com.google.genai.types.GenerateContentConfig",
+            "com.google.genai.types.GenerateContentConfig\$Builder",
+            "com.google.genai.types.GenerationConfig",
+            "com.google.genai.types.GenerationConfig\$Builder",
+            "com.google.genai.types.Content",
+            "com.google.genai.types.Content\$Builder",
+            "com.google.genai.types.Part",
+            "com.google.genai.types.Part\$Builder"
+        )
+        googleGenAiTypes.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS,
+                    MemberCategory.INTROSPECT_PUBLIC_METHODS,
+                    MemberCategory.INTROSPECT_PUBLIC_CONSTRUCTORS)
+            } catch (e: Exception) {}
+        }
     }
 }

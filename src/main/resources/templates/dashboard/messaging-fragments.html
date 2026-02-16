@@ -40,86 +40,84 @@
                             naturally and the AI will find the recipients for you.</p>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                        <!-- Left Column: Recipient Selection & Type -->
-                        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                            <div class="category-group">
-                                <div class="category-title">1. Recipient Type</div>
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
-                                    <label class="param-btn" style="justify-content: center;">
-                                        <input type="radio" name="recipientType" value="ALL"
-                                            onchange="updateRecipientCount()"> All
-                                    </label>
-                                    <label class="param-btn" style="justify-content: center;">
-                                        <input type="radio" name="recipientType" value="STAFF"
-                                            onchange="updateRecipientCount()"> Staff
-                                    </label>
-                                    <label class="param-btn" style="justify-content: center;">
-                                        <input type="radio" name="recipientType" value="PARENTS"
-                                            onchange="updateRecipientCount()"> Parents
-                                    </label>
-                                    <label class="param-btn" style="justify-content: center;">
-                                        <input type="radio" name="recipientType" value="NONE" checked
-                                            onchange="updateRecipientCount()"> None
-                                    </label>
-                                </div>
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
+                        <!-- Item 1: Recipient Selection & Type (Full Row) -->
+                        <div class="category-group">
+                            <div class="category-title">1. Recipient Type</div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+                                <label class="param-btn" style="justify-content: center;">
+                                    <input type="radio" name="recipientType" value="ALL"
+                                        onchange="updateRecipientCount()"> All
+                                </label>
+                                <label class="param-btn" style="justify-content: center;">
+                                    <input type="radio" name="recipientType" value="STAFF"
+                                        onchange="updateRecipientCount()"> Staff
+                                </label>
+                                <label class="param-btn" style="justify-content: center;">
+                                    <input type="radio" name="recipientType" value="PARENTS"
+                                        onchange="updateRecipientCount()"> Parents
+                                </label>
+                                <label class="param-btn" style="justify-content: center;">
+                                    <input type="radio" name="recipientType" value="NONE" checked
+                                        onchange="updateRecipientCount()"> None
+                                </label>
                             </div>
+                        </div>
 
-                            <!-- Academic Filters (Conditional) -->
-                            <div id="academic-filters-section" style="display: none;">
-                                <div class="category-group">
-                                    <div class="category-title" id="class-selection-label">Select Classes</div>
-                                    <div class="filter-scroll-list" style="max-height: 200px; padding-right: 8px;">
-                                        <div th:each="track : ${tracks}"
-                                            style="margin-bottom: 1.25rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
-                                            <div
-                                                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <!-- Academic Filters (Conditional) -->
+                        <div id="academic-filters-section" style="display: none;">
+                            <div class="category-group">
+                                <div class="category-title" id="class-selection-label">Select Classes</div>
+                                <div class="filter-scroll-list" style="max-height: 200px; padding-right: 8px;">
+                                    <div th:each="track : ${tracks}"
+                                        style="margin-bottom: 1.25rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                                        <div
+                                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                                            <label
+                                                style="font-weight: 700; font-size: 0.85rem; color: #1e293b; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                <input type="checkbox" class="track-checkbox"
+                                                    th:attr="data-track-id=${track.id}"
+                                                    onchange="toggleTrackClasses(this)">
+                                                <span th:text="${track.name}">Track</span>
+                                            </label>
+                                        </div>
+                                        <div
+                                            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding-left: 1.5rem;">
+                                            <div th:each="cls : ${classes}" th:if="${cls.track?.id == track.id}">
                                                 <label
-                                                    style="font-weight: 700; font-size: 0.85rem; color: #1e293b; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                    <input type="checkbox" class="track-checkbox"
-                                                        th:attr="data-track-id=${track.id}"
-                                                        onchange="toggleTrackClasses(this)">
-                                                    <span th:text="${track.name}">Track</span>
+                                                    style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #475569;">
+                                                    <input type="checkbox" name="classIds" th:value="${cls.id}"
+                                                        class="class-checkbox" th:attr="data-track-id=${track.id}"
+                                                        onchange="syncTrackCheckbox(this); updateRecipientCount()">
+                                                    <span th:text="${cls.className}">Class</span>
                                                 </label>
-                                            </div>
-                                            <div
-                                                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; padding-left: 1.5rem;">
-                                                <div th:each="cls : ${classes}" th:if="${cls.track?.id == track.id}">
-                                                    <label
-                                                        style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #475569;">
-                                                        <input type="checkbox" name="classIds" th:value="${cls.id}"
-                                                            class="class-checkbox" th:attr="data-track-id=${track.id}"
-                                                            onchange="syncTrackCheckbox(this); updateRecipientCount()">
-                                                        <span th:text="${cls.className}">Class</span>
-                                                    </label>
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Parent Specific (Conditional) -->
-                            <div id="parent-only-filters" style="display: none;">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                    <div class="category-group">
-                                        <div class="category-title">Gender</div>
-                                        <select name="studentGender" class="param-btn" style="width: 100%;"
-                                            onchange="updateRecipientCount()">
-                                            <option value="ANY">Any</option>
-                                            <option value="MALE">Male</option>
-                                            <option value="FEMALE">Female</option>
-                                        </select>
-                                    </div>
-                                    <div class="category-group">
-                                        <div class="category-title">Status</div>
-                                        <select name="studentStatus" class="param-btn" style="width: 100%;"
-                                            onchange="updateRecipientCount()">
-                                            <option value="ANY">Any</option>
-                                            <option value="NEW">New</option>
-                                            <option value="RETURNING">Returning</option>
-                                        </select>
-                                    </div>
+                        <!-- Parent Specific (Conditional) -->
+                        <div id="parent-only-filters" style="display: none;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                                <div class="category-group">
+                                    <div class="category-title">Gender</div>
+                                    <select name="studentGender" class="param-btn" style="width: 100%;"
+                                        onchange="updateRecipientCount()">
+                                        <option value="ANY">Any</option>
+                                        <option value="MALE">Male</option>
+                                        <option value="FEMALE">Female</option>
+                                    </select>
+                                </div>
+                                <div class="category-group">
+                                    <div class="category-title">Status</div>
+                                    <select name="studentStatus" class="param-btn" style="width: 100%;"
+                                        onchange="updateRecipientCount()">
+                                        <option value="ANY">Any</option>
+                                        <option value="NEW">New</option>
+                                        <option value="RETURNING">Returning</option>
+                                    </select>
                                 </div>
                                 <div class="category-group">
                                     <div class="category-title">Fee Status</div>
@@ -133,8 +131,9 @@
                             </div>
                         </div>
 
-                        <!-- Right Column: Manual Search & Add -->
-                        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <!-- Row for Item 2 and Item 3 -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <!-- Item 2: Manual Search -->
                             <div class="category-group">
                                 <div class="category-title">2. Manual Search</div>
                                 <div style="position: relative;">
@@ -150,6 +149,7 @@
                                 <div id="excluded-ids-container"></div>
                             </div>
 
+                            <!-- Item 3: Add Unregistered Number -->
                             <div class="category-group">
                                 <div class="category-title">3. Add Unregistered Number</div>
                                 <div style="display: flex; gap: 0.75rem;">
@@ -164,48 +164,48 @@
                                 <div id="manual-phones-container"></div>
                                 <div id="excluded-phones-container"></div>
                             </div>
+                        </div>
 
-                            <!-- Recipient Preview Table -->
-                            <div class="category-group" style="flex: 1; display: flex; flex-direction: column;">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                                    <div class="category-title" style="margin: 0;">4. Recipient Preview</div>
-                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                        <button type="button" onclick="clearAllRecipients()"
-                                            style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                                            Remove All
-                                        </button>
-                                        <span id="recipient-preview-badge"
-                                            style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Recipients:
-                                            0</span>
-                                    </div>
+                        <!-- Item 4: Recipient Preview (Full Row) -->
+                        <div class="category-group" style="display: flex; flex-direction: column;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <div class="category-title" style="margin: 0;">4. Recipient Preview</div>
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <button type="button" onclick="clearAllRecipients()"
+                                        style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                        Remove All
+                                    </button>
+                                    <span id="recipient-preview-badge"
+                                        style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Recipients:
+                                        0</span>
                                 </div>
-                                <div
-                                    style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; height: 220px; overflow-y: auto;">
-                                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                                        <thead
-                                            style="background: #f1f5f9; position: sticky; top: 0; border-bottom: 1px solid #e2e8f0;">
-                                            <tr>
-                                                <th
-                                                    style="text-align: left; padding: 10px 12px; color: #64748b; font-weight: 600;">
-                                                    Name</th>
-                                                <th
-                                                    style="text-align: left; padding: 10px 12px; color: #64748b; font-weight: 600;">
-                                                    Phone</th>
-                                                <th
-                                                    style="text-align: right; padding: 10px 12px; color: #64748b; font-weight: 600;">
-                                                    Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="preview-list-body">
-                                            <tr>
-                                                <td colspan="3"
-                                                    style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">No
-                                                    recipients selected</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            </div>
+                            <div
+                                style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; height: 220px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                    <thead
+                                        style="background: #f1f5f9; position: sticky; top: 0; border-bottom: 1px solid #e2e8f0;">
+                                        <tr>
+                                            <th
+                                                style="text-align: left; padding: 10px 12px; color: #64748b; font-weight: 600;">
+                                                Name</th>
+                                            <th
+                                                style="text-align: left; padding: 10px 12px; color: #64748b; font-weight: 600;">
+                                                Phone</th>
+                                            <th
+                                                style="text-align: right; padding: 10px 12px; color: #64748b; font-weight: 600;">
+                                                Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-list-body">
+                                        <tr>
+                                            <td colspan="3"
+                                                style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">No
+                                                recipients selected</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
