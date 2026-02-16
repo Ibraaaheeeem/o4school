@@ -16,16 +16,14 @@ RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/dis
 
 # Build with comprehensive runtime initialization
 # Build the native binary with explicit class-level runtime initialization
+# Build the native binary with broader runtime initialization
 RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache \
-    -Dorg.gradle.jvmargs=-Xmx3G \
+    -Dorg.gradle.jvmargs=-Xmx4G \
     -Dkotlin.daemon.jvmargs=-Xmx2G \
     -PnativeImageArgs="--no-fallback \
-    --initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor\$Companion \
-    --initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor \
-    --initialize-at-run-time=okhttp3.OkHttpClient \
-    --initialize-at-run-time=okhttp3.internal.concurrent.TaskRunner\$Companion \
-    --initialize-at-run-time=okhttp3.internal.concurrent.TaskRunner \
-    --initialize-at-build-time=org.slf4j"
+    --initialize-at-run-time=okhttp3,okio \
+    --initialize-at-build-time=org.slf4j \
+    -H:+TraceClassInitialization"
 
 # Stage 2: Runtime
 FROM debian:12-slim
