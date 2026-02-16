@@ -20,7 +20,7 @@ import org.springframework.ai.chat.client.ChatClient
 import java.util.*
 
 @Service
-class WhatsAppService(
+open class WhatsAppService(
     private val properties: WhatsAppProperties,
     private val messageRepository: WhatsAppMessageRepository,
     private val phoneNumberService: PhoneNumberService,
@@ -34,7 +34,7 @@ class WhatsAppService(
 ) {
     private val restTemplate = RestTemplate()
 
-    fun sendTextMessage(to: String, text: String, user: User? = null, schoolId: UUID? = null): Boolean {
+    open fun sendTextMessage(to: String, text: String, user: User? = null, schoolId: UUID? = null): Boolean {
         val formattedNumber = phoneNumberService.cleanPhoneNumber(to).removePrefix("+")
         
         val url = "https://graph.facebook.com/${properties.apiVersion}/${properties.phoneNumberId}/messages"
@@ -68,7 +68,7 @@ class WhatsAppService(
         }
     }
 
-    fun getTemplates(): List<Map<String, Any>> {
+    open fun getTemplates(): List<Map<String, Any>> {
         val url = "https://graph.facebook.com/${properties.apiVersion}/${properties.businessAccountId}/message_templates"
         
         val headers = HttpHeaders()
@@ -90,7 +90,7 @@ class WhatsAppService(
         }
     }
 
-    fun sendTemplateMessage(to: String, templateName: String, languageCode: String = "en_US", components: List<Map<String, Any>>, user: User? = null, schoolId: UUID? = null): Boolean {
+    open fun sendTemplateMessage(to: String, templateName: String, languageCode: String = "en_US", components: List<Map<String, Any>>, user: User? = null, schoolId: UUID? = null): Boolean {
         val formattedNumber = phoneNumberService.cleanPhoneNumber(to).removePrefix("+")
         
         val url = "https://graph.facebook.com/${properties.apiVersion}/${properties.phoneNumberId}/messages"
@@ -128,7 +128,7 @@ class WhatsAppService(
         }
     }
 
-    fun processWebhook(payload: Map<String, Any>) {
+    open fun processWebhook(payload: Map<String, Any>) {
         val entries = payload["entry"] as? List<*> ?: return
         
         for (entry in entries) {
@@ -235,7 +235,7 @@ class WhatsAppService(
         messageRepository.save(message)
     }
 
-    fun handleAiQuery(from: String, text: String) {
+    open fun handleAiQuery(from: String, text: String) {
         val user = findUserByPhone(from) ?: run {
             sendTextMessage(from, "Sorry, your phone number is not linked to any account in our system. Please contact your school administrator.")
             return
