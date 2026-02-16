@@ -20,26 +20,32 @@ java {
 
 graalvmNative {
     toolchainDetection = false
+    
+    // CRITICAL: This enables community-tested fixes for JJWT, Postgres, and OkHttp
+    metadataRepository {
+        enabled.set(true)
+    }
+
     binaries {
         main {
-            // javaLauncher = javaToolchains.launcherFor {
-            //    languageVersion = JavaLanguageVersion.of(21)
-            // }
-            // Increase memory for native image build to prevent OOM (Exit code 99)
-            // Dynamic memory allocation: 10GB for local (16GB RAM), 6GB for CI (Standard GitHub Runners have 7GB)
             def isCi = System.getenv('CI') != null
-            def memory = isCi ? '10G' : '10G'
+            // GitHub Runners have 7GB RAM. 10G will cause a crash (Exit code 137).
+            // We set CI to 5G to leave room for the OS and Gradle daemon.
+            def memory = isCi ? '5G' : '10G'
             buildArgs.add("-J-Xmx${memory}")
             
-            // Ensure headless mode is set
             buildArgs.add('-Djava.awt.headless=true')
+            buildArgs.add('--no-fallback')
+
+            // Fix for the OkHttp error you've been getting
+            buildArgs.add('--initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor')
+            buildArgs.add('--initialize-at-run-time=okhttp3.OkHttpClient')
             
-            // Fix for Jackson FromStringDeserializer error
+            // Fix for Jackson error you already had
             buildArgs.add('--initialize-at-run-time=com.fasterxml.jackson.databind.deser.std.FromStringDeserializer$Std')
         }
     }
 }
-
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
