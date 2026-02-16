@@ -20,10 +20,16 @@ RUN sed -i 's|distributionUrl=.*|distributionUrl=https://services.gradle.org/dis
 
 # 4. Build the native binary
 # Using --no-daemon and memory limits to fit within GitHub's 7GB runner limit
+# ... (previous stages remain the same)
+
+# Build the native binary
+# We add the okhttp3 runtime initialization fix here
 RUN ./gradlew nativeCompile -x test --no-daemon --info --no-configuration-cache \
     -Dorg.gradle.jvmargs=-Xmx3G \
     -Dkotlin.daemon.jvmargs=-Xmx2G \
-    -PnativeImageArgs="--no-fallback"
+    -PnativeImageArgs="--no-fallback --initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor"
+
+# ... (rest of the Dockerfile)
 
 # Stage 2: Tiny Runtime Image
 FROM debian:12-slim
