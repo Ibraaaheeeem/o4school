@@ -31,7 +31,7 @@ graalvmNative {
             def isCi = System.getenv('CI') != null
             // GitHub Runners have 7GB RAM. 10G will cause a crash (Exit code 137).
             // We set CI to 5G to leave room for the OS and Gradle daemon.
-            def memory = isCi ? '5G' : '10G'
+            def memory = isCi ? '10G' : '10G'
             buildArgs.add("-J-Xmx${memory}")
             
             buildArgs.add('-Djava.awt.headless=true')
