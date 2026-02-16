@@ -11,9 +11,23 @@ import org.springframework.context.annotation.Configuration
 class AiConfiguration {
 
     @Bean
-    fun chatClient(builder: ChatClient.Builder, chatMemory: org.springframework.ai.chat.memory.ChatMemory): ChatClient {
+    fun chatMemory(): org.springframework.ai.chat.memory.ChatMemory {
+        return org.springframework.ai.chat.memory.MessageWindowChatMemory.builder()
+            .maxMessages(10)
+            .build()
+    }
+
+    @Bean
+    fun chatClient(
+        builder: ChatClient.Builder,
+        chatMemory: org.springframework.ai.chat.memory.ChatMemory
+    ): ChatClient {
         return builder
-            .defaultAdvisors(org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor.builder(chatMemory).build())
+            .defaultAdvisors(
+                org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor.builder(chatMemory)
+                    .scheduler(reactor.core.scheduler.Schedulers.boundedElastic())
+                    .build()
+            )
             .build()
     }
 }
