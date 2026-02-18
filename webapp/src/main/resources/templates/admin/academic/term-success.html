@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <!-- Success Message to be shown in the modal -->
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${message}">Term saved successfully!</span>
+    </div>
+
+    <!-- Script to close the modal after a short delay -->
+    <script>
+        setTimeout(() => {
+            if (window.closeModal) {
+                window.closeModal('termModal');
+            }
+        }, 1000);
+    </script>
+
+    <!-- OOB Swap: Update the terms list in the background -->
+    <div id="terms-list-container" hx-swap-oob="innerHTML">
+        <th:block th:replace="~{admin/academic/terms :: terms-list-content}"></th:block>
+    </div>
+</body>
+
+</html>

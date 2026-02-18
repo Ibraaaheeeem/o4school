@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Reimbursements</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <style>
+        .financial-container {
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .school-table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .school-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .school-table th,
+        .school-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .school-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .amount {
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .amount.positive {
+            color: #059669;
+        }
+
+        .amount.pending {
+            color: #d97706;
+        }
+
+        .btn-view {
+            background: #4f46e5;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .btn-view:hover {
+            background: #4338ca;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="financial-container">
+            <div class="welcome-section">
+                <h1>School Reimbursements</h1>
+                <p class="welcome-text">Manage platform-to-school payouts for the current term</p>
+            </div>
+
+            <!-- Platform Stats Summary -->
+            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-card" style="background: #f0f9ff; border: 1px solid #bae6fd;">
+                    <div class="stat-label" style="color: #0369a1;">Paystack Account Balance</div>
+                    <div class="stat-value" style="color: #0284c7;"
+                        th:text="'₦' + ${#numbers.formatDecimal(paystackBalance, 0, 'COMMA', 2, 'POINT')}">₦0.00</div>
+                    <p style="font-size: 0.75rem; color: #0369a1; margin-top: 0.5rem;">Available for payouts</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Platform Lifetime Settlements</div>
+                    <div class="stat-value"
+                        th:text="'₦' + ${#numbers.formatDecimal(platformTotalSettled, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                    </div>
+                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">Total collected across all
+                        schools</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Platform Lifetime Reimbursed</div>
+                    <div class="stat-value"
+                        th:text="'₦' + ${#numbers.formatDecimal(platformTotalReimbursed, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                    </div>
+                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">Total paid to schools</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Platform Lifetime Pending</div>
+                    <div class="stat-value" style="color: #d97706;"
+                        th:text="'₦' + ${#numbers.formatDecimal(platformPendingAmount, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                    </div>
+                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">Total outstanding balance</p>
+                </div>
+            </div>
+
+            <div class="school-table-container">
+                <table class="school-table">
+                    <thead>
+                        <tr>
+                            <th>School Name</th>
+                            <th>Current Term Info</th>
+                            <th>Term Totals (Auto Settled / Pending)</th>
+                            <th>Lifetime Totals (Auto Settled / Pending)</th>
+                            <th>Last Payout</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="school : ${schools}">
+                            <td>
+                                <div style="font-weight: 600;" th:text="${school.name}">School Name</div>
+                                <div style="font-size: 0.75rem; color: #6b7280;" th:if="${school.currentSession}"
+                                    th:text="${school.currentSession}">Session</div>
+                            </td>
+                            <td>
+                                <span th:if="${school.currentTerm}" th:text="${school.currentTerm}" class="badge"
+                                    style="background: #eef2ff; color: #4f46e5; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Term</span>
+                                <span th:unless="${school.currentTerm}"
+                                    style="color: #9ca3af; font-style: italic; font-size: 0.875rem;">Not Set</span>
+                            </td>
+                            <td>
+                                <div class="amount positive"
+                                    th:text="'₦' + ${#numbers.formatDecimal(school.termSettled, 0, 'COMMA', 2, 'POINT')}">
+                                    ₦0.00</div>
+                                <div class="amount pending" style="font-size: 0.8rem;"
+                                    th:text="'Pending: ₦' + ${#numbers.formatDecimal(school.termPending, 0, 'COMMA', 2, 'POINT')}">
+                                    ₦0.00</div>
+                            </td>
+                            <td>
+                                <div class="amount positive"
+                                    th:text="'₦' + ${#numbers.formatDecimal(school.lifetimeSettled, 0, 'COMMA', 2, 'POINT')}">
+                                    ₦0.00</div>
+                                <div class="amount pending" style="font-size: 0.8rem;"
+                                    th:text="'Pending: ₦' + ${#numbers.formatDecimal(school.lifetimePending, 0, 'COMMA', 2, 'POINT')}">
+                                    ₦0.00</div>
+                            </td>
+                            <td
+                                th:text="${school.lastReimbursement != null ? #temporals.format(school.lastReimbursement, 'MMM dd, yyyy') : 'Never'}">
+                                Date</td>
+                            <td>
+                                <a th:href="@{/system-admin/financial/reimbursements/school/{id}(id=${school.id})}"
+                                    class="btn-view">Manage Payouts</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

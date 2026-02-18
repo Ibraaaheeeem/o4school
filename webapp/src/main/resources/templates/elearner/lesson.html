@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - View Lesson</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .lesson-container {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary-color);
+        }
+
+        .lesson-card {
+            background: white;
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .lesson-header {
+            padding: 3rem;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            position: relative;
+        }
+
+        .lesson-header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .lesson-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.95rem;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .lesson-body {
+            padding: 3rem;
+        }
+
+        .lesson-content {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            color: #334155;
+        }
+
+        .lesson-content h2,
+        .lesson-content h3 {
+            color: #1e293b;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 800;
+        }
+
+        .lesson-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Video / Media Styles */
+        .media-container {
+            background: #f1f5f9;
+            border-radius: 20px;
+            margin: 2.5rem 0;
+            aspect-ratio: 16 / 9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .media-placeholder {
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .media-placeholder i {
+            display: block;
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .lesson-footer {
+            padding: 2rem 3rem;
+            background: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-prev {
+            color: #64748b;
+        }
+
+        .btn-prev:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .btn-next {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-next:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.4);
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="lesson-container">
+        <a href="javascript:history.back()" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Content</span>
+        </a>
+
+        <article class="lesson-card">
+            <header class="lesson-header">
+                <div class="lesson-breadcrumb">
+                    <span th:text="${lesson.topic}">Topic Name</span>
+                    <i class="fas fa-chevron-right" style="font-size: 0.7rem;"></i>
+                    <span>Lesson Material</span>
+                </div>
+                <h1 th:text="${lesson.title}">The Concept of Infinity</h1>
+            </header>
+
+            <div class="lesson-body">
+                <div class="lesson-content">
+                    <!-- If the lesson has HTML content, use th:utext -->
+                    <div th:if="${lesson.content != null}" th:utext="${lesson.content}">
+                        Sample lesson content would appear here...
+                    </div>
+
+                    <!-- If content is null, show a message -->
+                    <div th:if="${lesson.content == null}" class="text-center py-10">
+                        <p class="text-lg italic text-slate-400">This lesson does not have any text content yet.</p>
+                    </div>
+
+                    <!-- Media Section -->
+                    <div class="media-container" th:if="${lesson.video_url != null}">
+                        <iframe
+                            th:if="${lesson.video_url.contains('youtube.com') || lesson.video_url.contains('youtu.be')}"
+                            width="100%" height="100%" th:src="${lesson.video_url.replace('watch?v=', 'embed/')}"
+                            frameborder="0" allowfullscreen></iframe>
+
+                        <div th:unless="${lesson.video_url.contains('youtube.com') || lesson.video_url.contains('youtu.be')}"
+                            class="media-placeholder">
+                            <i class="fas fa-video"></i>
+                            <p>Video content available at: <br /><a th:href="${lesson.video_url}" target="_blank"
+                                    th:text="${lesson.video_url}">URL</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="lesson-footer">
+                <a href="javascript:history.back()" class="nav-btn btn-prev">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Previous Lesson</span>
+                </a>
+                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="nav-btn btn-next">
+                    <span>Complete Lesson</span>
+                    <i class="fas fa-check-circle"></i>
+                </button>
+            </footer>
+        </article>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - User Management</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .user-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-active {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .btn-approve {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="header-actions"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <a th:href="@{/system-admin/dashboard}"
+                        style="color: #4f46e5; text-decoration: none; font-size: 0.875rem;">← Back to Dashboard</a>
+                    <h1 style="margin-top: 0.5rem;">User Management</h1>
+                </div>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success"
+                style="background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #10b981;"
+                th:text="${success}"></div>
+
+            <div class="admin-actions">
+                <h2 style="font-size: 1.25rem; font-weight: 600; color: #111827; margin-bottom: 1rem;">Pending Approvals
+                </h2>
+
+                <div th:if="${#lists.isEmpty(pendingUsers)}"
+                    style="text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 1px dashed #d1d5db;">
+                    <i class="fas fa-user-clock" style="font-size: 3rem; color: #9ca3af; margin-bottom: 1rem;"></i>
+                    <p style="color: #6b7280;">No pending registrations found.</p>
+                </div>
+
+                <table th:if="${!#lists.isEmpty(pendingUsers)}" class="user-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="user : ${pendingUsers}">
+                            <td>
+                                <div style="font-weight: 600; color: #111827;" th:text="${user.fullName}">Name</div>
+                            </td>
+                            <td th:text="${user.email}">Email</td>
+                            <td th:text="${user.phoneNumber}">Phone</td>
+                            <td>
+                                <span class="status-badge status-pending">Pending Approval</span>
+                            </td>
+                            <td>
+                                <form th:action="@{/system-admin/users/approve/{id}(id=${user.id})}" method="post"
+                                    onsubmit="return confirm('Are you sure you want to approve this school admin?')">
+                                    <button type="submit" class="btn-approve">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="admin-actions" style="margin-top: 3rem;">
+                <h2 style="font-size: 1.25rem; font-weight: 600; color: #111827; margin-bottom: 1rem;">Approved Schools
+                    & Admins</h2>
+
+                <div th:if="${#lists.isEmpty(schoolData)}"
+                    style="text-align: center; padding: 3rem; background: white; border-radius: 12px; border: 1px dashed #d1d5db;">
+                    <i class="fas fa-building" style="font-size: 3rem; color: #9ca3af; margin-bottom: 1rem;"></i>
+                    <p style="color: #6b7280;">No schools found.</p>
+                </div>
+
+                <table th:if="${!#lists.isEmpty(schoolData)}" class="user-table">
+                    <thead>
+                        <tr>
+                            <th>School Name</th>
+                            <th>Primary Admin</th>
+                            <th>Students</th>
+                            <th>Staff</th>
+                            <th>Parents</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="data : ${schoolData}">
+                            <td>
+                                <div style="font-weight: 600; color: #111827;" th:text="${data.school.name}">School Name
+                                </div>
+                                <div style="font-size: 0.75rem; color: #6b7280;" th:text="${data.school.slug}">slug
+                                </div>
+                            </td>
+                            <td>
+                                <div th:if="${data.admin != null}">
+                                    <div style="font-weight: 600; color: #111827;" th:text="${data.admin.fullName}">
+                                        Admin Name</div>
+                                    <div style="font-size: 0.75rem; color: #6b7280;" th:text="${data.admin.email}">email
+                                    </div>
+                                </div>
+                                <div th:if="${data.admin == null}" style="color: #9ca3af; font-style: italic;">No admin
+                                    assigned</div>
+                            </td>
+                            <td>
+                                <span class="status-badge" style="background: #e0e7ff; color: #3730a3;"
+                                    th:text="${data.studentCount}">0</span>
+                            </td>
+                            <td>
+                                <span class="status-badge" style="background: #ecfdf5; color: #065f46;"
+                                    th:text="${data.staffCount}">0</span>
+                            </td>
+                            <td>
+                                <span class="status-badge" style="background: #fff7ed; color: #9a3412;"
+                                    th:text="${data.parentCount}">0</span>
+                            </td>
+                            <td>
+                                <span class="status-badge"
+                                    th:classappend="${data.school.status == 'active' ? 'status-active' : 'status-pending'}"
+                                    th:text="${#strings.capitalize(data.school.status)}">Active</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

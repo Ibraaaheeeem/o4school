@@ -1,0 +1,178 @@
+<div th:fragment="term-promotion-list">
+    <div th:if="${tracksWithClasses == null || #lists.isEmpty(tracksWithClasses)}" class="alert alert-info">
+        No students found in the selected source term.
+    </div>
+
+    <div th:each="trackData : ${tracksWithClasses}" class="track-promotion-section mb-5 p-3 border rounded-3 bg-light"
+        th:id="'track-' + ${trackData.track?.id ?: 'general'}">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+            <h4 class="mb-0 text-primary">
+                <i class="fas fa-layer-group me-2"></i>
+                <span th:text="${trackData.track?.name ?: 'General'}">Track Name</span>
+            </h4>
+            <div class="track-actions">
+                <div class="btn-group btn-group-sm promotion-track-btns">
+                    <button type="button" class="btn btn-primary btn-track-promote" data-action="UPGRADE">Upgrade All in
+                        Track</button>
+                    <button type="button" class="btn btn-secondary btn-track-promote" data-action="RETAIN">Retain All in
+                        Track</button>
+                    <button type="button" class="btn btn-warning btn-track-promote" data-action="DOWNGRADE">Downgrade
+                        All in Track</button>
+                </div>
+            </div>
+        </div>
+
+        <div th:each="classData : ${trackData.classes}"
+            class="class-promotion-group mb-4 p-3 border rounded bg-white shadow-sm"
+            th:data-class-id="${classData.schoolClass.id}">
+            <div class="mb-3">
+                <h5 class="mb-0 text-dark">
+                    <i class="fas fa-chalkboard me-2"></i>
+                    <span th:text="${classData.schoolClass.className}">Class Name</span>
+                </h5>
+            </div>
+
+            <table class="table table-sm table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 150px;">Admission No.</th>
+                        <th>Student Name</th>
+                        <th class="text-center" style="width: 100px;">
+                            <div class="small text-uppercase text-muted mb-1">Upgrade</div>
+                            <div class="btn-group w-100">
+                                <button type="button" class="btn btn-xs btn-outline-primary btn-bulk-promote w-100 py-0"
+                                    data-action="UPGRADE" th:data-class-id="${classData.schoolClass.id}"
+                                    style="font-size: 0.7rem;">All</button>
+                            </div>
+                        </th>
+                        <th class="text-center" style="width: 100px;">
+                            <div class="small text-uppercase text-muted mb-1">Retain</div>
+                            <div class="btn-group w-100">
+                                <button type="button"
+                                    class="btn btn-xs btn-outline-secondary btn-bulk-promote w-100 py-0"
+                                    data-action="RETAIN" th:data-class-id="${classData.schoolClass.id}"
+                                    style="font-size: 0.7rem;">All</button>
+                            </div>
+                        </th>
+                        <th class="text-center" style="width: 100px;">
+                            <div class="small text-uppercase text-muted mb-1">Downgrade</div>
+                            <div class="btn-group w-100">
+                                <button type="button" class="btn btn-xs btn-outline-warning btn-bulk-promote w-100 py-0"
+                                    data-action="DOWNGRADE" th:data-class-id="${classData.schoolClass.id}"
+                                    style="font-size: 0.7rem;">All</button>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="sc : ${classData.studentClasses}">
+                        <td class="text-muted small" th:text="${sc.student.admissionNumber ?: 'N/A'}">AD123</td>
+                        <td th:text="${sc.student.user.fullName}">Student Name</td>
+                        <td class="text-center">
+                            <div class="form-check d-flex justify-content-center m-0">
+                                <input type="radio" th:name="'promotion_' + ${sc.id}" value="UPGRADE"
+                                    th:class="'promotion-radio class-' + ${classData.schoolClass.id} + ' form-check-input'"
+                                    checked th:data-class-id="${classData.schoolClass.id}">
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <div class="form-check d-flex justify-content-center m-0">
+                                <input type="radio" th:name="'promotion_' + ${sc.id}" value="RETAIN"
+                                    th:class="'promotion-radio class-' + ${classData.schoolClass.id} + ' form-check-input'"
+                                    th:data-class-id="${classData.schoolClass.id}">
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <div class="form-check d-flex justify-content-center m-0">
+                                <input type="radio" th:name="'promotion_' + ${sc.id}" value="DOWNGRADE"
+                                    th:class="'promotion-radio class-' + ${classData.schoolClass.id} + ' form-check-input'"
+                                    th:data-class-id="${classData.schoolClass.id}">
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <style>
+        .track-promotion-section {
+            border-left: 5px solid #3b82f6 !important;
+        }
+
+        .class-promotion-group {
+            border-left: 3px solid #e5e7eb !important;
+        }
+
+        /* Ensure active state is visible for solid buttons */
+        .btn-track-promote.active {
+            box-shadow: inset 0 3px 5px rgba(0, 0, 0, .125);
+            filter: brightness(0.8);
+            border: 2px solid rgba(0, 0, 0, 0.2) !important;
+        }
+    </style>
+
+    <script th:inline="javascript">
+        (function () {
+            // Bulk promotion buttons (Class Level)
+            document.querySelectorAll('.btn-bulk-promote').forEach(btn => {
+                btn.onclick = function () {
+                    const classId = this.getAttribute('data-class-id');
+                    const action = this.getAttribute('data-action');
+                    applyClassPromotion(classId, action);
+
+                    // Highlight the active button in the group (Scoped to current table header)
+                    const headerRow = this.closest('tr');
+                    headerRow.querySelectorAll('.btn-bulk-promote').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Clear track level buttons active state for THIS track
+                    const trackSection = this.closest('.track-promotion-section');
+                    trackSection.querySelectorAll('.btn-track-promote').forEach(btn => btn.classList.remove('active'));
+                };
+            });
+
+            // Track promotion buttons (Track Level)
+            document.querySelectorAll('.btn-track-promote').forEach(btn => {
+                btn.onclick = function () {
+                    const action = this.getAttribute('data-action');
+                    const trackSection = this.closest('.track-promotion-section');
+
+                    trackSection.querySelectorAll('.class-promotion-group').forEach(group => {
+                        const classId = group.getAttribute('data-class-id');
+                        applyClassPromotion(classId, action);
+
+                        // Sync class-level buttons within this track
+                        group.querySelectorAll('.btn-bulk-promote').forEach(b => {
+                            if (b.getAttribute('data-action') === action) b.classList.add('active');
+                            else b.classList.remove('active');
+                        });
+                    });
+
+                    // Highlight active track button within its group
+                    const trackGroup = this.closest('.btn-group');
+                    trackGroup.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                };
+            });
+
+            function applyClassPromotion(classId, action) {
+                const radios = document.querySelectorAll('.class-' + classId + '[value="' + action + '"]');
+                radios.forEach(r => r.checked = true);
+            }
+
+            // Individual radio changes
+            document.querySelectorAll('.promotion-radio').forEach(radio => {
+                radio.onchange = function () {
+                    const classGroup = this.closest('.class-promotion-group');
+                    // Clear "All" buttons for this class
+                    classGroup.querySelectorAll('.btn-bulk-promote').forEach(btn => btn.classList.remove('active'));
+
+                    // Also clear track level buttons active state for THIS track
+                    const trackSection = this.closest('.track-promotion-section');
+                    trackSection.querySelectorAll('.btn-track-promote').forEach(btn => btn.classList.remove('active'));
+                };
+            });
+        })();
+    </script>
+</div>

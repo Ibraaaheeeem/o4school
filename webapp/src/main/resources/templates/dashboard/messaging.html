@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Messaging Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <style>
+        .messaging-container {
+            display: flex;
+            height: calc(100vh - 120px);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            margin-top: 1rem;
+        }
+
+        .template-inline-preview {
+            background: #fff;
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            line-height: 2;
+            color: #1e293b;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+
+        .inline-param-input {
+            display: inline-block;
+            border: none;
+            border-bottom: 2px solid #4f46e5 !important;
+            background: #f1f5f9 !important;
+            padding: 0 8px !important;
+            margin: 0 4px !important;
+            border-radius: 4px 4px 0 0 !important;
+            font-size: 0.9rem;
+            width: 130px;
+            height: 28px !important;
+            color: #4338ca;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .inline-param-input:focus {
+            outline: none;
+            background: #e0e7ff !important;
+            border-bottom-color: #1e1b4b !important;
+        }
+
+        /* Sidebar: Conversation List */
+        .chat-sidebar {
+            width: 350px;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.25rem;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .conversation-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .conversation-item:hover {
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .conversation-item:hover {
+            background: #f8fafc;
+        }
+
+        .conversation-item.active {
+            background: #f1f5f9;
+            border-left: 3px solid #4f46e5;
+        }
+
+        .avatar-circle {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .conv-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .conv-name {
+            display: block;
+            font-weight: 600;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conv-last-msg {
+            display: block;
+            font-size: 0.8rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Main Chat Window */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 0.85rem 1.15rem;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            position: relative;
+            line-height: 1.5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .message-bubble.outgoing {
+            align-self: flex-end;
+            background: #4f46e5;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-bubble.incoming {
+            align-self: flex-start;
+            background: white;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-time {
+            font-size: 0.7rem;
+            margin-top: 0.35rem;
+            display: block;
+            opacity: 0.8;
+            text-align: right;
+        }
+
+        .chat-input-area {
+            padding: 1.5rem;
+            background: white;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 1rem;
+            background: #f1f5f9;
+            padding: 0.5rem;
+            border-radius: 50px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.75rem 1.25rem;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .btn-send {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-send:hover {
+            transform: scale(1.05);
+            background: #4338ca;
+        }
+
+        .empty-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .empty-chat svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1.5rem;
+            opacity: 0.3;
+        }
+
+        .btn-send:hover {
+            background: #4338ca;
+            transform: scale(1.05);
+        }
+
+        /* Broadcast Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 28px;
+            padding: 0;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+            width: 95%;
+            max-width: 850px;
+            max-height: 90vh;
+            position: relative;
+            animation: slideUp 0.3s ease-out;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            /* Critical for flex scrolling */
+        }
+
+        .modal-content>form {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            flex: 1;
+        }
+
+        .modal-header {
+            padding: 1.5rem 2.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-body-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2.5rem;
+            min-height: 0;
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2.5rem;
+            border-top: 1px solid #f1f5f9;
+            background: #fff;
+            flex-shrink: 0;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modal-content>form>div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .category-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .category-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        .param-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .param-btn:hover {
+            border-color: #cbd5e1;
+            background: #f1f5f9;
+        }
+
+        .param-btn input[type="radio"],
+        .param-btn input:checked+span {
+            color: #4f46e5;
+        }
+
+        /* Recipient Table Styles */
+        #recipient-preview-list table th {
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #recipient-preview-list table td {
+            vertical-align: middle;
+        }
+
+        #search-results-dropdown div:hover {
+            background-color: #f8fafc;
+        }
+
+        .param-btn input[type="radio"],
+        .param-btn input[type="checkbox"] {
+            accent-color: #4f46e5;
+            width: 16px;
+            height: 16px;
+        }
+
+        .param-btn:has(input:checked) {
+            background: #eef2ff;
+            border-color: #4f46e5;
+            color: #4f46e5;
+        }
+
+        /* Custom Scrollbar for Filter Lists */
+        .filter-scroll-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.75rem;
+            background: #f8fafc;
+        }
+
+        .filter-scroll-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .filter-scroll-list::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .filter-scroll-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .filter-scroll-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .broadcast-pill {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #c7d2fe;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Variable Picker Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .category-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .category-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .param-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .param-btn {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 0.6rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #1e293b;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .param-btn:hover {
+            background: #e0e7ff;
+            border-color: #4f46e5;
+            color: #4338ca;
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="dashboard-container" style="max-width: 1400px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h1 style="font-size: 1.75rem; margin-bottom: 0.25rem;">WhatsApp Service</h1>
+                    <p class="text-secondary" th:text="${school?.name}">School Name</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="broadcast-pill" onclick="showBroadcastModal()">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                        Broadcast
+                    </button>
+                    <button class="broadcast-pill"
+                        style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;"
+                        onclick="showSettingsModal()">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        Reminders
+                    </button>
+                </div>
+            </div>
+
+            <div class="messaging-container">
+                <!-- Sidebar -->
+                <div class="chat-sidebar">
+                    <div class="sidebar-header" style="flex-direction: column; gap: 0.75rem; padding: 1rem 1.25rem;">
+                        <div style="display: flex; gap: 1rem;">
+                            <h2 id="tab-conv" class="active-tab" onclick="switchTab('conversations')"
+                                style="cursor: pointer;">Conversations</h2>
+                            <h2 id="tab-temp" class="inactive-tab" onclick="switchTab('templates')"
+                                style="cursor: pointer; opacity: 0.5;">Templates</h2>
+                        </div>
+                        <div id="sidebar-search-container" style="position: relative;">
+                            <input type="text" id="sidebar-recipient-search" class="chat-input"
+                                style="width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; height: 36px; padding-left: 2rem; font-size: 0.85rem; background: #f8fafc;"
+                                placeholder="Search contacts..." onkeyup="searchSidebarRecipients(this.value)">
+                            <svg style="position: absolute; left: 10px; top: 10px; color: #94a3b8; width: 16px; height: 16px;"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="sidebar-search-results" class="conversation-list"
+                        style="display: none; border-bottom: 2px solid #e2e8f0;"></div>
+                    <div id="conversation-list-container" class="conversation-list">
+                        <div th:replace="~{dashboard/messaging-fragments :: conversation-list}"></div>
+                    </div>
+                    <div id="template-list-container" class="conversation-list" style="display: none;">
+                        <div
+                            style="padding: 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #1e293b;">WhatsApp Templates</span>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick="newTemplate()" class="broadcast-pill"
+                                    style="padding: 6px 12px; font-size: 0.75rem; background: #10b981; color: white; border-color: #059669;">
+                                    + New
+                                </button>
+                                <button onclick="syncTemplates()" class="broadcast-pill"
+                                    style="padding: 6px 12px; font-size: 0.75rem; background: #4f46e5; color: white; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        style="margin-right: 4px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Sync
+                                </button>
+                            </div>
+                        </div>
+                        <div id="template-list-content">
+                            <!-- Template list fragment will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Area -->
+                <div class="chat-main" id="chat-window">
+                    <div class="empty-chat">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <h3>Select a conversation</h3>
+                        <p>Choose a parent from the list to start messaging or view history.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Include Broadcast Modal -->
+        <div th:replace="~{dashboard/messaging-fragments :: broadcast-modal}"></div>
+    </main>
+
+    <!-- Variable Picker Modal -->
+    <div id="variable-picker-modal" class="modal-overlay" onclick="closeVariablePicker(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0; font-size: 1.25rem;">Insert Variable</h3>
+                <button onclick="document.getElementById('variable-picker-modal').style.display='none'"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
+            </div>
+
+            <div class="category-group">
+                <div class="category-title">Personal</div>
+                <div class="param-grid">
+                    <button class="param-btn" onclick="selectVariable('student_name', 'Student Name')">Student
+                        Name</button>
+                    <button class="param-btn" onclick="selectVariable('parent_name', 'Parent Name')">Parent
+                        Name</button>
+                    <button class="param-btn" onclick="selectVariable('staff_name', 'Staff Name')">Staff Name</button>
+                </div>
+            </div>
+
+            <div class="category-group">
+                <div class="category-title">Academic & General</div>
+                <div class="param-grid">
+                    <button class="param-btn" onclick="selectVariable('class_name', 'Class Name')">Class Name</button>
+                    <button class="param-btn" onclick="selectVariable('students', 'Children & Classes')">Children &
+                        Classes</button>
+                    <button class="param-btn" onclick="selectVariable('cadre', 'Cadre')">Cadre</button>
+                    <button class="param-btn" onclick="selectVariable('school_name', 'School Name')">School
+                        Name</button>
+                    <button class="param-btn" onclick="selectVariable('current_session', 'Current Session')">Current
+                        Session</button>
+                    <button class="param-btn" onclick="selectVariable('current_term', 'Current Term')">Current
+                        Term</button>
+                    <button class="param-btn" onclick="selectVariable('academic_year', 'Academic Year')">Academic
+                        Year</button>
+                    <button class="param-btn" onclick="selectVariable('term_number', 'Term Number')">Term
+                        Number</button>
+                    <button class="param-btn" onclick="selectVariable('school_contact', 'School Phone')">School
+                        Phone</button>
+                    <button class="param-btn" onclick="selectVariable('date', 'Date')">Date</button>
+                    <button class="param-btn"
+                        onclick="selectVariable('commencement_info', 'Commencement Info')">Commencement Info</button>
+                </div>
+            </div>
+
+            <div class="category-group">
+                <div class="category-title">Financial</div>
+                <div class="param-grid">
+                    <button class="param-btn" onclick="selectVariable('current_bill', 'Current Bill')">Current
+                        Bill</button>
+                    <button class="param-btn" onclick="selectVariable('settled_bill', 'Paid So Far')">Paid So
+                        Far</button>
+                    <button class="param-btn" onclick="selectVariable('outstanding', 'Historical Debt')">Historical
+                        Debt</button>
+                    <button class="param-btn" onclick="selectVariable('balance', 'Net Balance')">Net Balance</button>
+                    <button class="param-btn" onclick="selectVariable('total_bill', 'Total Bill')">Total Bill</button>
+                    <button class="param-btn" onclick="selectVariable('due_date', 'Due Date')">Due Date</button>
+                    <button class="param-btn" onclick="selectVariable('dedicated_account', 'Account Details')">Account
+                        Details</button>
+                </div>
+            </div>
+
+            <div class="category-group" style="margin-bottom: 0;">
+                <div class="category-title">Other</div>
+                <div class="param-grid">
+                    <button class="param-btn" onclick="selectCustomVariable()"
+                        style="grid-column: span 2; border-style: dashed; background: #fafafa;">
+                        <span>+ Custom Placeholder</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="none">
+        async function authenticatedFetch(url, options = {}) {
+            const response = await fetch(url, options);
+            if (response.redirected && response.url.includes('/login')) {
+                window.location.href = '/login';
+                return new Promise(() => { }); // Halt execution
+            }
+            return response;
+        }
+
+        function showBroadcastModal() {
+            document.getElementById('broadcast-modal').style.display = 'flex';
+            fetchTemplates();
+            updateRecipientCount();
+        }
+
+        function closeBroadcastModal(event) {
+            // If event provided, check if we clicked the overlay
+            if (event && event.target.id !== 'broadcast-modal') {
+                return;
+            }
+            document.getElementById('broadcast-modal').style.display = 'none';
+        }
+        let currentRecipient = null;
+        let activeTab = 'conversations';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const convTab = document.getElementById('tab-conv');
+            const tempTab = document.getElementById('tab-temp');
+            const convList = document.getElementById('conversation-list-container');
+            const tempList = document.getElementById('template-list-container');
+
+            if (tab === 'conversations') {
+                convTab.style.opacity = '1';
+                tempTab.style.opacity = '0.5';
+                convList.style.display = 'block';
+                tempList.style.display = 'none';
+            } else {
+                convTab.style.opacity = '0.5';
+                tempTab.style.opacity = '1';
+                convList.style.display = 'none';
+                tempList.style.display = 'block';
+                loadTemplates();
+            }
+        }
+
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/admin/dashboard/messaging/templates');
+                const html = await response.text();
+                document.getElementById('template-list-content').innerHTML = html;
+            } catch (err) {
+                console.error("Failed to load templates:", err);
+            }
+        }
+
+        async function syncTemplates() {
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = 'Syncing...';
+            btn.disabled = true;
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await fetch('/admin/dashboard/messaging/templates/sync', {
+                    method: 'POST',
+                    headers: { [csrfHeader]: csrfToken }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadTemplates();
+                } else {
+                    alert("Failed to sync templates. Check your Meta credentials.");
+                }
+            } catch (err) {
+                console.error("Sync error:", err);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+
+        async function viewTemplate(id, element) {
+            console.log("Viewing template called with ID:", id);
+            if (!id) {
+                console.error("Template ID is missing!");
+                return;
+            }
+
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            try {
+                const url = `/admin/dashboard/messaging/templates/${id}`;
+                console.log("Fetching template from:", url);
+                const response = await authenticatedFetch(url);
+                console.log("Response status:", response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const html = await response.text();
+                const chatWindow = document.getElementById('chat-window');
+                chatWindow.innerHTML = html;
+
+                // Render components from data-attribute
+                const display = chatWindow.querySelector(`.components-display[data-components]`);
+                if (display) {
+                    try {
+                        const components = JSON.parse(display.getAttribute('data-components'));
+                        let compHtml = '';
+                        components.forEach(c => {
+                            if (c.type === 'HEADER') compHtml += `<div style="font-weight:bold; margin-bottom:4px; opacity:0.6;">${c.text}</div>`;
+                            if (c.type === 'BODY') compHtml += `<div style="margin-bottom:8px;">${c.text}</div>`;
+                            if (c.type === 'FOOTER') compHtml += `<div style="font-size:0.8rem; color:#64748b;">${c.text}</div>`;
+                        });
+                        display.innerHTML = compHtml || 'No components found.';
+                    } catch (e) {
+                        console.error("Failed to parse components:", e);
+                        display.innerHTML = "Error rendering components.";
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load template view:", err);
+                alert("Error loading template details: " + err.message);
+            }
+        }
+
+        async function saveMapping(id) {
+            const input = document.getElementById('mapping-input');
+            const mapping = input.value.trim();
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            const formData = new FormData();
+            formData.append('mapping', mapping);
+
+            try {
+                const response = await authenticatedFetch(`/admin/dashboard/messaging/templates/${id}/mapping`, {
+                    method: 'POST',
+                    headers: { [csrfHeader]: csrfToken },
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert("Mapping saved successfully!");
+                } else {
+                    alert("Error: " + (result.message || "Failed to save mapping"));
+                }
+            } catch (err) {
+                console.error("Save mapping error:", err);
+            }
+        }
+
+        async function loadThread(recipient, element) {
+            currentRecipient = recipient;
+
+            // UI Update
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            try {
+                const response = await authenticatedFetch(`/admin/dashboard/messaging/thread/${encodeURIComponent(recipient)}`);
+                const html = await response.text();
+                document.getElementById('chat-window').innerHTML = html;
+                scrollToBottom();
+
+                // If we are in modal, maybe close it if we want to switch context? 
+                // For now, let's just let it load in background or close modal.
+                const modal = document.getElementById('broadcast-modal');
+                if (modal && modal.style.display === 'flex') {
+                    // Optional: close modal on click
+                    // closeBroadcastModal();
+                }
+            } catch (err) {
+                console.error("Failed to load thread:", err);
+            }
+        }
+
+        let sidebarSearchTimeout = null;
+        function searchSidebarRecipients(query) {
+            clearTimeout(sidebarSearchTimeout);
+            const resultsDiv = document.getElementById('sidebar-search-results');
+            const convList = document.getElementById('conversation-list-container');
+
+            if (!query || query.length < 2) {
+                resultsDiv.style.display = 'none';
+                convList.style.opacity = '1';
+                return;
+            }
+
+            sidebarSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await authenticatedFetch(`/admin/dashboard/messaging/broadcast/search?query=${encodeURIComponent(query)}`);
+                    const results = await response.json();
+
+                    if (results.length === 0) {
+                        resultsDiv.innerHTML = '<div style="padding: 1rem; color: #94a3b8; text-align: center; font-size: 0.8rem;">No contacts found</div>';
+                    } else {
+                        resultsDiv.innerHTML = results.map(r => `
+                            <div class="conversation-item" onclick="loadThread('${r.phoneNumber}', this)">
+                                <div class="avatar-circle">${r.name.charAt(0)}</div>
+                                <div class="conv-info">
+                                    <span class="conv-name">${r.name}</span>
+                                    <span class="conv-last-msg">${r.roles.join(', ')}</span>
+                                </div>
+                                <div style="font-size: 0.7rem; color: #94a3b8;">
+                                    <span>${r.phoneNumber || ''}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                    resultsDiv.style.display = 'block';
+                    convList.style.opacity = '0.3'; // Dim the background list
+                } catch (err) {
+                    console.error("Sidebar search failed:", err);
+                }
+            }, 300);
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('reply-input');
+            const message = input.value.trim();
+            if (!message || !currentRecipient) return;
+
+            input.value = '';
+
+            const formData = new FormData();
+            formData.append('recipient', currentRecipient);
+            formData.append('message', message);
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await authenticatedFetch('/admin/dashboard/messaging/reply', {
+                    method: 'POST',
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Reload thread
+                    loadThread(currentRecipient, document.querySelector(`.conversation-item.active`));
+                }
+            } catch (err) {
+                console.error("Failed to send message:", err);
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('message-container');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        // Auto-refresh conversations every 10 seconds (only if in conversations tab)
+        setInterval(async () => {
+            if (activeTab !== 'conversations') return;
+
+            try {
+                const response = await authenticatedFetch('/admin/dashboard/messaging/conversations');
+                if (!response.ok) return;
+
+                const html = await response.text();
+                const list = document.getElementById('conversation-list-container');
+                if (!list) return;
+
+                const activeId = document.querySelector('.conversation-item.active')?.getAttribute('data-recipient');
+                list.innerHTML = html;
+                if (activeId) {
+                    const newActive = list.querySelector(`[data-recipient="${activeId}"]`);
+                    if (newActive) newActive.classList.add('active');
+                }
+            } catch (err) {
+                console.warn("Background polling for conversations failed:", err);
+            }
+        }, 10000);
+
+        // Auto-refresh active thread every 5 seconds
+        setInterval(async () => {
+            if (activeTab !== 'conversations' || !currentRecipient) return;
+
+            try {
+                const response = await authenticatedFetch(`/admin/dashboard/messaging/thread/${encodeURIComponent(currentRecipient)}`);
+                if (!response.ok) return;
+
+                const html = await response.text();
+                const container = document.getElementById('message-container');
+                const wasAtBottom = container && (container.scrollHeight - container.scrollTop <= container.clientHeight + 100);
+
+                document.getElementById('chat-window').innerHTML = html;
+
+                if (wasAtBottom) {
+                    scrollToBottom();
+                }
+            } catch (err) {
+                console.warn("Background polling for thread failed:", err);
+            }
+        }, 5000);
+
+
+        async function updateRecipientCount() {
+            const form = document.getElementById('broadcast-form');
+            const badge = document.getElementById('recipient-preview-badge');
+            const tbody = document.getElementById('preview-list-body');
+
+            if (!form || !badge) return;
+
+            toggleAcademicFilters();
+
+            const formData = new FormData(form);
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await authenticatedFetch('/admin/dashboard/messaging/broadcast/recipients', {
+                    method: 'POST',
+                    headers: { [csrfHeader]: csrfToken },
+                    body: formData
+                });
+                const recipients = await response.json();
+                window.currentRecipients = recipients; // Store for validation
+
+                // Update badge
+                badge.innerText = `Recipients: ${recipients.length}`;
+                badge.style.background = recipients.length > 0 ? '#e0e7ff' : '#fee2e2';
+                badge.style.color = recipients.length > 0 ? '#4338ca' : '#ef4444';
+
+                // Update preview list
+                if (recipients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">No recipients matching filters</td></tr>';
+                } else {
+                    tbody.innerHTML = recipients.map(r => {
+                        const isManualId = form.querySelector(`input[id="manual-id-${r.userId}"]`);
+                        const isManualPhone = form.querySelector(`input[id="manual-phone-${r.phoneNumber}"]`);
+
+                        let deleteAction = '';
+                        if (isManualId) {
+                            deleteAction = `removeManualRecipient('${r.userId}')`;
+                        } else if (isManualPhone) {
+                            deleteAction = `removeManualPhone('${r.phoneNumber}')`;
+                        } else {
+                            deleteAction = `addExclusion('${r.userId}', '${r.phoneNumber}')`;
+                        }
+
+                        return `
+                            <tr style="border-bottom: 1px solid #f1f5f9; cursor: pointer;" onclick="loadThread('${r.phoneNumber}', null); closeBroadcastModal();" class="hover-bg-slate">
+                                <td style="padding: 10px 12px;">
+                                    <div style="font-weight: 600;">${r.name}</div>
+                                    <div style="font-size: 0.7rem; color: #94a3b8;">${r.roles.join(', ')}</div>
+                                </td>
+                                <td style="padding: 10px 12px; color: #64748b;">${r.phoneNumber || 'N/A'}</td>
+                                <td style="padding: 10px 12px; text-align: right;">
+                                    <button type="button" onclick="event.stopPropagation(); ${deleteAction}" style="color: #ef4444; background: #fee2e2; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem; line-height: 1;">&times;</button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error("Failed to update recipients:", err);
+            }
+        }
+
+        async function applyAiFilter() {
+            const queryInput = document.getElementById('ai-query-input');
+            const query = queryInput.value.trim();
+            if (!query) {
+                alert("Please enter a filter criteria first.");
+                return;
+            }
+
+            const btn = event.currentTarget;
+            const originalText = btn.innerText;
+            btn.innerText = 'AI is thinking...';
+            btn.disabled = true;
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await authenticatedFetch('/api/admin/query/parents', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) throw new Error("AI search failed. Ensure your Gemini API Key is configured.");
+
+                const parents = await response.json();
+
+                // Add each AI-found parent as a manual recipient
+                parents.forEach(p => {
+                    addManualRecipient(p.id, p.name, p.phone, ['AI Found']);
+                });
+
+                queryInput.value = '';
+                alert(`AI found and added ${parents.length} recipients.`);
+
+            } catch (err) {
+                console.error("AI filter error:", err);
+                alert("AI Filter Error: " + err.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function addExclusion(userId, phone) {
+            if (userId && userId !== 'null') {
+                const container = document.getElementById('excluded-ids-container');
+                if (!container.querySelector(`input[value="${userId}"]`)) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'excludedUserIds';
+                    input.value = userId;
+                    container.appendChild(input);
+                }
+            } else if (phone && phone !== 'null') {
+                const container = document.getElementById('excluded-phones-container');
+                if (!container.querySelector(`input[value="${phone}"]`)) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'excludedPhoneNumbers';
+                    input.value = phone;
+                    container.appendChild(input);
+                }
+            }
+            updateRecipientCount();
+        }
+
+        function toggleAcademicFilters() {
+            const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value;
+            const academicSection = document.getElementById('academic-filters-section');
+            const parentFilters = document.getElementById('parent-only-filters');
+            const classLabel = document.getElementById('class-selection-label');
+
+            if (academicSection) {
+                // Show academic section for Staff or Parents, hide for All or None
+                academicSection.style.display = (recipientType === 'STAFF' || recipientType === 'PARENTS') ? 'block' : 'none';
+            }
+
+            if (parentFilters) {
+                // Only show for Parents
+                parentFilters.style.display = recipientType === 'PARENTS' ? 'block' : 'none';
+            }
+
+            if (classLabel) {
+                classLabel.innerText = recipientType === 'STAFF' ? "Staff's Assigned Classes" : "Parent's Child's Classes";
+            }
+        }
+
+        let searchTimeout = null;
+        function searchManualRecipients(query) {
+            clearTimeout(searchTimeout);
+            const dropdown = document.getElementById('search-results-dropdown');
+
+            if (!query || query.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await authenticatedFetch(`/admin/dashboard/messaging/broadcast/search?query=${encodeURIComponent(query)}`);
+                    const results = await response.json();
+
+                    if (results.length === 0) {
+                        dropdown.innerHTML = '<div style="padding: 12px; color: #94a3b8; text-align: center;">No results found</div>';
+                    } else {
+                        dropdown.innerHTML = results.map(r => `
+                            <div onclick="addManualRecipient('${r.userId}', '${r.name}', '${r.phoneNumber}', '${r.roles.join(', ')}')" 
+                                style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; hover: background: #f8fafc;">
+                                <div style="font-weight: 600; font-size: 0.85rem;">${r.name}</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">${r.roles.join(', ')} • ${r.phoneNumber || 'No phone'}</div>
+                            </div>
+                        `).join('');
+                    }
+                    dropdown.style.display = 'block';
+                } catch (err) {
+                    console.error("Search failed:", err);
+                }
+            }, 300);
+        }
+
+        function addManualRecipient(userId, name, phone, roles) {
+            const container = document.getElementById('manual-ids-container');
+            const dropdown = document.getElementById('search-results-dropdown');
+            const searchInput = document.getElementById('recipient-search');
+
+            // Check if already exist
+            if (container.querySelector(`input[value="${userId}"]`)) {
+                dropdown.style.display = 'none';
+                searchInput.value = '';
+                return;
+            }
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'manualUserIds';
+            input.value = userId;
+            input.id = `manual-id-${userId}`;
+            container.appendChild(input);
+
+            // Clear any existing exclusion
+            const exclusion = document.querySelector(`#excluded-ids-container input[value="${userId}"]`);
+            if (exclusion) exclusion.remove();
+
+            dropdown.style.display = 'none';
+            searchInput.value = '';
+            updateRecipientCount();
+        }
+
+        function removeManualRecipient(userId) {
+            const input = document.getElementById(`manual-id-${userId}`);
+            if (input) input.remove();
+            updateRecipientCount();
+        }
+
+        function addUnregisteredRecipient() {
+            const container = document.getElementById('manual-phones-container');
+            const inputField = document.getElementById('unregistered-phone');
+            const phone = inputField.value.trim();
+
+            if (!phone || phone.length < 10) {
+                alert("Please enter a valid phone number (min 10 digits)");
+                return;
+            }
+
+            // Check if already exist
+            if (container.querySelector(`input[value="${phone}"]`)) {
+                inputField.value = '';
+                return;
+            }
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'manualPhoneNumbers';
+            input.value = phone;
+            input.id = `manual-phone-${phone}`;
+            container.appendChild(input);
+
+            // Clear any existing exclusion
+            const exclusion = document.querySelector(`#excluded-phones-container input[value="${phone}"]`);
+            if (exclusion) exclusion.remove();
+
+            inputField.value = '';
+            updateRecipientCount();
+        }
+
+        function removeManualPhone(phone) {
+            const input = document.getElementById(`manual-phone-${phone}`);
+            if (input) input.remove();
+            updateRecipientCount();
+        }
+
+        let currentRecipients = [];
+        async function fetchTemplates() {
+            const selector = document.getElementById('template-selector');
+            if (selector.options.length > 1) return; // Already loaded
+
+            console.log("Fetching broadcast templates from DB...");
+            selector.innerHTML = '<option value="">-- Loading templates... --</option>';
+
+            try {
+                const response = await authenticatedFetch('/admin/dashboard/messaging/broadcast/templates');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const templates = await response.json();
+                console.log("Retrieved templates:", templates);
+
+                selector.innerHTML = '<option value="">-- Select Template --</option>';
+                if (templates.length === 0) {
+                    selector.innerHTML = '<option value="">-- No templates found --</option>';
+                }
+
+                templates.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.name;
+                    opt.innerText = t.name;
+                    opt.dataset.components = t.components;
+                    opt.dataset.targetRole = t.target_role;
+                    opt.dataset.mapping = t.mapping;
+                    opt.dataset.language = t.language;
+                    selector.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Failed to fetch templates:", err);
+                selector.innerHTML = '<option value="">-- Error loading templates --</option>';
+            }
+        }
+
+        function loadTemplateDetails(templateName) {
+            const container = document.getElementById('template-params-container');
+            const inputsContainer = document.getElementById('template-params-inputs');
+            const messageArea = document.getElementById('broadcast-message-area');
+            const selector = document.getElementById('template-selector');
+            const selectedOpt = selector.options[selector.selectedIndex];
+
+            if (!templateName) {
+                container.style.display = 'none';
+                messageArea.disabled = false;
+                messageArea.placeholder = "Enter your announcement here...";
+                const warningDiv = document.getElementById('template-qualification-warning');
+                if (warningDiv) warningDiv.style.display = 'none';
+                return;
+            }
+
+            // Recipient Qualification Check
+            const targetRole = selectedOpt.dataset.targetRole;
+            const recipients = window.currentRecipients || [];
+            let unqualifiedCount = 0;
+            let unqualifiedType = '';
+
+            if (targetRole === 'PARENT') {
+                unqualifiedCount = recipients.filter(r => r.type === 'STAFF').length;
+                unqualifiedType = 'Staff';
+            } else if (targetRole === 'STAFF') {
+                unqualifiedCount = recipients.filter(r => r.type === 'PARENT').length;
+                unqualifiedType = 'Parents';
+            }
+
+            let warningDiv = document.getElementById('template-qualification-warning');
+            if (!warningDiv) {
+                warningDiv = document.createElement('div');
+                warningDiv.id = 'template-qualification-warning';
+                warningDiv.style.cssText = 'background: #fff7ed; border: 1px solid #ffedd5; color: #9a3412; padding: 1rem; border-radius: 12px; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;';
+                container.parentNode.insertBefore(warningDiv, container);
+            }
+
+            if (unqualifiedCount > 0) {
+                warningDiv.innerHTML = `
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span><b>Warning:</b> ${unqualifiedCount} recipient(s) (${unqualifiedType}) are not qualified for this template and will be skipped.</span>
+                `;
+                warningDiv.style.display = 'flex';
+            } else {
+                warningDiv.style.display = 'none';
+            }
+
+            container.style.display = 'block';
+            messageArea.disabled = true;
+            messageArea.placeholder = "Message is predefined by template";
+            messageArea.value = "[Template: " + templateName + " selected]";
+
+            try {
+                const components = JSON.parse(selectedOpt.dataset.components || '[]');
+                const mappingStr = selectedOpt.dataset.mapping || '';
+                const bodyComp = components.find(c => c.type === 'BODY');
+                const text = bodyComp?.text || "";
+
+                // Parse mapping: "1=student_name,2=due_date"
+                const mapping = {};
+                mappingStr.split(',').forEach(m => {
+                    if (m.includes('=')) {
+                        const [id, key] = m.split('=');
+                        mapping[id.trim()] = key.trim();
+                    } else if (m.trim()) {
+                        mapping[m.trim()] = m.trim();
+                    }
+                });
+
+                // Known system variables from TemplateParameterResolver
+                const systemVars = [
+                    'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
+                    'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
+                    'academic_year', 'term_number', 'current_bill', 'settled_bill', 'outstanding',
+                    'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
+                ];
+
+                // Find variables like {{1}} or {{student_name}} in text
+                const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
+                const uniqueVars = [...new Set(varMatches)];
+
+                if (uniqueVars.length === 0) {
+                    inputsContainer.innerHTML = `<div class="template-inline-preview">${text}</div>`;
+                } else {
+                    let previewHtml = text;
+                    uniqueVars.forEach((v, index) => {
+                        const key = v.replace(/\{\{|\}\}/g, '');
+                        const mappedKey = mapping[key] || key;
+                        const isAutoFilled = systemVars.includes(mappedKey);
+
+                        // ID for form submittal: use the placeholder key (e.g. "1" or "student_name")
+                        const paramId = key;
+
+                        let inputHtml = "";
+                        if (isAutoFilled) {
+                            // Disabled field for auto-filled data
+                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 0.7; width: auto; min-width: 80px; display: inline-flex; align-items: center; justify-content: center;" title="Auto-filled: ${mappedKey}">
+                                ${mappedKey}
+                            </span>`;
+                        } else {
+                            // Enabled field for manual entry
+                            inputHtml = `<input type="text" name="manualParam_${paramId}" placeholder="${v}" class="inline-param-input" required title="Enter value for ${key}">`;
+                        }
+
+                        // Escape regex special chars in v for replacement
+                        const escapedV = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        previewHtml = previewHtml.split(v).join(inputHtml);
+                    });
+
+                    inputsContainer.innerHTML = `<div class="template-inline-preview">${previewHtml}</div>`;
+                    inputsContainer.style.display = 'block';
+                }
+            } catch (e) {
+                console.error("Error parsing template components:", e);
+                inputsContainer.innerHTML = 'Error loading params';
+            }
+        }
+
+        function toggleTrackClasses(trackCheckbox) {
+            const trackId = trackCheckbox.getAttribute('data-track-id');
+            const isChecked = trackCheckbox.checked;
+            const classCheckboxes = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+
+            classCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+
+            updateRecipientCount();
+        }
+
+        function syncTrackCheckbox(classCheckbox) {
+            const trackId = classCheckbox.getAttribute('data-track-id');
+            const trackCheckbox = document.getElementById(`track-${trackId}`);
+
+            if (trackCheckbox) {
+                const siblingClasses = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+                const allChecked = Array.from(siblingClasses).every(cb => cb.checked);
+                trackCheckbox.checked = allChecked;
+            }
+        }
+
+        function showSettingsModal() {
+            alert("Reminder Settings: Configure automated balance alerts here.");
+        }
+
+        async function newTemplate() {
+            try {
+                const response = await fetch('/admin/dashboard/messaging/templates/new');
+                const html = await response.text();
+                document.getElementById('chat-window').innerHTML = html;
+                document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+
+                // Initialize variable tracking
+                window.templateVariables = [];
+
+                // Trigger empty update to clear any residual sample views
+                updateSamples('header');
+                updateSamples('body');
+            } catch (err) {
+                console.error("Failed to load new template form:", err);
+            }
+        }
+
+        function updateSamples(type) {
+            const textarea = document.getElementById(type + '-text');
+            const container = document.getElementById(type + '-samples-container');
+            const list = document.getElementById(type + '-samples-list');
+
+            if (!textarea || !container || !list) return;
+
+            const text = textarea.value;
+            const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
+            const uniqueVars = [...new Set(varMatches)];
+
+            if (uniqueVars.length === 0) {
+                container.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+
+            // Keep track of existing values
+            const currentValues = {};
+            list.querySelectorAll('input').forEach(input => {
+                currentValues[input.name] = input.value;
+            });
+
+            list.innerHTML = uniqueVars.map(v => {
+                const key = v.replace(/\{\{|\}\}/g, '');
+                const name = `sample_${type}_${key}`;
+                const val = currentValues[name] || '';
+                return `
+                    <div>
+                        <label style="font-size: 0.7rem; color: #64748b; display: block; margin-bottom: 2px;">Sample for ${v}</label>
+                        <input type="text" name="${name}" value="${val}" class="chat-input" 
+                            style="width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; height: 32px; font-size: 0.8rem;" 
+                            placeholder="e.g. John" required>
+                    </div>
+                `;
+            }).join('');
+
+            container.style.display = 'block';
+        }
+
+        let currentVariableTarget = null;
+        function insertVariable(targetId) {
+            currentVariableTarget = targetId;
+            document.getElementById('variable-picker-modal').style.display = 'flex';
+        }
+
+        function closeVariablePicker(e) {
+            if (e.target.id === 'variable-picker-modal') {
+                e.target.style.display = 'none';
+            }
+        }
+
+        function selectVariable(key, label) {
+            if (!currentVariableTarget) return;
+            const textarea = document.getElementById(currentVariableTarget);
+
+            // Track the variable mapping
+            if (!window.templateVariables) window.templateVariables = [];
+            // Check if variable already exists in mapping to avoid duplicates
+            if (!window.templateVariables.some(v => v.key === key)) {
+                window.templateVariables.push({ key: key, label: label });
+            }
+
+            const text = textarea.value;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = text.substring(0, start) + `{{${key}}}` + text.substring(end);
+
+            document.getElementById('variable-picker-modal').style.display = 'none';
+            textarea.focus();
+
+            updateVariableLegend();
+
+            // Trigger sample update
+            if (currentVariableTarget === 'body-text') updateSamples('body');
+            if (currentVariableTarget === 'header-text') updateSamples('header');
+        }
+
+        function selectCustomVariable() {
+            const custom = prompt("Enter a label for this custom variable (e.g. balance, subject):");
+            if (custom) {
+                const key = custom.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                selectVariable(key, custom);
+            }
+        }
+
+        function updateVariableLegend() {
+            const legend = document.getElementById('variable-legend');
+            if (!legend) return;
+
+            if (!window.templateVariables || window.templateVariables.length === 0) {
+                legend.innerHTML = '';
+                legend.style.display = 'none';
+                return;
+            }
+
+            let html = '<div style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+            window.templateVariables.forEach(v => {
+                html += `<span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0;"><b>{{${v.key}}}:</b> ${v.label}</span>`;
+            });
+            html += '</div>';
+
+            legend.innerHTML = html;
+            legend.style.display = 'block';
+
+            // Update hidden mapping input
+            const mappingInput = document.getElementById('generated-mapping');
+            if (mappingInput) {
+                mappingInput.value = window.templateVariables.map(v => v.key).join(',');
+            }
+        }
+
+        async function submitTemplate() {
+            const form = document.getElementById('template-editor-form');
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+
+            const formData = new FormData(form);
+
+            btn.innerText = 'Submitting...';
+            btn.disabled = true;
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await fetch('/admin/dashboard/messaging/templates', {
+                    method: 'POST',
+                    headers: { [csrfHeader]: csrfToken },
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert("Template submitted to Meta successfully! It will appear as PENDING until approved.");
+                    loadTemplates();
+                    document.getElementById('chat-window').innerHTML = `
+                        <div class="empty-chat">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h3>Submitted Successfully</h3>
+                            <p>Your template has been sent to Meta for approval.</p>
+                        </div>`;
+                } else {
+                    alert("Failed to subit template. Ensure name is unique (lowercase, no spaces) and content follows rules.");
+                }
+            } catch (err) {
+                console.error("Submission error:", err);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteTemplate(id) {
+            if (!confirm("Are you sure you want to delete this template from Meta? This cannot be undone.")) return;
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await fetch(`/admin/dashboard/messaging/templates/${id}`, {
+                    method: 'DELETE',
+                    headers: { [csrfHeader]: csrfToken }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadTemplates();
+                    document.getElementById('chat-window').innerHTML = `
+                        <div class="empty-chat">
+                            <h3>Template Deleted</h3>
+                            <p>The template has been removed from our system and Meta.</p>
+                        </div>`;
+                } else {
+                    alert("Failed to delete template from Meta.");
+                }
+            } catch (err) {
+                console.error("Delete error:", err);
+            }
+        }
+
+        function clearAllRecipients() {
+            if (!confirm("Remove all selected recipients?")) return;
+
+            // Clear manual IDs
+            document.getElementById('manual-ids-container').innerHTML = '';
+
+            // Clear manual phones
+            document.getElementById('manual-phones-container').innerHTML = '';
+
+            // Clear exclusions
+            document.getElementById('excluded-ids-container').innerHTML = '';
+            document.getElementById('excluded-phones-container').innerHTML = '';
+
+            // Reset filters
+            const noneFilter = document.querySelector('input[name="recipientType"][value="NONE"]');
+            if (noneFilter) {
+                noneFilter.checked = true;
+                toggleAcademicFilters();
+            }
+
+            // Clear search inputs
+            document.getElementById('ai-query-input').value = '';
+            document.getElementById('recipient-search').value = '';
+            document.getElementById('unregistered-phone').value = '';
+
+            updateRecipientCount();
+        }
+    </script>
+</body>
+
+</html>

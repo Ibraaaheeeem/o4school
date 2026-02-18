@@ -1,0 +1,236 @@
+package com.haneef._school.config
+
+import org.springframework.aot.hint.MemberCategory
+import org.springframework.aot.hint.RuntimeHints
+import org.springframework.aot.hint.RuntimeHintsRegistrar
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider
+import org.springframework.core.type.filter.AnnotationTypeFilter
+import org.springframework.core.type.filter.AssignableTypeFilter
+import jakarta.persistence.Entity
+
+import java.util.*
+import org.hibernate.collection.spi.PersistentBag
+import org.hibernate.collection.spi.PersistentSet
+import org.hibernate.collection.spi.PersistentSortedSet
+import org.hibernate.collection.spi.PersistentList
+
+class GlobalRuntimeHints : RuntimeHintsRegistrar {
+    override fun registerHints(hints: RuntimeHints, classLoader: ClassLoader?) {
+        
+        // 1. Register ALL your Entities and DTOs automatically
+        // useDefaultFilters = false to disable default @Component scanning
+        val scanner = ClassPathScanningCandidateComponentProvider(false)
+        
+        // Include Entities
+        scanner.addIncludeFilter(AnnotationTypeFilter(Entity::class.java))
+        
+        // Include everything in the package (DTOs, etc)
+        // Any::class.java corresponds to java.lang.Object, so this matches all classes
+        scanner.addIncludeFilter(AssignableTypeFilter(Any::class.java)) 
+        
+        // This scans everything under com.haneef._school
+        val candidates = scanner.findCandidateComponents("com.haneef._school")
+        
+        candidates.forEach { beanDefinition ->
+            try {
+                val clazz = Class.forName(beanDefinition.beanClassName)
+                hints.reflection().registerType(clazz, 
+                    MemberCategory.INVOKE_PUBLIC_METHODS, 
+                    MemberCategory.DECLARED_FIELDS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS)
+            } catch (e: Exception) {
+                // Ignore classes that can't be loaded
+            }
+        }
+
+        // 2. Register standard Java Collections & Math
+        val javaUtils = listOf(
+            ArrayList::class.java, LinkedList::class.java,
+            HashMap::class.java, LinkedHashMap::class.java,
+            HashSet::class.java, LinkedHashSet::class.java,
+            List::class.java, Set::class.java, Map::class.java,
+            java.lang.Math::class.java
+        )
+        javaUtils.forEach { 
+            hints.reflection().registerType(it, MemberCategory.INVOKE_PUBLIC_METHODS) 
+        }
+
+        // 3. Register Thymeleaf Utilities
+        // Using fully qualified names where necessary to avoid ambiguity
+        // Register Thymeleaf Utilities
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Lists"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Strings"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Numbers"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Dates"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Arrays"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.engine.IterationStatusVar"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Booleans"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Objects"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Aggregates"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Messages"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Ids"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        try { hints.reflection().registerType(Class.forName("org.thymeleaf.expression.Temporals"), MemberCategory.INVOKE_PUBLIC_METHODS) } catch(e: Exception) {}
+        
+        // 4. Fix for Kotlin Collections
+        listOf("kotlin.collections.EmptyList", "kotlin.collections.EmptyMap").forEach {
+            try {
+                hints.reflection().registerType(Class.forName(it), MemberCategory.INVOKE_PUBLIC_METHODS)
+            } catch (e: Exception) {}
+        }
+        
+        // 5. Register Spring Data Page/Slice/PageImpl
+        listOf(
+            "org.springframework.data.domain.PageImpl",
+            "org.springframework.data.domain.Page",
+            "org.springframework.data.domain.Slice",
+            "org.springframework.data.domain.Chunk"
+        ).forEach {
+             try {
+                hints.reflection().registerType(Class.forName(it), MemberCategory.INVOKE_PUBLIC_METHODS)
+            } catch (e: Exception) {}
+        }
+        
+        // 6. Register java.util.Collections$UnmodifiableRandomAccessList
+        try {
+             hints.reflection().registerType(Class.forName("java.util.Collections\$UnmodifiableRandomAccessList"),
+                MemberCategory.INVOKE_PUBLIC_METHODS)
+        } catch (e: ClassNotFoundException) {
+        }
+
+        // 7. Register Hibernate Collections (PersistentBag, etc.)
+        val hibernateCollections = listOf(
+            PersistentBag::class.java,
+            PersistentSet::class.java,
+            PersistentSortedSet::class.java,
+            PersistentList::class.java
+        )
+
+        hibernateCollections.forEach { 
+            hints.reflection().registerType(it, MemberCategory.INVOKE_PUBLIC_METHODS) 
+        }
+
+        // 8. Catch-All Strategy for Proxies
+        val extraClasses = listOf(
+            "org.hibernate.proxy.HibernateProxy",
+            "org.hibernate.proxy.pojo.bytebuddy.ByteBuddyInterceptor" 
+        )
+
+        extraClasses.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), MemberCategory.INVOKE_PUBLIC_METHODS)
+            } catch (e: Exception) {
+                // Class not on classpath, skip it
+            }
+        }
+        // 9. Register AWT and ImageIO for Invoice Generation
+        val awtClasses = listOf(
+            java.awt.Color::class.java,
+            java.awt.Font::class.java,
+            java.awt.RenderingHints::class.java,
+            java.awt.image.BufferedImage::class.java,
+            javax.imageio.ImageIO::class.java
+        )
+        
+        awtClasses.forEach {
+            try {
+                hints.reflection().registerType(it, 
+                    MemberCategory.INVOKE_PUBLIC_METHODS, 
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS)
+            } catch (e: Exception) {}
+        }
+
+        // 10. Register PostgreSQL Dialect and Hibernate internals for Native
+        val hibernateInternals = listOf(
+            "org.hibernate.dialect.PostgreSQLDialect",
+            "org.hibernate.dialect.DatabaseVersion",
+            "com.haneef._school.config.GlobalRuntimeHints"
+        )
+        hibernateInternals.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS)
+            } catch (e: Exception) {}
+        }
+
+        // 11. Register types for Serialization (Native fix)
+        // This is necessary because Hibernate serializes certain query parameters/caching data
+        val serializableTypes = listOf(
+            UUID::class.java,
+            ArrayList::class.java,
+            LinkedList::class.java,
+            HashMap::class.java,
+            LinkedHashMap::class.java,
+            HashSet::class.java,
+            java.lang.Long::class.java,
+            java.lang.Integer::class.java,
+            java.lang.Double::class.java,
+            java.lang.Boolean::class.java,
+            java.lang.String::class.java,
+            java.time.LocalDateTime::class.java,
+            java.time.LocalDate::class.java
+        )
+        
+        serializableTypes.forEach {
+            hints.serialization().registerType(it)
+        }
+
+        // 12. Register Flyway Internals for Native Image
+        val flywayClasses = listOf(
+            "org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType",
+            "org.flywaydb.core.internal.database.postgresql.PostgreSQLConnection",
+            "org.flywaydb.core.api.configuration.FluentConfiguration",
+            "org.flywaydb.core.Flyway",
+            "org.flywaydb.database.postgresql.PostgreSQLDatabaseType",
+            "org.flywaydb.core.internal.configuration.extensions.DeployScriptFilenameConfigurationExtension"
+        )
+        flywayClasses.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS)
+            } catch (e: Exception) {}
+        }
+        // 13. Register AI DTOs explicitly
+        val aiDtos = listOf(
+            "com.haneef._school.service.SchoolDataTools\$RecipientInfo",
+            "com.haneef._school.controller.NaturalLanguageQueryController\$RecipientListResponse",
+            "com.haneef._school.controller.NaturalLanguageQueryController\$QueryRequest"
+        )
+        aiDtos.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS)
+            } catch (e: Exception) {}
+        }
+
+        // 14. Register Google GenAI library types (Fix for Native Image deserialization)
+        val googleGenAiTypes = listOf(
+            "com.google.genai.types.PartMediaResolution",
+            "com.google.genai.types.PartMediaResolution\$Builder",
+            "com.google.genai.types.GenerateContentConfig",
+            "com.google.genai.types.GenerateContentConfig\$Builder",
+            "com.google.genai.types.GenerationConfig",
+            "com.google.genai.types.GenerationConfig\$Builder",
+            "com.google.genai.types.Content",
+            "com.google.genai.types.Content\$Builder",
+            "com.google.genai.types.Part",
+            "com.google.genai.types.Part\$Builder"
+        )
+        googleGenAiTypes.forEach { className ->
+            try {
+                hints.reflection().registerType(Class.forName(className), 
+                    MemberCategory.INVOKE_PUBLIC_METHODS,
+                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+                    MemberCategory.DECLARED_FIELDS,
+                    MemberCategory.INTROSPECT_PUBLIC_METHODS,
+                    MemberCategory.INTROSPECT_PUBLIC_CONSTRUCTORS)
+            } catch (e: Exception) {}
+        }
+    }
+}

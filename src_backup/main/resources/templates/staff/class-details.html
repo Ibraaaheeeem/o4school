@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <div th:fragment="class-detail-fragment">
+        <style>
+            .class-detail-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 1.5rem;
+                border-bottom: 1px solid var(--border-color);
+                background: white;
+            }
+
+            .class-info-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .class-meta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1.25rem;
+                color: var(--text-muted);
+                font-size: 0.875rem;
+            }
+
+            .class-meta-item {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                white-space: nowrap;
+            }
+
+            .tabs-container {
+                padding: 0 1.5rem;
+                background: #f8fafc;
+                border-bottom: 1px solid var(--border-color);
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+
+            .tabs-nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.25rem;
+                padding: 0.5rem 0;
+            }
+
+            .tab-btn {
+                padding: 0.75rem 1rem;
+                font-size: 0.875rem;
+                border-radius: var(--radius-md);
+                border: 1px solid transparent;
+            }
+
+            .tab-btn.active {
+                background: white;
+                border-color: var(--border-color);
+                color: var(--primary-color);
+                font-weight: 600;
+            }
+
+            .pagination-container {
+                margin-top: 2rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+                border-top: 1px solid var(--border-color);
+                padding-top: 1.5rem;
+            }
+
+            .pagination-info {
+                font-size: 0.875rem;
+                color: var(--text-muted);
+            }
+
+            .pagination-buttons {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .pagination-buttons .btn-outline {
+                padding: 0.5rem 1rem;
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                color: var(--text-main);
+                font-size: 0.875rem;
+                text-decoration: none;
+                font-weight: 500;
+                background: white;
+            }
+
+            .page-info {
+                font-size: 0.875rem;
+                color: var(--text-muted);
+                font-weight: 500;
+            }
+
+            .actions-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+
+            .students-header {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 1.5rem;
+            }
+
+            .student-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 1rem;
+            }
+
+            .student-card {
+                padding: 1.25rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                background: white;
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-lg);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+
+            .student-avatar {
+                width: 72px;
+                height: 72px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin-bottom: 1rem;
+                border: 2px solid var(--border-color);
+                flex-shrink: 0;
+            }
+
+            .subject-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 1rem;
+            }
+
+            @media (max-width: 640px) {
+                .class-detail-header {
+                    flex-direction: column;
+                    gap: 1rem;
+                    padding: 1.25rem;
+                }
+
+                .class-meta-row {
+                    gap: 0.75rem 1.25rem;
+                }
+
+                .tabs-container {
+                    padding: 0 1rem;
+                }
+
+                .students-header {
+                    justify-content: stretch;
+                }
+
+                .students-header .action-btn {
+                    width: 100%;
+                    justify-content: center;
+                }
+
+                .student-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                    gap: 0.75rem;
+                }
+
+                .student-card {
+                    padding: 1rem;
+                }
+
+                .student-avatar {
+                    width: 64px;
+                    height: 64px;
+                }
+
+                .subject-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .actions-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .stat-badge {
+                    padding: 0.75rem;
+                }
+
+                .stat-badge .value {
+                    font-size: 1.25rem;
+                }
+
+                .pagination-buttons {
+                    width: 100%;
+                    justify-content: space-between;
+                }
+
+                .pagination-buttons .btn-outline {
+                    flex: 1;
+                    text-align: center;
+                }
+            }
+        </style>
+
+        <!-- Header -->
+        <div class="class-detail-header">
+            <div class="class-info-group">
+                <h2 class="section-title" th:text="${schoolClass.className}" style="margin: 0; font-size: 1.5rem;">Class
+                    Name</h2>
+                <div class="class-meta-row">
+                    <span class="class-meta-item" th:if="${schoolClass.gradeLevel != null}">
+                        <i class="fas fa-layer-group"></i>
+                        <span th:text="${schoolClass.gradeLevelDisplayName}"></span>
+                    </span>
+                    <span class="class-meta-item" th:if="${currentTerm}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span th:text="${currentTerm.termName}"></span>
+                    </span>
+                    <span class="class-meta-item">
+                        <i class="fas fa-users"></i>
+                        <span th:text="${#lists.size(students)} + ' Students'"></span>
+                    </span>
+                </div>
+            </div>
+            <div th:if="${isClassTeacher}">
+                <span class="role-badge class-teacher">Class Teacher</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="students">Students</button>
+                <button class="tab-btn" data-tab="subjects">Subjects</button>
+                <button class="tab-btn" data-tab="attendance">Attendance</button>
+                <button class="tab-btn" data-tab="assessments">Assessments</button>
+            </div>
+        </div>
+
+        <!-- Content Padding -->
+        <div style="padding: 1.5rem;">
+
+            <!-- Students Tab -->
+            <div id="students-tab" class="tab-pane active">
+                <div class="students-header">
+                    <a th:href="@{/staff/classes/{id}/students/export(id=${schoolClass.id})}" class="action-btn"
+                        style="background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-export"></i> Export List
+                    </a>
+                </div>
+
+                <div id="students-list-container" th:fragment="students-list-content">
+                    <div th:if="${#lists.isEmpty(students)}" class="empty-state"
+                        style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                        <p>No students enrolled.</p>
+                    </div>
+
+                    <div class="student-grid" th:unless="${#lists.isEmpty(students)}">
+                        <div th:each="student : ${students}" class="student-card">
+                            <div class="student-avatar">
+                                <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
+                                    style="width: 100%; height: 100%; object-fit: cover;"
+                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div th:unless="${student.passportPhotoUrl}"
+                                    style="width: 100%; height: 100%; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 1.5rem;"
+                                    th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                                <div th:if="${student.passportPhotoUrl}"
+                                    style="display: none; width: 100%; height: 100%; background: var(--bg-hover); align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); font-size: 1.5rem;"
+                                    th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
+                            </div>
+                            <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-main); line-height: 1.2;"
+                                th:text="${student.user.fullName}">Name</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;"
+                                th:text="${student.admissionNumber}">ID</p>
+                            <a th:href="@{/staff/students/{id}(id=${student.id})}" class="card-link"
+                                style="width: 100%; justify-content: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: auto; font-size: 0.85rem;">
+                                Profile <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div th:if="${studentTotalPages > 1}" class="pagination-container">
+                        <div class="pagination-info">
+                            Showing <span th:text="${studentCurrentPage * 24 + 1}">1</span> to
+                            <span
+                                th:text="${(studentCurrentPage + 1) * 24 > studentTotalItems ? studentTotalItems : (studentCurrentPage + 1) * 24}">24</span>
+                            of <span th:text="${studentTotalItems}">0</span> results
+                        </div>
+
+                        <div class="pagination-buttons">
+                            <a th:if="${studentCurrentPage > 0}"
+                                th:href="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage - 1}, size=24)}"
+                                hx-get="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage - 1}, size=24)}"
+                                hx-target="#students-list-container" class="btn-outline">
+                                Previous
+                            </a>
+
+                            <span class="page-info">
+                                Page <span th:text="${studentCurrentPage + 1}">1</span> of <span
+                                    th:text="${studentTotalPages}">1</span>
+                            </span>
+
+                            <a th:if="${studentCurrentPage < studentTotalPages - 1}"
+                                th:href="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage + 1}, size=24)}"
+                                hx-get="@{/staff/classes/{classId}/students(classId=${schoolClass.id}, page=${studentCurrentPage + 1}, size=24)}"
+                                hx-target="#students-list-container" class="btn-outline">
+                                Next
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subjects Tab -->
+            <div id="subjects-tab" class="tab-pane">
+                <div class="subject-grid" th:unless="${#lists.isEmpty(classSubjects)}">
+                    <a th:each="classSubject : ${classSubjects}"
+                        th:href="@{/elearner/landing(classId=${schoolClass.id}, gradeLevel=${schoolClass.gradeLevel}, term=${currentTerm != null ? (currentTerm.termNumber ?: 1) : 1})}"
+                        class="dashboard-card"
+                        style="padding: 1.25rem; text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.2s, box-shadow 0.2s; border-radius: var(--radius-lg);">
+                        <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                            <div
+                                style="width: 44px; height: 44px; background: #f0f9ff; color: #0ea5e9; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); flex-shrink: 0;">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <h4 style="color: var(--text-main); font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                    th:text="${classSubject.subject.subjectName}">Subject</h4>
+                                <p style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted); margin: 0;"
+                                    th:text="${classSubject.subject.subjectCode}">Code</p>
+                            </div>
+                        </div>
+
+                        <div th:if="${#lists.contains(subjectsTaught, classSubject.subject)}"
+                            style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <span class="role-badge subject-teacher" style="font-size: 0.7rem;">You teach this</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div id="attendance-tab" class="tab-pane">
+                <div class="actions-grid" style="margin-bottom: 2rem;">
+                    <a th:href="@{/staff/classes/{id}/attendance/take(id=${schoolClass.id})}"
+                        onclick="loadAttendanceView(event, this)" class="action-card">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Take Attendance</span>
+                    </a>
+                    <a th:href="@{/staff/classes/{id}/attendance/history(id=${schoolClass.id})}"
+                        onclick="loadAttendanceView(event, this)" class="action-card">
+                        <i class="fas fa-history"></i>
+                        <span>View History</span>
+                    </a>
+                    <a th:href="@{/staff/classes/{id}/attendance/report(id=${schoolClass.id})}"
+                        onclick="loadAttendanceView(event, this)" class="action-card">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Generate Report</span>
+                    </a>
+                </div>
+
+                <div th:if="${attendanceTakenToday}">
+                    <h3 class="section-title" style="margin-bottom: 1rem; font-size: 1.1rem;">Today's Summary</h3>
+                    <div class="dashboard-grid"
+                        style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
+                        <div class="stat-badge" style="background: #f0fdf4; border-color: #bbf7d0; padding: 1rem;">
+                            <span class="value" style="color: #16a34a; font-size: 1.25rem;"
+                                th:text="${presentCount}">0</span>
+                            <span class="label" style="font-size: 0.8rem;">Present</span>
+                        </div>
+                        <div class="stat-badge" style="background: #fef2f2; border-color: #fecaca; padding: 1rem;">
+                            <span class="value" style="color: #dc2626; font-size: 1.25rem;"
+                                th:text="${absentCount}">0</span>
+                            <span class="label" style="font-size: 0.8rem;">Absent</span>
+                        </div>
+                        <div class="stat-badge" style="background: #fffbeb; border-color: #fde68a; padding: 1rem;">
+                            <span class="value" style="color: #d97706; font-size: 1.25rem;"
+                                th:text="${lateCount}">0</span>
+                            <span class="label" style="font-size: 0.8rem;">Late</span>
+                        </div>
+                        <div class="stat-badge" style="background: #eff6ff; border-color: #bfdbfe; padding: 1rem;">
+                            <span class="value" style="color: #2563eb; font-size: 1.25rem;"
+                                th:text="${excusedCount}">0</span>
+                            <span class="label" style="font-size: 0.8rem;">Excused</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assessments Tab -->
+            <div id="assessments-tab" class="tab-pane">
+                <div id="assessments-content">
+                    <!-- Loaded via AJAX -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Assign Students</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Assign Parent to Students</h1>
+                    <p>Manage student relationships for <strong th:text="${parent.user.fullName}">Parent Name</strong>
+                    </p>
+                </div>
+                <div>
+                    <a th:href="@{/admin/community/parents}" class="btn btn-outline">← Back to Parents</a>
+                </div>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <div class="alert alert-success" th:if="${success}">
+                <span th:text="${success}"></span>
+            </div>
+            <div class="alert alert-danger" th:if="${error}">
+                <span th:text="${error}"></span>
+            </div>
+
+            <!-- Current Assignments -->
+            <div class="form-section" th:if="${!currentAssignments.empty}">
+                <h3>Current Student Relationships</h3>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Student ID</th>
+                                <th>Admission Number</th>
+                                <th>Relationship Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="assignment : ${currentAssignments}">
+                                <td th:text="${assignment.student.user.fullName}">Student Name</td>
+                                <td th:text="${assignment.student.studentId}">STU001</td>
+                                <td th:text="${assignment.student.admissionNumber}">ADM2024001</td>
+                                <td>
+                                    <span class="badge badge-info"
+                                        th:text="${#strings.capitalize(assignment.relationshipType)}">Father</span>
+                                </td>
+                                <td>
+                                    <form
+                                        th:action="@{/admin/community/parents/{parentId}/remove-student/{assignmentId}(parentId=${parent.id}, assignmentId=${assignment.id})}"
+                                        method="post" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Are you sure you want to remove this parent-student relationship?')">
+                                            Remove
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Search and Assignment Form -->
+            <div class="form-section">
+                <h3>Assign to New Student</h3>
+
+                <!-- Search Form -->
+                <form method="get" class="search-form">
+                    <div class="form-group">
+                        <label for="search">Search Students</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="search" name="search" th:value="${search}" class="form-input"
+                                placeholder="Search by name, student ID, or admission number...">
+                            <button type="submit" class="btn btn-outline">Search</button>
+                            <a th:href="@{/admin/community/parents/{parentId}/assign-students(parentId=${parent.id})}"
+                                class="btn btn-outline">Clear</a>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Available Students -->
+                <div th:if="${!availableStudents.empty}">
+                    <h4>Available Students</h4>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Student ID</th>
+                                    <th>Admission Number</th>
+                                    <th>Grade Level</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="student : ${availableStudents}">
+                                    <td th:text="${student.user.fullName}">Student Name</td>
+                                    <td th:text="${student.studentId}">STU001</td>
+                                    <td th:text="${student.admissionNumber}">ADM2024001</td>
+                                    <td th:text="${student.currentGradeLevel}">Grade 10</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" th:data-id="${student.id}"
+                                            th:data-name="${student.user.fullName}"
+                                            onclick="showAssignModal(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                            Assign
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:if="${availableStudents.empty}" class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h4>No Available Students</h4>
+                    <p th:if="${search}">No students found matching your search criteria.</p>
+                    <p th:unless="${search}">All students are already assigned to this parent or no students exist.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Assignment Modal -->
+    <div id="assignModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Assign Parent to Student</h3>
+                <button class="close-modal" onclick="closeModal('assignModal')">&times;</button>
+            </div>
+            <form th:action="@{/admin/community/parents/{parentId}/assign-student(parentId=${parent.id})}"
+                method="post">
+                <input type="hidden" id="modalStudentId" name="studentId">
+                <div class="modal-body">
+                    <p>Assign <strong th:text="${parent.user.fullName}">Parent Name</strong> to <strong
+                            id="modalStudentName">Student Name</strong></p>
+
+                    <div class="form-group">
+                        <label for="relationshipType">Relationship Type *</label>
+                        <select id="relationshipType" name="relationshipType" class="form-select" required>
+                            <option value="">Select Relationship</option>
+                            <option value="biological">Biological Parent</option>
+                            <option value="adoptive">Adoptive Parent</option>
+                            <option value="guardian">Legal Guardian</option>
+                            <option value="stepparent">Step Parent</option>
+                            <option value="grandparent">Grandparent</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('assignModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Assign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showAssignModal(studentId, studentName) {
+            document.getElementById('modalStudentId').value = studentId;
+            document.getElementById('modalStudentName').textContent = studentName;
+            document.getElementById('assignModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Enter key support for search
+        document.getElementById('search').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.target.closest('form').submit();
+            }
+        });
+    </script>
+</body>
+
+</html>

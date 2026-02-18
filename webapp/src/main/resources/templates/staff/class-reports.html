@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Reports - 4School</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/assessments.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for staff class reports */
+        .staff-reports-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 80px);
+        }
+
+        @media (max-width: 1024px) {
+            .staff-reports-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .staff-sidebar {
+            background: white;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 1024px) {
+            .staff-sidebar {
+                border-right: none;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                height: auto;
+            }
+        }
+
+        .staff-content {
+            padding: 2rem;
+            background: #f8fafc;
+        }
+
+        .report-tabs-container {
+            margin-top: 1.5rem;
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE/Edge */
+        }
+
+        .report-tabs-container::-webkit-scrollbar {
+            display: none;
+            /* Chrome/Safari */
+        }
+
+        .report-tabs {
+            display: flex;
+            width: 100%;
+            gap: 0.5rem;
+            padding: 0.4rem;
+            background: #f1f5f9;
+            border-radius: 14px;
+            min-width: max-content;
+        }
+
+        @media (min-width: 769px) {
+            .report-tabs {
+                min-width: 100%;
+            }
+        }
+
+        .report-tab {
+            flex: 1;
+            justify-content: center;
+            padding: 0.6rem 1.25rem;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #475569;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .report-tab:hover:not(.active) {
+            background: rgba(0, 0, 0, 0.05);
+            color: #1e293b;
+        }
+
+        .report-tab.active {
+            background: #3b82f6;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        .tab-content {
+            display: none;
+            padding-top: 1.5rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .behavioral-traits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .behavioral-trait-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .behavioral-trait-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+        }
+
+        .behavior-score-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .behavior-score-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .behavior-score-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Comments & Attendance Premium Styling */
+        .comment-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .comment-card.attendance-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .comment-icon-wrapper {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 1.5rem;
+        }
+
+        .attendance-number-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.25rem 2rem;
+            min-width: 200px;
+            margin-bottom: 0.75rem;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #334155;
+            display: inline-block;
+        }
+
+        .premium-textarea {
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            resize: none;
+            padding: 1.5rem;
+            font-size: 1rem;
+            line-height: 1.7;
+            transition: all 0.2s;
+            background: #f8fafc;
+            width: 100%;
+        }
+
+        .premium-textarea:focus:not(:disabled) {
+            background: white;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+
+        .premium-textarea:disabled {
+            background: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .comment-card {
+                padding: 1.5rem;
+            }
+
+            .attendance-number-box {
+                width: 100%;
+                min-width: unset;
+            }
+        }
+
+        /* Mobile Filter Drawer */
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            z-index: 1050;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-toggle:hover {
+            transform: scale(1.1);
+            background: #2563eb;
+        }
+
+        .reports-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 1030;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar-toggle {
+                display: flex;
+            }
+
+            .staff-sidebar {
+                position: fixed !important;
+                top: 0;
+                left: -300px;
+                /* Start off-screen */
+                width: 300px;
+                height: 100vh;
+                z-index: 1040;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+                border-right: 1px solid #e2e8f0;
+            }
+
+            .staff-sidebar.active {
+                transform: translateX(300px);
+            }
+
+            .reports-backdrop.active {
+                display: block;
+                opacity: 1;
+            }
+
+            .staff-reports-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .staff-content {
+                padding: 1.5rem;
+            }
+
+            .sidebar-close {
+                display: block !important;
+            }
+        }
+
+        .sidebar-close {
+            display: none;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        /* Sticky Table Column */
+        .table-responsive {
+            overflow-x: auto;
+            position: relative;
+        }
+
+        #assessmentTableBody td:first-child,
+        #tableHeaderRow th:first-child {
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 10;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            border-right: 2px solid #e2e8f0;
+        }
+
+        #tableHeaderRow th:first-child {
+            background-color: #f8fafc;
+            z-index: 11;
+        }
+
+        /* Ensure smooth scrolling */
+        .score-input {
+            min-width: 60px;
+        }
+
+        .rating-buttons {
+            display: flex;
+            gap: 0.4rem !important;
+            flex-wrap: nowrap !important;
+            justify-content: end;
+            padding: 0;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .behavioral-trait-card {
+                padding: 0.75rem 0.85rem;
+                gap: 0.5rem;
+            }
+
+            .rating-buttons {
+                gap: 0.35rem !important;
+            }
+
+            .behavior-score-btn {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 0.75rem !important;
+                min-width: 0 !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <button class="sidebar-toggle" id="toggleSidebar" onclick="toggleSidebar(true)">
+        <i class="fas fa-filter"></i>
+    </button>
+
+    <div class="reports-backdrop" id="reportsBackdrop" onclick="toggleSidebar(false)"></div>
+
+    <main class="main-content staff-reports-layout">
+        <!-- Sidebar with Filters -->
+        <aside class="staff-sidebar" id="staffSidebar">
+            <button class="sidebar-close" onclick="toggleSidebar(false)">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="sidebar-header mb-4">
+                <h3 class="h5 fw-bold">Class Reports</h3>
+                <p class="text-muted small">Filter and select student</p>
+            </div>
+
+            <div class="sidebar-filters">
+                <!-- Academic Period -->
+                <div class="filter-section mb-4">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Academic Period</h6>
+                    <div class="mb-3">
+                        <label class="small fw-medium mb-1">Session</label>
+                        <select id="sessionFilter" class="form-select form-select-sm" onchange="updateFilters()">
+                            <option value="">Select Session</option>
+                            <option th:each="acadSession : ${academicSessions}" th:value="${acadSession.sessionYear}"
+                                th:text="${acadSession.sessionName}"
+                                th:selected="${selectedSession == acadSession.sessionYear}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-medium mb-1">Term</label>
+                        <select id="termFilter" class="form-select form-select-sm" onchange="updateFilters()">
+                            <option value="">Select Term</option>
+                            <option th:each="term : ${terms}" th:value="${term}" th:text="${term}"
+                                th:selected="${selectedTerm == term}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Class Selection -->
+                <div class="filter-section mb-4">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Class Selection</h6>
+                    <div class="mb-3">
+                        <label class="small fw-medium mb-1">Class</label>
+                        <select id="classFilter" class="form-select form-select-sm" onchange="updateFilters()">
+                            <option value="">Select Class</option>
+                            <option th:each="cls : ${classes}" th:value="${cls.id}" th:text="${cls.className}"
+                                th:selected="${selectedClassId == cls.id}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Student Selection -->
+                <div class="filter-section mb-4">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Student</h6>
+                    <div id="studentSelectorContainer">
+                        <select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"
+                            th:fragment="student-selector">
+                            <option value="">Select Student</option>
+                            <option th:each="student : ${students}" th:value="${student.id}"
+                                th:text="${student.user.fullName + ' (' + student.admissionNumber + ')'}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button class="btn btn-primary btn-sm" onclick="applyFilters()">
+                        <i class="fas fa-sync-alt me-1"></i> Refresh List
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="staff-content" id="reportsContainer">
+            <div th:fragment="reports-content">
+                <div class="setup-header animate-fade-in mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h3 fw-bold">Student Assessment</h1>
+                            <p class="text-muted">Enter scores and behavioral ratings.</p>
+                        </div>
+                        <div class="header-actions d-flex gap-2">
+                            <button class="btn btn-outline-primary" onclick="openImportModal()">
+                                <i class="fas fa-download me-2"></i> Import Scores
+                            </button>
+                            <button class="btn btn-primary" onclick="saveAssessment()">
+                                <i class="fas fa-save me-2"></i> Save Assessment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="glass-card-premium animate-slide-up text-center p-5"
+                    th:if="${selectedStudentId == null}">
+                    <div class="empty-state-icon mb-3" style="font-size: 3rem; color: #cbd5e1;">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <h3 class="h5 fw-bold">No Student Selected</h3>
+                    <p class="text-muted">Please select a class and student from the sidebar to begin.</p>
+                </div>
+
+                <!-- Assessment Card -->
+                <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
+                    <!-- Student Profile Header -->
+                    <div class="student-profile-header p-4 border-bottom d-flex align-items-center gap-4">
+                        <div class="student-avatar-large bg-primary text-white d-flex align-items-center justify-content-center rounded-circle"
+                            id="studentAvatar" style="width: 64px; height: 64px; font-size: 1.5rem; font-weight: 700;">
+                            JS
+                        </div>
+                        <div class="student-info-main">
+                            <h2 class="h4 fw-bold mb-1" id="studentNameHeader">Student Name</h2>
+                            <div class="report-meta-rows d-flex gap-3 text-muted small">
+                                <span class="report-meta-item"><i class="fas fa-id-card me-1"></i> <span
+                                        id="studentAdmissionMeta">ADM-001</span></span>
+                                <span class="report-meta-item"><i class="fas fa-layer-group me-1"></i> <span
+                                        id="studentTrackMeta">Track</span></span>
+                                <span class="report-meta-item"><i class="fas fa-school me-1"></i> <span
+                                        id="studentClassMeta">Class</span></span>
+                            </div>
+                        </div>
+                        <div class="header-actions">
+                            <button id="editModeBtn" class="btn btn-outline-primary btn-sm" onclick="toggleEditMode()">
+                                <i class="fas fa-edit me-1"></i> Edit Mode
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <!-- Tab Navigation -->
+                        <div class="px-4">
+                            <div class="report-tabs-container">
+                                <div class="report-tabs">
+                                    <button class="report-tab active" onclick="switchTab('academic')">
+                                        <i class="fas fa-book"></i> Academic Scores
+                                    </button>
+                                    <button class="report-tab" onclick="switchTab('behavioral')">
+                                        <i class="fas fa-user-check"></i> Behavioral
+                                    </button>
+                                    <button class="report-tab" onclick="switchTab('comments')">
+                                        <i class="fas fa-comment-alt"></i> Comments & Attendance
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <div class="p-4">
+                            <!-- Academic Tab -->
+                            <div id="academicTab" class="tab-content active">
+                                <div id="scoringFallbackAlert" class="alert alert-info border-0 shadow-sm mb-4"
+                                    style="display: none; background: #eff6ff; border-left: 4px solid #3b82f6 !important;">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0 me-3">
+                                            <i class="fas fa-info-circle text-primary fs-4"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="h6 fw-bold mb-1 text-primary">Standard Scoring Active</h4>
+                                            <p class="mb-0 small text-muted">Standard components (CA 1, CA 2, Exam) are
+                                                being used for some subjects as they lack a defined scoring scheme.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr id="tableHeaderRow">
+                                                <!-- Dynamic Headers -->
+                                            </tr>
+                                        </thead>
+                                        <tbody id="assessmentTableBody">
+                                            <!-- Dynamic Rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Behavioral Tab -->
+                            <div id="behavioralTab" class="tab-content">
+                                <div class="behavioral-header mb-4">
+                                    <h4 class="h6 fw-bold mb-1">Behavioral Assessment</h4>
+                                    <p class="text-muted small">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
+                                        Excellent)</p>
+                                </div>
+                                <div class="behavioral-traits-grid" id="behaviorContainer">
+                                    <!-- Dynamic Trait Cards -->
+                                </div>
+                            </div>
+
+                            <!-- Comments Tab -->
+                            <div id="commentsTab" class="tab-content">
+                                <div class="comments-layout-wrapper mx-auto" style="max-width: 900px;">
+                                    <!-- Attendance Card -->
+                                    <div class="comment-card attendance-card">
+                                        <div class="comment-icon-wrapper"
+                                            style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+                                            <i class="fas fa-calendar-check"></i>
+                                        </div>
+                                        <h3 class="section-title">Term Attendance</h3>
+                                        <p class="section-subtitle">Number of days the student was present in school
+                                            this
+                                            term</p>
+
+                                        <div class="attendance-input-group">
+                                            <input type="number" id="attendanceInput"
+                                                class="attendance-number-box text-center border-0" min="0"
+                                                placeholder="0" disabled>
+                                            <div class="fw-bold text-muted small text-uppercase letter-spacing-1">Days
+                                                Present</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Class Teacher Remark -->
+                                    <div class="comment-card">
+                                        <div class="d-flex align-items-center gap-4 mb-4">
+                                            <div class="comment-icon-wrapper mb-0"
+                                                style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+                                                <i class="fas fa-user-tie"></i>
+                                            </div>
+                                            <div>
+                                                <h3 class="section-title mb-0">Class Teacher's Remark</h3>
+                                                <p class="section-subtitle mb-0">General academic and social evaluation
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <textarea id="classTeacherComment" class="premium-textarea" rows="4"
+                                            placeholder="Enter academic remarks..." disabled></textarea>
+                                    </div>
+
+                                    <!-- Head Teacher Remark -->
+                                    <div class="comment-card">
+                                        <div class="d-flex align-items-center gap-4 mb-4">
+                                            <div class="comment-icon-wrapper mb-0"
+                                                style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                                                <i class="fas fa-user-shield"></i>
+                                            </div>
+                                            <div>
+                                                <h3 class="section-title mb-0">Head Teacher's Remark</h3>
+                                                <p class="section-subtitle mb-0">Final assessment and promotion
+                                                    recommendations</p>
+                                            </div>
+                                        </div>
+                                        <textarea id="headTeacherComment" class="premium-textarea" rows="4"
+                                            placeholder="Waiting for head teacher review..." disabled></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-0">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-download me-2 text-primary"></i>Import Scores</h5>
+                    <button type="button" class="btn-close" onclick="closeModal('importModal')"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Target Component</label>
+                        <select id="importComponent" class="form-select">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Source Examinations</label>
+                        <div id="sourceExamsContainer" class="d-flex flex-column gap-2 mb-2">
+                            <!-- Dynamic Rows -->
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="addSourceExamRow()">
+                            <i class="fas fa-plus me-1"></i> Add Source Exam
+                        </button>
+                    </div>
+
+                    <div id="formulaConfig" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Divisor</label>
+                            <input type="number" id="importDivisor" class="form-control" value="1" min="0.1" step="0.1">
+                            <div class="form-text small">Final Score = (Sum of Weighted Sources) / Divisor</div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="importAllStudents">
+                            <label class="form-check-label small fw-bold" for="importAllStudents">
+                                Import for all students in this class
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light" onclick="closeModal('importModal')">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="executeImport()">Start Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Move Bootstrap before custom scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+
+    <script>
+        function toggleSidebar(show) {
+            const sidebar = document.getElementById('staffSidebar');
+            const backdrop = document.getElementById('reportsBackdrop');
+            const toggle = document.getElementById('toggleSidebar');
+
+            if (show) {
+                sidebar.classList.add('active');
+                backdrop.classList.add('active');
+                toggle.style.display = 'none';
+            } else {
+                sidebar.classList.remove('active');
+                backdrop.classList.remove('active');
+                if (window.innerWidth <= 1024) {
+                    toggle.style.display = 'flex';
+                }
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                toggleSidebar(false);
+                document.getElementById('toggleSidebar').style.display = 'none';
+            } else {
+                document.getElementById('toggleSidebar').style.display = 'flex';
+            }
+        });
+    </script>
+
+    <script th:inline="javascript">
+        // --- State Management ---
+        let currentStudentData = null;
+        let isEditMode = false;
+
+        // --- Core Filter Logic ---
+        function updateFilters() {
+            const session = document.getElementById('sessionFilter').value;
+            const term = document.getElementById('termFilter').value;
+            const classId = document.getElementById('classFilter').value;
+
+            if (session && term && classId) {
+                applyFilters();
+            } else {
+                const container = document.getElementById('studentSelectorContainer');
+                container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">Select session, term & class first</option></select>';
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        async function applyFilters() {
+            const session = document.getElementById('sessionFilter').value;
+            const term = document.getElementById('termFilter').value;
+            const classId = document.getElementById('classFilter').value;
+
+            if (!session || !term || !classId) return;
+
+            const baseUrl = /*[[@{/staff/reports/class/filter}]]*/ '/staff/reports/class/filter';
+            const url = `${baseUrl}?sessionYear=${session}&term=${term}&classId=${classId}`;
+
+            htmx.ajax('GET', url, {
+                target: '#studentSelectorContainer',
+                swap: 'innerHTML'
+            });
+        }
+
+        // --- Student Data Management ---
+        async function loadStudentData() {
+            const studentId = document.getElementById('studentSelect').value;
+            const session = document.getElementById('sessionFilter').value;
+            const term = document.getElementById('termFilter').value;
+            const classId = document.getElementById('classFilter').value;
+
+            if (!studentId) {
+                document.getElementById('assessmentCard').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            const url = `/staff/reports/class/student-data?studentId=${studentId}&classId=${classId}&session=${session}&term=${term}&v=${Date.now()}`;
+
+            htmx.ajax('GET', url, {
+                handler: function (elt, info) {
+                    if (info.xhr.status === 200) {
+                        try {
+                            currentStudentData = JSON.parse(info.xhr.responseText);
+
+                            // Update Profile Info
+                            document.getElementById('studentNameHeader').textContent = currentStudentData.studentName;
+                            document.getElementById('studentAdmissionMeta').textContent = currentStudentData.admissionNumber;
+                            document.getElementById('studentClassMeta').textContent = currentStudentData.className;
+                            document.getElementById('studentTrackMeta').textContent = currentStudentData.trackName;
+
+                            // Avatar
+                            const names = currentStudentData.studentName.split(' ');
+                            const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0][0].toUpperCase();
+                            document.getElementById('studentAvatar').textContent = initials;
+
+                            // Basic Fields
+                            document.getElementById('attendanceInput').value = currentStudentData.attendance || 0;
+                            document.getElementById('classTeacherComment').value = currentStudentData.classTeacherComment || '';
+                            document.getElementById('headTeacherComment').value = currentStudentData.headTeacherComment || '';
+
+                            // Render Complex UI
+                            isEditMode = false;
+                            document.getElementById('scoringFallbackAlert').style.display = 'none';
+                            renderAssessmentTable();
+                            renderBehavioralAssessment();
+                            updateEditModeUI();
+
+                            document.getElementById('emptyState').style.display = 'none';
+                            document.getElementById('assessmentCard').style.display = 'block';
+                            switchTab('academic');
+                        } catch (error) {
+                            console.error('Error parsing student data:', error);
+                            alert('Error processing student data');
+                        }
+                    } else {
+                        console.error('Error loading student data:', info.xhr.status);
+                        // If it's a redirect, HTMX will handle it before this
+                    }
+                }
+            });
+        }
+
+        // --- UI Rendering ---
+        function renderAssessmentTable() {
+            const headerRow = document.getElementById('tableHeaderRow');
+            const tbody = document.getElementById('assessmentTableBody');
+            if (!currentStudentData) return;
+
+            let usesFallback = false;
+            const components = new Set();
+            currentStudentData.subjects.forEach(s => {
+                if (s.scoringScheme) {
+                    try {
+                        const scheme = JSON.parse(s.scoringScheme);
+                        scheme.forEach(item => components.add(item.alias || item.name));
+                    } catch (e) { }
+                }
+            });
+
+            if (components.size === 0) {
+                ['CA', 'Exam'].forEach(c => components.add(c));
+                usesFallback = true;
+            }
+
+            const componentList = Array.from(components);
+
+            // Table Header
+            headerRow.innerHTML = '<th style="width: 30%;">Subject</th>';
+            componentList.forEach(c => headerRow.innerHTML += `<th class="text-center">${c}</th>`);
+            headerRow.innerHTML += `
+                <th class="text-center" style="width: 80px;">Total</th>
+                <th class="text-center" style="width: 80px;">Grade</th>
+                <th class="text-center" style="width: 100px;">Remark</th>
+            `;
+
+            // Table Body
+            tbody.innerHTML = '';
+            currentStudentData.subjects.forEach(s => {
+                const tr = document.createElement('tr');
+                let scheme = [];
+                try { scheme = s.scoringScheme ? JSON.parse(s.scoringScheme) : []; } catch (e) { }
+
+                let rowHtml = `<td><div class="fw-bold">${s.subjectName}</div></td>`;
+                componentList.forEach(c => {
+                    let schemeItem = scheme.find(item => (item.alias || item.name) === c);
+
+                    // Fallback: If no scheme item, provide default max and render input
+                    if (!schemeItem) {
+                        schemeItem = { name: c, max: c === 'CA' ? 40 : (c === 'Exam' ? 60 : 100) };
+                        usesFallback = true;
+                    }
+
+                    let val = '';
+                    if (s.scores && s.scores[c] !== undefined && s.scores[c] !== null) val = s.scores[c];
+                    else if (c.toLowerCase().includes('ca 1') && s.ca1 !== null) val = s.ca1;
+                    else if (c.toLowerCase().includes('ca 2') && s.ca2 !== null) val = s.ca2;
+                    else if (c.toLowerCase().includes('exam') && s.exam !== null) val = s.exam;
+
+                    rowHtml += `
+                        <td>
+                            <div class="d-flex align-items-center justify-content-center gap-1">
+                                <input type="number" class="form-control form-control-sm text-center score-input" 
+                                       style="width: 60px;" data-subject-id="${s.subjectId}" data-component="${c}"
+                                       value="${val}" min="0" max="${schemeItem.max}" ${isEditMode ? '' : 'disabled'}
+                                       oninput="if(this.value !== '' && Number(this.value) > Number(this.max)) this.value = this.max; updateRowTotal(this)"
+                                       onchange="updateRowTotal(this)">
+                                <span class="text-muted small">/ ${schemeItem.max}</span>
+                            </div>
+                        </td>
+                    `;
+                });
+
+                rowHtml += `
+                    <td class="text-center fw-bold row-total">${s.total !== null ? s.total : ''}</td>
+                    <td class="text-center"><span class="badge ${s.grade && s.grade !== '-' ? 'bg-primary' : 'bg-light text-dark border'} row-grade">${s.grade || '-'}</span></td>
+                    <td class="text-center"><span class="badge bg-light text-dark border row-remark">${s.remark || '-'}</span></td>
+                `;
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('scoringFallbackAlert').style.display = usesFallback ? 'block' : 'none';
+        }
+
+        function updateRowTotal(input) {
+            const tr = input.closest('tr');
+            const inputs = tr.querySelectorAll('.score-input');
+            let total = 0, allFilled = true;
+
+            inputs.forEach(inp => {
+                if (inp.value === '') allFilled = false;
+                else total += parseInt(inp.value) || 0;
+            });
+
+            const totalCell = tr.querySelector('.row-total');
+            const gradeBadge = tr.querySelector('.row-grade');
+            const remarkCell = tr.querySelector('.row-remark');
+
+            if (!allFilled) {
+                totalCell.textContent = '';
+                gradeBadge.textContent = '-';
+                gradeBadge.className = 'badge bg-light text-dark border row-grade';
+                remarkCell.textContent = '-';
+                return;
+            }
+
+            totalCell.textContent = total;
+            let grade = 'F', remark = 'Fail', badgeClass = 'bg-danger';
+            if (total >= 70) { grade = 'A'; remark = 'Excellent'; badgeClass = 'bg-success'; }
+            else if (total >= 60) { grade = 'B'; remark = 'Very Good'; badgeClass = 'bg-primary'; }
+            else if (total >= 50) { grade = 'C'; remark = 'Good'; badgeClass = 'bg-info text-dark'; }
+            else if (total >= 45) { grade = 'D'; remark = 'Fair'; badgeClass = 'bg-warning text-dark'; }
+            else if (total >= 40) { grade = 'E'; remark = 'Pass'; badgeClass = 'bg-secondary'; }
+
+            gradeBadge.textContent = grade;
+            gradeBadge.className = `badge ${badgeClass} row-grade`;
+            remarkCell.textContent = remark;
+        }
+
+        function renderBehavioralAssessment() {
+            const container = document.getElementById('behaviorContainer');
+            if (!container || !currentStudentData) return;
+            container.innerHTML = '';
+
+            const traits = [
+                { key: 'fluency', label: 'Fluency', icon: 'fa-comment-dots', color: '#3b82f6' },
+                { key: 'handwriting', label: 'Handwriting', icon: 'fa-pen-nib', color: '#8b5cf6' },
+                { key: 'game', label: 'Game/Sports', icon: 'fa-volleyball-ball', color: '#10b981' },
+                { key: 'initiative', label: 'Initiative', icon: 'fa-lightbulb', color: '#f59e0b' },
+                { key: 'criticalThinking', label: 'Critical Thinking', icon: 'fa-brain', color: '#ec4899' },
+                { key: 'punctuality', label: 'Punctuality', icon: 'fa-clock', color: '#06b6d4' },
+                { key: 'attentiveness', label: 'Attentiveness', icon: 'fa-eye', color: '#6366f1' },
+                { key: 'neatness', label: 'Neatness', icon: 'fa-broom', color: '#14b8a6' },
+                { key: 'selfDiscipline', label: 'Self Discipline', icon: 'fa-user-shield', color: '#ef4444' },
+                { key: 'politeness', label: 'Politeness', icon: 'fa-smile', color: '#f97316' }
+            ];
+
+            traits.forEach(trait => {
+                const val = currentStudentData[trait.key] || 0;
+                let buttons = '';
+                for (let i = 1; i <= 5; i++) {
+                    buttons += `<button type="button" class="behavior-score-btn ${i === val ? 'active' : ''}" 
+                                ${!isEditMode ? 'disabled' : ''} onclick="selectBehavior(this, '${trait.key}', ${i})">${i}</button>`;
+                }
+                container.innerHTML += `
+                    <div class="behavioral-trait-card">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="p-2 rounded-lg" style="background: ${trait.color}10; color: ${trait.color}; min-width: 36px; text-align: center;">
+                                <i class="fas ${trait.icon}"></i>
+                            </div>
+                            <span class="fw-bold small text-dark">${trait.label}</span>
+                        </div>
+                        <div class="rating-buttons">${buttons}</div>
+                        <input type="hidden" id="behavior_${trait.key}" value="${val}">
+                    </div>`;
+            });
+        }
+
+        // --- Interaction Handlers ---
+        window.switchTab = function (tabId) {
+            document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+            const tabBtn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+            if (tabBtn) tabBtn.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const content = document.getElementById(tabId + 'Tab');
+            if (content) content.classList.add('active');
+        };
+
+        window.toggleEditMode = function () {
+            isEditMode = !isEditMode;
+            updateEditModeUI();
+        };
+
+        function updateEditModeUI() {
+            const btn = document.getElementById('editModeBtn');
+            if (btn) {
+                btn.innerHTML = isEditMode ? '<i class="fas fa-times me-1"></i> Cancel Edit' : '<i class="fas fa-edit me-1"></i> Edit Mode';
+                btn.className = isEditMode ? 'btn btn-outline-danger btn-sm' : 'btn btn-outline-primary btn-sm';
+            }
+
+            // Sync all inputs and textareas
+            const selectors = ['input.score-input', 'textarea.form-control', 'input#attendanceInput', 'button.behavior-score-btn'];
+            selectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                    el.disabled = !isEditMode;
+                });
+            });
+        }
+
+        window.selectBehavior = function (btn, key, val) {
+            if (!isEditMode) return;
+            const card = btn.closest('.behavioral-trait-card');
+            card.querySelectorAll('.behavior-score-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const input = document.getElementById(`behavior_${key}`);
+            if (input) input.value = val;
+        };
+
+        // --- Save Logic ---
+        async function saveAssessment() {
+            const studentId = document.getElementById('studentSelect').value;
+            if (!studentId) return;
+
+            const scores = [];
+            document.querySelectorAll('#assessmentTableBody tr').forEach(row => {
+                const inputs = row.querySelectorAll('.score-input');
+                if (inputs.length === 0) return;
+
+                const subjectId = inputs[0].dataset.subjectId;
+                const subjectScores = {};
+                inputs.forEach(inp => subjectScores[inp.dataset.component] = inp.value === '' ? null : parseInt(inp.value));
+
+                scores.push({
+                    subjectId: subjectId,
+                    scores: subjectScores
+                });
+            });
+
+            const payload = {
+                studentId: studentId,
+                classId: document.getElementById('classFilter').value,
+                session: document.getElementById('sessionFilter').value,
+                term: document.getElementById('termFilter').value,
+                scores: scores,
+                attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
+                classTeacherComment: document.getElementById('classTeacherComment').value,
+                headTeacherComment: document.getElementById('headTeacherComment').value,
+                fluency: parseInt(document.getElementById('behavior_fluency')?.value) || 0,
+                handwriting: parseInt(document.getElementById('behavior_handwriting')?.value) || 0,
+                game: parseInt(document.getElementById('behavior_game')?.value) || 0,
+                initiative: parseInt(document.getElementById('behavior_initiative')?.value) || 0,
+                criticalThinking: parseInt(document.getElementById('behavior_criticalThinking')?.value) || 0,
+                punctuality: parseInt(document.getElementById('behavior_punctuality')?.value) || 0,
+                attentiveness: parseInt(document.getElementById('behavior_attentiveness')?.value) || 0,
+                neatness: parseInt(document.getElementById('behavior_neatness')?.value) || 0,
+                selfDiscipline: parseInt(document.getElementById('behavior_selfDiscipline')?.value) || 0,
+                politeness: parseInt(document.getElementById('behavior_politeness')?.value) || 0
+            };
+
+            try {
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'HX-Request': 'true'
+                };
+                if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+
+                const response = await fetch('/staff/reports/class/save', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                // Check for HTMX redirect header (session expired)
+                const hxRedirect = response.headers.get('HX-Redirect');
+                if (hxRedirect) {
+                    window.location.href = hxRedirect;
+                    return;
+                }
+
+                const res = await response.json();
+                if (res.success) {
+                    alert('Saved successfully');
+                    loadStudentData();
+                } else {
+                    alert('Error: ' + res.message);
+                }
+            } catch (e) {
+                console.error('Save error:', e);
+                alert('Connection error');
+            }
+        }
+
+        // --- Import Logic ---
+        window.openImportModal = function () {
+            const select = document.getElementById('importComponent');
+            select.innerHTML = '';
+            document.querySelectorAll('#tableHeaderRow th').forEach((th, i) => {
+                if (i > 0 && i < document.querySelectorAll('#tableHeaderRow th').length - 3) {
+                    const opt = document.createElement('option');
+                    opt.value = th.textContent;
+                    opt.textContent = th.textContent;
+                    select.appendChild(opt);
+                }
+            });
+            document.getElementById('sourceExamsContainer').innerHTML = '';
+            addSourceExamRow();
+            const modal = new bootstrap.Modal(document.getElementById('importModal'));
+            modal.show();
+        };
+
+        window.closeModal = function (id) {
+            const m = bootstrap.Modal.getInstance(document.getElementById(id));
+            if (m) m.hide();
+            else document.getElementById(id).style.display = 'none';
+        };
+
+        function addSourceExamRow() {
+            const container = document.getElementById('sourceExamsContainer');
+            const div = document.createElement('div');
+            div.className = 'd-flex gap-2 align-items-center mb-2';
+            div.innerHTML = `
+                <select class="form-select form-select-sm exam-type-select">
+                    <option value="Assignment">Assignment</option>
+                    <option value="Continuous Assessment">Continuous Assessment</option>
+                    <option value="Mid-Term Test">Mid-Term Test</option>
+                    <option value="End-of-Term Examination">End-of-Term Examination</option>
+                </select>
+                <input type="number" class="form-control form-control-sm factor-input" style="width: 70px; display: none;" value="1" step="0.1">
+                <button class="btn btn-link text-danger p-0" onclick="this.parentElement.remove(); updateImportUI();"><i class="fas fa-times"></i></button>`;
+            container.appendChild(div);
+            updateImportUI();
+        }
+
+        function updateImportUI() {
+            const rows = document.querySelectorAll('#sourceExamsContainer > div');
+            const multi = rows.length > 1;
+            document.getElementById('formulaConfig').style.display = multi ? 'block' : 'none';
+            rows.forEach(r => r.querySelector('.factor-input').style.display = multi ? 'block' : 'none');
+        }
+
+        async function executeImport() {
+            const sources = Array.from(document.querySelectorAll('#sourceExamsContainer > div')).map(r => ({
+                examType: r.querySelector('.exam-type-select').value,
+                factor: parseFloat(r.querySelector('.factor-input').value) || 1.0
+            }));
+
+            const data = {
+                classId: document.getElementById('classFilter').value,
+                session: document.getElementById('sessionFilter').value,
+                term: document.getElementById('termFilter').value,
+                componentName: document.getElementById('importComponent').value,
+                sources: sources,
+                divisor: parseFloat(document.getElementById('importDivisor').value) || 1.0,
+                studentId: document.getElementById('importAllStudents').checked ? null : document.getElementById('studentSelect').value
+            };
+
+            try {
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'HX-Request': 'true'
+                };
+                if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+
+                const response = await fetch('/staff/reports/class/import', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(data)
+                });
+
+                // Check for HTMX redirect header (session expired)
+                const hxRedirect = response.headers.get('HX-Redirect');
+                if (hxRedirect) {
+                    window.location.href = hxRedirect;
+                    return;
+                }
+
+                const res = await response.json();
+                if (res.success) {
+                    alert(res.message);
+                    closeModal('importModal');
+                    loadStudentData();
+                } else alert('Import failed: ' + res.message);
+            } catch (e) {
+                console.error('Import error:', e);
+                alert('Network error during import');
+            }
+        }
+
+        // Initialize state
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Class Reports Manager Initialized');
+        });
+    </script>
+</body>
+
+</html>

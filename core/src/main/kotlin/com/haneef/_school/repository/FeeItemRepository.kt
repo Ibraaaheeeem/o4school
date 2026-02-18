@@ -1,0 +1,39 @@
+package com.haneef._school.repository
+
+import java.util.UUID
+
+
+import com.haneef._school.entity.FeeItem
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
+import org.springframework.stereotype.Repository
+import java.util.*
+
+@Repository
+interface FeeItemRepository : JpaRepository<FeeItem, UUID>, SecureFeeItemRepository {
+    
+    fun findBySchoolIdAndIsActiveOrderByNameAsc(schoolId: UUID, isActive: Boolean): List<FeeItem>
+    
+    fun findBySchoolIdAndNameAndIsActive(schoolId: UUID, name: String, isActive: Boolean): Optional<FeeItem>
+    
+    @Query(value = "SELECT DISTINCT f.* FROM fee_items f " +
+           "LEFT JOIN class_fee_items cfi ON f.id = cfi.fee_item_id " +
+           "AND (:sessionId IS NULL OR cfi.academic_session_id = CAST(:sessionId AS uuid)) " +
+           "AND (:termId IS NULL OR cfi.term_id = CAST(:termId AS uuid)) " +
+           "LEFT JOIN classes sc ON cfi.class_id = sc.id " +
+           "WHERE f.school_id = :schoolId AND f.is_active = :isActive AND " +
+           "(CAST(:search AS text) IS NULL OR " +
+           "LOWER(f.name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')) OR " +
+           "LOWER(f.description) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))",
+           nativeQuery = true)
+    fun findBySchoolIdAndFilters(
+        @Param("schoolId") schoolId: UUID,
+        @Param("sessionId") sessionId: UUID?,
+        @Param("termId") termId: UUID?,
+        @Param("isActive") isActive: Boolean,
+        @Param("search") search: String?
+    ): List<FeeItem>
+    
+    fun countBySchoolIdAndIsActive(schoolId: UUID, isActive: Boolean): Long
+}

@@ -1,0 +1,1 @@
+ALTER TABLE terms ALTER COLUMN end_date DROP NOT NULL;

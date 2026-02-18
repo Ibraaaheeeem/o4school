@@ -1,0 +1,127 @@
+<!-- Staff Modal Form for Community Home -->
+<div class="modal-content">
+    <div class="modal-header">
+        <h3>Add New Staff Member</h3>
+        <button class="close-modal" onclick="closeModal('staffModal')">&times;</button>
+    </div>
+
+    <form hx-post="/admin/community/staff/save-htmx-home" hx-target="#response-container" hx-swap="innerHTML"
+        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'" class="modal-form">
+
+        <div class="modal-body">
+            <!-- Response Container -->
+            <div id="response-container"></div>
+
+            <!-- Personal Information Section -->
+            <div class="form-section">
+                <h4>Personal Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="middleName">Middle Name</label>
+                        <input type="text" id="middleName" name="middleName" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" class="form-input">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information Section -->
+            <div class="form-section">
+                <h4>Contact Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="countryCode">Country Code *</label>
+                        <select id="countryCode" name="countryCode" class="form-input" required>
+                            <option value="+234" selected>+234 (Nigeria)</option>
+                            <option value="+1">+1 (USA/Canada)</option>
+                            <option value="+44">+44 (UK)</option>
+                            <option value="+91">+91 (India)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number *</label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employment Information Section -->
+            <div class="form-section">
+                <h4>Employment Information</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="designation">Designation *</label>
+                        <select id="designation" name="designation" class="form-input" required>
+                            <option value="">Select Designation</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Principal">Principal</option>
+                            <option value="Vice Principal">Vice Principal</option>
+                            <option value="Head of Department">Head of Department</option>
+                            <option value="Librarian">Librarian</option>
+                            <option value="Counselor">Counselor</option>
+                            <option value="Administrator">Administrator</option>
+                            <option value="Support Staff">Support Staff</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="employmentType">Employment Type</label>
+                        <select id="employmentType" name="employmentType" class="form-input">
+                            <option value="full_time" selected>Full Time</option>
+                            <option value="part_time">Part Time</option>
+                            <option value="contract">Contract</option>
+                            <option value="temporary">Temporary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="highestDegree">Highest Degree</label>
+                        <select id="highestDegree" name="highestDegree" class="form-input">
+                            <option value="">Select Degree</option>
+                            <option value="High School">High School</option>
+                            <option value="Associate">Associate Degree</option>
+                            <option value="Bachelor">Bachelor's Degree</option>
+                            <option value="Master">Master's Degree</option>
+                            <option value="Doctorate">Doctorate</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="departmentId">Department</label>
+                        <select id="departmentId" name="departmentId" class="form-input">
+                            <option value="">Select Department</option>
+                            <option th:each="department : ${departments}" th:value="${department.id}"
+                                th:text="${department.name}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeModal('staffModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Staff Member</button>
+        </div>
+    </form>
+</div>

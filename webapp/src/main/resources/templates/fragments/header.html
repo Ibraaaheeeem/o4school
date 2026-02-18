@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <!-- School Header Component -->
+    <!-- School Header Component -->
+    <header th:fragment="school-header" class="school-header">
+        <!-- Centralized CSRF Protection -->
+        <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+        <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+            rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+        <style>
+            :root {
+                --header-height: 70px;
+                --header-bg: rgba(255, 255, 255, 0.95);
+                --header-border: rgba(226, 232, 240, 0.8);
+                --text-primary: #1e293b;
+                --text-secondary: #64748b;
+                --brand-color: #4f46e5;
+                --brand-gradient: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+                --surface-hover: #f8fafc;
+                --danger-color: #ef4444;
+                --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+                --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            }
+
+            .school-header,
+            .school-header::before,
+            .school-header::after {
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                /* Increased Z-index for safety */
+                height: var(--header-height);
+                background: var(--header-bg) !important;
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: none !important;
+                border-top: none !important;
+                border-bottom: none !important;
+                border-left: none !important;
+                border-right: none !important;
+                outline: none !important;
+                transition: all 0.3s ease;
+                font-family: 'Inter', sans-serif;
+                box-shadow: none !important;
+                /* margin-top: -10px !important; -- Removed to prevent clipping */
+                overflow: visible !important;
+            }
+
+            .header-container,
+            .header-container::before,
+            .header-container::after {
+                max-width: 1600px;
+                height: 100%;
+                margin: 0 auto;
+                padding: 0 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 2rem;
+                border: none !important;
+                border-top: none !important;
+                border-bottom: none !important;
+                border-left: none !important;
+                border-right: none !important;
+                outline: none !important;
+                box-shadow: none !important;
+            }
+
+            /* --- Branding --- */
+            .brand-section {
+                display: flex;
+                align-items: center;
+                gap: 1.25rem;
+                text-decoration: none;
+                color: inherit;
+                transition: transform 0.2s ease;
+                padding: 0.5rem;
+                border-radius: 12px;
+            }
+
+            .brand-section:hover {
+                transform: translateY(-1px);
+                background: var(--surface-hover);
+            }
+
+            .logo-container {
+                position: relative;
+                width: 48px;
+                height: 48px;
+                /* No border radius or hidden overflow to allow logo shape */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            }
+
+            .logo-container img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                /* Ensure entire logo is visible */
+            }
+
+            .brand-info {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 2px;
+            }
+
+            .school-name {
+                font-family: 'Outfit', sans-serif;
+                font-weight: 700;
+                font-size: 1.25rem;
+                color: var(--text-primary);
+                line-height: 1.2;
+                letter-spacing: -0.02em;
+            }
+
+            .school-meta {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .system-badge {
+                font-size: 0.65rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: white;
+                background: var(--brand-gradient);
+                padding: 0.2rem 0.5rem;
+                border-radius: 6px;
+                line-height: 1;
+                box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+            }
+
+            .school-motto {
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+                max-width: 250px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-weight: 500;
+            }
+
+            /* --- Center Navigation/Context --- */
+            .header-center {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1.5rem;
+            }
+
+            .context-toolbar {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                background: white;
+                padding: 0.5rem 1rem;
+                border-radius: 16px;
+                transition: box-shadow 0.2s;
+            }
+
+
+
+            /* Custom Dropdown Styling */
+            .custom-dropdown {
+                position: relative;
+                min-width: 180px;
+            }
+
+            .dropdown-trigger {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+                font-weight: 500;
+                color: var(--text-primary);
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                gap: 0.75rem;
+            }
+
+            .dropdown-trigger:hover {
+                border-color: #cbd5e1;
+                background: #f8fafc;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                transform: translateY(-1px);
+            }
+
+            .dropdown-trigger.active {
+                border-color: var(--brand-color);
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+            }
+
+            .dropdown-trigger.warning {
+                color: var(--danger-color);
+                background: #fef2f2;
+                border-color: #fee2e2;
+            }
+
+            .arrow-icon {
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                transition: transform 0.2s;
+            }
+
+            .custom-dropdown.open .arrow-icon {
+                transform: rotate(180deg);
+                color: var(--brand-color);
+            }
+
+            .dropdown-menu {
+                position: absolute;
+                top: calc(100% + 8px);
+                left: 0;
+                width: 100%;
+                min-width: 200px;
+                max-height: 300px;
+                overflow-y: auto;
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+                padding: 0.5rem;
+                z-index: 9999;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(-10px);
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .custom-dropdown.open .dropdown-menu {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: translateY(0) !important;
+            }
+
+            .dropdown-item {
+                padding: 0.6rem 0.75rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.9rem;
+                color: var(--text-primary);
+                transition: all 0.15s;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .dropdown-item:hover {
+                background: #f1f5f9;
+                color: var(--brand-color);
+            }
+
+            .dropdown-item.selected {
+                background: rgba(79, 70, 229, 0.08);
+                color: var(--brand-color);
+                font-weight: 600;
+            }
+
+            .check-icon {
+                opacity: 0;
+                font-size: 0.8rem;
+                transform: scale(0.5);
+                transition: all 0.2s;
+            }
+
+            .dropdown-item.selected .check-icon {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            .nav-breadcrumb {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .back-dashboard-link {
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+                padding: 0.5rem 1.25rem;
+                color: var(--brand-color);
+                font-weight: 600;
+                font-size: 0.95rem;
+                text-decoration: none;
+                border-radius: 10px;
+                background: rgba(79, 70, 229, 0.08);
+                /* Very light brand color bg */
+                transition: all 0.2s;
+            }
+
+            .back-dashboard-link:hover {
+                background: rgba(79, 70, 229, 0.15);
+                transform: translateX(-2px);
+            }
+
+            .section-label {
+                padding: 0.35rem 1rem;
+                background: var(--text-primary);
+                color: white;
+                /* Inverted for contrast */
+                border-radius: 50px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                letter-spacing: 0.02em;
+                box-shadow: var(--shadow-sm);
+            }
+
+            /* --- Right User Actions --- */
+            .header-right {
+                display: flex;
+                align-items: center;
+                gap: 1.5rem;
+            }
+
+            .user-pill {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.35rem;
+                padding-right: 1.25rem;
+                border-radius: 50px;
+                transition: all 0.2s ease;
+                background: white;
+                cursor: pointer;
+            }
+
+            .user-pill:hover {
+                transform: translateY(-1px);
+            }
+
+            .avatar-circle {
+                width: 42px;
+                height: 42px;
+                background: var(--brand-gradient);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 1rem;
+                border: 3px solid white;
+                box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+            }
+
+            .user-meta {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.2;
+            }
+
+            .user-fullname {
+                font-size: 0.95rem;
+                font-weight: 700;
+                color: var(--text-primary);
+            }
+
+            .user-role-badge {
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                text-transform: capitalize;
+                font-weight: 500;
+            }
+
+            .logout-button {
+                width: 44px;
+                height: 44px;
+                border-radius: 12px;
+                border: 1px solid transparent;
+                background: transparent;
+                color: var(--text-secondary);
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.2rem;
+            }
+
+            .logout-button:hover {
+                background: #fef2f2;
+                color: var(--danger-color);
+                border-color: #fee2e2;
+                transform: translateX(2px);
+                box-shadow: var(--shadow-sm);
+            }
+
+            /* --- Current Term Indicator --- */
+            .term-info-badge {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-start;
+                line-height: 1.1;
+                gap: 2px;
+                padding: 0.5rem 1rem;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-left: 0.5rem;
+                background: white;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+
+            .term-status-label {
+                font-size: 0.65rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--brand-color);
+            }
+
+            .term-status-label.warning {
+                color: var(--danger-color);
+                background: #fef2f2;
+                padding: 2px 6px;
+                border-radius: 4px;
+                border: 1px solid #fee2e2;
+            }
+
+            .term-week-label {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--text-primary);
+            }
+
+            /* Mobile Responsive Refinement */
+            @media (max-width: 1024px) {
+                .school-header {
+                    height: auto !important;
+                    min-height: 60px;
+                    padding-top: 0.5rem;
+                    padding-bottom: 0.5rem;
+                }
+
+                .header-container {
+                    padding: 0 0.75rem;
+                    gap: 0.5rem;
+                    justify-content: space-between;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    display: flex !important;
+                    height: auto;
+                    min-height: unset;
+                    align-items: center !important;
+                }
+
+                .brand-section {
+                    gap: 0;
+                    padding: 0;
+                    flex: 0 0 auto;
+                    margin-bottom: 0;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .logo-container {
+                    width: 44px;
+                    height: 44px;
+                }
+
+                .brand-info {
+                    display: none !important;
+                }
+
+                .header-center {
+                    display: flex !important;
+                    flex: 1 1 auto !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 6px !important;
+                    order: 2;
+                    margin: 0 !important;
+                    min-width: 0;
+                }
+
+                .mobile-school-name {
+                    display: block !important;
+                    font-size: 0.6rem;
+                    font-weight: 800;
+                    color: var(--text-secondary);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    max-width: 140px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1;
+                    margin-bottom: 2px;
+                }
+
+                /* Show context toolbar for admins on mobile */
+                .context-toolbar {
+                    display: flex !important;
+                    background: transparent !important;
+                    padding: 0 !important;
+                    gap: 0.4rem !important;
+                    flex-wrap: nowrap;
+                    width: 100%;
+                    justify-content: center;
+                }
+
+                .context-toolbar form {
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                .custom-dropdown {
+                    min-width: unset;
+                    width: 100%;
+                }
+
+                .dropdown-trigger {
+                    height: 40px;
+                    padding: 0 0.6rem;
+                    font-size: 0.8rem;
+                    border-radius: 10px;
+                    gap: 0.35rem;
+                    background: #f8fafc;
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                }
+
+                .dropdown-trigger .trigger-label-group {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                .dropdown-trigger .term-status-label {
+                    display: block !important;
+                    font-size: 0.55rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    color: var(--text-secondary);
+                    margin-bottom: -2px;
+                    opacity: 0.8;
+                }
+
+                .dropdown-trigger .arrow-icon {
+                    font-size: 0.6rem;
+                    margin-left: 2px;
+                    flex-shrink: 0;
+                }
+
+                .dropdown-trigger span:not(.term-status-label) {
+                    display: inline-block !important;
+                    width: 100%;
+                    text-align: center;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    font-weight: 700;
+                }
+
+                .dropdown-menu {
+                    position: fixed;
+                    top: 80px;
+                    left: 4%;
+                    right: 4%;
+                    width: 92%;
+                }
+
+                /* Non-Admin Mobile Badges Style */
+                .context-toolbar .term-info-badge {
+                    display: flex !important;
+                    /* Force visible */
+                    flex: 1;
+                    height: 44px;
+                    border-radius: 10px;
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    padding: 0 0.5rem !important;
+                    margin: 0 !important;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    /* Centralized */
+                    text-align: center;
+                    min-width: 0;
+                    box-shadow: none;
+                }
+
+                .context-toolbar .term-status-label {
+                    display: block !important;
+                    font-size: 0.55rem;
+                    margin-bottom: -2px;
+                    opacity: 0.8;
+                }
+
+                .context-toolbar .term-week-label {
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    width: 100%;
+                }
+
+                .context-toolbar .mobile-hide-separator {
+                    display: none !important;
+                }
+
+                .header-right {
+                    display: flex !important;
+                    order: 3;
+                    gap: 0;
+                    flex: 0 0 auto;
+                    align-items: center;
+                }
+
+                .user-pill {
+                    display: none !important;
+                }
+
+                .logout-button {
+                    width: 44px;
+                    height: 44px;
+                    /* Aligned with Logo and Dropdown */
+                    font-size: 1.1rem;
+                    background: #fef2f2;
+                    color: var(--danger-color);
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                /* Ensure hidden things stay hidden */
+                .back-dashboard-link,
+                .section-label,
+                .school-motto,
+                .user-meta,
+                .user-role-badge {
+                    display: none !important;
+                }
+            }
+
+            /* Regular desktop style for mobile-only element */
+            .mobile-school-name {
+                display: none;
+            }
+        </style>
+
+        <div class="header-container">
+            <!-- Branding -->
+            <a href="/" class="brand-section">
+                <!-- Fallback Logic matches original -->
+                <div class="logo-container">
+                    <img src="/images/school-logo.png" alt="App Logo"
+                        onerror="this.style.display='none'; this.parentElement.style.background='#4f46e5'; this.parentElement.innerHTML='<span style=\'color:white;font-weight:700;\'>4S</span>'">
+                </div>
+
+                <div class="brand-info">
+                    <span class="school-name" th:text="${school?.name ?: '4School Platform'}">4School Platform</span>
+                    <div class="school-meta" th:if="${school != null}">
+                        <span class="school-motto" th:text="${school.schoolMotto}">Excellence in Education</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Center Context Navigation -->
+            <div class="header-center" sec:authorize="isAuthenticated()">
+                <!-- Mobile Only School Name -->
+                <div class="mobile-school-name" th:text="${school?.name ?: '4School'}">School Name</div>
+
+                <!-- Admin Context Selectors -->
+                <div class="context-toolbar" th:if="${isSchoolAdmin == true}">
+                    <!-- No Session State -->
+                    <a th:if="${headerSessions == null || headerSessions.empty}" th:href="@{/admin/academic}"
+                        class="dropdown-trigger"
+                        style="text-decoration: none; justify-content: center; background-color: #fef2f2; border-color: #fee2e2; color: #ef4444; width: auto; min-width: 100px;">
+                        <i class="fas fa-plus-circle"></i>
+                        <span class="d-none d-md-inline" style="font-weight: 600;">Create Session</span>
+                        <span class="d-inline d-md-none" style="font-weight: 600;">New</span>
+                    </a>
+
+                    <!-- Session Custom Dropdown -->
+                    <form th:if="${headerSessions != null && !headerSessions.empty}"
+                        th:action="@{/admin/header/set-session}" method="post" id="sessionForm" style="margin: 0;">
+                        <input type="hidden" name="sessionId" id="sessionIdInput" />
+
+                        <div class="custom-dropdown" id="sessionDropdown">
+                            <div class="dropdown-trigger" onclick="toggleHeaderDropdown('sessionDropdown')"
+                                th:classappend="${headerContextSessionWarning == true ? 'warning' : ''}">
+                                <div class="trigger-label-group">
+                                    <span
+                                        th:text="${headerContextSession != null ? headerContextSession.sessionName : 'Select Session'}">Session</span>
+                                </div>
+                                <i class="fas fa-chevron-down arrow-icon"></i>
+                            </div>
+                            <div class="dropdown-menu">
+                                <!-- Debug: Session count: [[${#lists.size(headerSessions ?: {})}]] -->
+                                <div th:each="s : ${headerSessions}" class="dropdown-item"
+                                    th:classappend="${headerContextSession != null && s.id == headerContextSession.id} ? 'selected' : ''"
+                                    th:data-id="${s.id}"
+                                    onclick="submitContext('sessionForm', 'sessionIdInput', this.getAttribute('data-id'))">
+                                    <span th:text="${s.sessionName}"></span>
+                                    <i class="fas fa-check check-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Term Custom Dropdown -->
+                    <form th:if="${headerContextSession != null}" th:action="@{/admin/header/set-term}" method="post"
+                        id="termForm" style="margin: 0;">
+                        <input type="hidden" name="termId" id="termIdInput" />
+
+                        <div class="custom-dropdown" id="termDropdown">
+                            <div class="dropdown-trigger" onclick="toggleHeaderDropdown('termDropdown')"
+                                th:classappend="${headerContextTermWarning == true ? 'warning' : ''}">
+                                <div class="trigger-label-group">
+                                    <span
+                                        th:text="${headerContextTerm != null ? headerContextTerm.termName : 'Select Term'}">Term</span>
+                                </div>
+                                <i class="fas fa-chevron-down arrow-icon"></i>
+                            </div>
+                            <div class="dropdown-menu">
+                                <!-- Debug: Term count: [[${#lists.size(headerTerms ?: {})}]] -->
+                                <div th:each="t : ${headerTerms}" class="dropdown-item"
+                                    th:classappend="${headerContextTerm != null && t.id == headerContextTerm.id} ? 'selected' : ''"
+                                    th:data-id="${t.id}"
+                                    onclick="submitContext('termForm', 'termIdInput', this.getAttribute('data-id'))">
+                                    <span th:text="${t.termName}"></span>
+                                    <i class="fas fa-check check-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Current Term & Week Indicator -->
+                    <div class="term-info-badge" th:if="${isCurrentTermSelected == true}">
+                        <span class="term-week-label" th:text="'Week ' + ${currentWeekNumber}">Week 1</span>
+                    </div>
+
+                    <!-- Not Current Warning -->
+                    <div class="term-info-badge"
+                        th:if="${isCurrentTermSelected != true && headerContextTerm != null && headerContextTermWarning != true}">
+                        <span class="term-week-label">Not Current</span>
+                    </div>
+
+                    <!-- Warning Indicator -->
+                    <div th:if="${headerContextSessionWarning == true || headerContextTermWarning == true}"
+                        style="color: var(--danger-color); font-size: 1.25rem; animation: pulse 2s infinite;"
+                        title="Setup Required">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                </div>
+
+                <!-- Student & Parent Context Badges (Read-Only) -->
+                <div class="context-toolbar" th:if="${isParent == true || isStudent == true}" style="padding: 0;">
+                    <!-- Session Badge -->
+                    <div class="term-info-badge" th:if="${headerContextSession != null}"
+                        style="border: none; box-shadow: none; background: transparent; padding: 0 0.5rem;">
+                        <span class="term-week-label" th:text="${headerContextSession.sessionName}">2025/2026</span>
+                    </div>
+
+                    <div class="mobile-hide-separator" style="width: 1px; height: 24px; background: #e2e8f0;"
+                        th:if="${headerContextTerm != null}">
+                    </div>
+
+                    <!-- Term Badge -->
+                    <div class="term-info-badge" th:if="${headerContextTerm != null}"
+                        style="border: none; box-shadow: none; background: transparent; padding: 0 0.5rem;">
+                        <span class="term-week-label" th:text="${headerContextTerm.termName}">First Term</span>
+                    </div>
+
+                    <!-- Week Badge (Only show on desktop/tablets if space or keep simple) -->
+                    <div class="mobile-hide-separator" style="width: 1px; height: 24px; background: #e2e8f0;"
+                        th:if="${currentWeekNumber != null}">
+                    </div>
+
+                    <!-- Week Badge -->
+                    <div class="term-info-badge d-none d-lg-flex" th:if="${currentWeekNumber != null}"
+                        style="border: none; box-shadow: none; background: transparent; padding: 0 0.5rem;">
+                        <span class="term-week-label" th:text="'Week ' + ${currentWeekNumber}">Week 1</span>
+                    </div>
+                </div>
+
+                <!-- Breadcrumb / Section Details -->
+                <div class="nav-breadcrumb" id="dashboardNav" style="display: none;">
+                    <a href="#" class="back-dashboard-link" id="dashboardLink">
+                        <i class="fas fa-arrow-left-long"></i>
+                        <span id="dashboardText">Dashboard</span>
+                    </a>
+                    <div class="section-label" id="currentSection" style="display: none;">
+                        <span id="sectionName"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Profile & Logout -->
+            <div class="header-right" sec:authorize="isAuthenticated()">
+                <div class="user-pill">
+                    <div class="avatar-circle" th:text="${#strings.substring(user?.firstName ?: 'U', 0, 1)}">U</div>
+                    <div class="user-meta">
+                        <span class="user-fullname" th:text="${user?.fullName ?: 'User'}">User Name</span>
+                        <span class="user-role-badge" th:text="${userRole ?: 'Access'}">Role</span>
+                    </div>
+                </div>
+
+                <form th:action="@{/auth/logout}" method="post">
+                    <button type="submit" class="logout-button" title="Sign Out">
+                        <i class="fas fa-arrow-right-from-bracket"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Navigation Script & Financial History Management -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const currentPath = window.location.pathname;
+                const dashboardNav = document.getElementById('dashboardNav');
+                const dashboardLink = document.getElementById('dashboardLink');
+                const dashboardText = document.getElementById('dashboardText');
+                const currentSection = document.getElementById('currentSection');
+                const sectionName = document.getElementById('sectionName');
+
+                // Function to set section info
+                function setSectionInfo(sectionText) {
+                    if (sectionName) {
+                        sectionName.textContent = sectionText;
+                        if (currentSection) currentSection.style.display = 'block';
+                    }
+                }
+
+                // Check if we're on a sub-route and show appropriate dashboard link
+                if (currentPath.startsWith('/admin/') && currentPath !== '/admin/dashboard') {
+                    if (dashboardLink) dashboardLink.href = '/admin/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'Dashboard';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
+
+                    if (currentPath.includes('/financial')) setSectionInfo('Financials');
+                    else if (currentPath.includes('/school-setup')) setSectionInfo('Setup');
+                    else if (currentPath.includes('/community')) setSectionInfo('Community');
+                    else if (currentPath.includes('/academic')) setSectionInfo('Academics');
+                    else if (currentPath.includes('/messaging')) setSectionInfo('Messaging');
+                } else if (currentPath.startsWith('/system-admin/') && currentPath !== '/system-admin/dashboard') {
+                    if (dashboardLink) dashboardLink.href = '/system-admin/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'System';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
+                    setSectionInfo('Administration');
+                } else if (currentPath.startsWith('/parent/') && currentPath !== '/parent/dashboard') {
+                    if (dashboardLink) dashboardLink.href = '/parent/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'Portal';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
+                    setSectionInfo('My Account');
+                } else if (currentPath.startsWith('/staff/') && currentPath !== '/staff/dashboard') {
+                    if (dashboardLink) dashboardLink.href = '/staff/dashboard';
+                    if (dashboardText) dashboardText.textContent = 'Portal';
+                    if (dashboardNav) dashboardNav.style.display = 'flex';
+                    setSectionInfo('Staff Area');
+                }
+            });
+
+            // Admin Routes History Management
+            (function () {
+                const PREFIXES = [
+                    '/admin/financial',
+                    '/admin/school-setup',
+                    '/admin/community',
+                    '/admin/academic',
+                    '/admin/assessments',
+                    '/admin/assessment',
+                    '/admin/reports'
+                ];
+
+                function getPath(url) {
+                    if (!url) return '';
+                    try {
+                        const resolved = new URL(url, window.location.origin + window.location.pathname);
+                        return resolved.pathname.replace(/\/$/, '');
+                    } catch (e) {
+                        if (typeof url === 'string') return url.split('?')[0].split('#')[0].replace(/\/$/, '');
+                        return '';
+                    }
+                }
+
+                function isAdminRoute(url) {
+                    const p = getPath(url);
+                    return PREFIXES.some(prefix => p.endsWith(prefix) || p.includes(prefix + '/'));
+                }
+
+                function isHtmxElement(el) {
+                    if (!el) return false;
+                    return el.hasAttribute('hx-get') ||
+                        el.hasAttribute('hx-post') ||
+                        el.hasAttribute('hx-put') ||
+                        el.hasAttribute('hx-delete') ||
+                        el.hasAttribute('hx-patch') ||
+                        el.hasAttribute('hx-trigger') ||
+                        el.hasAttribute('hx-boost') ||
+                        el.closest('[hx-get], [hx-post], [hx-put], [hx-delete], [hx-patch], [hx-boost]');
+                }
+
+                document.addEventListener('click', function (e) {
+                    const a = e.target.closest('a');
+                    if (!a || !a.href || a.target === '_blank' || isHtmxElement(a)) return;
+
+                    const current = window.location.pathname;
+                    const target = a.href;
+
+                    if (isAdminRoute(current) && isAdminRoute(target)) {
+                        const targetUrl = new URL(a.href, window.location.href);
+                        if (targetUrl.origin === window.location.origin) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            window.location.replace(a.href);
+                        }
+                    }
+                }, true);
+
+                const _push = history.pushState;
+                history.pushState = function (s, t, u) {
+                    const current = window.location.pathname;
+                    if (isAdminRoute(current) && isAdminRoute(u)) {
+                        return history.replaceState(s, t, u);
+                    }
+                    return _push.apply(history, arguments);
+                };
+
+                document.addEventListener('submit', function (e) {
+                    const f = e.target;
+                    if (f.method.toLowerCase() === 'get' && !isHtmxElement(f)) {
+                        const action = f.getAttribute('action') || window.location.pathname;
+                        if (isAdminRoute(window.location.pathname) && isAdminRoute(action)) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            const params = new URLSearchParams(new FormData(f));
+                            const url = action + (action.includes('?') ? '&' : '?') + params.toString();
+                            window.location.replace(url);
+                        }
+                    }
+                }, true);
+            })();
+        </script>
+        <div th:replace="~{fragments/header-scripts :: script}"></div>
+    </header>
+
+</body>
+
+</html>

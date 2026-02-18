@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>4School - Academic Structure</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        function toggleTree(element) {
+            const item = element.closest('.tree-item');
+            item.classList.toggle('expanded');
+        }
+
+        function toggleTreeFromHeader(headerElement) {
+            const item = headerElement.closest('.tree-item');
+            item.classList.toggle('expanded');
+        }
+
+        function openModal(modalId, data = {}) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('active');
+
+            // Populate form if data provided
+            const form = modal.querySelector('form');
+            if (form && data) {
+                Object.keys(data).forEach(key => {
+                    const input = form.querySelector(`[name="${key}"]`);
+                    if (input) input.value = data[key];
+                });
+            }
+        }
+
+        function openModalFromData(btn, modalId) {
+            const data = { ...btn.dataset };
+            openModal(modalId, data);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            // Reset form
+            const form = modal.querySelector('form');
+            if (form) form.reset();
+        }
+    </script>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Academic Structure</h1>
+                    <p>Manage your school's education tracks, departments, and classes.</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="openModal('trackModal')" class="btn btn-primary">
+                        + New Track
+                    </button>
+
+                    <button class="btn btn-outline" hx-post="/admin/school-setup/academic-structure/generate-default"
+                        hx-confirm="This will generate default tracks, departments and classes. Continue?"
+                        hx-target="#structure-tree-container" hx-swap="outerHTML"
+                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                        Generate Default
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tree View Fragment -->
+            <div th:replace="~{admin/school-setup/fragments/structure-tree :: structure-tree-fragment}"></div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Track Modal -->
+    <div id="trackModal" class="modal">
+        <div class="modal-content premium">
+            <div class="modal-header premium">
+                <h3><span class="icon">🛤️</span> Education Track</h3>
+                <button class="close-modal" onclick="closeModal('trackModal')">&times;</button>
+            </div>
+            <form hx-post="/admin/school-setup/academic-structure/track/save" hx-target="#structure-tree-container"
+                hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful) closeModal('trackModal')"
+                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                <input type="hidden" name="id" />
+                <div class="form-group premium">
+                    <label>Track Name</label>
+                    <input type="text" name="name" class="form-input premium"
+                        placeholder="e.g., National Curriculum, International Curriculum" required />
+                </div>
+                <div class="form-group premium">
+                    <label>Description</label>
+                    <textarea name="description" class="form-input premium" rows="3"
+                        placeholder="Briefly describe what this track covers..."></textarea>
+                </div>
+                <div class="form-actions premium">
+                    <button type="button" class="btn btn-premium btn-premium-outline"
+                        onclick="closeModal('trackModal')">Cancel</button>
+                    <button type="submit" class="btn btn-premium btn-premium-primary">Save Track</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Department Modal -->
+    <div id="deptModal" class="modal">
+        <div class="modal-content premium">
+            <div class="modal-header premium">
+                <h3><span class="icon">🏢</span> Department</h3>
+                <button class="close-modal" onclick="closeModal('deptModal')">&times;</button>
+            </div>
+            <form hx-post="/admin/school-setup/academic-structure/department/save" hx-target="#structure-tree-container"
+                hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful) closeModal('deptModal')"
+                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                <input type="hidden" name="id" />
+                <input type="hidden" name="trackId" />
+                <div class="form-group premium">
+                    <label>Department Name</label>
+                    <input type="text" name="name" class="form-input premium"
+                        placeholder="e.g., Science Department, Languages" required />
+                </div>
+                <div class="form-group premium">
+                    <label>Description</label>
+                    <textarea name="description" class="form-input premium" rows="3"
+                        placeholder="Define the primary focus of this department..."></textarea>
+                </div>
+                <div class="form-actions premium">
+                    <button type="button" class="btn btn-premium btn-premium-outline"
+                        onclick="closeModal('deptModal')">Cancel</button>
+                    <button type="submit" class="btn btn-premium btn-premium-primary">Save Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Class Modal -->
+    <div id="classModal" class="modal">
+        <div class="modal-content premium">
+            <div class="modal-header premium">
+                <h3><span class="icon">🏫</span> Class Structure</h3>
+                <button class="close-modal" onclick="closeModal('classModal')">&times;</button>
+            </div>
+            <form hx-post="/admin/school-setup/academic-structure/class/save" hx-target="#structure-tree-container"
+                hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful) closeModal('classModal')"
+                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                <input type="hidden" name="id" />
+                <input type="hidden" name="departmentId" />
+                <div class="form-group premium">
+                    <label>Class Name</label>
+                    <input type="text" name="className" class="form-input premium"
+                        placeholder="e.g., JSS 1 Green, Primary 2A" required />
+                </div>
+                <div class="form-group premium">
+                    <label>Grade Level <span class="grade-info-tag">Reference Mapping</span></label>
+                    <select name="gradeLevel" class="form-input premium" required>
+                        <option value="">Select Official Grade Level</option>
+                        <option th:each="gl : ${gradeLevels}" th:value="${gl.value}" th:text="${gl.displayName + (
+                                    gl.value == -3 ? ' (Age 3 - Kindergarten)' :
+                                    gl.value == -2 ? ' (Age 4 - Nursery 1)' :
+                                    gl.value == -1 ? ' (Age 5 - Nursery 2)' :
+                                    gl.value == 0 ? ' (Age 6 - Pre-Primary)' :
+                                    gl.value >= 1 && gl.value <= 6 ? ' (Grade ' + gl.value + ' - Primary)' :
+                                    gl.value >= 7 && gl.value <= 9 ? ' (Grade ' + gl.value + ' - Middle School)' :
+                                    gl.value >= 10 && gl.value <= 12 ? ' (Grade ' + gl.value + ' - High School)' : ''
+                                )}">
+                        </option>
+                    </select>
+                </div>
+                <div class="form-group premium">
+                    <label>Maximum Capacity</label>
+                    <input type="number" name="maxCapacity" class="form-input premium" value="30" required />
+                </div>
+                <div class="form-actions premium">
+                    <button type="button" class="btn btn-premium btn-premium-outline"
+                        onclick="closeModal('classModal')">Cancel</button>
+                    <button type="submit" class="btn btn-premium btn-premium-primary">Establish Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

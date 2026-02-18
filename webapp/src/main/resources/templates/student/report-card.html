@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Card - [[${student.user.fullName}]]</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .report-container {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                width: 100% !important;
+                max-width: none !important;
+                margin: 0 !important;
+            }
+        }
+
+        .report-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 3rem;
+        }
+
+        .school-header {
+            text-align: center;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .school-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 1rem;
+        }
+
+        .school-info h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .school-info p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .student-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2rem;
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 0.75rem;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #64748b;
+            width: 140px;
+        }
+
+        .detail-value {
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .scores-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .scores-table th {
+            background: #f1f5f9;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .scores-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        .scores-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .grade-A {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .grade-B {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .grade-C {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        .grade-D {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .grade-E {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .grade-F {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        .footer-remarks {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .remark-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .remark-title {
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .print-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            background: #2563eb;
+            color: white;
+            border-radius: 9999px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .print-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <div class="report-container">
+        <div class="school-header">
+            <!-- Logo placeholder if available -->
+            <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+            <div class="school-info">
+                <h1 th:text="${school != null ? school.name : 'School Name'}">School Name</h1>
+                <p th:text="${school != null ? school.addressLine1 + ', ' + school.city : 'Address'}">School Address</p>
+                <p th:text="${school != null ? school.email : 'Email'}">contact@school.com</p>
+            </div>
+            <div
+                class="mt-4 inline-block px-4 py-1 bg-slate-100 rounded-full text-slate-600 font-semibold border border-slate-200">
+                <span th:text="${sessionName}">2023/2024</span> &bull; <span th:text="${termName}">First Term</span>
+            </div>
+        </div>
+
+        <div class="student-details">
+            <div>
+                <div class="detail-row">
+                    <span class="detail-label">Student Name:</span>
+                    <span class="detail-value" th:text="${student.user.fullName}">Student Name</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Admission No:</span>
+                    <span class="detail-value" th:text="${student.admissionNumber}">ADM-001</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Class:</span>
+                    <span class="detail-value" th:text="${className}">JSS 1A</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Track:</span>
+                    <span class="detail-value" th:text="${trackName}">Junior Secondary</span>
+                </div>
+            </div>
+            <div>
+                <div class="detail-row">
+                    <span class="detail-label">Parent/Guardian:</span>
+                    <span class="detail-value" th:if="${!student.parentRelationships.empty}"
+                        th:text="${student.parentRelationships[0].parent.user.fullName}">Parent Name</span>
+                    <span class="detail-value text-muted" th:if="${student.parentRelationships.empty}">N/A</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date Generated:</span>
+                    <span class="detail-value" th:text="${#temporals.format(#temporals.createNow(), 'dd MMM yyyy')}">12
+                        Oct 2023</span>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger mb-4 p-4 rounded bg-red-50 text-red-700 border border-red-200">
+            <i class="fas fa-exclamation-circle me-2"></i> <span th:text="${error}">Error message</span>
+        </div>
+
+        <table class="scores-table" th:if="${not #lists.isEmpty(subjects)}">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th class="text-center" style="width: 80px">CA 1</th>
+                    <th class="text-center" style="width: 80px">CA 2</th>
+                    <th class="text-center" style="width: 80px">Exam</th>
+                    <th class="text-center" style="width: 80px">Total</th>
+                    <th class="text-center" style="width: 100px">Grade</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="subject : ${subjects}">
+                    <td class="font-medium" th:text="${subject['subjectName']}">Mathematics</td>
+                    <td class="text-center" th:text="${subject['ca1'] ?: '-'}">-</td>
+                    <td class="text-center" th:text="${subject['ca2'] ?: '-'}">-</td>
+                    <td class="text-center" th:text="${subject['exam'] ?: '-'}">-</td>
+                    <td class="text-center font-bold" th:text="${subject['total'] ?: '-'}">-</td>
+                    <td class="text-center">
+                        <span th:if="${subject['grade']}" th:class="'grade-badge grade-' + ${subject['grade']}"
+                            th:text="${subject['grade']}">A</span>
+                        <span th:unless="${subject['grade']}" class="text-muted">-</span>
+                    </td>
+                    <td class="text-sm" th:text="${subject['remark'] ?: '-'}">-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div th:if="${#lists.isEmpty(subjects)} AND ${error == null}"
+            class="text-center p-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+            <i class="fas fa-file-alt text-4xl mb-3 text-slate-300"></i>
+            <p>No assessment records found for this term.</p>
+        </div>
+
+        <div class="footer-remarks" th:if="${not #lists.isEmpty(subjects)}">
+            <div class="remark-box">
+                <div class="remark-title">
+                    <i class="fas fa-chalkboard-user text-primary"></i> Class Teacher's Remark
+                </div>
+                <p class="text-slate-600 text-sm italic min-h-[60px]">
+                    <!-- Placeholder for dynamic comment if added later -->
+                    <span class="text-slate-400">No remark available.</span>
+                </p>
+                <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-end">
+                    <div class="h-8 w-32 border-b border-slate-300"></div>
+                    <span class="text-xs text-slate-400">Signature</span>
+                </div>
+            </div>
+            <div class="remark-box">
+                <div class="remark-title">
+                    <i class="fas fa-user-tie text-slate-700"></i> Principal's Remark
+                </div>
+                <p class="text-slate-600 text-sm italic min-h-[60px]">
+                    <!-- Placeholder for dynamic comment if added later -->
+                    <span class="text-slate-400">No remark available.</span>
+                </p>
+                <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-end">
+                    <div class="h-8 w-32 border-b border-slate-300"></div>
+                    <span class="text-xs text-slate-400">Signature</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center text-xs text-slate-400 no-print">
+            Generated by 4School Management System
+        </div>
+    </div>
+
+    <button onclick="window.print()" class="print-btn no-print">
+        <i class="fas fa-print"></i> Print Report
+    </button>
+
+</body>
+
+</html>

@@ -1,0 +1,121 @@
+<!-- Assignment Response Fragment - includes both OOB card update and modal message -->
+<div th:fragment="assignment-response">
+    <!-- Success/Error Message for Modal -->
+    <div th:if="${success}" class="alert"
+        style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; border-radius: 12px; padding: 1rem; display: flex; align-items: center; animation: slideIn 0.3s ease-out;">
+        <i class="fas fa-check-circle me-2" style="font-size: 1.2rem;"></i>
+        <span th:text="${success}">Assignment successful!</span>
+    </div>
+
+    <div th:if="${error}" class="alert"
+        style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 12px; padding: 1rem; display: flex; align-items: center;">
+        <i class="fas fa-exclamation-circle me-2" style="font-size: 1.2rem;"></i>
+        <span th:text="${error}">Error occurred</span>
+    </div>
+</div>
+
+<!-- Staff Card with OOB Swap (separate, not nested) -->
+<div th:if="${staff != null}" th:fragment="staff-card-oob" th:attr="id=${'staff-card-' + staff.id}" class="staff-card"
+    hx-swap-oob="true">
+    <div class="staff-card-header">
+        <div class="staff-avatar">
+            <span class="default-avatar"
+                th:text="${!#strings.isEmpty(staff.user.fullName) ? #strings.substring(staff.user.fullName, 0, 1) : '?'}">J</span>
+        </div>
+        <div class="staff-info">
+            <h3 th:text="${staff.user.fullName}">John Doe</h3>
+            <p class="staff-email" th:text="${staff.user.email}">john@example.com</p>
+            <p class="staff-id">
+                <strong>Staff ID:</strong> <span th:text="${staff.staffId ?: 'N/A'}">STF001</span>
+            </p>
+        </div>
+        <div class="staff-status">
+            <span class="badge badge-success" th:if="${staff.isActive}">Active</span>
+            <span class="badge badge-secondary" th:unless="${staff.isActive}">Inactive</span>
+        </div>
+    </div>
+
+    <div class="staff-card-body">
+        <!-- Teacher Assignments Section -->
+        <div class="teacher-assignments-section"
+            th:if="${!staff.classTeacherAssignments.empty || !staff.subjectTeacherAssignments.empty}">
+            <h4>Teaching Assignments</h4>
+
+            <!-- Class Teacher Assignments -->
+            <div th:if="${!staff.classTeacherAssignments.empty}" class="assignment-group">
+                <h5>Class Teacher</h5>
+                <div class="assignments-grid">
+                    <div th:each="classAssignment : ${staff.classTeacherAssignments}"
+                        th:if="${classAssignment.isActive}" class="assignment-card class-teacher-card">
+                        <div class="assignment-details">
+                            <div class="assignment-title" th:text="${classAssignment.schoolClass.className}">
+                                Grade 10A</div>
+                            <div class="assignment-year"
+                                th:text="${classAssignment.academicSession.sessionName + ' - ' + classAssignment.term.termName}">
+                                2024-2025
+                            </div>
+                        </div>
+                        <button class="remove-assignment-btn" th:data-assignment-id="${classAssignment.id}"
+                            th:data-staff-id="${staff.id}"
+                            th:data-assignment-info="'Class Teacher: ' + ${classAssignment.schoolClass.className}"
+                            onclick="removeClassAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
+                            title="Remove class teacher assignment">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject Teacher Assignments -->
+            <div th:if="${!staff.subjectTeacherAssignments.empty}" class="assignment-group">
+                <h5>Subject Teacher</h5>
+                <div class="assignments-grid">
+                    <div th:each="subjectAssignment : ${staff.subjectTeacherAssignments}"
+                        th:if="${subjectAssignment.isActive}" class="assignment-card subject-teacher-card">
+                        <div class="assignment-details">
+                            <div class="assignment-title" th:text="${subjectAssignment.subject.subjectName}">
+                                Mathematics</div>
+                            <div class="assignment-class" th:text="${subjectAssignment.schoolClass.className}">
+                                Grade 10A</div>
+                            <div class="assignment-year"
+                                th:text="${subjectAssignment.academicSession.sessionName + ' - ' + subjectAssignment.term.termName}">
+                                2024-2025
+                            </div>
+                        </div>
+                        <button class="remove-assignment-btn" th:data-assignment-id="${subjectAssignment.id}"
+                            th:data-staff-id="${staff.id}"
+                            th:data-assignment-info="'Subject Teacher: ' + ${subjectAssignment.subject.subjectName} + ' in ' + ${subjectAssignment.schoolClass.className}"
+                            onclick="removeSubjectAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
+                            title="Remove subject teacher assignment">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="staff-card-footer">
+        <div class="card-actions">
+            <button class="btn btn-sm btn-outline" th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}"
+                hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
+                th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'">
+                <i class="icon-edit"></i> Edit
+            </button>
+            <button class="btn btn-sm btn-info"
+                th:hx-get="@{/admin/community/staff/{id}/assignments/modal(id=${staff.id})}"
+                hx-target="#staffAssignmentModal .modal-dialog" hx-swap="innerHTML"
+                th:onclick="'setTimeout(() => openModal(\'staffAssignmentModal\'), 100)'">
+                <i class="icon-plus"></i> Staff Assignments
+            </button>
+            <a class="btn btn-sm btn-warning" th:href="@{/staff/view-as/{id}(id=${staff.id})}" target="_blank">
+                <i class="icon-eye"></i> Dashboard
+            </a>
+            <button class="btn btn-sm btn-danger" th:data-staff-id="${staff.id}"
+                th:data-staff-name="${staff.user.fullName}"
+                onclick="confirmDeleteStaff(this.dataset.staffId, this.dataset.staffName)">
+                <i class="icon-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>

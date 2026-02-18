@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <aside th:fragment="assessment-sidebar" class="setup-sidebar">
+        <div class="sidebar-header">
+            <h3>Assessment Management</h3>
+        </div>
+        <nav class="setup-nav">
+            <a th:href="@{/admin/assessments}" class="nav-item"
+                th:classappend="${requestURI == '/admin/assessments' ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-chart-pie"></i></span>
+                Overview
+            </a>
+            <a th:href="@{/admin/assessments/examinations}" class="nav-item"
+                th:classappend="${requestURI.startsWith('/admin/assessments/examinations') and !requestURI.contains('/questions') ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-file-alt"></i></span>
+                Examinations
+            </a>
+
+            <a th:href="@{/admin/assessments/scoring-schemes}" class="nav-item"
+                th:classappend="${requestURI.startsWith('/admin/assessments/scoring-schemes') ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-balance-scale"></i></span>
+                Scoring Schemes
+            </a>
+
+            <a th:href="@{/admin/assessments/reports}" class="nav-item"
+                th:classappend="${requestURI.startsWith('/admin/assessments/reports') ? 'active' : ''}">
+                <span class="icon"><i class="fas fa-chart-line"></i></span>
+                Reports
+            </a>
+        </nav>
+
+        <div class="setup-progress-widget">
+            <h4>Assessment Stats</h4>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${assessmentStats?.totalExaminations ?: 0}">0</span>
+                    <span class="stat-label">Examinations</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" th:text="${assessmentStats?.publishedExaminations ?: 0}">0</span>
+                    <span class="stat-label">Published</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Parent Management</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/community.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/modal.js}"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+    <style>
+        .modal-sm {
+            max-width: 400px !important;
+            width: 100%;
+            height: auto !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div id="community-content" class="setup-content">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Parent Management</h1>
+                    <p>Manage parents and guardians in the school community</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" hx-get="/admin/community/parents/new/modal"
+                        hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('parentModal'), 100)">
+                        + Add New Parent
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <form id="filterForm" hx-get="/admin/community/parents" hx-target="#parent-cards-container"
+                    hx-trigger="change, keyup delay:500ms from:#parentSearchInput" hx-replace-url="true"
+                    class="filters-container">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="parentSearchInput">Search</label>
+                            <div class="search-input-container">
+                                <input type="text" id="parentSearchInput" name="search" class="form-input"
+                                    placeholder="Search by name or phone..." th:value="${search}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="button" class="btn-clear-filters" onclick="clearFilters()"
+                            title="Clear all filters">✕</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Parent Cards -->
+            <div class="cards-container">
+                <div id="parent-cards-container" hx-get="/admin/community/parents" hx-trigger="parentUpdated from:body"
+                    hx-vals='js:{search: document.getElementById("parentSearchInput").value, page: new URLSearchParams(window.location.search).get("page") || 0}'>
+                    <div th:replace="~{admin/community/parents/parent-cards :: parent-cards-content}"></div>
+                </div>
+            </div>
+
+            <!-- Parent Modal -->
+            <div id="parentModal" class="modal">
+                <div class="modal-dialog">
+                    <!-- Modal content will be loaded here via HTMX -->
+                </div>
+            </div>
+
+            <!-- Parent Student Assignment Modal -->
+            <div id="parentStudentModal" class="modal">
+                <div class="modal-dialog">
+                    <!-- Modal content will be loaded here via HTMX -->
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Modal -->
+            <div id="deleteModal" class="modal">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Confirm Delete</h3>
+                            <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete <strong id="parentName"></strong>?</p>
+                            <p class="text-muted">This action cannot be undone.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+                            <form id="deleteForm" hx-post="" hx-swap="none" hx-trigger="submit" style="display: inline;"
+                                hx-on::after-request="if(event.detail.successful) closeModal('deleteModal')">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" name="search" th:value="${search}" />
+                                <input type="hidden" name="page" th:value="${currentPage}" />
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Parent Assignment Confirmation Modal -->
+            <div id="deleteParentAssignmentModal" class="modal">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Remove Child Assignment</h3>
+                            <button class="close-modal"
+                                onclick="closeModal('deleteParentAssignmentModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to remove the child assignment:</p>
+                            <p><strong id="parentAssignmentInfo"></strong>?</p>
+                            <p class="text-muted">The parent will no longer be linked to this child.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline"
+                                onclick="closeModal('deleteParentAssignmentModal')">Cancel</button>
+                            <form id="deleteParentAssignmentForm"
+                                hx-post="/admin/community/parents/remove-assignment/00000000-0000-0000-0000-000000000000"
+                                hx-target="#deleteParentAssignmentModal .modal-dialog" hx-swap="innerHTML"
+                                hx-on::after-request="if(event.detail.successful) { closeModal('deleteParentAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
+                                hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
+                                style="display: inline;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <button type="submit" class="btn btn-danger">Remove Assignment</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // applyFilters function is now in community.js
+
+        function clearFilters() {
+            const form = document.getElementById('filterForm');
+            if (form) {
+                // Clear search input
+                const searchInput = form.querySelector('#parentSearchInput');
+                if (searchInput) searchInput.value = '';
+
+                // Trigger HTMX request
+                htmx.trigger(form, 'change');
+
+                // Update URL without reload
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+
+        // Parent-specific functions
+        window.confirmDelete = function (parentId, parentName) {
+            document.getElementById('parentName').textContent = parentName;
+            const form = document.getElementById('deleteForm');
+            form.setAttribute('hx-post', `/admin/community/parents/${parentId}/delete`);
+            htmx.process(form);
+            document.getElementById('deleteModal').classList.add('active');
+        };
+
+        // HTMX event listeners
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                // Update community stats in sidebar
+                const stats = document.getElementById('community-stats');
+                if (stats) {
+                    htmx.trigger(stats, 'refresh');
+                }
+            }
+        });
+
+        // Listen for server-side modal close events
+        document.body.addEventListener('closeModal', function (evt) {
+            // evt.detail contains the value sent in the trigger (e.g., "parentModal")
+            if (evt.detail && typeof evt.detail === 'string') {
+                closeModal(evt.detail);
+            } else if (evt.detail && evt.detail.value) {
+                closeModal(evt.detail.value);
+            }
+        });
+    </script>
+</body>
+
+</html>

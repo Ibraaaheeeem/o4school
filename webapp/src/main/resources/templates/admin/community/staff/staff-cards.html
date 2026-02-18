@@ -1,0 +1,55 @@
+<!-- Staff Cards Fragment -->
+<div th:fragment="staff-cards-content" id="staff-cards-content">
+    <div class="alert alert-success" th:if="${success}">
+        <span th:text="${success}"></span>
+    </div>
+    <div class="alert alert-danger" th:if="${error}">
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="staff-cards-grid" th:if="${!staffPage.content.empty}">
+        <div th:each="staff : ${staffPage.content}" class="staff-card" th:id="'staff-card-' + ${staff.id}">
+            <div th:replace="~{admin/community/staff/staff-card-single :: single-staff-card}"></div>
+        </div>
+    </div>
+
+    <div class="empty-state" th:if="${staffPage.content.empty}">
+        <div class="empty-icon">👨‍🏫</div>
+        <h3>No Staff Found</h3>
+        <p>Start by adding staff members to the system.</p>
+        <button class="btn btn-primary" hx-get="/admin/community/staff/new/modal" hx-target="#staffModal .modal-dialog"
+            hx-swap="innerHTML" hx-on::after-request="openModal('staffModal')">
+            Add First Staff Member
+        </button>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container" th:if="${staffPage.totalPages > 1}">
+        <div class="pagination-info">
+            Showing <span th:text="${staffPage.number * staffPage.size + 1}">1</span> to
+            <span
+                th:text="${(staffPage.number + 1) * staffPage.size > staffPage.totalElements ? staffPage.totalElements : (staffPage.number + 1) * staffPage.size}">20</span>
+            of <span th:text="${staffPage.totalElements}">100</span> entries
+        </div>
+        <div class="pagination">
+            <a th:if="${staffPage.hasPrevious()}" href="javascript:void(0)"
+                th:attr="hx-get=@{/admin/community/staff(page=${staffPage.number - 1}, size=${staffPage.size})}"
+                hx-target="#staff-cards-container" hx-swap="innerHTML" hx-include="#filterForm" hx-replace-url="true"
+                class="pagination-link">Previous</a>
+
+            <th:block th:each="i : ${#numbers.sequence(0, staffPage.totalPages - 1)}"
+                th:if="${i >= staffPage.number - 2 && i <= staffPage.number + 2}">
+                <a th:if="${i != staffPage.number}" href="javascript:void(0)"
+                    th:attr="hx-get=@{/admin/community/staff(page=${i}, size=${staffPage.size})}"
+                    hx-target="#staff-cards-container" hx-swap="innerHTML" hx-include="#filterForm"
+                    hx-replace-url="true" th:text="${i + 1}" class="pagination-link"></a>
+                <span th:if="${i == staffPage.number}" th:text="${i + 1}" class="pagination-link active"></span>
+            </th:block>
+
+            <a th:if="${staffPage.hasNext()}" href="javascript:void(0)"
+                th:attr="hx-get=@{/admin/community/staff(page=${staffPage.number + 1}, size=${staffPage.size})}"
+                hx-target="#staff-cards-container" hx-swap="innerHTML" hx-include="#filterForm" hx-replace-url="true"
+                class="pagination-link">Next</a>
+        </div>
+    </div>
+</div>

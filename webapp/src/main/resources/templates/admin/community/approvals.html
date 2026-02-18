@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Pending Approvals</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/community.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+
+
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <aside th:replace="~{fragments/community-sidebar :: community-sidebar}"></aside>
+
+        <div id="community-content" class="setup-content">
+            <div class="setup-header">
+                <h1>Platform User Management</h1>
+                <p>Manage all users associated with your school community</p>
+            </div>
+
+            <div id="content-body-container">
+                <div class="content-body" th:fragment="content-body">
+                    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+                    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+                    <!-- Role Filter -->
+                    <div class="role-filter-container">
+                        <form method="get" action="/admin/community/approvals" id="filterForm">
+                            <input type="hidden" name="tab" th:value="${activeTab}">
+                            <input type="hidden" name="page" value="0">
+
+                            <div class="role-filter-form">
+                                <span class="role-filter-label">Filter by Roles:</span>
+                                <div class="role-checkbox-group">
+                                    <div th:each="role : ${availableRoles}" class="role-checkbox-item">
+                                        <input type="checkbox" name="roleFilters" th:id="${'role_' + role}"
+                                            th:value="${role}" th:checked="${#lists.contains(selectedRoles, role)}"
+                                            th:hx-get="@{/admin/community/approvals(tab=${activeTab}, page=0)}"
+                                            hx-target="#content-body-container" hx-select="#content-body-container"
+                                            hx-swap="outerHTML" hx-include="[name='roleFilters']:checked"
+                                            hx-trigger="change">
+                                        <label th:for="${'role_' + role}" th:text="${role}"></label>
+                                    </div>
+                                </div>
+                                <div th:if="${!#lists.isEmpty(selectedRoles)}">
+                                    <a th:hx-get="@{/admin/community/approvals(tab=${activeTab}, page=0)}"
+                                        hx-target="#content-body-container" hx-select="#content-body-container"
+                                        hx-swap="outerHTML" class="clear-filters">
+                                        <i class="fas fa-times-circle"></i> Clear all filters
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="tabs-container">
+                        <div class="tabs-nav">
+                            <button class="tab-btn" th:classappend="${activeTab == 'pending' ? 'active' : ''}"
+                                th:hx-get="@{/admin/community/approvals(tab='pending', page=0)}"
+                                hx-target="#content-body-container" hx-select="#content-body-container"
+                                hx-swap="outerHTML">
+                                Pending Approvals</button>
+                            <button class="tab-btn" th:classappend="${activeTab == 'active' ? 'active' : ''}"
+                                th:hx-get="@{/admin/community/approvals(tab='active', page=0)}"
+                                hx-target="#content-body-container" hx-select="#content-body-container"
+                                hx-swap="outerHTML">
+                                Active Users</button>
+                            <button class="tab-btn" th:classappend="${activeTab == 'inactive' ? 'active' : ''}"
+                                th:hx-get="@{/admin/community/approvals(tab='inactive', page=0)}"
+                                hx-target="#content-body-container" hx-select="#content-body-container"
+                                hx-swap="outerHTML">
+                                Inactive Users</button>
+                        </div>
+                    </div>
+
+                    <!-- Pending Approvals Tab -->
+                    <div id="pending-tab" class="tab-pane" th:classappend="${activeTab == 'pending' ? 'active' : ''}">
+                        <div th:if="${#lists.isEmpty(users.?[isPendingApproval])}" class="empty-state"
+                            style="text-align: center; padding: 3rem;">
+                            <i class="fas fa-user-clock" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            <p style="margin-top: 1rem; color: #64748b;" th:if="${#lists.isEmpty(selectedRoles)}">
+                                <strong>Select one or more roles above to view pending approvals</strong>
+                            </p>
+                            <p style="margin-top: 1rem; color: #64748b;" th:if="${!#lists.isEmpty(selectedRoles)}">
+                                No pending registration requests for selected roles.
+                            </p>
+                        </div>
+
+                        <table th:if="${!#lists.isEmpty(users.?[isPendingApproval])}" class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>User Details</th>
+                                    <th>Role</th>
+                                    <th>Details</th>
+                                    <th>Registration Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="u : ${users}" th:if="${u.isPendingApproval}"
+                                    th:id="'user-row-' + ${u.roleId}">
+                                    <td>
+                                        <div style="font-weight: 600;" th:text="${u.fullName}">Name</div>
+                                        <div style="font-size: 0.8rem; color: #64748b;">
+                                            <span th:text="${u.email}">email</span>
+                                            <span th:if="${!u.isVerified}"
+                                                class="verify-badge verify-pending">Unverified</span>
+                                            <span th:if="${u.isVerified}"
+                                                class="verify-badge verify-success">Verified</span>
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.phoneNumber}">phone
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge"
+                                            th:classappend="${'status-' + u.roleName.toLowerCase()}"
+                                            th:text="${u.roleName}">Role</span>
+                                    </td>
+                                    <td th:text="${u.details}">Details</td>
+                                    <td th:text="${#temporals.format(u.registrationDate, 'dd MMM yyyy')}">Date</td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button class="btn-action btn-approve"
+                                                th:hx-post="@{/admin/community/approvals/approve/{id}(id=${u.roleId})}"
+                                                th:hx-target="'#user-row-' + ${u.roleId}" hx-swap="outerHTML"
+                                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                Approve
+                                            </button>
+                                            <button class="btn-action btn-reject"
+                                                th:hx-post="@{/admin/community/approvals/reject/{id}(id=${u.roleId})}"
+                                                th:hx-target="'#user-row-' + ${u.roleId}" hx-swap="outerHTML"
+                                                hx-confirm="Reject this request?"
+                                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Active Users Tab -->
+                    <div id="active-tab" class="tab-pane" th:classappend="${activeTab == 'active' ? 'active' : ''}">
+                        <div th:if="${#lists.isEmpty(users.?[isActive && !isPendingApproval])}" class="empty-state"
+                            style="text-align: center; padding: 3rem;">
+                            <i class="fas fa-users" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            <p style="margin-top: 1rem; color: #64748b;" th:if="${#lists.isEmpty(selectedRoles)}">
+                                <strong>Select one or more roles above to view active users</strong>
+                            </p>
+                            <p style="margin-top: 1rem; color: #64748b;" th:if="${!#lists.isEmpty(selectedRoles)}">
+                                No active users for selected roles.
+                            </p>
+                        </div>
+
+                        <table th:if="${!#lists.isEmpty(users.?[isActive && !isPendingApproval])}" class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>User Details</th>
+                                    <th>Role</th>
+                                    <th>Details</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="u : ${users}" th:if="${u.isActive && !u.isPendingApproval}"
+                                    th:id="'user-row-' + ${u.roleId}">
+                                    <td>
+                                        <div style="font-weight: 600;" th:text="${u.fullName}">Name</div>
+                                        <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.email}">email</div>
+                                        <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.phoneNumber}">phone
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge"
+                                            th:classappend="${'status-' + u.roleName.toLowerCase()}"
+                                            th:text="${u.roleName}">Role</span>
+                                    </td>
+                                    <td>
+                                        <div th:text="${u.details}">Details</div>
+                                        <div th:id="'wallet-section-' + ${u.parentId}" th:fragment="wallet-section">
+                                            <!-- Paystack Wallet -->
+                                            <div th:if="${u.roleName == 'PARENT'}" style="margin-bottom: 0.5rem;">
+                                                <div th:if="${!u.hasPaystackWallet}">
+                                                    <form
+                                                        th:action="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                        method="post"
+                                                        th:hx-post="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                        th:hx-target="'#wallet-section-' + ${u.parentId}"
+                                                        hx-swap="outerHTML"
+                                                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                        <input type="hidden" name="provider" value="paystack">
+                                                        <button type="submit" class="btn-action btn-reminder"
+                                                            style="background: #8b5cf6; width: 100%; justify-content: center;">
+                                                            <i class="fas fa-wallet"></i> Create Paystack Account
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                <div th:if="${u.hasPaystackWallet}"
+                                                    style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 0.6rem; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                                    <div
+                                                        style="font-size: 0.7rem; color: #166534; font-weight: 600; text-transform: uppercase; margin-bottom: 0.2rem;">
+                                                        Paystack</div>
+                                                    <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                                        th:title="${u.paystackAccountName}">
+                                                        <span th:text="${u.paystackAccountName}">Account Name</span>
+                                                    </div>
+                                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                        <div
+                                                            style="font-size: 0.7rem; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
+                                                            <i class="fas fa-university"></i> <span
+                                                                th:text="${u.paystackBankName}">Bank</span>
+                                                        </div>
+                                                        <div
+                                                            style="font-size: 0.9rem; color: #1e293b; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                                                            <span th:text="${u.paystackAccountNumber}">0123456789</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Squad Wallet -->
+                                            <div th:if="${u.roleName == 'PARENT'}">
+                                                <div th:if="${!u.hasSquadWallet}">
+                                                    <form
+                                                        th:action="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                        method="post"
+                                                        th:hx-post="@{/admin/community/users/create-parent-wallet/{id}(id=${u.parentId})}"
+                                                        th:hx-target="'#wallet-section-' + ${u.parentId}"
+                                                        hx-swap="outerHTML"
+                                                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                        <input type="hidden" name="provider" value="squad">
+                                                        <button type="submit" class="btn-action btn-reminder"
+                                                            style="background: #ec4899; width: 100%; justify-content: center;">
+                                                            <i class="fas fa-wallet"></i> Create Squad Account
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                <div th:if="${u.hasSquadWallet}"
+                                                    style="background: #fff1f2; border: 1px solid #fecdd3; padding: 0.6rem; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                                    <div
+                                                        style="font-size: 0.7rem; color: #9f1239; font-weight: 600; text-transform: uppercase; margin-bottom: 0.2rem;">
+                                                        Squad</div>
+                                                    <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                                        th:title="${u.squadAccountName}">
+                                                        <span th:text="${u.squadAccountName}">Account Name</span>
+                                                    </div>
+                                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                        <div
+                                                            style="font-size: 0.7rem; color: #9f1239; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
+                                                            <i class="fas fa-university"></i> <span
+                                                                th:text="${u.squadBankName}">Bank</span>
+                                                        </div>
+                                                        <div
+                                                            style="font-size: 0.9rem; color: #1e293b; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                                                            <span th:text="${u.squadAccountNumber}">0123456789</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span th:if="${u.isVerified}"
+                                            class="verify-badge verify-success">Verified</span>
+                                        <span th:if="${!u.isVerified}"
+                                            class="verify-badge verify-pending">Unverified</span>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <form th:if="${!u.isVerified}"
+                                                th:action="@{/admin/community/users/send-reminder/{id}(id=${u.userId})}"
+                                                method="post">
+                                                <input type="hidden" th:name="${_csrf.parameterName}"
+                                                    th:value="${_csrf.token}" />
+                                                <button type="submit" class="btn-action btn-reminder"
+                                                    title="Send Reminder">
+                                                    <i class="fas fa-bell"></i>
+                                                </button>
+                                            </form>
+                                            <button class="btn-action btn-delete" title="Deactivate"
+                                                th:hx-post="@{/admin/community/users/soft-delete/{id}(id=${u.roleId})}"
+                                                th:hx-target="'#user-row-' + ${u.roleId}" hx-swap="outerHTML"
+                                                hx-confirm="Are you sure you want to deactivate this user?"
+                                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Inactive Users Tab -->
+                    <div id="inactive-tab" class="tab-pane" th:classappend="${activeTab == 'inactive' ? 'active' : ''}">
+                        <div th:if="${#lists.isEmpty(users.?[!isActive && !isPendingApproval])}" class="empty-state"
+                            style="text-align: center; padding: 3rem;">
+                            <i class="fas fa-user-slash" style="font-size: 3rem; color: #cbd5e1;"></i>
+                            <p style="margin-top: 1rem; color: #64748b;" th:if="${#lists.isEmpty(selectedRoles)}">
+                                <strong>Select one or more roles above to view inactive users</strong>
+                            </p>
+                            <p style="margin-top: 1rem; color: #64748b;" th:if="${!#lists.isEmpty(selectedRoles)}">
+                                No inactive users for selected roles.
+                            </p>
+                        </div>
+
+                        <table th:if="${!#lists.isEmpty(users.?[!isActive && !isPendingApproval])}" class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>User Details</th>
+                                    <th>Role</th>
+                                    <th>Details</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="u : ${users}" th:if="${!u.isActive && !u.isPendingApproval}"
+                                    th:id="'user-row-' + ${u.roleId}">
+                                    <td>
+                                        <div style="font-weight: 600;" th:text="${u.fullName}">Name</div>
+                                        <div style="font-size: 0.8rem; color: #64748b;" th:text="${u.email}">email</div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge"
+                                            th:classappend="${'status-' + u.roleName.toLowerCase()}"
+                                            th:text="${u.roleName}">Role</span>
+                                    </td>
+                                    <td th:text="${u.details}">Details</td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button class="btn-action btn-restore" title="Restore"
+                                                th:hx-post="@{/admin/community/users/restore/{id}(id=${u.roleId})}"
+                                                th:hx-target="'#user-row-' + ${u.roleId}" hx-swap="outerHTML"
+                                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                <i class="fas fa-user-plus"></i> Restore
+                                            </button>
+                                            <button class="btn-action btn-hard-delete" title="Hard Delete"
+                                                th:hx-post="@{/admin/community/users/hard-delete/{id}(id=${u.roleId})}"
+                                                th:hx-target="'#user-row-' + ${u.roleId}" hx-swap="outerHTML"
+                                                hx-confirm="PERMANENTLY delete this user record? This cannot be undone."
+                                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div th:if="${totalPages > 1}" class="pagination-wrapper">
+
+                        <!-- Previous Button -->
+                        <a th:if="${currentPage > 0}"
+                            th:hx-get="@{/admin/community/approvals(page=${currentPage - 1}, tab=${activeTab}, roleFilters=${selectedRoles})}"
+                            hx-target="#content-body-container" hx-select="#content-body-container" hx-swap="outerHTML"
+                            class="pagination-btn">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                        <span th:if="${currentPage == 0}" class="pagination-btn disabled">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </span>
+
+                        <!-- Page Numbers -->
+                        <div class="pagination-numbers">
+                            <!-- First page -->
+                            <a th:if="${currentPage != 0}"
+                                th:hx-get="@{/admin/community/approvals(page=0, tab=${activeTab}, roleFilters=${selectedRoles})}"
+                                hx-target="#content-body-container" hx-select="#content-body-container"
+                                hx-swap="outerHTML" class="pagination-number">
+                                1
+                            </a>
+                            <span th:if="${currentPage == 0}" class="pagination-number active">
+                                1
+                            </span>
+
+                            <!-- Ellipsis if needed -->
+                            <span th:if="${currentPage > 3 && totalPages > 7}"
+                                style="padding: 0.5rem 0.75rem; color: #64748b;">...</span>
+
+                            <!-- Middle pages (show current page and 2 pages before/after) -->
+                            <th:block th:if="${totalPages > 2}" th:each="i : ${#numbers.sequence(1, totalPages - 2)}">
+                                <th:block
+                                    th:if="${totalPages <= 7 || (i >= currentPage - 1 && i <= currentPage + 1) || (currentPage <= 2 && i <= 4) || (currentPage >= totalPages - 3 && i >= totalPages - 5)}">
+                                    <a th:if="${i != currentPage}"
+                                        th:hx-get="@{/admin/community/approvals(page=${i}, tab=${activeTab}, roleFilters=${selectedRoles})}"
+                                        hx-target="#content-body-container" hx-select="#content-body-container"
+                                        hx-swap="outerHTML" th:text="${i + 1}" class="pagination-number">
+                                    </a>
+                                    <span th:if="${i == currentPage}" th:text="${i + 1}"
+                                        class="pagination-number active">
+                                    </span>
+                                </th:block>
+                            </th:block>
+
+                            <!-- Ellipsis if needed -->
+                            <span th:if="${currentPage < totalPages - 4 && totalPages > 7}"
+                                style="padding: 0.5rem 0.75rem; color: #64748b;">...</span>
+
+                            <!-- Last page -->
+                            <th:block th:if="${totalPages > 1}">
+                                <a th:if="${currentPage != totalPages - 1}"
+                                    th:hx-get="@{/admin/community/approvals(page=${totalPages - 1}, tab=${activeTab}, roleFilters=${selectedRoles})}"
+                                    hx-target="#content-body-container" hx-select="#content-body-container"
+                                    hx-swap="outerHTML" th:text="${totalPages}" class="pagination-number">
+                                </a>
+                                <span th:if="${currentPage == totalPages - 1}" th:text="${totalPages}"
+                                    class="pagination-number active">
+                                </span>
+                            </th:block>
+                        </div>
+
+                        <!-- Next Button -->
+                        <a th:if="${currentPage < totalPages - 1}"
+                            th:hx-get="@{/admin/community/approvals(page=${currentPage + 1}, tab=${activeTab}, roleFilters=${selectedRoles})}"
+                            hx-target="#content-body-container" hx-select="#content-body-container" hx-swap="outerHTML"
+                            class="pagination-btn">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <span th:if="${currentPage >= totalPages - 1}" class="pagination-btn disabled">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- Export Section -->
+                    <div class="export-section">
+                        <h3 class="export-title">Export Data</h3>
+                        <div class="export-buttons">
+                            <a th:href="@{/admin/community/users/export/all(tab=${activeTab}, roleFilters=${selectedRoles})}"
+                                class="btn-action btn-reminder" style="background: #475569; padding: 0.6rem 1.2rem;">
+                                <i class="fas fa-file-export"></i> Export Current List (CSV)
+                            </a>
+                            <a th:href="@{/admin/community/users/export/parents}" class="btn-action btn-reminder"
+                                style="background: #059669; padding: 0.6rem 1.2rem;">
+                                <i class="fas fa-file-invoice"></i> Export Parents with Wallets (CSV)
+                            </a>
+                        </div>
+                        <p class="export-help">
+                            <i class="fas fa-info-circle"></i> Exports will include all records matching your current
+                            filters across all pages.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

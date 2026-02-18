@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Parent Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/parent-dashboard.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Custom scripts removed, using dashboard-tabs.js -->
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content">
+        <div class="dashboard-container role-parent">
+            <div class="alert alert-warning" th:if="${isViewAs}"
+                style="margin-bottom: 20px; border-left: 5px solid #f59e0b; background-color: #fffbeb; color: #92400e; padding: 1rem; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-eye"></i>
+                <span><strong>Viewing as Admin:</strong> You are currently viewing the dashboard of <span
+                        th:text="${viewingAsName}">Parent Name</span>.</span>
+            </div>
+
+            <div class="welcome-section">
+                <div class="welcome-text">
+                    <h1>Welcome back, <span th:text="${user.firstName}">Parent</span>!</h1>
+                    <p th:if="${school}">Managing your children's education at <strong th:text="${school.name}">School
+                            Name</strong></p>
+                </div>
+                <div class="welcome-stats">
+                    <div class="stat-badge">
+                        <span class="value" th:text="${children.size()}">0</span>
+                        <span class="label">Children</span>
+                    </div>
+                    <div class="stat-badge">
+                        <span class="value"
+                            th:text="${'₦' + #numbers.formatDecimal(balance, 1, 'COMMA', 0, 'POINT')}">₦0</span>
+                        <span class="label">Balance</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tabs-container">
+                <div class="tabs-nav"
+                    style="position: sticky; top: 70px; z-index: 100; background: var(--bg-body); padding: 10px 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px;">
+                    <button class="tab-btn active" data-tab-target="overview-tab"
+                        style="flex: 1; text-align: center; white-space: nowrap;">Overview</button>
+                    <button class="tab-btn" data-tab-target="financial-tab"
+                        style="flex: 1; text-align: center; white-space: nowrap;">Financial</button>
+                    <button class="tab-btn" data-tab-target="children-tab"
+                        style="flex: 1; text-align: center; white-space: nowrap;">Children</button>
+                </div>
+
+                <!-- Overview Tab -->
+                <div id="overview-tab" class="tab-pane active">
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <span class="card-title">My Children</span>
+                                <div class="card-icon"><i class="fas fa-user-graduate"></i></div>
+                            </div>
+                            <div class="card-value" th:text="${children.size()}">0</div>
+                            <div class="card-trend">
+                                <span class="trend-neutral">Enrolled students</span>
+                            </div>
+                            <button class="card-link tab-btn" data-tab-target="children-tab"
+                                style="background:none; border:none; width:100%; text-align:left; padding-left:0;">
+                                View Children <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <span class="card-title">Fees & Payments</span>
+                                <div class="card-icon"><i class="fas fa-wallet"></i></div>
+                            </div>
+                            <div class="card-value"
+                                th:text="${'₦' + #numbers.formatDecimal(balance, 1, 'COMMA', 0, 'POINT')}">₦0</div>
+                            <div class="card-trend">
+                                <span class="trend-neutral">Current Balance</span>
+                            </div>
+                            <button class="card-link tab-btn" data-tab-target="financial-tab"
+                                style="background:none; border:none; width:100%; text-align:left; padding-left:0;">
+                                View Financials <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+                        <div class="content-panel" style="margin-bottom: 1.5rem;">
+                            <div class="section-header">
+                                <h2 class="section-title">Upcoming Events</h2>
+                            </div>
+                            <div class="activity-list" th:if="${not #lists.isEmpty(upcomingEvents)}">
+                                <div class="activity-item" th:each="event : ${upcomingEvents}">
+                                    <div class="activity-icon-wrapper"
+                                        th:classappend="${event.eventType.name() == 'HOLIDAY' ? 'bg-info' : (event.eventType.name() == 'EXAM' ? 'bg-warning' : 'bg-primary')}">
+                                        <i class="fas"
+                                            th:classappend="${event.eventType.name() == 'HOLIDAY' ? 'fa-snowflake' : (event.eventType.name() == 'EXAM' ? 'fa-pencil-alt' : 'fa-calendar-alt')}"></i>
+                                    </div>
+                                    <div class="activity-details">
+                                        <h4 th:text="${event.eventName}">Event Name</h4>
+                                        <p th:text="${event.description ?: 'No description available'}">Description</p>
+                                        <span class="activity-time"
+                                            th:text="${#temporals.format(event.startDate, 'MMM d, yyyy')}">Date</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(upcomingEvents)}"
+                                style="padding: 2rem; text-align: center;">
+                                <i class="fas fa-calendar-times"
+                                    style="font-size: 2rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                                <p style="color: #64748b; margin: 0;">No upcoming events scheduled</p>
+                            </div>
+                        </div>
+
+                        <div class="content-panel">
+                            <div class="section-header">
+                                <h2 class="section-title">Recent Activity</h2>
+                            </div>
+                            <div class="activity-list" th:if="${not #lists.isEmpty(recentActivities)}">
+                                <div class="activity-item" th:each="activity : ${recentActivities}">
+                                    <div class="activity-icon-wrapper">
+                                        <!-- Dynamic Icon Logic -->
+                                        <i class="fas"
+                                            th:classappend="${#strings.contains(activity.activityType.name(), 'PAYMENT') ? 'fa-money-bill-wave' : 
+                                                            (#strings.contains(activity.activityType.name(), 'GRADE') ? 'fa-chart-bar' : 
+                                                            (#strings.contains(activity.activityType.name(), 'ASSIGNMENT') ? 'fa-book' : 
+                                                            (#strings.contains(activity.activityType.name(), 'ATTENDANCE') ? 'fa-clock' : 'fa-bell')))}">
+                                        </i>
+                                    </div>
+                                    <div class="activity-details">
+                                        <h4 th:text="${activity.title}">Activity Title</h4>
+                                        <p th:text="${activity.description}">Description</p>
+                                        <span class="activity-time"
+                                            th:text="${#temporals.format(activity.createdAt, 'MMM d, h:mm a')}">Time</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="empty-state" th:if="${#lists.isEmpty(recentActivities)}"
+                                style="padding: 2rem; text-align: center;">
+                                <i class="fas fa-history"
+                                    style="font-size: 2rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                                <p style="color: #64748b; margin: 0;">No recent activity to show</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Tab -->
+                <div id="financial-tab" class="tab-pane">
+                    <div id="fees-overview-section" class="fees-overview-section" th:fragment="fees-overview-section">
+                        <div class="content-panel">
+                            <div class="section-header">
+                                <h2 class="section-title">💰 Financial Overview</h2>
+                            </div>
+
+                            <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+                            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+                            <p class="text-muted mb-4">Track your children's school fees and payments</p>
+
+                            <!-- Payment Progress Bar -->
+                            <div class="payment-progress-container mb-4"
+                                th:with="percentage=${totalFees > 0 ? (totalSettled * 100.0 / totalFees) : 0}">
+                                <div class="progress-info"
+                                    style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span class="progress-label font-weight-bold">Payment Progress</span>
+                                    <span class="progress-percentage font-weight-bold"
+                                        th:text="${#numbers.formatDecimal(percentage, 1, 'POINT', 1, 'POINT') + '%'}">0.0%</span>
+                                </div>
+                                <div class="progress-bar-bg"
+                                    style="background: #e2e8f0; border-radius: 999px; height: 10px; overflow: hidden;">
+                                    <div class="progress-bar-fill"
+                                        th:style="'width: ' + ${percentage} + '%; background: var(--success-color); height: 100%; transition: width 0.5s ease;'"
+                                        role="progressbar" th:aria-valuenow="${percentage}" aria-valuemin="0"
+                                        aria-valuemax="100"></div>
+                                </div>
+                            </div>
+
+                            <!-- Payment Distribution Settings -->
+                            <div id="payment-settings-container" class="payment-distribution-settings"
+                                th:if="${wallet != null}" style="margin-top: 2rem;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Payment Distribution
+                                    </h3>
+                                    <span th:if="${paymentLocked}" class="badge badge-warning">
+                                        🔒 Settings Locked (Payments Started)
+                                    </span>
+                                </div>
+
+                                <form th:action="@{/parent/update-payment-settings}" method="post"
+                                    class="distribution-form" th:attr="hx-post=@{/parent/update-payment-settings}"
+                                    hx-target="#payment-settings-container" hx-swap="outerHTML">
+                                    <div class="distribution-options"
+                                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                        <label class="radio-option" th:classappend="${paymentLocked ? 'disabled' : ''}"
+                                            style="border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md); cursor: pointer; display: flex; gap: 0.5rem;">
+                                            <input type="radio" name="distributionType" value="SPREAD"
+                                                th:checked="${parent.paymentDistributionType == 'SPREAD'}"
+                                                th:disabled="${paymentLocked}" onchange="toggleSequentialOrder(false)">
+                                            <div class="option-content">
+                                                <span class="option-title"
+                                                    style="display: block; font-weight: 600;">Spread Across All</span>
+                                                <span class="option-desc"
+                                                    style="font-size: 0.85rem; color: var(--text-muted);">Payments are
+                                                    split equally among all children with outstanding fees.</span>
+                                            </div>
+                                        </label>
+                                        <label class="radio-option" th:classappend="${paymentLocked ? 'disabled' : ''}"
+                                            style="border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md); cursor: pointer; display: flex; gap: 0.5rem;">
+                                            <input type="radio" name="distributionType" value="SEQUENTIAL"
+                                                th:checked="${parent.paymentDistributionType == 'SEQUENTIAL'}"
+                                                th:disabled="${paymentLocked}" onchange="toggleSequentialOrder(true)">
+                                            <div class="option-content">
+                                                <span class="option-title"
+                                                    style="display: block; font-weight: 600;">Sequential</span>
+                                                <span class="option-desc"
+                                                    style="font-size: 0.85rem; color: var(--text-muted);">Payments clear
+                                                    fees for one child at a time based on your priority order.</span>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div id="sequential-order-container" class="sequential-order-container"
+                                        th:style="${parent.paymentDistributionType == 'SEQUENTIAL' ? 'display: block;' : 'display: none;'}"
+                                        style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">Priority
+                                            Order <span th:if="${!paymentLocked}"
+                                                style="font-weight: normal; font-size: 0.85rem;">(Drag to
+                                                Reorder)</span></h4>
+                                        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;"
+                                            th:text="${paymentLocked ? 'Fixed order for current payments.' : 'Top child gets paid first.'}">
+                                            Top child gets paid first.</p>
+                                        <ul id="sortable-children" class="sortable-list"
+                                            th:classappend="${paymentLocked ? 'locked' : ''}"
+                                            style="list-style: none; padding: 0;">
+                                            <li th:each="child : ${children}" class="sortable-item"
+                                                th:data-id="${child.id}"
+                                                style="background: white; padding: 0.75rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem;">
+                                                <span class="drag-handle" th:if="${!paymentLocked}"
+                                                    style="cursor: move; color: var(--text-light);">☰</span>
+                                                <span th:text="${child.user.fullName}">Student Name</span>
+                                                <input type="hidden" name="childPriority[]" th:value="${child.id}">
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <button th:if="${!paymentLocked}" type="submit" id="save-settings-btn"
+                                        class="btn btn-primary btn-sm">Save Preferences</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid" style="margin-top: 1.5rem;">
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <span class="card-title">Total Bill</span>
+                                    <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
+                                </div>
+                                <div class="card-value"
+                                    th:text="${'₦' + #numbers.formatDecimal(totalFees, 1, 'COMMA', 2, 'POINT')}">₦0.00
+                                </div>
+                                <div class="card-trend">
+                                    <span class="trend-neutral">Required Fees</span>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <span class="card-title">Settled</span>
+                                    <div class="card-icon"><i class="fas fa-check-circle"></i></div>
+                                </div>
+                                <div class="card-value text-success"
+                                    th:text="${'₦' + #numbers.formatDecimal(totalSettled, 1, 'COMMA', 2, 'POINT')}">
+                                    ₦0.00</div>
+                                <div class="card-trend">
+                                    <span class="trend-up">Amount Paid</span>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <span class="card-title">Balance</span>
+                                    <div class="card-icon"><i class="fas fa-balance-scale"></i></div>
+                                </div>
+                                <div class="card-value" th:classappend="${balance > 0 ? 'text-danger' : 'text-success'}"
+                                    th:text="${'₦' + #numbers.formatDecimal(balance, 1, 'COMMA', 2, 'POINT')}">₦0.00
+                                </div>
+                                <div class="card-trend">
+                                    <span class="trend-down" th:if="${balance > 0}">Outstanding Balance</span>
+                                    <span class="trend-up" th:if="${balance <= 0}">Account Settled</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Action Section -->
+                        <div class="dashboard-grid" th:if="${balance > 0}"
+                            style="margin-top: 1.5rem; grid-template-columns: 1fr;">
+                            <div class="dashboard-card payment-action-card"
+                                style="background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%); border: 2px solid var(--primary-color);">
+                                <div class="card-header">
+                                    <span class="card-title" style="color: var(--primary-color); font-weight: 700;">Make
+                                        a Payment</span>
+                                    <div class="card-icon" style="background: var(--primary-color); color: white;"><i
+                                            class="fas fa-money-bill-wave"></i></div>
+                                </div>
+                                <div class="card-body" style="padding: 10px 0;">
+                                    <!-- Transfer Guide (Info Up) -->
+                                    <div
+                                        style="font-size: 0.9rem; line-height: 1.6; color: #444; background: #fff8e1; padding: 20px; border-radius: 12px; border-left: 5px solid #ffc107; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+                                        <h4
+                                            style="margin: 0 0 10px 0; font-size: 1.1rem; color: #856404; display: flex; align-items: center; gap: 8px;">
+                                            <i class="fas fa-info-circle"></i> Payment Instructions
+                                        </h4>
+                                        <p style="margin-bottom: 12px;">For the fastest processing and automatic
+                                            reconciliation, we recommend using your <strong>dedicated bank transfer
+                                                accounts</strong> listed below.</p>
+                                        <div
+                                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                                            <div
+                                                style="background: rgba(255,255,255,0.5); padding: 12px; border-radius: 8px; border: 1px dashed #ffc107;">
+                                                <strong style="display: block; color: #b45309; font-size: 1.1rem;">&le;
+                                                    ₦120,000</strong>
+                                                <span style="font-size: 0.85rem;">Use your <strong>Squad</strong>
+                                                    Account</span>
+                                            </div>
+                                            <div
+                                                style="background: rgba(255,255,255,0.5); padding: 12px; border-radius: 8px; border: 1px dashed #ffc107;">
+                                                <strong style="display: block; color: #b45309; font-size: 1.1rem;">>
+                                                    ₦120,000</strong>
+                                                <span style="font-size: 0.85rem;">Use your <strong>Paystack</strong>
+                                                    Account</span>
+                                            </div>
+                                        </div>
+                                        <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">Alternatively, you can
+                                            pay instantly using your card, USSD, or mobile banking app by clicking the
+                                            button below.</p>
+                                    </div>
+
+                                    <!-- Pay Online Button (Button Below) -->
+                                    <button type="button" onclick="openPaymentAmountSelectionModal()"
+                                        class="btn btn-primary"
+                                        style="width: 100%; justify-content: center; padding: 16px; font-weight: 700; font-size: 1.1rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+                                        <i class="fas fa-globe"></i> Pay Online Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-header" style="margin-top: 2.5rem; margin-bottom: 1rem;">
+                            <h3 class="section-title"
+                                style="font-size: 1.1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                                Dedicated Transfer Accounts</h3>
+                        </div>
+                        <div class="dashboard-grid">
+
+
+
+                            <!-- Paystack Wallet Section -->
+                            <div class="dashboard-card" th:if="${paystackWallet != null}"
+                                th:id="'paystack-wallet-card-' + ${paystackWallet.id}" th:attr="hx-get=${paystackWallet.accountNumber == null ? '/parent/dashboard' : null}, 
+                                      hx-trigger=${paystackWallet.accountNumber == null ? 'every 3s' : null},
+                                      hx-select='#fees-overview-section',
+                                      hx-target='#fees-overview-section',
+                                      hx-swap='outerHTML'">
+                                <div class="card-header">
+                                    <span class="card-title">Paystack Account <span class="badge badge-info"
+                                            style="font-size: 0.85rem; vertical-align: middle; margin-left: 5px;"
+                                            title="For transfers > ₦120,000">Dedicated (> 120k)</span></span>
+                                    <div class="card-icon"
+                                        style="background: transparent; padding: 0; overflow: hidden;">
+                                        <img th:src="@{/images/paystack-logo.png}" alt="Paystack"
+                                            style="width: 100%; height: 100%; object-fit: contain;">
+                                    </div>
+                                </div>
+                                <div class="card-value account-number"
+                                    th:text="${paystackWallet.accountNumber ?: 'Generating...'}"
+                                    th:classappend="${paystackWallet.accountNumber == null ? 'pulse-text' : 'fade-in-text'}"
+                                    style="font-size: 1.5rem;">
+                                    0000000000
+                                </div>
+                                <div class="card-trend">
+                                    <span th:text="${paystackWallet.bankName}">Bank Name</span>
+                                    <span th:if="${paystackWallet.accountName != null}"
+                                        th:text="' | ' + ${paystackWallet.accountName}">Account Name</span>
+                                    <span th:if="${paystackWallet.accountNumber == null}"
+                                        class="loading-dots">...</span>
+                                </div>
+                                <div
+                                    style="margin-top: 12px; font-size: 0.9rem; color: #666; font-style: italic; line-height: 1.4;">
+                                    <i class="fas fa-info-circle"></i> Transfer to this account to pay your school fees.
+                                    <strong>Recommended for amounts above ₦120,000.</strong>
+                                </div>
+
+                            </div>
+
+                            <div class="dashboard-card" th:if="${paystackWallet == null}">
+                                <div class="card-header">
+                                    <span class="card-title">Paystack Account</span>
+                                    <div class="card-icon"
+                                        style="background: transparent; padding: 0; overflow: hidden;">
+                                        <img th:src="@{/images/paystack-logo.png}" alt="Paystack"
+                                            style="width: 100%; height: 100%; object-fit: contain;">
+                                    </div>
+                                </div>
+                                <div class="card-value" style="font-size: 1.25rem; color: var(--text-muted);">Not
+                                    Created</div>
+                                <div style="margin-top: 5px; font-size: 0.9rem; color: #666; line-height: 1.4;">
+                                    Create a Paystack account to get a <strong>personalized account number</strong> for
+                                    transfers <strong>above ₦120,000</strong>.
+                                </div>
+                                <div th:if="${paystackError}" class="alert alert-danger"
+                                    style="padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem;"
+                                    th:text="${paystackError}">Error</div>
+                                <div th:if="${paystackSuccess}" class="alert alert-success"
+                                    style="padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem;"
+                                    th:text="${paystackSuccess}">Success</div>
+
+                                <form th:action="@{/parent/create-wallet}" method="post"
+                                    style="margin-top: 1rem; flex-grow: 1; display: flex; flex-direction: column;">
+                                    <input type="hidden" name="provider" value="paystack">
+                                    <div style="margin-bottom: 15px;">
+                                        <select name="preferredBank" class="form-select"
+                                            style="width: 100%; padding: 12px;">
+                                            <option th:each="provider : ${providers}"
+                                                th:value="${provider.providerSlug}" th:text="${provider.bankName}">Bank
+                                                Name</option>
+                                            <option th:if="${providers == null || #lists.isEmpty(providers)}"
+                                                value="wema-bank">Wema Bank</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary"
+                                        style="width: 100%; padding: 12px; margin-top: auto; font-weight: 600;">
+                                        Create Paystack Wallet
+                                    </button>
+                                </form>
+
+                            </div>
+
+                            <!-- Squad Wallet Section -->
+                            <div class="dashboard-card" th:if="${squadWallet != null}"
+                                th:id="'squad-wallet-card-' + ${squadWallet.id}" th:attr="hx-get=${squadWallet.accountNumber == null ? '/parent/dashboard' : null}, 
+                                      hx-trigger=${squadWallet.accountNumber == null ? 'every 3s' : null},
+                                      hx-select='#fees-overview-section',
+                                      hx-target='#fees-overview-section',
+                                      hx-swap='outerHTML'">
+                                <div class="card-header">
+                                    <span class="card-title">Squad Account <span class="badge badge-info"
+                                            style="font-size: 0.85rem; vertical-align: middle; margin-left: 5px;"
+                                            title="For transfers <= ₦120,000">Dedicated (<= 120k)</span></span>
+                                        <div class="card-icon"
+                                            style="background: transparent; padding: 0; overflow: hidden;">
+                                            <img th:src="@{/images/squad-logo.png}" alt="Squad"
+                                                style="width: 100%; height: 100%; object-fit: contain;">
+                                        </div>
+                                </div>
+                                <div class="card-value account-number"
+                                    th:text="${squadWallet.accountNumber ?: 'Generating...'}"
+                                    th:classappend="${squadWallet.accountNumber == null ? 'pulse-text' : 'fade-in-text'}"
+                                    style="font-size: 1.5rem;">
+                                    0000000000
+                                </div>
+                                <div class="card-trend">
+                                    <span th:text="${squadWallet.bankName}">Bank Name</span>
+                                    <span th:if="${squadWallet.accountName != null}"
+                                        th:text="' | ' + ${squadWallet.accountName}">Account Name</span>
+                                    <span th:if="${squadWallet.accountNumber == null}" class="loading-dots">...</span>
+                                </div>
+                                <div
+                                    style="margin-top: 12px; font-size: 0.9rem; color: #666; font-style: italic; line-height: 1.4;">
+                                    <i class="fas fa-info-circle"></i> Transfer to this account to pay your school fees.
+                                    <strong>Recommended for amounts up to ₦120,000.</strong>
+                                </div>
+
+                            </div>
+
+                            <div class="dashboard-card" th:if="${squadWallet == null}">
+                                <div class="card-header">
+                                    <span class="card-title">Squad Account</span>
+                                    <div class="card-icon"
+                                        style="background: transparent; padding: 0; overflow: hidden;">
+                                        <img th:src="@{/images/squad-logo.png}" alt="Squad"
+                                            style="width: 100%; height: 100%; object-fit: contain;">
+                                    </div>
+                                </div>
+                                <div class="card-value" style="font-size: 1.25rem; color: var(--text-muted);">Not
+                                    Created</div>
+                                <div style="margin-top: 5px; font-size: 0.9rem; color: #666; line-height: 1.4;">
+                                    Create a Squad account to get a <strong>personalized account number</strong> for
+                                    transfers <strong>up to ₦120,000</strong>.
+                                </div>
+                                <div id="squad-wallet-creation-area"
+                                    style="flex-grow: 1; display: flex; flex-direction: column;">
+                                    <div th:if="${squadError}" class="alert alert-danger"
+                                        style="padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem;"
+                                        th:text="${squadError}">Error</div>
+                                    <div th:if="${squadSuccess}" class="alert alert-success"
+                                        style="padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem;"
+                                        th:text="${squadSuccess}">Success</div>
+
+                                    <form th:action="@{/parent/create-wallet}" method="post"
+                                        style="margin-top: 1rem; flex-grow: 1; display: flex; flex-direction: column;"
+                                        hx-post="/parent/create-wallet" hx-target="#fees-overview-section"
+                                        hx-swap="outerHTML">
+                                        <input type="hidden" name="provider" value="squad">
+                                        <div style="margin-bottom: 15px;">
+                                            <input type="text" name="bvn" class="form-control" placeholder="BVN"
+                                                required minlength="11" maxlength="11"
+                                                style="width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <div
+                                                style="font-size: 0.75rem; color: #666; margin-bottom: 12px; font-style: italic;">
+                                                <i class="fas fa-info-circle"></i> We do not store your BVN, it's only
+                                                used to generate the account number.
+                                            </div>
+                                            <input type="text" name="dob" class="form-control"
+                                                placeholder="DOB (mm/dd/yyyy)" required pattern="\d{2}/\d{2}/\d{4}"
+                                                style="width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <select name="gender" class="form-select" required
+                                                style="width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                                <option value="">Select Gender</option>
+                                                <option value="1">Male</option>
+                                                <option value="2">Female</option>
+                                            </select>
+                                            <input type="text" name="address" class="form-control" placeholder="Address"
+                                                required
+                                                style="width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary"
+                                            style="width: 100%; padding: 12px; margin-top: auto; font-weight: 600;">
+                                            Create Squad Wallet
+                                        </button>
+                                        <div class="htmx-indicator" style="text-align: center; margin-top: 10px;">
+                                            <span class="spinner-border spinner-border-sm" role="status"
+                                                aria-hidden="true"></span> Creating...
+                                        </div>
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Breakdown Section -->
+                        <div id="fee-breakdown" class="content-panel" style="margin-top: 2rem;">
+                            <div class="section-header">
+                                <h3 class="section-title">Detailed Breakdown by Child</h3>
+                            </div>
+
+                            <div class="dashboard-grid">
+                                <div th:each="childFee : ${feeBreakdown}" class="dashboard-card">
+                                    <div class="card-header">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <div class="activity-icon-wrapper"
+                                                style="width: 32px; height: 32px; font-size: 0.9rem;">
+                                                <span
+                                                    th:text="${#strings.substring(childFee.studentName, 0, 1)}">S</span>
+                                            </div>
+                                            <div>
+                                                <h4 style="font-size: 1rem; font-weight: 600; margin: 0;"
+                                                    th:text="${childFee.studentName}">Student Name</h4>
+                                                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">ID:
+                                                    <span th:text="${childFee.studentId}">000</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+                                        <div>
+                                            <div style="font-size: 0.75rem; color: var(--text-muted);">Bill</div>
+                                            <div style="font-weight: 600;"
+                                                th:text="${'₦' + #numbers.formatDecimal(childFee.total, 1, 'COMMA', 2, 'POINT')}">
+                                                ₦0</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 0.75rem; color: var(--text-muted);">Paid</div>
+                                            <div class="text-success" style="font-weight: 600;"
+                                                th:text="${'₦' + #numbers.formatDecimal(childFee.settled, 1, 'COMMA', 2, 'POINT')}">
+                                                ₦0</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 0.75rem; color: var(--text-muted);">Balance</div>
+                                            <div th:classappend="${childFee.balance > 0 ? 'text-danger' : 'text-success'}"
+                                                style="font-weight: 600;"
+                                                th:text="${'₦' + #numbers.formatDecimal(childFee.balance, 1, 'COMMA', 2, 'POINT')}">
+                                                ₦0</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="fee-items-section">
+                                        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Fee
+                                            Items:</div>
+                                        <ul class="fee-items-list" style="list-style: none; padding: 0;">
+                                            <li th:each="item : ${childFee.items}" class="fee-item"
+                                                style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.25rem;">
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <input type="checkbox" th:if="${!item.isMandatory}"
+                                                        th:checked="${item.isOptedIn}" th:disabled="${item.isLocked}"
+                                                        th:attr="hx-post=@{/parent/student/{id}/toggle-fee(id=${childFee['studentUuid']})}"
+                                                        hx-vals='js:{"feeItemId": event.target.getAttribute("data-fee-id"), "optedIn": event.target.checked}'
+                                                        th:data-fee-id="${item.id}" hx-target="#fees-overview-section"
+                                                        hx-swap="outerHTML" style="cursor: pointer;">
+
+                                                    <span th:if="${!item.isMandatory && item.isLocked}"
+                                                        title="Fee Locked" style="font-size: 0.8rem;">🔒</span>
+
+                                                    <span class="fee-item-name" th:text="${item.name}">Fee Item</span>
+                                                    <span th:if="${!item.isMandatory}" class="badge badge-secondary"
+                                                        style="font-size: 0.7rem; padding: 2px 6px;">Optional</span>
+                                                </div>
+                                                <span class="fee-item-amount"
+                                                    th:text="${'₦' + #numbers.formatDecimal(item.amount, 1, 'COMMA', 2, 'POINT')}">₦0.00</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div th:if="${#lists.isEmpty(feeBreakdown)}" class="empty-state">
+                                <i class="fas fa-file-invoice"
+                                    style="font-size: 2rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+                                <p>No fee information available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Children Tab -->
+                <div id="children-tab" class="tab-pane">
+                    <div class="content-panel">
+                        <div class="section-header">
+                            <h2 class="section-title">Children Overview</h2>
+                        </div>
+
+                        <!-- Child Sub-Tabs -->
+                        <div class="tabs-container" th:if="${!#lists.isEmpty(children)}">
+                            <div class="tabs-nav"
+                                style="justify-content: flex-start; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                                <button th:each="child, iter : ${children}" class="tab-btn"
+                                    th:classappend="${iter.index == 0 ? 'active' : ''}"
+                                    th:data-tab-target="'child-pane-' + ${child.id}">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div style="width: 24px; height: 24px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;"
+                                            th:text="${#strings.substring(child.user.fullName, 0, 1)}">S</div>
+                                        <span th:text="${child.user.fullName}">Student Name</span>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <!-- Child Detail Panes -->
+                            <div class="child-detail-panes">
+                                <div th:each="child, iter : ${children}" th:id="'child-pane-' + ${child.id}"
+                                    class="tab-pane" th:classappend="${iter.index == 0 ? 'active' : ''}">
+
+                                    <div class="dashboard-grid">
+                                        <div class="dashboard-card">
+                                            <div class="card-header">
+                                                <span class="card-title">Academic Info</span>
+                                                <div class="card-icon"><i class="fas fa-graduation-cap"></i></div>
+                                            </div>
+                                            <div class="info-list"
+                                                style="display: flex; flex-direction: column; gap: 1rem;">
+                                                <div class="info-item">
+                                                    <span class="text-muted" style="font-size: 0.85rem;">Current
+                                                        Grade</span>
+                                                    <div style="font-weight: 600;"
+                                                        th:text="${child.currentGradeLevel ?: 'Not Assigned'}">Grade
+                                                    </div>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="text-muted" style="font-size: 0.85rem;">Admission
+                                                        No</span>
+                                                    <div style="font-weight: 600;" th:text="${child.admissionNumber}">
+                                                        000</div>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="text-muted" style="font-size: 0.85rem;">Status</span>
+                                                    <div style="font-weight: 600;" th:text="${child.academicStatus}">
+                                                        Enrolled</div>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="text-muted" style="font-size: 0.85rem;">Admission
+                                                        Date</span>
+                                                    <div style="font-weight: 600;"
+                                                        th:text="${#temporals.format(child.admissionDate, 'dd MMM yyyy')}">
+                                                        Date</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="dashboard-card">
+                                            <div class="card-header">
+                                                <span class="card-title">Personal Info</span>
+                                                <div class="card-icon"><i class="fas fa-user"></i></div>
+                                            </div>
+                                            <div class="info-list"
+                                                style="display: flex; flex-direction: column; gap: 1rem;">
+                                                <div class="info-item">
+                                                    <span class="text-muted"
+                                                        style="font-size: 0.85rem;">Transportation</span>
+                                                    <div style="font-weight: 600;"
+                                                        th:text="${child.transportationMethod ?: 'Not Specified'}">
+                                                        Method</div>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="text-muted" style="font-size: 0.85rem;">Special
+                                                        Needs</span>
+                                                    <div style="font-weight: 600;"
+                                                        th:text="${child.hasSpecialNeeds ? 'Yes' : 'No'}">No</div>
+                                                </div>
+                                                <div class="info-item" th:if="${child.previousSchool}">
+                                                    <span class="text-muted" style="font-size: 0.85rem;">Previous
+                                                        School</span>
+                                                    <div style="font-weight: 600;" th:text="${child.previousSchool}">
+                                                        School Name</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="actions-grid" style="margin-top: 1.5rem;">
+                                        <a th:href="@{'/parent/child/' + ${child.id}}" class="action-card">
+                                            <div class="action-icon"><i class="fas fa-id-card"></i></div>
+                                            <div class="action-title">View Full Profile</div>
+                                        </a>
+                                        <button class="action-card tab-btn" data-tab-target="financial-tab"
+                                            style="text-align: left; border: none; width: 100%;">
+                                            <div class="action-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                                            <div class="action-title">View Financials</div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(children)}" class="empty-state">
+                            <i class="fas fa-child"
+                                style="font-size: 2rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+                            <h3>No Children Found</h3>
+                            <p>Please contact the school administrator.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize Sortable if available
+            const el = document.getElementById('sortable-children');
+            if (el && typeof Sortable !== 'undefined') {
+                try {
+                    const isLocked = el.classList.contains('locked');
+                    new Sortable(el, {
+                        animation: 150,
+                        handle: '.drag-handle',
+                        ghostClass: 'sortable-ghost',
+                        disabled: isLocked,
+                        onEnd: function () {
+                            // Trigger change check if needed
+                            const event = new Event('change', { bubbles: true });
+                            el.dispatchEvent(event);
+                        }
+                    });
+                } catch (e) {
+                    console.error('Sortable init error:', e);
+                }
+            }
+
+            // Payment settings change tracking
+            const saveBtn = document.getElementById('save-settings-btn');
+            const form = document.querySelector('.distribution-form');
+            if (form && saveBtn) {
+                form.addEventListener('change', function () {
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                    saveBtn.style.cursor = 'pointer';
+                });
+            }
+
+            // Auto-switch to financial tab if there are alerts
+            if (document.querySelector('#fees-overview-section .alert')) {
+                const financialTabBtn = document.querySelector('.tab-btn[data-tab-target="financial-tab"]');
+                if (financialTabBtn) {
+                    financialTabBtn.click();
+                }
+            }
+        });
+    </script>
+    <script th:src="@{/js/dashboard-tabs.js}"></script>
+
+    <!-- Payment Options Modal -->
+    <div id="payment-options-modal" class="modal"
+        style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+        <div class="modal-content"
+            style="background-color: #fefefe; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); position: relative;">
+            <span class="close" onclick="closePaymentOptionsModal()"
+                style="color: #aaa; position: absolute; right: 15px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            <h3 style="margin-top: 0;">Choose Payment Method</h3>
+            <p>How would you like to pay?</p>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                <button onclick="selectPayByTransfer()" class="btn btn-outline-primary"
+                    style="padding: 15px; text-align: left; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-university" style="font-size: 1.2rem;"></i>
+                    <div>
+                        <div style="font-weight: 600;">Pay by Transfer</div>
+                        <div style="font-size: 0.85rem; color: #666;">Generate a temporary account number</div>
+                    </div>
+                </button>
+                <button onclick="selectPayByOtherMeans()" class="btn btn-outline-primary"
+                    style="padding: 15px; text-align: left; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-credit-card" style="font-size: 1.2rem;"></i>
+                    <div>
+                        <div style="font-weight: 600;">Pay by Card / USSD / Bank</div>
+                        <div style="font-size: 0.85rem; color: #666;">Use Squad payment gateway</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Amount Selection Modal -->
+    <div id="payment-amount-selection-modal" class="modal"
+        style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+        <div class="modal-content"
+            style="background-color: #fefefe; padding: 25px; border: 1px solid #888; width: 90%; max-width: 400px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); position: relative;">
+            <span class="close" onclick="closePaymentAmountSelectionModal()"
+                style="color: #aaa; position: absolute; right: 15px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            <h3 style="margin-top: 0; color: var(--primary-color);">Select Payment Amount</h3>
+            <p style="color: #666; margin-bottom: 20px;">Choose how much you want to pay.</p>
+
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <button type="button" onclick="selectPayFullAmount()" class="btn btn-primary"
+                    style="padding: 14px; text-align: center; font-weight: 600; border-radius: 8px;">
+                    Pay Full Balance <span id="full-amount-display"></span>
+                </button>
+
+                <div style="display: flex; align-items: center; gap: 10px; color: #999; font-size: 0.8rem;">
+                    <hr style="flex: 1; border: 0; border-top: 1px solid #eee;">
+                    <span>OR</span>
+                    <hr style="flex: 1; border: 0; border-top: 1px solid #eee;">
+                </div>
+
+                <div>
+                    <label
+                        style="display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: #444;">Pay
+                        Partial Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background: #f8f9fa;">₦</span>
+                        <input type="number" id="modal-custom-amount" class="form-control" placeholder="Enter amount"
+                            min="100" style="padding: 10px;">
+                        <button type="button" class="btn btn-outline-primary"
+                            onclick="selectPayPartialAmount()">Pay</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Account Modal -->
+    <div id="dynamic-account-modal" class="modal"
+        style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+        <div class="modal-content"
+            style="background-color: #fefefe; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); position: relative; text-align: center;">
+            <span class="close" onclick="closeDynamicAccountModal()"
+                style="color: #aaa; position: absolute; right: 15px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            <h3 style="margin-top: 0;">Transfer to this Account</h3>
+            <p style="color: #666; font-size: 0.9rem;">This account expires in <span id="account-timer"
+                    style="color: #d9534f; font-weight: bold;">02:00</span></p>
+
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Bank Name</div>
+                <div id="dyn-bank-name" style="font-weight: 600; font-size: 1.1rem; margin-bottom: 15px;">-</div>
+
+                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Account Number</div>
+                <div id="dyn-account-number"
+                    style="font-weight: 700; font-size: 2rem; letter-spacing: 2px; color: var(--primary-color);">
+                    0000000000</div>
+
+                <div style="font-size: 0.9rem; color: #666; margin-top: 15px; margin-bottom: 5px;">Account Name</div>
+                <div id="dyn-account-name" style="font-weight: 600;">Squad Virtual Account</div>
+            </div>
+
+            <p style="font-size: 0.85rem; color: #666;">Please make the transfer of exactly <strong
+                    id="dyn-amount">₦0.00</strong> before the timer expires.</p>
+            <button onclick="closeDynamicAccountModal()" class="btn btn-secondary btn-sm">Close</button>
+        </div>
+    </div>
+
+    <!-- Paystack Payment Script -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <!-- Squad Payment Modal Script -->
+    <script src="https://checkout.squadco.com/widget/squad.min.js"></script>
+    <script th:inline="javascript">
+        let currentPaymentAmount = 0;
+        let currentPaymentEmail = '';
+        let countdownInterval;
+        let currentForcedProvider = null;
+
+        function togglePartialPayment() {
+            const inputDiv = document.getElementById('partial-payment-input');
+            if (inputDiv.style.display === 'none') {
+                inputDiv.style.display = 'block';
+            } else {
+                inputDiv.style.display = 'none';
+            }
+        }
+
+        function initiatePartialPayment() {
+            const customAmount = document.getElementById('custom-amount').value;
+            if (!customAmount || customAmount <= 0) {
+                alert("Please enter a valid amount.");
+                return;
+            }
+            showPaymentModal(customAmount);
+        }
+
+        function showPaymentModal(customAmount = null, forcedProvider = null) {
+            console.log("Pay Now clicked", { customAmount, forcedProvider });
+            let amount = /*[[${balance}]]*/ 0;
+
+            if (customAmount) {
+                amount = parseFloat(customAmount);
+            }
+
+            if (amount <= 0) {
+                alert("No outstanding balance to pay.");
+                return;
+            }
+
+            const email = /*[[${user.email}]]*/ 'user@example.com';
+            currentPaymentAmount = amount;
+            currentPaymentEmail = email;
+
+            // If forced provider is set (e.g. 'paystack' from the button), use it directly
+            if (forcedProvider === 'paystack') {
+                payWithPaystack(amount, email);
+                return;
+            }
+
+            // Threshold for switching providers
+            const THRESHOLD = 120000;
+
+            if (amount > THRESHOLD) {
+                payWithPaystack(amount, email);
+            } else {
+                // Check if Squad wallet exists
+                const hasSquadWallet = /*[[${squadWallet != null}]]*/ false;
+
+                if (hasSquadWallet) {
+                    payWithSquad(amount, email);
+                } else {
+                    // Show options modal
+                    const modalEl = document.getElementById('payment-options-modal');
+                    if (modalEl) {
+                        modalEl.style.display = 'flex';
+                        setTimeout(() => modalEl.classList.add('active'), 10);
+                    }
+                }
+            }
+        }
+
+        function closePaymentOptionsModal() {
+            const modalEl = document.getElementById('payment-options-modal');
+            if (modalEl) {
+                modalEl.classList.remove('active');
+                setTimeout(() => {
+                    modalEl.style.display = 'none';
+                }, 300);
+            }
+        }
+
+
+
+        function openPaymentAmountSelectionModal(forcedProvider = null) {
+            currentForcedProvider = forcedProvider;
+            let balance = /*[[${balance}]]*/ 0;
+            const displayEl = document.getElementById('full-amount-display');
+            if (displayEl) {
+                displayEl.innerText = '(₦' + balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ')';
+            }
+            const modalEl = document.getElementById('payment-amount-selection-modal');
+            if (modalEl) {
+                modalEl.style.display = 'flex';
+                // Use setTimeout to ensure display: flex is applied before adding active class for transition
+                setTimeout(() => modalEl.classList.add('active'), 10);
+            }
+        }
+
+        function closePaymentAmountSelectionModal() {
+            const modalEl = document.getElementById('payment-amount-selection-modal');
+            if (modalEl) {
+                modalEl.classList.remove('active');
+                setTimeout(() => {
+                    modalEl.style.display = 'none';
+                }, 300); // Match CSS transition time
+            }
+            currentForcedProvider = null;
+        }
+
+        function selectPayFullAmount() {
+            console.log("Selecting Pay Full Amount", { currentForcedProvider });
+            closePaymentAmountSelectionModal();
+            showPaymentModal(null, currentForcedProvider); // Default uses full balance
+        }
+
+        function selectPayPartialAmount() {
+            const amount = document.getElementById('modal-custom-amount').value;
+            console.log("Selecting Pay Partial Amount", { amount, currentForcedProvider });
+            if (!amount || amount <= 0) {
+                alert("Please enter a valid amount.");
+                return;
+            }
+            closePaymentAmountSelectionModal();
+            showPaymentModal(amount, currentForcedProvider);
+        }
+
+        function selectPayByTransfer() {
+            closePaymentOptionsModal();
+            createDynamicAccount(currentPaymentAmount);
+        }
+
+        function selectPayByOtherMeans() {
+            closePaymentOptionsModal();
+            payWithSquad(currentPaymentAmount, currentPaymentEmail);
+        }
+
+        function createDynamicAccount(amount) {
+            // Show loading state if desired
+            const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+            fetch('/parent/create-dynamic-account?amount=' + amount, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    [csrfHeader]: csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showDynamicAccountModal(data, amount);
+                    } else {
+                        alert("Failed to create dynamic account: " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("An error occurred while creating the account.");
+                });
+        }
+
+        function showDynamicAccountModal(data, amount) {
+            document.getElementById('dyn-bank-name').innerText = data.bankName;
+            document.getElementById('dyn-account-number').innerText = data.accountNumber;
+            document.getElementById('dyn-amount').innerText = '₦' + amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const modalEl = document.getElementById('dynamic-account-modal');
+            if (modalEl) {
+                modalEl.style.display = 'flex';
+                setTimeout(() => modalEl.classList.add('active'), 10);
+            }
+
+            startCountdown(data.expiresInSeconds);
+        }
+
+        function closeDynamicAccountModal() {
+            const modalEl = document.getElementById('dynamic-account-modal');
+            if (modalEl) {
+                modalEl.classList.remove('active');
+                setTimeout(() => {
+                    modalEl.style.display = 'none';
+                }, 300);
+            }
+            if (countdownInterval) clearInterval(countdownInterval);
+        }
+
+        function startCountdown(durationSeconds) {
+            let timer = durationSeconds, minutes, seconds;
+            const display = document.getElementById('account-timer');
+
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(countdownInterval);
+                    display.textContent = "EXPIRED";
+                    alert("This account number has expired. Please generate a new one.");
+                    closeDynamicAccountModal();
+                }
+            }, 1000);
+        }
+
+        function payWithPaystack(amount, email) {
+            const key = /*[[${paystackPublicKey}]]*/ '';
+            console.log("Initializing Paystack with:", { amount, email });
+
+            // Calculate Paystack fee to pass to user
+            // Standard: 1.5% + NGN 100 (waived for < NGN 2500). Fee capped at NGN 2000.
+            let totalAmount = amount;
+            let flatFee = 0;
+
+            if (amount >= 2500) {
+                flatFee = 100;
+            }
+
+            // Formula: Total = (Amount + FlatFee) / (1 - 0.015)
+            let calculatedTotal = (amount + flatFee) / (1 - 0.015);
+            let fee = calculatedTotal - amount;
+
+            // Apply cap of NGN 2000 on the fee
+            if (fee > 2000) {
+                fee = 2000;
+                calculatedTotal = amount + fee;
+            }
+
+            // Round up to nearest kobo to ensure coverage
+            const amountInKobo = Math.ceil(calculatedTotal * 100);
+
+            const handler = PaystackPop.setup({
+                key: key,
+                email: email,
+                amount: amountInKobo,
+                currency: "NGN",
+                channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+                callback: function (response) {
+                    console.log("Paystack payment successful:", response);
+                    alert("Payment successful! Your balance will be updated shortly.");
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                },
+                onClose: function () {
+                    console.log("Paystack window closed");
+                }
+            });
+            handler.openIframe();
+        }
+
+        function payWithSquad(amount, email) {
+            const key = /*[[${squadPublicKey}]]*/ '';
+            console.log("Initializing Squad with:", { amount, email });
+
+            // Convert amount to kobo (lowest currency unit)
+            const amountInKobo = Math.round(amount * 100);
+
+            try {
+                const squadInstance = new squad({
+                    onClose: () => console.log("Widget closed"),
+                    onLoad: () => console.log("Widget loaded successfully"),
+                    onSuccess: (transaction) => {
+                        console.log("Transaction successful:", transaction);
+                        alert("Payment successful! Your balance will be updated shortly.");
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    },
+                    key: key,
+                    email: email,
+                    amount: amountInKobo.toString(),
+                    currency_code: "NGN",
+                    payment_channels: ['card', 'bank', 'ussd', 'transfer'],
+                    pass_charge: true
+                });
+
+                squadInstance.setup();
+                squadInstance.open();
+            } catch (e) {
+                console.error("Error initializing Squad widget:", e);
+                alert("Failed to initialize payment widget. Please try again.");
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,64 @@
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Fee Breakdown</h3>
+            <button class="close-modal" onclick="closeModal(this)">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <div class="stat-card"
+                    style="flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem; border-radius: 8px;">
+                    <div class="stat-label" style="font-size: 0.875rem; color: #166534; margin-bottom: 0.25rem;">
+                        Expected Revenue</div>
+                    <div class="stat-number" style="font-size: 1.5rem; font-weight: 700; color: #166534;"
+                        th:text="'₦' + ${#numbers.formatDecimal(feeStats.expectedTotal, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                    </div>
+                </div>
+                <div class="stat-card" th:if="${feeStats.optionalTotal > 0}"
+                    style="flex: 1; background: #eff6ff; border: 1px solid #bfdbfe; padding: 1rem; border-radius: 8px;">
+                    <div class="stat-label" style="font-size: 0.875rem; color: #1e40af; margin-bottom: 0.25rem;">
+                        Optional Revenue</div>
+                    <div class="stat-number" style="font-size: 1.5rem; font-weight: 700; color: #1e40af;"
+                        th:text="'₦' + ${#numbers.formatDecimal(feeStats.optionalTotal, 0, 'COMMA', 2, 'POINT')}">₦0.00
+                    </div>
+                </div>
+            </div>
+
+            <div class="breakdown-list">
+                <div th:each="classData : ${feeStats.breakdown}" class="class-breakdown-item"
+                    style="margin-bottom: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                    <div class="class-header"
+                        style="background: #f9fafb; padding: 0.75rem; display: flex; justify-content: space-between; align-items: center; font-weight: 600;">
+                        <span th:text="${classData.className}">Class Name</span>
+                        <div style="text-align: right;">
+                            <div th:text="'₦' + ${#numbers.formatDecimal(classData.total, 0, 'COMMA', 2, 'POINT')}">
+                                ₦0.00</div>
+                            <div th:if="${classData.optionalTotal > 0}"
+                                style="font-size: 0.75rem; color: #6b7280; font-weight: normal;"
+                                th:text="'+ ₦' + ${#numbers.formatDecimal(classData.optionalTotal, 0, 'COMMA', 2, 'POINT')} + ' optional'">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fee-items" style="padding: 0.75rem;">
+                        <div th:each="item : ${classData.feeItems}"
+                            style="display: flex; justify-content: space-between; font-size: 0.875rem; padding: 0.25rem 0; border-bottom: 1px solid #f3f4f6;">
+                            <div>
+                                <span th:text="${item.name}">Fee Name</span>
+                                <span th:unless="${item.isMandatory}"
+                                    style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 5px;">Optional</span>
+                                <span style="color: #6b7280; font-size: 0.75rem;"
+                                    th:text="'(' + ${item.count} + ' students)'">(0 students)</span>
+                            </div>
+                            <span
+                                th:text="'₦' + ${#numbers.formatDecimal(item.amount, 0, 'COMMA', 2, 'POINT')}">₦0.00</span>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${feeStats.breakdown.isEmpty()}" class="no-data"
+                    style="text-align: center; padding: 2rem; color: #6b7280;">
+                    <p>No expected fees found for this period.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

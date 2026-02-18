@@ -1,143 +1,54 @@
 plugins {
 	id 'org.jetbrains.kotlin.jvm' version '2.1.0'
-	id 'org.jetbrains.kotlin.plugin.spring' version '2.1.0'
-	id 'org.springframework.boot' version '3.4.1'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'org.jetbrains.kotlin.plugin.jpa' version '2.1.0'
-	id 'org.graalvm.buildtools.native' version '0.10.3'
-	id 'org.hibernate.orm' version '6.6.4.Final'
+	id 'org.jetbrains.kotlin.plugin.spring' version '2.1.0' apply false
+	id 'org.springframework.boot' version '3.4.1' apply false
+	id 'io.spring.dependency-management' version '1.1.7' apply false
+	id 'org.jetbrains.kotlin.plugin.jpa' version '2.1.0' apply false
+	id 'org.graalvm.buildtools.native' version '0.10.3' apply false
+	id 'org.hibernate.orm' version '6.6.4.Final' apply false
 }
 
-group = 'com.haneef'
-version = '0.0.1-SNAPSHOT'
-description = '4school School Management System'
+allprojects {
+    group = 'com.haneef'
+    version = '0.0.1-SNAPSHOT'
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
-}
-
-graalvmNative {
-    toolchainDetection = false
-    
-    // CRITICAL: This enables community-tested fixes for JJWT, Postgres, and OkHttp
-    metadataRepository {
-        enabled.set(true)
+    repositories {
+        mavenCentral()
+        maven { url 'https://repo.spring.io/milestone' }
     }
+}
 
-    binaries {
-        main {
-            def isCi = System.getenv('CI') != null
-            // GitHub Runners have 7GB RAM. 10G will cause a crash (Exit code 137).
-            // We set CI to 5G to leave room for the OS and Gradle daemon.
-            def memory = isCi ? '10G' : '10G'
-            buildArgs.add("-J-Xmx${memory}")
-            
-            buildArgs.add('-Djava.awt.headless=true')
-            buildArgs.add('--no-fallback')
+subprojects {
+    apply plugin: 'org.jetbrains.kotlin.jvm'
+    apply plugin: 'org.jetbrains.kotlin.plugin.spring'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'org.jetbrains.kotlin.plugin.jpa'
 
-            // Fix for the OkHttp error you've been getting
-            buildArgs.add('--initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor')
-            buildArgs.add('--initialize-at-run-time=okhttp3.OkHttpClient')
-            
-            // Fix for Jackson error you already had
-            buildArgs.add('--initialize-at-run-time=com.fasterxml.jackson.databind.deser.std.FromStringDeserializer$Std')
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
-}
-configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
-}
 
-repositories {
-	mavenCentral()
-	maven { url 'https://repo.spring.io/milestone' }
-}
-
-dependencies {
-	implementation 'org.springframework:spring-aop'
-	implementation 'org.aspectj:aspectjweaver'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-mail'
-	implementation 'org.jetbrains.kotlin:kotlin-reflect'
-	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
-	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
-	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
-	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
-	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.jsoup:jsoup:1.17.2'
-	implementation 'org.dhatim:fastexcel:0.17.0'
-	implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
-	implementation 'com.bucket4j:bucket4j-core:8.10.1'
-	implementation 'io.micrometer:micrometer-registry-prometheus'
-	implementation 'org.flywaydb:flyway-core'
-	implementation 'org.flywaydb:flyway-database-postgresql'
-	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	runtimeOnly 'org.postgresql:postgresql'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testRuntimeOnly 'com.h2database:h2'
-}
-
-
-dependencyManagement {
-	imports {
-		mavenBom "org.springframework.ai:spring-ai-bom:1.1.2"
-	}
-}
-
-kotlin {
-	jvmToolchain(21)
-	compilerOptions {
-		freeCompilerArgs.addAll '-Xjsr305=strict'
-	}
-}
-
-
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-        jvmTarget = "21"
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.ai:spring-ai-bom:1.1.2"
+        }
     }
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+
+    kotlin {
+        jvmToolchain(21)
+        compilerOptions {
+            freeCompilerArgs.addAll '-Xjsr305=strict'
+        }
     }
-}
 
-allOpen {
-	annotation 'jakarta.persistence.Entity'
-	annotation 'jakarta.persistence.MappedSuperclass'
-	annotation 'jakarta.persistence.Embeddable'
-}
-
-tasks.named('test') {
-	useJUnitPlatform()
-}
-
-sourceSets {
-	main {
-		kotlin {
-			exclude 'com/haneef/_school/service/DataInitializationService.kt'
-		}
-	}
-}
-
-
-hibernate {
-    enhancement {
-        enableLazyInitialization = true
-        enableDirtyTracking = true
-        enableAssociationManagement = true
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "21"
+        }
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+        }
     }
 }

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Select School</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body class="auth-body">
+    <div class="auth-container">
+        <!-- School Branding -->
+        <div class="auth-header">
+            <div class="school-brand">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 42px; width: auto;">
+            </div>
+        </div>
+
+        <!-- School Selection Form -->
+        <div class="auth-card">
+            <div class="card-header">
+                <h2>Select School</h2>
+                <p>You have access to multiple schools. Please select one to continue.</p>
+            </div>
+
+            <!-- Error Messages -->
+            <div th:if="${param.error}" class="alert alert-error">
+                <span th:if="${param.error[0] == 'invalid_school'}">Invalid school selection. Please try again.</span>
+                <span th:unless="${param.error[0] == 'invalid_school'}">An error occurred. Please try again.</span>
+            </div>
+
+            <form th:action="@{/select-school}" method="post" class="auth-form" id="schoolForm">
+                <input type="hidden" name="schoolId" id="schoolId">
+
+                <div class="school-list-grid">
+                    <div th:each="school : ${userSchools}" class="school-card"
+                        onclick="selectSchool(this.getAttribute('data-id'))" th:data-id="${school.id}">
+                        <div class="school-icon">
+                            <span class="school-initial" th:text="${school.name.substring(0, 1)}">S</span>
+                        </div>
+                        <div class="school-details">
+                            <h3 th:text="${school.name}">School Name</h3>
+                            <span class="select-label">Click to enter</span>
+                        </div>
+                        <div class="arrow-icon">→</div>
+                    </div>
+                </div>
+            </form>
+
+            <style>
+                .school-list-grid {
+                    display: grid;
+                    gap: 1rem;
+                    margin-bottom: 1.5rem;
+                }
+
+                .school-card {
+                    display: flex;
+                    align-items: center;
+                    padding: 1.25rem;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .school-card:hover {
+                    border-color: #3b82f6;
+                    background: #eff6ff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                }
+
+                .school-icon {
+                    width: 48px;
+                    height: 48px;
+                    background: #e0e7ff;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-right: 1rem;
+                    flex-shrink: 0;
+                }
+
+                .school-initial {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #4f46e5;
+                }
+
+                .school-details {
+                    flex: 1;
+                }
+
+                .school-details h3 {
+                    margin: 0;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #1e293b;
+                }
+
+                .select-label {
+                    font-size: 0.8rem;
+                    color: #64748b;
+                }
+
+                .arrow-icon {
+                    color: #cbd5e1;
+                    font-size: 1.25rem;
+                    transition: all 0.2s;
+                }
+
+                .school-card:hover .arrow-icon {
+                    color: #3b82f6;
+                    transform: translateX(4px);
+                }
+            </style>
+
+            <script>
+                async function selectSchool(id) {
+                    const form = document.getElementById('schoolForm');
+                    const formData = new FormData(form);
+                    formData.set('schoolId', id);
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            // Replace current entry in history with the destination URL
+                            window.location.replace(response.url);
+                        } else {
+                            // Fallback to normal form submission if request fails
+                            form.submit();
+                        }
+                    } catch (error) {
+                        console.error('Selection failed:', error);
+                        form.submit();
+                    }
+                }
+            </script>
+
+            <!-- Alternative Actions -->
+            <div class="auth-links">
+                <p>Need help?
+                    <a href="#" class="link-secondary">Contact Support</a>
+                </p>
+                <p>
+                <form th:action="@{/auth/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="link-secondary"
+                        style="background: none; border: none; padding: 0; cursor: pointer; font: inherit; text-decoration: underline;">Logout</button>
+                </form>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

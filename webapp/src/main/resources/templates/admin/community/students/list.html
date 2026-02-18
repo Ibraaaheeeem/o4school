@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Student Management</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/community.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script th:src="@{/js/modal.js}"></script>
+    <script th:src="@{/js/community.js}"></script>
+
+    <!-- CSRF Protection -->
+    <th:block th:replace="~{fragments/csrf :: csrf-meta}"></th:block>
+    <th:block th:replace="~{fragments/csrf :: csrf-js}"></th:block>
+    <style>
+        .modal-sm {
+            max-width: 400px !important;
+            width: 100%;
+            height: auto !important;
+        }
+    </style>
+
+    <!-- Include navigation management -->
+    <div th:replace="~{fragments/navigation :: navigation-scripts}"></div>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Community Sidebar -->
+        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+
+        <!-- Main Content Area - Mark as content area for navigation management -->
+        <div id="community-content" class="setup-content" data-content-area="true">
+            <div class="setup-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Student Management</h1>
+                    <p>Manage enrolled students and their academic information</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" hx-get="/admin/community/students/new/modal"
+                        hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
+                        onclick="setTimeout(() => openModal('studentModal'), 100)">
+                        + Enroll New Student
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <form id="filterForm" hx-get="/admin/community/students" hx-target="#student-cards-container"
+                    hx-trigger="change, keyup delay:500ms from:#studentSearchInput" hx-replace-url="true"
+                    class="filters-container">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="studentSearchInput">Search</label>
+                            <div class="search-input-container">
+                                <input type="text" id="studentSearchInput" name="search" class="form-input"
+                                    placeholder="Search by name or student ID..." th:value="${search}">
+                            </div>
+                        </div>
+
+                        <div th:each="track : ${tracks}" class="filter-group">
+                            <label th:for="${'track-' + track.id}" th:text="${track.name}"></label>
+                            <select th:id="${'track-' + track.id}" name="classId" class="form-select">
+                                <option value="">All Classes</option>
+                                <option th:each="schoolClass : ${classesByTrack[track.id]}" th:value="${schoolClass.id}"
+                                    th:text="${schoolClass.className + ' (' + (schoolClass.gradeLevelDisplayName ?: 'No Grade') + ')'}"
+                                    th:selected="${#lists.contains(selectedClassIds, schoolClass.id)}">
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="button" class="btn-clear-filters" onclick="clearFilters()"
+                            title="Clear all filters">✕</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Student Cards Container - This will be replaced by HTMX -->
+            <div class="cards-container">
+                <div id="student-cards-container" data-content-area="true">
+                    <div th:replace="~{admin/community/students/student-cards :: student-cards-content}"></div>
+                </div>
+            </div>
+
+            <!-- Student Modal -->
+            <div id="studentModal" class="modal">
+                <div class="modal-dialog">
+                    <!-- Modal content will be loaded here via HTMX -->
+                </div>
+            </div>
+
+            <!-- Student Class Assignment Modal -->
+            <div id="studentClassModal" class="modal">
+                <div class="modal-dialog">
+                    <!-- Modal content will be loaded here via HTMX -->
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Modal -->
+            <div id="deleteModal" class="modal">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Confirm Delete</h3>
+                            <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete <strong id="studentName"></strong>?</p>
+                            <p class="text-muted">This action cannot be undone.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+                            <form id="deleteForm" hx-post="" hx-swap="none" style="display: inline;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" name="search" th:value="${search}" />
+                                <input type="hidden" name="page" th:value="${currentPage}" />
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Assignment Confirmation Modal -->
+            <div id="deleteAssignmentModal" class="modal">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Remove Class Assignment</h3>
+                            <button class="close-modal" onclick="closeModal('deleteAssignmentModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to remove the class assignment:</p>
+                            <p><strong id="assignmentInfo"></strong>?</p>
+                            <p class="text-muted">The student will no longer be enrolled in this class.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline"
+                                onclick="closeModal('deleteAssignmentModal')">Cancel</button>
+                            <form id="deleteAssignmentForm"
+                                hx-post="/admin/community/students/remove-assignment/00000000-0000-0000-0000-000000000000"
+                                hx-target="#deleteAssignmentModal .modal-dialog" hx-swap="innerHTML"
+                                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                                hx-on::after-request="if(event.detail.successful) { closeModal('deleteAssignmentModal'); } else { alert('Error removing assignment. Please try again.'); }"
+                                hx-on::target-error="console.error('HTMX target error'); window.location.reload();"
+                                style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Remove Assignment</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Define modal functions globally
+        window.openModal = function (modalId) {
+            console.log('Opening modal:', modalId);
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                console.log('Modal opened successfully');
+            } else {
+                console.error('Modal not found:', modalId);
+            }
+        };
+
+        window.closeModal = function (modalId) {
+            console.log('Closing modal:', modalId);
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        // applyFilters function is now in community.js
+
+        function clearFilters() {
+            const form = document.getElementById('filterForm');
+            if (form) {
+                // Clear search input
+                const searchInput = form.querySelector('#studentSearchInput');
+                if (searchInput) searchInput.value = '';
+
+                // Reset all select dropdowns
+                form.querySelectorAll('select').forEach(select => {
+                    select.value = '';
+                });
+
+                // Trigger HTMX request
+                htmx.trigger(form, 'change');
+
+                // Update URL without reload
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+
+        // Student-specific functions
+        window.confirmDelete = function (studentId, studentName) {
+            document.getElementById('studentName').textContent = studentName;
+            const deleteForm = document.getElementById('deleteForm');
+            deleteForm.setAttribute('hx-post', `/admin/community/students/${studentId}/delete`);
+            htmx.process(deleteForm);
+            document.getElementById('deleteModal').classList.add('active');
+        };
+
+        // Debug: Check if container exists
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('student-cards-container');
+            if (container) {
+                console.log('Student cards container found:', container);
+            } else {
+                console.error('Student cards container NOT found!');
+            }
+        });
+
+        // HTMX event listeners
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful && event.detail.xhr.responseURL.includes('save-htmx')) {
+                // Update community stats in sidebar
+                const stats = document.getElementById('community-stats');
+                if (stats) {
+                    htmx.trigger(stats, 'refresh');
+                }
+            }
+        });
+
+        // Listen for server-side modal close events
+        document.body.addEventListener('closeModal', function (evt) {
+            if (evt.detail && typeof evt.detail === 'string') {
+                closeModal(evt.detail);
+            } else if (evt.detail && evt.detail.value) {
+                closeModal(evt.detail.value);
+            }
+        });
+    </script>
+</body>
+
+</html>

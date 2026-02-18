@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Landing Page</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .content-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .section-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-custom {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-default {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+
+        .content-preview {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+
+        .preview-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .landing-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Include Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <h1>School Landing Page Content</h1>
+                <p>Customize your school's public landing page content</p>
+            </div>
+
+            <!-- Landing Page Preview Link -->
+            <div class="landing-preview">
+                <h3><i class="fas fa-eye"></i> Preview Your Landing Page</h3>
+                <p>See how your customizations look on the public landing page.</p>
+                <a th:href="'/' + ${school.slug}" target="_blank" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt"></i> View Landing Page
+                </a>
+            </div>
+
+            <!-- Content Sections -->
+            <div th:each="section : ${sections}" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h3 class="section-title" th:text="${#strings.capitalize(#strings.replace(section, '-', ' '))}">
+                            Section Name</h3>
+                        <p th:switch="${section}">
+                            <span th:case="'hero-content'">The main banner section with welcome message and
+                                call-to-action buttons</span>
+                            <span th:case="'about-content'">Information about your school, history, and
+                                achievements</span>
+                            <span th:case="'features-content'">Highlight the key features and benefits of your
+                                school</span>
+                            <span th:case="'contact-info'">Contact information (Address, Phone, Email)</span>
+                            <span th:case="'additional-sections'">Custom sections like news, gallery, testimonials,
+                                etc.</span>
+                            <span th:case="*">Custom content section</span>
+                        </p>
+                    </div>
+                    <div class="section-status">
+                        <span th:if="${hasCustomContent[section]}" class="status-badge status-custom">
+                            <i class="fas fa-check"></i> Customized
+                        </span>
+                        <span th:unless="${hasCustomContent[section]}" class="status-badge status-default">
+                            <i class="fas fa-cog"></i> Default
+                        </span>
+                    </div>
+                </div>
+
+                <div class="content-preview" th:text="${sectionContents[section]}">
+                    Content preview...
+                </div>
+
+                <div class="preview-actions">
+                    <a th:href="@{'/admin/school-content/edit/' + ${section}}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-edit"></i> Edit Content
+                    </a>
+                    <button th:if="${hasCustomContent[section]}" class="btn btn-secondary btn-sm"
+                        onclick="resetSection(this)" th:data-section="${section}">
+                        <i class="fas fa-undo"></i> Reset to Default
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="previewSection(this)" th:data-section="${section}">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="content-section">
+                <div class="section-header">
+                    <h3 class="section-title"><i class="fas fa-question-circle"></i> Need Help?</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div>
+                        <h4>HTML Content</h4>
+                        <p>You can use HTML tags to format your content. Include images, links, and styling.</p>
+                    </div>
+                    <div>
+                        <h4>School Variables</h4>
+                        <p>Use Thymeleaf expressions like <code th:text="${school.name}">school name</code> to include
+                            dynamic school information.</p>
+                    </div>
+                    <div>
+                        <h4>CSS Classes</h4>
+                        <p>Use existing CSS classes from the public.css file for consistent styling.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions" style="margin-top: 20px;">
+                <a th:href="@{/admin/school-setup}" class="btn btn-primary">Back to Setup Overview</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function resetSection(button) {
+            const section = button.dataset.section;
+            if (confirm('Are you sure you want to reset this section to default content?')) {
+                fetch(`/admin/school-content/reset/${section}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error resetting content');
+                    });
+            }
+        }
+
+        function previewSection(button) {
+            const section = button.dataset.section;
+            fetch(`/admin/school-content/preview/${section}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Open preview in new window
+                        const previewWindow = window.open('', '_blank', 'width=800,height=600');
+                        previewWindow.document.write(`
+                            <html>
+                                <head>
+                                    <title>Content Preview - ${section}</title>
+                                    <link rel="stylesheet" href="/css/public.css">
+                                    <style>body { padding: 20px; }</style>
+                                </head>
+                                <body>
+                                    <h2>Preview: ${section}</h2>
+                                    <div style="border: 1px solid #ccc; padding: 20px; margin-top: 20px;">
+                                        ${data.content}
+                                    </div>
+                                </body>
+                            </html>
+                        `);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error loading preview');
+                });
+        }
+    </script>
+</body>
+
+</html>

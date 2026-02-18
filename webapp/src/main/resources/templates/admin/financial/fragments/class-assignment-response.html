@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <!-- Message (Custom to avoid auto-reload/close) -->
+    <div th:if="${message}" class="success-response">
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${message}">Success!</span>
+        </div>
+    </div>
+    <div th:if="${error}" class="error-response">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${error}">Error!</span>
+        </div>
+    </div>
+
+    <!-- OOB Update for the list -->
+    <div th:replace="~{admin/financial/class-assignment-modal-basic :: assignedClassesList(swapOob=true)}"></div>
+    <div th:replace="~{admin/financial/fee-items :: feeItemsList(swapOob=true)}"></div>
+</body>
+
+</html>

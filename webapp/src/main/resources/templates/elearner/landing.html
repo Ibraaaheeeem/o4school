@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Virtual Classroom</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --sidebar-width: 320px;
+            --sidebar-bg: #f8fafc;
+            --content-bg: #ffffff;
+        }
+
+        body {
+            background-color: #f1f5f9;
+        }
+
+        .elearner-layout {
+            display: flex;
+            min-height: calc(100vh - 80px);
+            /* Adjust based on header height */
+            gap: 1px;
+            position: relative;
+        }
+
+        /* Mobile Toggle */
+        .mobile-nav-toggle {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+            z-index: 1100;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .mobile-nav-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* Header Hiding */
+        .school-header {
+            transition: transform 0.3s ease !important;
+        }
+
+        .header-hidden {
+            transform: translateY(-100%);
+        }
+
+        .elearner-sidebar {
+            width: var(--sidebar-width);
+            background: rgba(248, 250, 252, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(226, 232, 240, 0.8);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: calc(100vh - 80px);
+            position: sticky;
+            top: 80px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            scrollbar-width: thin;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: white;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .term-selector {
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .term-selector label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .term-selector select {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .term-selector select:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .term-selector select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+
+        /* Menu Hierarchy Styles */
+        .menu-week {
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .week-toggle {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .week-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        .week-toggle h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        .week-toggle i {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            transition: transform 0.2s;
+        }
+
+        .menu-week.open .week-toggle i {
+            transform: rotate(90deg);
+        }
+
+        .week-content {
+            display: none;
+            background: white;
+            padding: 0.5rem 0;
+        }
+
+        .menu-week.open .week-content {
+            display: block;
+        }
+
+        .menu-subject {
+            padding: 0.25rem 0;
+        }
+
+        .subject-toggle {
+            width: 100%;
+            padding: 0.75rem 1.5rem 0.75rem 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #64748b;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .subject-toggle:hover {
+            color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.04);
+            padding-left: 2.75rem;
+        }
+
+        .subject-toggle.active {
+            color: var(--primary-color);
+            background: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+            border-radius: 12px;
+            margin: 0 0.75rem;
+            width: calc(100% - 1.5rem);
+        }
+
+        .topic-list {
+            display: none;
+            padding: 0.25rem 0;
+        }
+
+        .menu-subject.open .topic-list {
+            display: block;
+        }
+
+        .menu-topic {
+            display: block;
+            padding: 0.5rem 1.5rem 0.5rem 3.5rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 2px solid transparent;
+        }
+
+        .menu-topic:hover {
+            color: #475569;
+            background: #f8fafc;
+        }
+
+        .menu-topic.active {
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.03);
+            font-weight: 600;
+        }
+
+        .menu-subtheme {
+            padding: 0.5rem 1.5rem 0.25rem 3.5rem;
+        }
+
+        .subtheme-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-lesson {
+            display: block;
+            padding: 0.4rem 0;
+            font-size: 0.85rem;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.2s;
+            line-height: 1.4;
+        }
+
+        .menu-lesson:hover {
+            color: var(--primary-color);
+            transform: translateX(4px);
+        }
+
+        /* Lesson Viewer Styles */
+        .lesson-viewer {
+            display: none;
+            opacity: 0;
+            transform: scale(0.98);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .lesson-viewer.active {
+            display: block;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .lesson-header {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .lesson-meta {
+            display: flex;
+            gap: 1.5rem;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .lesson-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Tab justification */
+        .lesson-nav-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            /* More spacing between tabs when justified */
+            margin-bottom: 2rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f1f5f9;
+            width: 100%;
+            position: sticky;
+            top: 54px;
+            z-index: 90;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .lesson-nav-tabs.tabs-at-top {
+            top: 0 !important;
+        }
+
+        .lesson-nav-tabs .tab-btn {
+            flex: 1 1 auto;
+            /* Allows tabs to grow and fill space */
+            min-width: 120px;
+            padding: 0.75rem 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #64748b;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+            text-align: center;
+        }
+
+        /* Back Button Design */
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid rgba(79, 70, 229, 0.1);
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .back-button:hover {
+            color: white;
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .back-button i {
+            font-size: 0.9rem;
+        }
+
+        .lesson-nav-tabs .tab-btn:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .lesson-nav-tabs .tab-btn.active {
+            background: white;
+            color: var(--primary-color);
+            border-color: #e2e8f0;
+            border-bottom-color: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
+            padding-bottom: 0.85rem;
+            position: relative;
+        }
+
+        .lesson-nav-tabs .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .lesson-pane {
+            display: none;
+            line-height: 1.85;
+            /* Better reading rhythm */
+            font-size: 1.125rem;
+            color: #334155;
+            animation: paneSlide 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .lesson-pane.active {
+            display: block;
+        }
+
+        @keyframes paneSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Rich Content Styling in Panes */
+        .lesson-pane h1,
+        .lesson-pane h2,
+        .lesson-pane h3 {
+            color: #0f172a;
+            margin: 1.5rem 0 1rem 0;
+            font-weight: 800;
+        }
+
+        .lesson-pane p {
+            margin-bottom: 1.25rem;
+        }
+
+        .lesson-pane ul,
+        .lesson-pane ol {
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+        }
+
+        .lesson-pane li {
+            margin-bottom: 0.5rem;
+        }
+
+        .lesson-pane blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem 1.5rem;
+            background: #f8fafc;
+            border-radius: 0 12px 12px 0;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        /* Assessment / Quiz Styles */
+        .quiz-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .quiz-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .quiz-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .quiz-question {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .answer-toggle-btn {
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .answer-toggle-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .quiz-answer {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #cbd5e1;
+            color: #475569;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .quiz-answer.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Main Content Area Styles */
+        .elearner-main {
+            flex: 1;
+            padding: 2rem;
+            background: white;
+            min-height: 100%;
+            min-width: 0;
+            /* Prevents flex children from pushing sidebar out */
+        }
+
+        /* Tab Navigation Buttons */
+        .tab-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e2e8f0;
+            gap: 1.5rem;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #475569;
+            flex: 1;
+            max-width: 280px;
+        }
+
+        .nav-btn:hover {
+            border-color: var(--primary-color);
+            color: white;
+            background: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2);
+        }
+
+        .nav-btn.next {
+            justify-content: flex-end;
+            margin-left: auto;
+        }
+
+        .nav-btn.prev {
+            justify-content: flex-start;
+        }
+
+        .nav-btn i {
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+        }
+
+        .nav-btn.prev:hover i {
+            transform: translateX(-4px);
+        }
+
+        .nav-btn.next:hover i {
+            transform: translateX(4px);
+        }
+
+        .nav-btn .nav-label {
+            display: flex;
+            flex-direction: column;
+            align-items: inherit;
+        }
+
+        .nav-btn .nav-sub {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.6;
+            font-weight: 700;
+        }
+
+        /* Tabs Styles */
+        .content-tabs {
+            display: flex;
+            gap: 2rem;
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 2.5rem;
+            padding-bottom: 0px;
+        }
+
+        .tab-item {
+            padding: 1rem 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #94a3b8;
+            background: none;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab-item:hover {
+            color: #475569;
+        }
+
+        .tab-item.active {
+            color: var(--primary-color);
+        }
+
+        .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+        }
+
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Lesson Card Styles */
+        .lesson-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .lesson-item {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 20px;
+            text-decoration: none;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .lesson-item:hover {
+            background: white;
+            border-color: var(--primary-color);
+            transform: translateX(8px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .lesson-icon {
+            width: 54px;
+            height: 54px;
+            background: white;
+            color: #cbd5e1;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .lesson-item:hover .lesson-icon {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .lesson-details h4 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .lesson-details p {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .empty-dashboard {
+            text-align: center;
+            padding: 6rem 2rem;
+            color: #94a3b8;
+        }
+
+        .empty-dashboard i {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.3;
+        }
+
+        .empty-dashboard h3 {
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1024px) {
+            .elearner-sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                max-height: 100vh;
+                z-index: 1050;
+                transform: translateX(-100%);
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 20px 0 50px rgba(0, 0, 0, 0.1);
+            }
+
+            .elearner-sidebar.active {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.5);
+                backdrop-filter: blur(4px);
+                z-index: 1040;
+                opacity: 0;
+                transition: opacity 0.4s;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+                opacity: 1;
+            }
+
+            .mobile-nav-toggle {
+                display: flex;
+            }
+
+            .elearner-main {
+                padding: 1.5rem;
+            }
+
+            .content-tabs {
+                gap: 1rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .text-4xl {
+                font-size: 2rem;
+                line-height: normal;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .lesson-item {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1.25rem;
+            }
+
+            .lesson-icon {
+                margin-bottom: 1rem;
+            }
+
+            .lesson-viewer h1 {
+                font-size: 1.75rem;
+            }
+
+            .lesson-nav-tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                gap: 0.75rem;
+                padding: 0.5rem 0;
+                margin-bottom: 1.5rem;
+                border-bottom: none;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+
+            .lesson-nav-tabs::-webkit-scrollbar {
+                display: none;
+            }
+
+            .lesson-nav-tabs .tab-btn {
+                flex: 0 0 auto;
+                min-width: auto;
+                padding: 0.6rem 1.25rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+                border-radius: 20px;
+                border: 1px solid #e2e8f0;
+                background: white;
+                color: #64748b;
+                white-space: nowrap;
+                margin-bottom: 0;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+
+            .lesson-nav-tabs .tab-btn.active {
+                background: var(--primary-color);
+                color: white;
+                border-color: var(--primary-color);
+                box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+            }
+
+            .lesson-nav-tabs .tab-btn.active::after {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <div class="elearner-layout">
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileMenu()"></div>
+
+        <!-- Mobile Nav Toggle -->
+        <button class="mobile-nav-toggle" id="mobile-toggle" onclick="toggleMobileMenu()">
+            <div
+                style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
+                <i class="fas fa-bars" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
+                <span
+                    style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Menu</span>
+            </div>
+        </button>
+
+        <!-- Sidebar Navigation -->
+        <aside class="elearner-sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-graduation-cap"></i> Digital Library</h2>
+                <p>Grade <span th:text="${gradeLevel}">10</span></p>
+                <div class="term-selector">
+                    <label for="term-select">Term:</label>
+                    <select id="term-select" th:attr="data-current-term=${term}">
+                        <option value="1" th:selected="${term == 1}">First Term</option>
+                        <option value="2" th:selected="${term == 2}">Second Term</option>
+                        <option value="3" th:selected="${term == 3}">Third Term</option>
+                    </select>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <div th:each="weekGroup : ${menuHierarchy}"
+                    th:classappend="${weekGroup.week == week} ? 'menu-week open' : 'menu-week'" class="menu-week">
+
+                    <button class="week-toggle" onclick="toggleMenu(this)">
+                        <h3>Week <span th:text="${weekGroup.week}">1</span></h3>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+
+                    <div class="week-content">
+                        <div th:each="subjectMenu : ${weekGroup.subjects}"
+                            th:classappend="${subjectMenu.id == selectedSubjectId and weekGroup.week == week} ? 'menu-subject open' : 'menu-subject'"
+                            class="menu-subject">
+
+                            <a th:href="@{/elearner/landing(classId=${classId}, gradeLevel=${gradeLevel}, term=${term}, week=${weekGroup.week}, subjectId=${subjectMenu.id})}"
+                                th:onclick="'closeLesson()'"
+                                th:classappend="${subjectMenu.id == selectedSubjectId and weekGroup.week == week} ? 'active' : ''"
+                                class="subject-toggle">
+                                <span th:text="${subjectMenu.name}">Subject</span>
+                                <i th:if="${!subjectMenu.subThemes.empty}" class="fas fa-caret-down"></i>
+                            </a>
+
+                            <div class="topic-list" th:if="${!subjectMenu.subThemes.empty}">
+                                <div th:each="subTheme : ${subjectMenu.subThemes}" class="menu-subtheme">
+                                    <span class="subtheme-label" th:text="${subTheme.name}">Subtheme</span>
+                                    <a th:each="lesson : ${subTheme.lessons}" href="javascript:void(0)"
+                                        th:onclick="'loadLesson(' + ${lesson.id} + ')'" th:text="${lesson.title}"
+                                        class="menu-lesson">
+                                        Lesson Title
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="elearner-main">
+            <!-- Normal Subject View -->
+            <div id="subject-view" th:classappend="${content == null} ? 'hidden' : ''">
+                <!-- Breadcrumbs / Selection Info -->
+                <div th:if="${selectedSubject != null}" class="mb-5">
+                    <span class="text-xs uppercase font-bold tracking-wider text-indigo-600 block mb-1">
+                        Week <span th:text="${week}">1</span> • <span
+                            th:text="${selectedSubject.subject.subjectCode}">MTH</span>
+                    </span>
+                    <h1 class="text-4xl font-extrabold text-slate-900" th:text="${selectedSubject.subject.subjectName}">
+                        Subject Name</h1>
+                    <p th:if="${content?.weekTheme}" th:text="${content.weekTheme}" class="text-slate-500 mt-2 text-lg">
+                        Theme description</p>
+                </div>
+
+                <!-- Content Tabs -->
+                <div th:if="${content != null and (!content.topics.empty or !content.unassignedLessons.empty)}">
+                    <div class="content-tabs">
+                        <button th:each="topic, stats : ${content.topics}" class="tab-item"
+                            th:classappend="${(selectedTopicId == null and stats.first) or topic.id == selectedTopicId} ? 'active' : ''"
+                            th:onclick="'switchTab(\'topic-' + ${topic.id} + '\', this)'" th:text="${topic.name}">
+                            Topic Name
+                        </button>
+                        <button th:if="${!content.unassignedLessons.empty}" class="tab-item"
+                            th:classappend="${(selectedTopicId == null and content.topics.empty) or selectedTopicId == 'unassigned'} ? 'active' : ''"
+                            onclick="switchTab('topic-unassigned', this)">
+                            Other Lessons
+                        </button>
+                    </div>
+
+                    <!-- Tab Panes -->
+                    <div th:each="topic, stats : ${content.topics}" th:id="'topic-' + ${topic.id}" class="tab-pane"
+                        th:classappend="${(selectedTopicId == null and stats.first) or topic.id == selectedTopicId} ? 'active' : ''">
+
+                        <div class="mb-8" th:if="${topic.description}">
+                            <p class="text-slate-600 italic" th:text="${topic.description}">Topic description...</p>
+                        </div>
+
+                        <div class="lesson-grid">
+                            <a th:each="lesson : ${topic.lessons}" href="javascript:void(0)"
+                                th:onclick="'loadLesson(' + ${lesson.id} + ')'" class="lesson-item">
+                                <div class="lesson-icon">
+                                    <i class="fas fa-book-open"></i>
+                                </div>
+                                <div class="lesson-details">
+                                    <h4 th:text="${lesson.title}">Lesson Title</h4>
+                                    <p>
+                                        <span th:if="${lesson.durationMinutes}"
+                                            th:text="${lesson.durationMinutes} + ' mins • '"></span>
+                                        <span th:text="${lesson.lessonType ?: 'Interactive'}">Type</span>
+                                    </p>
+                                </div>
+                                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+                            </a>
+                        </div>
+
+                        <!-- Tab Navigation -->
+                        <div class="tab-navigation">
+                            <button th:if="${!stats.first}" class="nav-btn prev" th:onclick="'navigateTabs(-1)'">
+                                <i class="fas fa-arrow-left"></i>
+                                <div class="nav-label">
+                                    <span class="nav-sub">Previous Topic</span>
+                                    <span th:text="${content.topics[stats.index - 1].name}">Prev Name</span>
+                                </div>
+                            </button>
+
+                            <button th:if="${!stats.last or !content.unassignedLessons.empty}" class="nav-btn next"
+                                th:onclick="'navigateTabs(1)'">
+                                <div class="nav-label">
+                                    <span class="nav-sub">Next Topic</span>
+                                    <span
+                                        th:text="${stats.last ? 'Other Lessons' : content.topics[stats.index + 1].name}">Next
+                                        Name</span>
+                                </div>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Unassigned Lessons Pane -->
+                    <div th:if="${!content.unassignedLessons.empty}" id="topic-unassigned" class="tab-pane"
+                        th:classappend="${(selectedTopicId == null and content.topics.empty) or selectedTopicId == 'unassigned'} ? 'active' : ''">
+
+                        <div class="lesson-grid">
+                            <a th:each="lesson : ${content.unassignedLessons}" href="javascript:void(0)"
+                                th:onclick="'loadLesson(' + ${lesson.id} + ')'" class="lesson-item">
+                                <div class="lesson-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="lesson-details">
+                                    <h4 th:text="${lesson.title}">Lesson Title</h4>
+                                    <p th:text="${lesson.lessonType ?: 'General Content'}">Type</p>
+                                </div>
+                                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+                            </a>
+                        </div>
+
+                        <!-- Tab Navigation -->
+                        <div class="tab-navigation">
+                            <button th:if="${!content.topics.empty}" class="nav-btn prev" onclick="navigateTabs(-1)">
+                                <i class="fas fa-arrow-left"></i>
+                                <div class="nav-label">
+                                    <span class="nav-sub">Previous Topic</span>
+                                    <span th:text="${content.topics.last().name}">Prev Name</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div th:if="${content == null}" class="empty-dashboard">
+                    <i class="fas fa-book-reader"></i>
+                    <h3>Select a subject from the menu</h3>
+                    <p>Browse through weeks and subjects to find your lessons.</p>
+                </div>
+
+                <div th:if="${content != null and content.topics.empty and content.unassignedLessons.empty}"
+                    class="empty-dashboard">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No lessons found for this week</h3>
+                    <p>There is no digital content scheduled for <span
+                            th:text="${selectedSubject?.subject?.subjectName}">this subject</span> in Week <span
+                            th:text="${week}">1</span>.</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Lesson Viewer -->
+            <div id="lesson-viewer" class="lesson-viewer">
+                <button onclick="closeLesson()" class="back-button">
+                    <i class="fas fa-arrow-left"></i> Back to Subject Overview
+                </button>
+                <div class="lesson-header">
+                    <div id="lesson-breadcrumbs"
+                        class="text-xs uppercase font-bold tracking-wider text-indigo-600 mb-2"></div>
+                    <h1 id="lesson-title" class="text-3xl font-extrabold text-slate-900"></h1>
+                </div>
+
+                <div id="lesson-tabs" class="lesson-nav-tabs">
+                    <!-- Tabs will be injected here -->
+                </div>
+
+                <div id="lesson-content-panes">
+                    <!-- Panes will be injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+        const userRole = /*[[${userRole}]]*/ 'STUDENT';
+        const lessonTabMapping = [
+            { key: 'hook_introduction', label: 'Hook / Introduction' },
+            { key: 'learning_objectives', label: 'Learning Objectives' },
+            { key: 'introduction', label: 'Background' },
+            { key: 'lesson_content', label: 'Core Content' },
+            // subject_specific_content will be injected here dynamically
+            { key: 'key_concepts', label: 'Key Concepts' },
+            { key: 'real_life_scenarios', label: 'Real-Life Context' },
+            { key: 'practical_activities', label: 'Practical Work' },
+            { key: 'worked_examples', label: 'Examples' },
+            { key: 'stop_think_checks', label: 'Checkpoints' },
+            { key: 'student_study_notes', label: 'Study Guide' },
+            { key: 'homework_assignments', label: 'Homework' },
+            { key: 'assessment_questions', label: 'Assessment' },
+            { key: 'reflection_prompts', label: 'Reflection' },
+            { key: 'student_notes', label: 'My Notes' }
+        ];
+
+        async function loadLesson(lessonId) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            try {
+                const response = await fetch(`/elearner/api/lesson/${lessonId}`);
+                if (!response.ok) throw new Error('Failed to fetch lesson');
+                const lesson = await response.json();
+
+                document.getElementById('subject-view').style.display = 'none';
+                document.getElementById('lesson-viewer').classList.add('active');
+
+                document.getElementById('lesson-title').innerText = lesson.title;
+                document.getElementById('lesson-breadcrumbs').innerText = `${lesson.subtheme || lesson.topic || 'Lesson'} • ${lesson.topic || 'Unit'}`;
+
+                const tabsContainer = document.getElementById('lesson-tabs');
+                const panesContainer = document.getElementById('lesson-content-panes');
+                tabsContainer.innerHTML = '';
+                panesContainer.innerHTML = '';
+
+                let activeTabs = []; // [{id, label, content}]
+
+                // Helper to add data to activeTabs
+                const collectTab = (id, label, content) => {
+                    activeTabs.push({ id, label, content });
+                };
+
+                const formatLabel = (str) => {
+                    if (!str) return 'Content';
+                    return str.split(/_|\s/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                };
+
+                // 1. Process standard fields
+                lessonTabMapping.forEach(item => {
+                    // Inject subject_specific_content map if exists (before Key Concepts)
+                    if (item.key === 'key_concepts' && lesson.subject_specific_content) {
+                        try {
+                            const specContent = typeof lesson.subject_specific_content === 'string'
+                                ? JSON.parse(lesson.subject_specific_content)
+                                : lesson.subject_specific_content;
+
+                            if (typeof specContent === 'object' && specContent !== null) {
+                                for (const [specKey, specHtml] of Object.entries(specContent)) {
+                                    collectTab(`spec_${specKey}`, formatLabel(specKey), specHtml);
+                                }
+                            }
+                        } catch (e) { console.warn("Failed to parse subject_specific_content", e); }
+                    }
+
+                    let content = lesson[item.key] || (item.key === 'lesson_content' ? lesson['content'] : null);
+
+                    // Check for teacher notes for this section
+                    if (userRole !== 'STUDENT') {
+                        const teacherNoteKey = item.key + '_teacher_notes';
+                        const teacherNote = lesson[teacherNoteKey];
+                        if (teacherNote) {
+                            const teacherHtml = `<div class="teacher-notes-section mt-8 p-6 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
+                                <h4 class="text-amber-800 font-bold mb-2"><i class="fas fa-chalkboard-teacher mr-2"></i>Teacher's Notes</h4>
+                                <div class="prose prose-amber max-w-none">${teacherNote}</div>
+                            </div>`;
+
+                            // If original content is empty, just show teacher note
+                            // If original content exists, append teacher note
+                            if (!content || (typeof content === 'string' && content.trim() === '')) {
+                                content = teacherHtml;
+                            } else if (typeof content === 'string') {
+                                content = content + teacherHtml;
+                            }
+                            // Note: If content is JSON/Object, we might need special handling, but appending string usually works for the renderers
+                        }
+                    }
+
+                    if (content && (typeof content !== 'string' || content.trim() !== '')) {
+                        // Check if lesson_content is JSON and needs expansion
+                        if (item.key === 'lesson_content') {
+                            try {
+                                const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+                                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                                    // Expand JSON keys into individual tabs
+                                    for (const [subKey, subHtml] of Object.entries(parsed)) {
+                                        collectTab(`${item.key}_${subKey}`, formatLabel(subKey), subHtml);
+                                    }
+                                    return; // Skip original "Core Content" tab
+                                }
+                            } catch (e) { /* Not JSON, proceed as string */ }
+                        }
+
+                        collectTab(item.key, item.label, content);
+                    }
+                });
+
+                // 2. Add Teacher Overview/Notes Tabs if applicable
+                if (userRole !== 'STUDENT') {
+                    if (lesson.teachers_overview) {
+                        collectTab('teachers_overview', 'Teacher Overview', lesson.teachers_overview);
+                    }
+                    if (lesson.teachers_notes) {
+                        collectTab('teachers_notes', 'Teacher Notes', lesson.teachers_notes);
+                    }
+                }
+
+                if (activeTabs.length === 0) {
+                    tabsContainer.innerHTML = '<span class="text-slate-400 p-4">Detailed lesson content is successfully requested and will appear here when ready.</span>';
+                } else {
+                    // Render all tabs and panes with navigation
+                    activeTabs.forEach((tab, index) => {
+                        // Create Tab Button
+                        const btn = document.createElement('button');
+                        btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+                        btn.innerText = tab.label;
+                        btn.onclick = () => switchLessonTab(tab.id, btn);
+                        tabsContainer.appendChild(btn);
+
+                        // Create Content Pane
+                        const pane = document.createElement('div');
+                        pane.id = `lesson-pane-${tab.id}`;
+                        pane.className = `lesson-pane ${index === 0 ? 'active' : ''}`;
+
+                        let rawHtml = (tab.id === 'assessment_questions')
+                            ? renderAssessments(tab.content)
+                            : tab.content;
+
+                        // Render Markdown if it doesn't look like pure HTML
+                        const isMarkdown = (text) => {
+                            if (!text) return false;
+                            const markdownIndicators = ['# ', '**', '__', '* ', '- ', '> ', '```', '['];
+                            return markdownIndicators.some(indicator => text.includes(indicator)) && !text.trim().startsWith('<');
+                        };
+
+                        let contentHtml = isMarkdown(rawHtml) ? marked.parse(rawHtml) : rawHtml;
+
+                        // Add Navigation Footer
+                        let navHtml = '<div class="tab-navigation">';
+
+                        if (index > 0) {
+                            const prev = activeTabs[index - 1];
+                            navHtml += `
+                                <button class="nav-btn prev" onclick="navigateLessonTabs(-1)">
+                                    <i class="fas fa-arrow-left"></i>
+                                    <div class="nav-label">
+                                        <span class="nav-sub">Previous</span>
+                                        <span>${prev.label}</span>
+                                    </div>
+                                </button>
+                            `;
+                        }
+
+                        if (index < activeTabs.length - 1) {
+                            const next = activeTabs[index + 1];
+                            navHtml += `
+                                <button class="nav-btn next" onclick="navigateLessonTabs(1)">
+                                    <div class="nav-label">
+                                        <span class="nav-sub">Next</span>
+                                        <span>${next.label}</span>
+                                    </div>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            `;
+                        }
+
+                        navHtml += '</div>';
+
+                        pane.innerHTML = `<div class="prose max-w-none mb-10">${contentHtml}</div>` + navHtml;
+                        panesContainer.appendChild(pane);
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error loading lesson:', error);
+                alert('Could not load lesson details. Please try again.');
+            }
+        }
+
+        function renderAssessments(content) {
+            let questions = [];
+            try {
+                // Handle different possible formats
+                if (typeof content === 'string') {
+                    if (content.startsWith('{')) {
+                        questions = content.slice(1, -1).split(/",\s*"/).map(q => q.replace(/^"|"$/g, '').trim());
+                    } else if (content.startsWith('[')) {
+                        questions = JSON.parse(content);
+                    } else {
+                        return `<div class="prose max-w-none">${content}</div>`;
+                    }
+                } else if (content && typeof content === 'object' && !Array.isArray(content)) {
+                    questions = Object.entries(content).map(([q, a]) => ({ question: q, answer: a }));
+                } else if (Array.isArray(content)) {
+                    questions = content;
+                }
+
+                if (questions.length === 0) return 'No assessment questions available.';
+
+                return `
+                    <div class="quiz-container">
+                        ${questions.map((q, i) => {
+                    let question, answer;
+                    if (q && typeof q === 'object') {
+                        question = q.question || q.Question || "Unnamed Question";
+                        answer = q.answer || q.Answer || "Review content.";
+                    } else {
+                        const parts = q.toString().includes('|') ? q.toString().split('|') : q.toString().split('Answer:');
+                        question = parts[0].trim();
+                        answer = parts[1] ? parts[1].trim() : "Review content.";
+                    }
+
+                    let answerHtml = '';
+                    if (userRole !== 'STUDENT') {
+                        answerHtml = `
+                                    <button class="answer-toggle-btn" onclick="toggleAnswer(this)">
+                                        <i class="fas fa-eye mr-2"></i> Show Answer
+                                    </button>
+                                    <div class="quiz-answer">
+                                        <div class="flex gap-3">
+                                            <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+                                            <div>${answer}</div>
+                                        </div>
+                                    </div>`;
+                    }
+
+                    return `
+                                <div class="quiz-item">
+                                    <div class="quiz-question">
+                                        <span class="text-indigo-600 mr-2">Q${i + 1}:</span> ${question}
+                                    </div>
+                                    ${answerHtml}
+                                </div>
+                            `;
+                }).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                return `<div class="prose max-w-none">${content}</div>`;
+            }
+        }
+
+        function toggleAnswer(btn) {
+            const answer = btn.nextElementSibling;
+            const isShowing = answer.classList.contains('show');
+
+            if (isShowing) {
+                answer.classList.remove('show');
+                btn.innerHTML = '<i class="fas fa-eye mr-2"></i> Show Answer';
+                btn.style.background = 'white';
+                btn.style.color = 'var(--primary-color)';
+            } else {
+                answer.classList.add('show');
+                btn.innerHTML = '<i class="fas fa-eye-slash mr-2"></i> Hide Answer';
+                btn.style.background = 'var(--primary-color)';
+                btn.style.color = 'white';
+            }
+        }
+
+        function navigateLessonTabs(direction) {
+            const tabs = Array.from(document.querySelectorAll('#lesson-tabs .tab-btn'));
+            const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
+            const nextIndex = activeIndex + direction;
+
+            if (nextIndex >= 0 && nextIndex < tabs.length) {
+                tabs[nextIndex].click();
+                // Scroll to top of viewer
+                document.getElementById('lesson-viewer').scrollTo({ top: 0, behavior: 'smooth' });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function switchLessonTab(paneId, btn) {
+            // Deactivate all
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.lesson-pane').forEach(p => p.classList.remove('active'));
+
+            // Activate current
+            btn.classList.add('active');
+            document.getElementById(`lesson-pane-${paneId}`).classList.add('active');
+
+            // Auto-center the active tab in its container
+            centerActiveTab(btn);
+        }
+
+        function centerActiveTab(activeTab) {
+            const container = document.getElementById('lesson-tabs');
+            if (!container || !activeTab) return;
+
+            const containerWidth = container.offsetWidth;
+            const tabOffset = activeTab.offsetLeft;
+            const tabWidth = activeTab.offsetWidth;
+
+            // Calculate target scroll: center of container - center of tab
+            const scrollTarget = tabOffset - (containerWidth / 2) + (tabWidth / 2);
+
+            container.scrollTo({
+                left: scrollTarget,
+                behavior: 'smooth'
+            });
+        }
+
+        function closeLesson() {
+            document.getElementById('lesson-viewer').classList.remove('active');
+            document.getElementById('subject-view').style.display = 'block';
+        }
+
+        function toggleMenu(btn) {
+            const week = btn.parentElement;
+            week.classList.toggle('open');
+        }
+
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.elearner-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggleIcon = document.querySelector('#mobile-toggle i');
+
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+
+            if (sidebar.classList.contains('active')) {
+                toggleIcon.className = 'fas fa-times';
+            } else {
+                toggleIcon.className = 'fas fa-bars';
+            }
+        }
+
+        // Close mobile menu on lesson click
+        const originalLoadLesson = loadLesson;
+        loadLesson = async function (lessonId) {
+            if (window.innerWidth <= 1024) {
+                const sidebar = document.querySelector('.elearner-sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                const toggleIcon = document.querySelector('#mobile-toggle i');
+
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    toggleIcon.className = 'fas fa-bars';
+                }
+            }
+            return originalLoadLesson(lessonId);
+        }
+
+        // Close on subject switch
+        const originalCloseLesson = closeLesson;
+        closeLesson = function () {
+            if (window.innerWidth <= 1024) {
+                const sidebar = document.querySelector('.elearner-sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                const toggleIcon = document.querySelector('#mobile-toggle i');
+
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    toggleIcon.className = 'fas fa-bars';
+                }
+            }
+            return originalCloseLesson();
+        }
+
+        function navigateTabs(direction) {
+            const tabs = Array.from(document.querySelectorAll('.content-tabs .tab-item'));
+            const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
+            const nextIndex = activeIndex + direction;
+
+            if (nextIndex >= 0 && nextIndex < tabs.length) {
+                tabs[nextIndex].click();
+                // Scroll to top of content
+                document.querySelector('.elearner-main').scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function switchTab(topicId, btn) {
+            // Deactivate all tabs
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+            // Activate current
+            btn.classList.add('active');
+            document.getElementById(topicId).classList.add('active');
+        }
+
+        // Scroll handler for header hiding
+        let lastScrollY = window.scrollY;
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.school-header');
+            const tabs = document.querySelector('.lesson-nav-tabs');
+            const lessonViewer = document.getElementById('lesson-viewer');
+
+            if (!lessonViewer || !lessonViewer.classList.contains('active')) return;
+
+            const currentScrollY = window.scrollY;
+            const scrollDelta = currentScrollY - lastScrollY;
+
+            if (window.innerWidth >= 768) {
+                // Persistent header on desktop
+                if (header) header.classList.remove('header-hidden');
+                if (tabs) tabs.classList.remove('tabs-at-top');
+                return;
+            }
+
+            if (currentScrollY > 100 && scrollDelta > 10) {
+                // Scrolling down
+                if (header) header.classList.add('header-hidden');
+                if (tabs) tabs.classList.add('tabs-at-top');
+            } else if (scrollDelta < -10 || currentScrollY < 50) {
+                // Scrolling up or at top
+                if (header) header.classList.remove('header-hidden');
+                if (tabs) tabs.classList.remove('tabs-at-top');
+            }
+
+            lastScrollY = currentScrollY;
+        });
+
+        // Auto-expand active subject's week on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Configure Header Back Link
+            // userRole is already defined globally
+            const dashboardNav = document.getElementById('dashboardNav');
+            const dashboardLink = document.getElementById('dashboardLink');
+            const dashboardText = document.getElementById('dashboardText');
+
+            if (dashboardNav && dashboardLink) {
+                // Default to Student Dashboard if role not found or explicitly student
+                let targetUrl = '/student/dashboard';
+                let label = 'Dashboard';
+
+                if (userRole === 'STUDENT') {
+                    // Already set defaults
+                } else if (userRole === 'PARENT') {
+                    targetUrl = '/parent/dashboard';
+                    label = 'Parent Portal';
+                } else if (userRole === 'STAFF' || userRole === 'TEACHER') {
+                    targetUrl = '/staff/dashboard';
+                    label = 'Staff Portal';
+                } else if (userRole === 'ADMIN' || userRole === 'SCHOOL_ADMIN') {
+                    targetUrl = '/admin/dashboard';
+                    label = 'Admin Dashboard';
+                }
+
+                dashboardLink.href = targetUrl;
+                if (dashboardText) dashboardText.textContent = label;
+                dashboardNav.style.display = 'flex';
+
+                // Also update the Brand Logo Link to point to Dashboard
+                const brandLink = document.querySelector('.brand-section');
+                if (brandLink) brandLink.href = targetUrl;
+            }
+
+            const activeSubject = document.querySelector('.subject-toggle.active');
+            if (activeSubject) {
+                let parent = activeSubject.closest('.menu-week');
+                if (parent) parent.classList.add('open');
+
+                let subjectParent = activeSubject.closest('.menu-subject');
+                if (subjectParent) subjectParent.classList.add('open');
+            }
+
+            // Handle term selection changes
+            const termSelect = document.getElementById('term-select');
+            if (termSelect) {
+                termSelect.addEventListener('change', function () {
+                    const newTerm = this.value;
+                    const urlParams = new URLSearchParams(window.location.search);
+                    urlParams.set('term', newTerm);
+                    urlParams.set('week', '1'); // Reset to week 1 when changing terms
+                    urlParams.delete('subjectId'); // Clear subject selection
+                    window.location.href = window.location.pathname + '?' + urlParams.toString();
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

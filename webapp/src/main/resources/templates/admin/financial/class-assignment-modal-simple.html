@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Manage Class Assignments</h2>
+            <span class="fee-item-name" th:text="${feeItem.name}">Tuition Fee</span>
+            <button type="button" class="modal-close" onclick="closeModal('classAssignmentModal')">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <p>Fee Item: <span th:text="${feeItem.name}">Test Fee</span></p>
+            <p>Recurrence Type: <span th:text="${feeItem.recurrenceType}">TERMLY</span></p>
+            <p>Academic Sessions Count: <span th:text="${#lists.size(academicSessions)}">0</span></p>
+            <p>All Classes Count: <span th:text="${#lists.size(allClasses)}">0</span></p>
+            <p>Assigned Classes Count: <span th:text="${#lists.size(assignedClassFeeItems)}">0</span></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!-- Single Staff Card Fragment -->
+<div th:fragment="single-staff-card"
+    th:attr="id=${'staff-card-' + staff.id},hx-swap-oob=${isOob == true ? (oobSelector ?: 'true') : null}"
+    class="staff-card">
+    <div class="staff-card-header">
+        <div class="staff-avatar">
+            <span class="default-avatar"
+                th:text="${!#strings.isEmpty(staff.user.fullName) ? #strings.substring(staff.user.fullName, 0, 1) : '?'}">J</span>
+        </div>
+        <div class="staff-info">
+            <h3 th:text="${staff.user.fullName}">John Doe</h3>
+            <p class="staff-email" th:text="${staff.user.email}">john@example.com</p>
+            <p class="staff-id">
+                <i class="fas fa-id-badge me-1"></i>
+                <span th:text="${staff.staffId ?: 'N/A'}">STF001</span>
+            </p>
+        </div>
+        <div class="staff-status">
+            <span class="badge badge-success" th:if="${staff.isActive}"
+                style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;">Active</span>
+            <span class="badge badge-secondary" th:unless="${staff.isActive}"
+                style="background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0;">Inactive</span>
+        </div>
+    </div>
+
+    <div class="staff-card-body">
+        <!-- Teacher Assignments Section -->
+        <div class="teacher-assignments-section"
+            th:if="${!staff.classTeacherAssignments.empty || !staff.subjectTeacherAssignments.empty}">
+
+            <!-- Class Teacher Assignments -->
+            <div th:if="${!staff.classTeacherAssignments.empty}" class="assignment-group">
+                <h5><i class="fas fa-users me-1"></i> Class Teacher</h5>
+                <div class="assignments-grid">
+                    <div th:each="classAssignment : ${staff.classTeacherAssignments}"
+                        th:if="${classAssignment.isActive}" class="assignment-card class-teacher-card">
+                        <div class="assignment-details">
+                            <div class="assignment-title" th:text="${classAssignment.schoolClass.className}">
+                                Grade 10A</div>
+                            <div class="assignment-year"
+                                th:text="${classAssignment.academicSession.sessionName + ' • ' + classAssignment.term.termName}">
+                                2024-2025
+                            </div>
+                        </div>
+                        <button class="remove-assignment-btn" th:data-assignment-id="${classAssignment.id}"
+                            th:data-staff-id="${staff.id}"
+                            th:data-assignment-info="'Class Teacher: ' + ${classAssignment.schoolClass.className}"
+                            onclick="removeClassAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
+                            title="Remove class teacher assignment">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject Teacher Assignments -->
+            <div th:if="${!staff.subjectTeacherAssignments.empty}" class="assignment-group" style="margin-top: 1rem;">
+                <h5><i class="fas fa-book me-1"></i> Subject Teacher</h5>
+                <div class="assignments-grid">
+                    <div th:each="subjectAssignment : ${staff.subjectTeacherAssignments}"
+                        th:if="${subjectAssignment.isActive}" class="assignment-card subject-teacher-card">
+                        <div class="assignment-details">
+                            <div class="assignment-title" th:text="${subjectAssignment.subject.subjectName}">
+                                Mathematics</div>
+                            <div class="assignment-class" style="font-size: 0.8rem; color: #64748b;"
+                                th:text="${subjectAssignment.schoolClass.className}">
+                                Grade 10A</div>
+                            <div class="assignment-year"
+                                th:text="${subjectAssignment.academicSession.sessionName + ' • ' + subjectAssignment.term.termName}">
+                                2024-2025
+                            </div>
+                        </div>
+                        <button class="remove-assignment-btn" th:data-assignment-id="${subjectAssignment.id}"
+                            th:data-staff-id="${staff.id}"
+                            th:data-assignment-info="'Subject Teacher: ' + ${subjectAssignment.subject.subjectName} + ' in ' + ${subjectAssignment.schoolClass.className}"
+                            onclick="removeSubjectAssignmentInPlace(this.dataset.assignmentId, this.dataset.staffId, this.dataset.assignmentInfo)"
+                            title="Remove subject teacher assignment">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${staff.classTeacherAssignments.empty && staff.subjectTeacherAssignments.empty}"
+            style="text-align: center; padding: 2rem 0; color: #94a3b8;">
+            <i class="fas fa-chalkboard-teacher" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+            <p style="margin: 0; font-size: 0.9rem;">No active teaching assignments</p>
+        </div>
+    </div>
+
+    <div class="staff-card-footer">
+        <div class="card-actions">
+            <button class="btn btn-sm" style="background: #0ea5e9; color: white; border: none;"
+                th:hx-get="@{/admin/community/staff/{id}/assignments/modal(id=${staff.id})}"
+                hx-target="#staffAssignmentModal .modal-dialog" hx-swap="innerHTML"
+                th:onclick="'setTimeout(() => openModal(\'staffAssignmentModal\'), 100)'" title="Manage Assignments">
+                <i class="fas fa-chalkboard-teacher me-1"></i> Assignments
+            </button>
+            <a class="btn btn-sm" style="background: #f59e0b; color: white; border: none;"
+                th:href="@{/staff/view-as/{id}(id=${staff.id})}" target="_blank" title="View Dashboard">
+                <i class="fas fa-external-link-alt"></i>Dashboard
+            </a>
+            <button class="btn btn-sm" style="background: white; border: 1px solid #e2e8f0; color: #475569;"
+                th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}" hx-target="#staffModal .modal-dialog"
+                hx-swap="innerHTML" th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'"
+                title="Edit Details">
+                <i class="fas fa-edit"></i>
+            </button>
+
+            <button class="btn btn-sm" style="background: #ef4444; color: white; border: none;"
+                th:data-staff-id="${staff.id}" th:data-staff-name="${staff.user.fullName}"
+                onclick="confirmDeleteStaff(this.dataset.staffId, this.dataset.staffName)" title="Delete Staff">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    </div>
+</div>

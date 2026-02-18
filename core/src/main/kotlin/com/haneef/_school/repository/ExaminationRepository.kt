@@ -1,0 +1,149 @@
+package com.haneef._school.repository
+
+import java.util.UUID
+
+import com.haneef._school.entity.Examination
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
+import org.springframework.stereotype.Repository
+import java.util.*
+
+@Repository
+interface ExaminationRepository : JpaRepository<Examination, UUID>, SecureExaminationRepository {
+    
+    @Query("SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass LEFT JOIN FETCH e.questions " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive " +
+           "ORDER BY e.createdAt DESC")
+    fun findBySchoolIdAndIsActiveOrderByCreatedAtDesc(
+        @Param("schoolId") schoolId: UUID, 
+        @Param("isActive") isActive: Boolean,
+        pageable: org.springframework.data.domain.Pageable
+    ): org.springframework.data.domain.Page<Examination>
+    
+    @Query("SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass LEFT JOIN FETCH e.questions WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND e.isPublished = :isPublished")
+    fun findBySchoolIdAndIsActiveAndIsPublishedWithRelationships(
+        @Param("schoolId") schoolId: UUID, 
+        @Param("isActive") isActive: Boolean, 
+        @Param("isPublished") isPublished: Boolean
+    ): List<Examination>
+    
+    @Query("SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass LEFT JOIN FETCH e.questions WHERE e.id = :id")
+    fun findByIdWithRelationships(@Param("id") id: UUID): Optional<Examination>
+    
+    fun countBySchoolIdAndIsActive(schoolId: UUID, isActive: Boolean): Long
+    
+    fun countBySchoolIdAndIsActiveAndIsPublished(schoolId: UUID, isActive: Boolean, isPublished: Boolean): Long
+    
+    @Query("SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
+           "(:subjectId IS NULL OR e.subject.id = :subjectId) AND " +
+           "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
+           "(:examType IS NULL OR e.examType = :examType) AND " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) " +
+           "ORDER BY e.createdAt DESC")
+    fun findBySchoolIdAndFilters(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("subjectId") subjectId: UUID?,
+        @Param("classId") classId: UUID?,
+        @Param("examType") examType: String?,
+        @Param("termId") termId: UUID?,
+        @Param("sessionId") sessionId: UUID?
+    ): List<Examination>
+    
+    @Query("SELECT e FROM Examination e WHERE e.subject.id = :subjectId AND e.schoolClass.id = :classId AND e.term.id = :termId AND e.academicSession.id = :sessionId AND e.isActive = :isActive ORDER BY e.createdAt DESC")
+    fun findBySubjectIdAndSchoolClassIdAndTermIdAndSessionIdAndIsActive(
+        @Param("subjectId") subjectId: UUID,
+        @Param("classId") classId: UUID,
+        @Param("termId") termId: UUID,
+        @Param("sessionId") sessionId: UUID,
+        @Param("isActive") isActive: Boolean
+    ): List<Examination>
+    
+    @Query(value = "SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass LEFT JOIN FETCH e.questions " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
+           "(:subjectId IS NULL OR e.subject.id = :subjectId) AND " +
+           "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
+           "(:departmentId IS NULL OR e.schoolClass.department.id = :departmentId) AND " +
+           "(:trackId IS NULL OR e.schoolClass.track.id = :trackId) AND " +
+           "(:examType IS NULL OR e.examType = :examType) AND " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) " +
+           "ORDER BY e.createdAt DESC",
+           countQuery = "SELECT COUNT(DISTINCT e) FROM Examination e " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
+           "(:subjectId IS NULL OR e.subject.id = :subjectId) AND " +
+           "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
+           "(:departmentId IS NULL OR e.schoolClass.department.id = :departmentId) AND " +
+           "(:trackId IS NULL OR e.schoolClass.track.id = :trackId) AND " +
+           "(:examType IS NULL OR e.examType = :examType) AND " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId)")
+    fun findBySchoolIdAndFiltersWithQuestions(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("subjectId") subjectId: UUID?,
+        @Param("classId") classId: UUID?,
+        @Param("departmentId") departmentId: UUID?,
+        @Param("trackId") trackId: UUID?,
+        @Param("examType") examType: String?,
+        @Param("termId") termId: UUID?,
+        @Param("sessionId") sessionId: UUID?,
+        pageable: org.springframework.data.domain.Pageable
+    ): org.springframework.data.domain.Page<Examination>
+
+    @Query(value = "SELECT DISTINCT e FROM Examination e LEFT JOIN FETCH e.subject LEFT JOIN FETCH e.schoolClass " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
+           "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
+           "((:subjectIds) IS NULL OR e.subject.id IN (:subjectIds)) AND " +
+           "(:examType IS NULL OR e.examType = :examType) AND " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) AND " +
+           "(:isOnline IS NULL OR e.isOnline = :isOnline) AND " +
+           "(:search IS NULL OR LOWER(e.title) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
+           "(cast(:startDate as timestamp) IS NULL OR e.startTime >= :startDate) AND " +
+           "(cast(:endDate as timestamp) IS NULL OR e.startTime <= :endDate) " +
+           "ORDER BY e.createdAt DESC",
+           countQuery = "SELECT COUNT(DISTINCT e) FROM Examination e " +
+           "WHERE e.schoolId = :schoolId AND e.isActive = :isActive AND " +
+           "(:classId IS NULL OR e.schoolClass.id = :classId) AND " +
+           "((:subjectIds) IS NULL OR e.subject.id IN (:subjectIds)) AND " +
+           "(:examType IS NULL OR e.examType = :examType) AND " +
+           "(:termId IS NULL OR e.term.id = :termId) AND " +
+           "(:sessionId IS NULL OR e.academicSession.id = :sessionId) AND " +
+           "(:isOnline IS NULL OR e.isOnline = :isOnline) AND " +
+           "(:search IS NULL OR LOWER(e.title) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
+           "(cast(:startDate as timestamp) IS NULL OR e.startTime >= :startDate) AND " +
+           "(cast(:endDate as timestamp) IS NULL OR e.startTime <= :endDate)")
+    fun findBySchoolIdAndAdvancedFilters(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("classId") classId: UUID?,
+        @Param("subjectIds") subjectIds: List<UUID>?,
+        @Param("examType") examType: String?,
+        @Param("termId") termId: UUID?,
+        @Param("sessionId") sessionId: UUID?,
+        @Param("isOnline") isOnline: Boolean?,
+        @Param("search") search: String?,
+        @Param("startDate") startDate: java.time.LocalDateTime?,
+        @Param("endDate") endDate: java.time.LocalDateTime?,
+        pageable: org.springframework.data.domain.Pageable
+    ): org.springframework.data.domain.Page<Examination>
+
+    fun findBySubjectIdAndSchoolClassIdAndTermIdAndAcademicSessionIdAndExamTypeAndIsActive(
+        subjectId: UUID,
+        classId: UUID,
+        termId: UUID,
+        sessionId: UUID,
+        examType: String,
+        isActive: Boolean
+    ): List<Examination>
+
+    fun findBySchoolClassIdInAndIsActiveAndIsPublished(
+        classIds: List<UUID>,
+        isActive: Boolean,
+        isPublished: Boolean
+    ): List<Examination>
+}

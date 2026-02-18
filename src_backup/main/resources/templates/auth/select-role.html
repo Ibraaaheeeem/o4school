@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Select Role</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+</head>
+
+<body class="auth-body">
+    <div class="auth-container">
+        <!-- School Branding -->
+        <div class="auth-header">
+            <div class="school-brand">
+                <img src="/images/header-logo.svg" alt="4School" class="auth-logo" style="height: 42px; width: auto;">
+            </div>
+        </div>
+
+        <!-- Role Selection Form -->
+        <div class="auth-card">
+            <div class="card-header">
+                <h2>Select Role</h2>
+                <p>You have multiple roles in this school. Please select one to continue.</p>
+            </div>
+
+            <!-- Error Messages -->
+            <div th:if="${param.error}" class="alert alert-error">
+                <span th:if="${param.error[0] == 'invalid_role'}">Invalid role selection. Please try again.</span>
+                <span th:unless="${param.error[0] == 'invalid_role'}">An error occurred. Please try again.</span>
+            </div>
+
+            <form th:action="@{/select-role}" method="post" class="auth-form" id="roleForm">
+                <input type="hidden" name="roleId" id="roleId">
+                <input type="hidden" name="roleName" id="roleName">
+
+                <div class="role-list">
+                    <div th:each="userSchoolRole : ${userRoles}" class="role-option">
+                        <!-- Clickable container -->
+                        <div class="role-card-wrapper"
+                            th:onclick="selectRole([[${userSchoolRole.role?.id}]], [[${userSchoolRole.role?.name}]])">
+
+                            <div class="role-card-content">
+                                <div class="role-info">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <h3 th:text="${userSchoolRole.role?.name}">Role Name</h3>
+                                        <div class="role-icon">
+                                            <span th:switch="${userSchoolRole.role?.name}">
+                                                <span th:case="'SYSTEM_ADMIN'">👨‍💼</span>
+                                                <span th:case="'System Administrator'">👨‍💼</span>
+                                                <span th:case="'SCHOOL_ADMIN'">🏫</span>
+                                                <span th:case="'PRINCIPAL'">🏫</span>
+                                                <span th:case="'Principal'">🏫</span>
+                                                <span th:case="'TEACHER'">👨‍🏫</span>
+                                                <span th:case="'Teacher'">👨‍🏫</span>
+                                                <span th:case="'STAFF'">👨‍💼</span>
+                                                <span th:case="'Staff'">👨‍💼</span>
+                                                <span th:case="'PARENT'">👨‍👩‍👧‍👦</span>
+                                                <span th:case="'Parent'">👨‍👩‍👧‍👦</span>
+                                                <span th:case="'STUDENT'">👨‍🎓</span>
+                                                <span th:case="'Student'">👨‍🎓</span>
+                                                <span th:case="*">👤</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p th:text="${userSchoolRole.role?.description}">Role Description</p>
+                                    <span class="click-hint">Click to continue →</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <style>
+                .role-card-wrapper {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 1.25rem;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    margin-bottom: 1rem;
+                }
+
+                .role-card-wrapper:hover {
+                    border-color: #3b82f6;
+                    background: #eff6ff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }
+
+                .role-card-wrapper h3 {
+                    margin: 0 0 0.5rem 0;
+                    font-size: 1.1rem;
+                    color: #1e293b;
+                }
+
+                .role-card-wrapper p {
+                    margin: 0;
+                    color: #64748b;
+                    font-size: 0.9rem;
+                }
+
+                .role-icon {
+                    font-size: 1.5rem;
+                }
+
+                .click-hint {
+                    display: inline-block;
+                    margin-top: 0.75rem;
+                    font-size: 0.8rem;
+                    color: #3b82f6;
+                    font-weight: 500;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+
+                .role-card-wrapper:hover .click-hint {
+                    opacity: 1;
+                }
+            </style>
+
+            <script>
+                async function selectRole(id, name) {
+                    const form = document.getElementById('roleForm');
+                    const formData = new FormData(form);
+                    formData.set('roleId', id);
+                    formData.set('roleName', name);
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            // Replace current entry in history with the destination URL
+                            window.location.replace(response.url);
+                        } else {
+                            // Fallback to normal form submission if request fails
+                            form.submit();
+                        }
+                    } catch (error) {
+                        console.error('Selection failed:', error);
+                        form.submit();
+                    }
+                }
+            </script>
+
+            <!-- Alternative Actions -->
+            <div class="auth-links">
+                <p>Need to select a different school?
+                    <a th:href="@{/select-school}" class="link-primary">Change School</a>
+                </p>
+                <p>
+                <form th:action="@{/auth/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="link-secondary"
+                        style="background: none; border: none; padding: 0; cursor: pointer; font: inherit; text-decoration: underline;">Logout</button>
+                </form>
+                </p>
+            </div>
+
+
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,3 +1,5 @@
 
-
 rootProject.name = '4school'
+include 'core'
+include 'webapp'
+include 'api-service'

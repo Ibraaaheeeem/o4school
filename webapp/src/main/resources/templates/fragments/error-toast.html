@@ -1,0 +1,19 @@
+<div id="global-toast-container" hx-swap-oob="beforeend">
+    <div class="toast error show">
+        <i class="fas fa-exclamation-circle"></i>
+        <span th:text="${error}">An error occurred!</span>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    var modalId = /*[[${modalId}]]*/ '';
+    if (modalId && window.closeModal) {
+        window.closeModal(modalId);
+    }
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast');
+        toasts.forEach(t => t.classList.remove('show'));
+    }, 5000);
+    /*]]>*/
+</script>
