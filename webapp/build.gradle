@@ -5,6 +5,24 @@ graalvmNative {
     binaries {
         main {
             imageName = '4school'
+            
+            // Runtime Initializations (Consolidated from historic fixes)
+            buildArgs.add('--initialize-at-run-time=okhttp3')
+            buildArgs.add('--initialize-at-run-time=okio')
+            buildArgs.add('--initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor$Companion')
+            buildArgs.add('--initialize-at-run-time=okhttp3.internal.http.RetryAndFollowUpInterceptor')
+            buildArgs.add('--initialize-at-run-time=okhttp3.OkHttpClient')
+            buildArgs.add('--initialize-at-run-time=okhttp3.internal.concurrent.TaskRunner$Companion')
+            buildArgs.add('--initialize-at-run-time=okhttp3.internal.concurrent.TaskRunner')
+            buildArgs.add('--initialize-at-run-time=okhttp3.internal.Platform')
+            buildArgs.add('--initialize-at-run-time=com.fasterxml.jackson.databind.deser.std.FromStringDeserializer$Std')
+            
+            // Build Time Initializations
+            buildArgs.add('--initialize-at-build-time=org.slf4j')
+            
+            // General Native Image Args
+            buildArgs.add('--no-fallback')
+            buildArgs.add('-H:+TraceClassInitialization')
         }
     }
 }

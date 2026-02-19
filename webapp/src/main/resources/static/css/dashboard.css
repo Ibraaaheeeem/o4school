@@ -155,18 +155,20 @@
     margin-bottom: 2.5rem;
 }
 
-.dashboard-split-grid {
+/* Dashboard Split Grid (Deprecated/Removed for full width actions) */
+/* .dashboard-split-grid {
     grid-template-columns: 2fr 1fr;
-}
+} */
 
 @media (min-width: 769px) {
-    .recent-activity-panel {
+    /* Full width panels now default behavior */
+    /* .recent-activity-panel {
         grid-column: 1;
     }
 
     .quick-actions-panel {
         grid-column: 2;
-    }
+    } */
 }
 
 /* Dashboard Cards */

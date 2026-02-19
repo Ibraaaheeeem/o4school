@@ -48,12 +48,13 @@ class StudentDashboardController(
             val schoolId = student.schoolId
             
             if (schoolId != null) {
-                // Fetch current active academic session
+                // Fetch current active academic session and term
                 val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
+                val currentTerm = termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(schoolId, true, true).orElse(null)
                 
-                if (currentSession != null) {
-                    // Fetch student's enrollments for the current session
-                    val enrollments = studentClassRepository.findByStudentIdAndAcademicSessionIdAndIsActive(student.id!!, currentSession.id!!, true)
+                if (currentSession != null && currentTerm != null) {
+                    // Fetch student's enrollments for the current session and term
+                    val enrollments = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(student.id!!, currentSession.id!!, currentTerm.id!!, true)
                     val enrolledClasses = enrollments.map { it.schoolClass }
                     val classIds = enrolledClasses.map { it.id!! }
                     
@@ -111,17 +112,11 @@ class StudentDashboardController(
                     model.addAttribute("subjectCount", enrolledClasses.sumOf { it.subjectAssignments.size })
                     model.addAttribute("upcomingExams", trackGroups.values.sumOf { (it["upcoming"] as List<*>).size })
 
-                    // E-Learner Context
-                    val currentTerm = termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(schoolId, true, true).orElse(null)
-                    if (currentTerm != null) {
-                        val weeksBetween = java.time.temporal.ChronoUnit.WEEKS.between(currentTerm.startDate, java.time.LocalDate.now())
-                        val currentWeek = (weeksBetween + 1).toInt().coerceAtLeast(1)
-                        model.addAttribute("currentTermNumber", currentTerm.termNumber ?: 1)
-                        model.addAttribute("currentWeekNumber", currentWeek)
-                    } else {
-                        model.addAttribute("currentTermNumber", 1)
-                        model.addAttribute("currentWeekNumber", 1)
-                    }
+                    // E-Learner Context (using already fetched currentTerm)
+                    val weeksBetween = java.time.temporal.ChronoUnit.WEEKS.between(currentTerm.startDate, java.time.LocalDate.now())
+                    val currentWeek = (weeksBetween + 1).toInt().coerceAtLeast(1)
+                    model.addAttribute("currentTermNumber", currentTerm.termNumber ?: 1)
+                    model.addAttribute("currentWeekNumber", currentWeek)
                 } else {
                     model.addAttribute("trackGroups", emptyMap<String, Any>())
                     model.addAttribute("subjectCount", 0)

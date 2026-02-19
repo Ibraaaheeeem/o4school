@@ -97,55 +97,54 @@
                 </div>
             </div>
 
-            <div class="dashboard-grid dashboard-split-grid">
-                <!-- Quick Actions (First for mobile) -->
-                <div class="content-panel quick-actions-panel">
-                    <div class="section-header">
-                        <h2 class="section-title">Quick Actions</h2>
-                    </div>
-                    <div class="actions-grid">
-                        <a href="/admin/school-setup" class="action-card">
-                            <i class="fas fa-cog"></i>
-                            <span>School Setup</span>
-                        </a>
-                        <a th:href="@{/admin/community}" class="action-card">
-                            <i class="fas fa-users"></i>
-                            <span>Community</span>
-                        </a>
-                        <a th:href="@{/admin/academic}" class="action-card">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>Terms, Sessions, Timetable<br>and School Calendar</span>
-                        </a>
-                        <a th:href="@{/admin/financial}" class="action-card">
-                            <i class="fas fa-wallet"></i>
-                            <span>Financial</span>
-                        </a>
-                        <a th:href="@{/admin/assessments}" class="action-card">
-                            <i class="fas fa-file-alt"></i>
-                            <span>Assessments</span>
-                        </a>
-                        <a th:href="@{/admin/assessments/reports}" class="action-card">
-                            <i class="fas fa-chart-pie"></i>
-                            <span>Reports</span>
-                        </a>
-                        <a th:href="@{/admin/dashboard/messaging}" class="action-card">
-                            <i class="fas fa-comment-dots"></i>
-                            <span>Messaging</span>
-                        </a>
-                    </div>
+            <!-- Quick Actions (Full Width) -->
+            <div class="content-panel quick-actions-panel">
+                <div class="section-header">
+                    <h2 class="section-title">Quick Actions</h2>
+                </div>
+                <div class="actions-grid">
+                    <a href="/admin/school-setup" class="action-card">
+                        <i class="fas fa-cog"></i>
+                        <span>School Setup</span>
+                    </a>
+                    <a th:href="@{/admin/community}" class="action-card">
+                        <i class="fas fa-users"></i>
+                        <span>Community</span>
+                    </a>
+                    <a th:href="@{/admin/academic}" class="action-card">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Terms, Sessions, Timetable<br>and School Calendar</span>
+                    </a>
+                    <a th:href="@{/admin/financial}" class="action-card">
+                        <i class="fas fa-wallet"></i>
+                        <span>Financial</span>
+                    </a>
+                    <a th:href="@{/admin/assessments}" class="action-card">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Assessments</span>
+                    </a>
+                    <a th:href="@{/admin/assessments/reports}" class="action-card">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Reports</span>
+                    </a>
+                    <a th:href="@{/admin/dashboard/messaging}" class="action-card">
+                        <i class="fas fa-comment-dots"></i>
+                        <span>Messaging</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity (Full Width) -->
+            <div class="content-panel recent-activity-panel">
+                <div class="section-header">
+                    <h2 class="section-title">Recent Activity</h2>
+                    <a href="#" class="btn btn-outline btn-sm">View All</a>
                 </div>
 
-                <!-- Recent Activity (Second for mobile) -->
-                <div class="content-panel recent-activity-panel">
-                    <div class="section-header">
-                        <h2 class="section-title">Recent Activity</h2>
-                        <a href="#" class="btn btn-outline btn-sm">View All</a>
-                    </div>
-
-                    <div class="activity-list" th:if="${!#lists.isEmpty(recentActivities)}">
-                        <div th:each="activity : ${recentActivities}" class="activity-item">
-                            <div class="activity-icon-wrapper">
-                                <i class="fas" th:classappend="${
+                <div class="activity-list" th:if="${!#lists.isEmpty(recentActivities)}">
+                    <div th:each="activity : ${recentActivities}" class="activity-item">
+                        <div class="activity-icon-wrapper">
+                            <i class="fas" th:classappend="${
                                     activity.activityType.name() == 'USER_CREATED' ? 'fa-user-plus' : 
                                     activity.activityType.name() == 'USER_UPDATED' ? 'fa-user-edit' : 
                                     activity.activityType.name() == 'USER_DELETED' ? 'fa-user-minus' : 
@@ -156,21 +155,19 @@
                                     activity.activityType.name() == 'STAFF_HIRED' ? 'fa-briefcase' : 
                                     activity.activityType.name() == 'PARENT_ADDED' ? 'fa-user-friends' : 'fa-clipboard-list'
                                 }"></i>
-                            </div>
-                            <div class="activity-details">
-                                <h4 th:text="${activity.title}">Activity Title</h4>
-                                <p th:if="${activity.description}" th:text="${activity.description}">Description</p>
-                                <span class="activity-time"
-                                    th:text="${#temporals.format(activity.createdAt, 'MMM dd, HH:mm')}">Time</span>
-                            </div>
+                        </div>
+                        <div class="activity-details">
+                            <h4 th:text="${activity.title}">Activity Title</h4>
+                            <p th:if="${activity.description}" th:text="${activity.description}">Description</p>
+                            <span class="activity-time"
+                                th:text="${#temporals.format(activity.createdAt, 'MMM dd, HH:mm')}">Time</span>
                         </div>
                     </div>
+                </div>
 
-                    <div th:if="${#lists.isEmpty(recentActivities)}" class="empty-state">
-                        <i class="fas fa-clipboard-list"
-                            style="font-size: 2rem; color: #cbd5e0; margin-bottom: 1rem;"></i>
-                        <p>No recent activity found</p>
-                    </div>
+                <div th:if="${#lists.isEmpty(recentActivities)}" class="empty-state">
+                    <i class="fas fa-clipboard-list" style="font-size: 2rem; color: #cbd5e0; margin-bottom: 1rem;"></i>
+                    <p>No recent activity found</p>
                 </div>
             </div>
         </div>
