@@ -1,4 +1,13 @@
 apply plugin: 'org.springframework.boot'
+apply plugin: 'org.graalvm.buildtools.native'
+
+graalvmNative {
+    binaries {
+        main {
+            imageName = '4school'
+        }
+    }
+}
 
 dependencies {
     implementation project(':core')

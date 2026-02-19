@@ -26,6 +26,6 @@ RUN ./gradlew nativeCompile --no-daemon
 
 FROM gcr.io/distroless/static-debian12:latest
 WORKDIR /app
-COPY --from=builder /app/build/native/nativeCompile/4school /app/4school
+COPY --from=builder /app/webapp/build/native/nativeCompile/4school /app/4school
 EXPOSE 8080
 ENTRYPOINT ["/app/4school"]
