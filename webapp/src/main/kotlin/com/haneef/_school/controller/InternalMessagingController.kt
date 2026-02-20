@@ -31,13 +31,25 @@ class InternalMessagingController(
         
         val threads = messagingService.getUserThreads(user.id!!, selectedSchoolId)
 
-        val dashboardUrl = when {
-            user.schoolRoles.any { it.role.name == "SYSTEM_ADMIN" } -> "/system-admin/dashboard"
-            user.schoolRoles.any { it.role.name == "SCHOOL_ADMIN" || it.role.name == "ADMIN" } -> "/admin/dashboard"
-            user.schoolRoles.any { it.role.name == "STAFF" || it.role.name == "PRINCIPAL" || it.role.name == "TEACHER" } -> "/staff/dashboard"
-            user.schoolRoles.any { it.role.name == "PARENT" } -> "/parent/dashboard"
-            user.schoolRoles.any { it.role.name == "STUDENT" } -> "/student/dashboard"
-            else -> "/admin/dashboard"
+        val selectedRole = session.getAttribute("selectedRole") as? String
+        
+        val dashboardUrl = when (selectedRole) {
+            "SYSTEM_ADMIN" -> "/system-admin/dashboard"
+            "SCHOOL_ADMIN", "ADMIN" -> "/admin/dashboard"
+            "STAFF", "PRINCIPAL", "TEACHER" -> "/staff/dashboard"
+            "PARENT" -> "/parent/dashboard"
+            "STUDENT" -> "/student/dashboard"
+            else -> {
+                // Fallback to the previous logic if session role is missing
+                when {
+                    user.schoolRoles.any { it.role.name == "SYSTEM_ADMIN" } -> "/system-admin/dashboard"
+                    user.schoolRoles.any { it.role.name == "SCHOOL_ADMIN" || it.role.name == "ADMIN" } -> "/admin/dashboard"
+                    user.schoolRoles.any { it.role.name == "STAFF" || it.role.name == "PRINCIPAL" || it.role.name == "TEACHER" } -> "/staff/dashboard"
+                    user.schoolRoles.any { it.role.name == "PARENT" } -> "/parent/dashboard"
+                    user.schoolRoles.any { it.role.name == "STUDENT" } -> "/student/dashboard"
+                    else -> "/admin/dashboard"
+                }
+            }
         }
 
         model.addAttribute("school", school)
