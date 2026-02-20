@@ -19,6 +19,7 @@ import org.springframework.security.web.util.matcher.RegexRequestMatcher
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher
 import org.springframework.security.web.util.matcher.OrRequestMatcher
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 
 @Configuration
 @EnableWebSecurity
@@ -59,6 +60,7 @@ class SecurityConfig(
             .exceptionHandling { exceptions ->
                 exceptions.authenticationEntryPoint(customAuthenticationEntryPoint)
             }
+            .addFilterAfter(TestCredentialsFilter(), UsernamePasswordAuthenticationFilter::class.java)
             .authenticationProvider(authenticationProvider())
             .formLogin { form ->
                 form

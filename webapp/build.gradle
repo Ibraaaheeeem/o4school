@@ -22,7 +22,6 @@ graalvmNative {
             
             // General Native Image Args
             buildArgs.add('--no-fallback')
-            buildArgs.add('-H:+TraceClassInitialization')
         }
     }
 }

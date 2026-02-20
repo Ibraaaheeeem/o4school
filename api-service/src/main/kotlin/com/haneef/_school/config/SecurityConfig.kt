@@ -38,6 +38,7 @@ class SecurityConfig(
             }
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterAfter(TestCredentialsFilter(), UsernamePasswordAuthenticationFilter::class.java)
 
         return http.build()
     }
