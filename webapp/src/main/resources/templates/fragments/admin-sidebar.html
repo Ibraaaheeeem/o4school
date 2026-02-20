@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<body>
+    <aside th:fragment="admin-sidebar(activePage)" class="quick-actions-sidebar" id="quickActionsSidebar">
+        <div class="sidebar-brand">
+            <img src="/images/header-logo.svg" alt="4School" style="height: 24px; width: auto;">
+        </div>
+
+        <a th:href="@{/admin/dashboard}" class="quick-action-link"
+            th:classappend="${activePage == 'dashboard' ? 'active' : ''}">
+            <i class="fas fa-th-large"></i>
+            <span>Dashboard</span>
+        </a>
+        <a th:href="@{/admin/school-setup}" class="quick-action-link"
+            th:classappend="${activePage == 'setup' ? 'active' : ''}">
+            <i class="fas fa-cog"></i>
+            <span>School Setup</span>
+        </a>
+        <a th:href="@{/admin/community}" class="quick-action-link"
+            th:classappend="${activePage == 'community' ? 'active' : ''}">
+            <i class="fas fa-users"></i>
+            <span>Community</span>
+        </a>
+        <a th:href="@{/admin/academic}" class="quick-action-link"
+            th:classappend="${activePage == 'academic' ? 'active' : ''}">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Terms, Sessions, Timetable and School Calendar</span>
+        </a>
+        <a th:href="@{/admin/financial}" class="quick-action-link"
+            th:classappend="${activePage == 'financial' ? 'active' : ''}">
+            <i class="fas fa-wallet"></i>
+            <span>Financial</span>
+        </a>
+        <a th:href="@{/admin/assessments}" class="quick-action-link"
+            th:classappend="${activePage == 'assessments' ? 'active' : ''}">
+            <i class="fas fa-file-alt"></i>
+            <span>Assessments</span>
+        </a>
+        <a th:href="@{/admin/assessments/reports}" class="quick-action-link"
+            th:classappend="${activePage == 'reports' ? 'active' : ''}">
+            <i class="fas fa-chart-pie"></i>
+            <span>Reports</span>
+        </a>
+        <a th:href="@{/dashboard/messaging}" class="quick-action-link"
+            th:classappend="${activePage == 'messaging' ? 'active' : ''}" style="position: relative;">
+            <i class="fas fa-envelope"></i>
+            <span>Internal Messages</span>
+            <span id="nav-unread-badge"
+                style="display: none; position: absolute; right: 1rem; background: #ef4444; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.65rem; font-weight: bold;"></span>
+        </a>
+        <a sec:authorize="hasRole('SYSTEM_ADMIN')" th:href="@{/admin/dashboard/whatsapp}" class="quick-action-link"
+            th:classappend="${activePage == 'whatsapp' ? 'active' : ''}">
+            <i class="fab fa-whatsapp"></i>
+            <span>WhatsApp</span>
+        </a>
+
+        <script>
+            // Fetch unread count for global sidebar
+            document.addEventListener("DOMContentLoaded", async () => {
+                try {
+                    const response = await fetch('/dashboard/messaging/unread-count');
+                    const result = await response.json();
+                    if (result && result.count > 0) {
+                        const badge = document.getElementById('nav-unread-badge');
+                        if (badge) {
+                            badge.textContent = result.count;
+                            badge.style.display = 'inline-block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch unread count:", err);
+                }
+            });
+        </script>
+    </aside>
+</body>
+
+</html>

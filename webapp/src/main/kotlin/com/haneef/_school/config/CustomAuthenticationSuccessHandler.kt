@@ -188,9 +188,9 @@ class CustomAuthenticationSuccessHandler(
             return defaultRedirectUrl
         }
         
-        // Don't redirect to login, logout, registration pages, or static resources
-        if (isAuthenticationUrl(originalUrl) || isStaticResource(originalUrl)) {
-            logger.debug("Original URL was authentication-related or static resource: $originalUrl. Using default redirect.")
+        // Don't redirect to login, logout, registration pages, or static resources, or API requests
+        if (isAuthenticationUrl(originalUrl) || isStaticResource(originalUrl) || isApiRequest(originalUrl)) {
+            logger.debug("Original URL was authentication-related, static resource, or API request: $originalUrl. Using default redirect.")
             return defaultRedirectUrl
         }
         
@@ -229,6 +229,10 @@ class CustomAuthenticationSuccessHandler(
                url.endsWith(".ico") || url.endsWith(".svg") ||
                url.endsWith(".woff") || url.endsWith(".woff2") ||
                url.endsWith(".ttf") || url.endsWith(".eot")
+    }
+    
+    private fun isApiRequest(url: String): Boolean {
+        return url.contains("/api/") || url.contains("/actuator/")
     }
     
     private fun hasAccessToUrl(url: String, request: HttpServletRequest): Boolean {

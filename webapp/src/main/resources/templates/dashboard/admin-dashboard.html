@@ -14,45 +14,8 @@
 
     <main class="main-content">
         <div class="dashboard-layout-with-sidebar">
-            <aside class="quick-actions-sidebar" id="quickActionsSidebar">
-                <div class="sidebar-brand">
-                    <img src="/images/header-logo.svg" alt="4School" style="height: 24px; width: auto;">
-                </div>
-                <!-- Toggle Button (Removed to match simple request) -->
-
-                <a href="#" class="quick-action-link active">
-                    <i class="fas fa-th-large"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/admin/school-setup" class="quick-action-link">
-                    <i class="fas fa-cog"></i>
-                    <span>School Setup</span>
-                </a>
-                <a th:href="@{/admin/community}" class="quick-action-link">
-                    <i class="fas fa-users"></i>
-                    <span>Community</span>
-                </a>
-                <a th:href="@{/admin/academic}" class="quick-action-link">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Terms, Sessions, Timetable<br>and School Calendar</span>
-                </a>
-                <a th:href="@{/admin/financial}" class="quick-action-link">
-                    <i class="fas fa-wallet"></i>
-                    <span>Financial</span>
-                </a>
-                <a th:href="@{/admin/assessments}" class="quick-action-link">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Assessments</span>
-                </a>
-                <a th:href="@{/admin/assessments/reports}" class="quick-action-link">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Reports</span>
-                </a>
-                <a th:href="@{/admin/dashboard/messaging}" class="quick-action-link">
-                    <i class="fas fa-comment-dots"></i>
-                    <span>Messaging</span>
-                </a>
-            </aside>
+            <!-- Global Admin Sidebar -->
+            <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='dashboard')}"></div>
 
             <div class="dashboard-main-content">
                 <div class="dashboard-container role-admin" style="padding: 0; max-width: none;">

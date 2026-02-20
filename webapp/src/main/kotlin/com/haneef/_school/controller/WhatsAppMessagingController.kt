@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*
 import java.util.*
 
 @Controller
-@RequestMapping("/admin/dashboard/messaging")
+@RequestMapping("/admin/dashboard/whatsapp")
 @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')")
 class WhatsAppMessagingController(
     private val whatsappService: WhatsAppService,
@@ -226,7 +226,7 @@ class WhatsAppMessagingController(
             }
         }
 
-        return "redirect:/admin/dashboard/messaging?broadcastSent=true&count=${recipients.size}"
+        return "redirect:/admin/dashboard/whatsapp?broadcastSent=true&count=${recipients.size}"
     }
 
     @PostMapping("/schedule-reminder")
@@ -242,7 +242,7 @@ class WhatsAppMessagingController(
         )
         feeReminderScheduleRepository.save(schedule)
         
-        return "redirect:/admin/dashboard/messaging?scheduleSuccess=true"
+        return "redirect:/admin/dashboard/whatsapp?scheduleSuccess=true"
     }
 
     @GetMapping("/templates")

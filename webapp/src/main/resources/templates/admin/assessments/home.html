@@ -21,6 +21,9 @@
     <div th:replace="~{fragments/header :: school-header}"></div>
 
     <main class="main-content setup-layout">
+        <!-- Global Admin Sidebar -->
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='assessments')}"></div>
+
         <!-- Include Assessment Sidebar -->
         <div th:replace="~{fragments/assessment-sidebar :: assessment-sidebar}"></div>
 

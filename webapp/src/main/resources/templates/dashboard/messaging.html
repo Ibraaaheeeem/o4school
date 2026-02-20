@@ -784,7 +784,7 @@
 
         async function loadTemplates() {
             try {
-                const response = await fetch('/admin/dashboard/messaging/templates');
+                const response = await fetch('/admin/dashboard/whatsapp/templates');
                 const html = await response.text();
                 document.getElementById('template-list-content').innerHTML = html;
             } catch (err) {
@@ -802,7 +802,7 @@
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
             try {
-                const response = await fetch('/admin/dashboard/messaging/templates/sync', {
+                const response = await fetch('/admin/dashboard/whatsapp/templates/sync', {
                     method: 'POST',
                     headers: { [csrfHeader]: csrfToken }
                 });
@@ -831,7 +831,7 @@
             element.classList.add('active');
 
             try {
-                const url = `/admin/dashboard/messaging/templates/${id}`;
+                const url = `/admin/dashboard/whatsapp/templates/${id}`;
                 console.log("Fetching template from:", url);
                 const response = await authenticatedFetch(url);
                 console.log("Response status:", response.status);
@@ -878,7 +878,7 @@
             formData.append('mapping', mapping);
 
             try {
-                const response = await authenticatedFetch(`/admin/dashboard/messaging/templates/${id}/mapping`, {
+                const response = await authenticatedFetch(`/admin/dashboard/whatsapp/templates/${id}/mapping`, {
                     method: 'POST',
                     headers: { [csrfHeader]: csrfToken },
                     body: formData
@@ -902,7 +902,7 @@
             if (element) element.classList.add('active');
 
             try {
-                const response = await authenticatedFetch(`/admin/dashboard/messaging/thread/${encodeURIComponent(recipient)}`);
+                const response = await authenticatedFetch(`/admin/dashboard/whatsapp/thread/${encodeURIComponent(recipient)}`);
                 const html = await response.text();
                 document.getElementById('chat-window').innerHTML = html;
                 scrollToBottom();
@@ -933,7 +933,7 @@
 
             sidebarSearchTimeout = setTimeout(async () => {
                 try {
-                    const response = await authenticatedFetch(`/admin/dashboard/messaging/broadcast/search?query=${encodeURIComponent(query)}`);
+                    const response = await authenticatedFetch(`/admin/dashboard/whatsapp/broadcast/search?query=${encodeURIComponent(query)}`);
                     const results = await response.json();
 
                     if (results.length === 0) {
@@ -975,7 +975,7 @@
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
             try {
-                const response = await authenticatedFetch('/admin/dashboard/messaging/reply', {
+                const response = await authenticatedFetch('/admin/dashboard/whatsapp/reply', {
                     method: 'POST',
                     headers: {
                         [csrfHeader]: csrfToken
@@ -1632,7 +1632,7 @@
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
             try {
-                const response = await fetch('/admin/dashboard/messaging/templates', {
+                const response = await fetch('/admin/dashboard/whatsapp/templates', {
                     method: 'POST',
                     headers: { [csrfHeader]: csrfToken },
                     body: formData
@@ -1667,7 +1667,7 @@
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
             try {
-                const response = await fetch(`/admin/dashboard/messaging/templates/${id}`, {
+                const response = await fetch(`/admin/dashboard/whatsapp/templates/${id}`, {
                     method: 'DELETE',
                     headers: { [csrfHeader]: csrfToken }
                 });

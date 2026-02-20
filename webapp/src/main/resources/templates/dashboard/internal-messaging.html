@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSRF Tokens -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+
+    <title>4School - Internal Messaging</title>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <style>
+        .messaging-layout {
+            display: flex;
+            height: calc(100vh - 60px);
+            /* Adjust based on header */
+            background: #f8fafc;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar with threads */
+        .messaging-sidebar {
+            width: 350px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        /* Mobile specific styles */
+        @media (max-width: 768px) {
+            .messaging-sidebar {
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 280px;
+                transform: translateX(-100%);
+                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .messaging-sidebar.show {
+                transform: translateX(0);
+            }
+
+            .messaging-overlay {
+                display: none;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(15, 23, 42, 0.4);
+                backdrop-filter: blur(2px);
+                z-index: 90;
+            }
+
+            .messaging-overlay.show {
+                display: block;
+            }
+
+            .mobile-header {
+                display: flex !important;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.75rem 1rem;
+                background: white;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .desktop-only {
+                display: none !important;
+            }
+        }
+
+        .mobile-header {
+            display: none;
+        }
+
+        .hamburger-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #475569;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .hamburger-btn:hover {
+            background: #f1f5f9;
+        }
+
+        /* Main chat area */
+        .messaging-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+            min-width: 0;
+            /* Important for flex child truncation */
+            position: relative;
+        }
+
+        .sidebar-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+
+        .conversation-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            display: flex;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .conversation-item:hover {
+            background: #f1f5f9;
+        }
+
+        .conversation-item.active {
+            background: #e0e7ff;
+            border-left: 4px solid #4f46e5;
+        }
+
+        .avatar-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #475569;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            font-size: 1.1rem;
+        }
+
+        .conv-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .conv-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conv-last-msg {
+            font-size: 0.8rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-new-message {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        .btn-new-message:hover {
+            background: #4338ca;
+        }
+
+        /* Chat bubbles */
+        .message-bubble {
+            max-width: 70%;
+            padding: 0.75rem 1.25rem;
+            border-radius: 16px;
+            position: relative;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+        }
+
+        .message-bubble.incoming {
+            background: #ffffff;
+            color: #1e293b;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .message-bubble.outgoing {
+            background: #4f46e5;
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
+        }
+
+        .message-meta {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+
+        .empty-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content" style="padding: 0; margin: 0; height: calc(100vh - 60px);">
+        <!-- No Sidebar -> Go straight to the Messaging Layout -->
+        <div class="messaging-layout">
+            <div class="messaging-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+            <!-- Contextual Dashboard Return Link (in sidebar) -->
+            <div class="messaging-sidebar">
+                <div class="sidebar-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+
+                    <a th:href="${dashboardUrl}" class="quick-action-link"
+                        style="display: flex; align-items: center; gap: 8px; color: #64748b; text-decoration: none; font-size: 0.9rem; margin-bottom: 0.5rem; transition: color 0.2s;">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0; font-size: 1.25rem; color: #0f172a;">Messages</h2>
+                        <button class="btn-new-message" onclick="openNewMessageModal()">
+                            <i class="fas fa-pen"></i> New
+                        </button>
+                    </div>
+                </div>
+
+                <div class="conversation-list" id="thread-list-container">
+                    <!-- Loaded via Fragment -->
+                    <div th:replace="~{dashboard/internal-messaging-fragments :: thread-list}"></div>
+                </div>
+            </div>
+
+            <!-- Active Chat Area -->
+            <div class="messaging-main" id="chat-window">
+                <div class="mobile-header">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 style="margin: 0; font-size: 1.1rem; color: #0f172a;">Messages</h2>
+                </div>
+                <div class="empty-chat">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        style="width: 64px; height: 64px; margin-bottom: 1rem; color: #cbd5e1;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <h3 style="margin: 0; font-size: 1.25rem; color: #475569;">Your Messages</h3>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Select a conversation to start reading.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Fragment -->
+    <div th:replace="~{dashboard/internal-messaging-fragments :: new-message-modal}"></div>
+
+    <script th:src="@{/js/dashboard-tabs.js}"></script>
+    <script>
+        // Use full URL or CSRF setup for requests
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+        async function authenticatedFetch(url, options = {}) {
+            if (!options.headers) options.headers = {};
+            options.headers[csrfHeader] = csrfToken;
+            const res = await fetch(url, options);
+            if (res.status === 401 || res.status === 403) {
+                window.location.href = '/login';
+                throw new Error("Authentication required");
+            }
+            return res;
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.messaging-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        async function loadThread(threadId, element) {
+            // UI Update active state
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+
+            try {
+                const response = await authenticatedFetch(`/dashboard/messaging/threads/${threadId}`);
+                if (!response.ok) throw new Error("Failed to load thread");
+
+                const html = await response.text();
+                document.getElementById('chat-window').innerHTML = html;
+                scrollToBottom();
+
+                // Copy subject over cleanly
+                const subject = element.querySelector('.conv-name').innerText;
+                const subjectEl = document.getElementById('active-thread-subject');
+                if (subjectEl) subjectEl.innerText = subject;
+
+                // Clear the badge immediately on frontend
+                const badge = element.querySelector('span[style*="background: #ef4444"]');
+                if (badge) badge.closest('div').remove();
+
+            } catch (err) {
+                console.error(err);
+                alert("Could not load thread. Please try again.");
+            }
+        }
+
+        async function sendReply() {
+            const input = document.getElementById('reply-input');
+            const threadIdInput = document.getElementById('active-thread-id');
+
+            if (!input || !threadIdInput) return;
+
+            const content = input.value.trim();
+            const threadId = threadIdInput.value;
+
+            if (!content || !threadId) return;
+
+            // disable UI while sending
+            input.disabled = true;
+
+            const formData = new FormData();
+            formData.append('content', content);
+
+            try {
+                const response = await authenticatedFetch(`/dashboard/messaging/threads/${threadId}/reply`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    input.value = '';
+                    // Reload thread
+                    loadThread(threadId, document.querySelector(`.conversation-item[data-thread-id="${threadId}"]`));
+                } else {
+                    alert('Error sending message: ' + result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Connection error while sending message.');
+            } finally {
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('message-container');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        async function openNewMessageModal() {
+            document.getElementById('new-message-modal').style.display = 'flex';
+
+            // Fetch eligible contacts
+            try {
+                const response = await authenticatedFetch('/dashboard/messaging/contacts');
+                const contacts = await response.json();
+
+                const select = document.getElementById('recipient-select');
+                select.innerHTML = '<option value="">Select a contact...</option>' +
+                    contacts.map(c => `<option value="${c.id}">${c.name} (${c.role})</option>`).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function closeNewMessageModal(e) {
+            if (!e || e.target.id === 'new-message-modal' || !e.target) {
+                document.getElementById('new-message-modal').style.display = 'none';
+            }
+        }
+
+        async function createNewThread(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-message-btn');
+            btn.disabled = true;
+            btn.innerText = 'Sending...';
+
+            const form = document.getElementById('new-message-form');
+            const formData = new FormData(form);
+
+            try {
+                const response = await authenticatedFetch('/dashboard/messaging/threads', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    closeNewMessageModal();
+                    form.reset();
+                    // Just reload the page to refresh the thread list
+                    window.location.reload();
+                } else {
+                    alert('Error creating message: ' + result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Connection error.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Send Message';
+            }
+        }
+    </script>
+</body>
+
+</html>

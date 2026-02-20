@@ -44,6 +44,15 @@
                 </div>
             </div>
 
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
+                <a th:href="@{/dashboard/messaging}" class="btn btn-primary"
+                    style="display: flex; align-items: center; gap: 0.5rem; position: relative;">
+                    <i class="fas fa-envelope"></i> Messages
+                    <span id="nav-unread-badge"
+                        style="display: none; background: #ef4444; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; margin-left: 0.5rem;"></span>
+                </a>
+            </div>
+
             <!-- Tab Navigation -->
             <div class="tabs-container">
                 <div class="tabs-nav"
@@ -793,6 +802,21 @@
                     financialTabBtn.click();
                 }
             }
+        });
+
+        // Fetch unread count on load if possible
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const response = await fetch('/dashboard/messaging/unread-count');
+                const result = await response.json();
+                if (result && result.count > 0) {
+                    const badge = document.getElementById('nav-unread-badge');
+                    if (badge) {
+                        badge.innerText = result.count;
+                        badge.style.display = 'inline-block';
+                    }
+                }
+            } catch (e) { console.error("Could not fetch unread count"); }
         });
     </script>
     <script th:src="@{/js/dashboard-tabs.js}"></script>

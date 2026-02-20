@@ -18,7 +18,7 @@ graalvmNative {
             buildArgs.add('--initialize-at-run-time=com.fasterxml.jackson.databind.deser.std.FromStringDeserializer$Std')
             
             // Build Time Initializations
-            buildArgs.add('--initialize-at-build-time=org.slf4j')
+            buildArgs.add('--initialize-at-build-time=org.slf4j,ch.qos.logback')
             
             // General Native Image Args
             buildArgs.add('--no-fallback')

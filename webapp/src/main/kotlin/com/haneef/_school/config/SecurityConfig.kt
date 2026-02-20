@@ -48,6 +48,8 @@ class SecurityConfig(
                     .requestMatchers("/select-school", "/select-role").authenticated()
                     .requestMatchers("/system-admin/**").hasRole("SYSTEM_ADMIN")
                     .requestMatchers("/admin/activities/api/**").hasAnyRole("SYSTEM_ADMIN", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF", "TEACHER", "STUDENT", "PARENT")
+                    .requestMatchers("/dashboard/messaging/**").hasAnyRole("SYSTEM_ADMIN", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF", "PARENT")
+                    .requestMatchers("/admin/whatsapp/**").hasRole("SYSTEM_ADMIN")
                     .requestMatchers("/admin/**").hasAnyRole("SYSTEM_ADMIN", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF", "TEACHER")
                     .requestMatchers("/staff/**").hasAnyRole("SYSTEM_ADMIN", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF", "TEACHER")
                     .requestMatchers("/parent/**").hasAnyRole("SYSTEM_ADMIN", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF", "PARENT")
@@ -74,7 +76,7 @@ class SecurityConfig(
             }
             .requestCache { cache ->
                 val requestCache = org.springframework.security.web.savedrequest.HttpSessionRequestCache()
-                val authPaths = listOf("/login", "/register", "/activate-account", "/forgot-password", "/auth/.*", "/favicon.ico", "/\\.well-known/.*")
+                val authPaths = listOf("/login", "/register", "/activate-account", "/forgot-password", "/auth/.*", "/favicon.ico", "/\\.well-known/.*", "/.*api/.*", "/api/.*")
                 val matchers = authPaths.map { RegexRequestMatcher(it, null) }.toMutableList<org.springframework.security.web.util.matcher.RequestMatcher>()
                 matchers.add(RequestHeaderRequestMatcher("HX-Request"))
                 requestCache.setRequestMatcher(NegatedRequestMatcher(OrRequestMatcher(matchers)))
