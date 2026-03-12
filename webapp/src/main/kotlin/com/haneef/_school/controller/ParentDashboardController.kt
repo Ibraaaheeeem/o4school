@@ -145,6 +145,16 @@ class ParentDashboardController(
                 )
                 model.addAttribute("upcomingEvents", upcomingEvents)
             }
+
+            // Fetch explicitly to avoid proxy issues in the template
+            val subscription = try {
+                org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(
+                    (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes() as org.springframework.web.context.request.ServletRequestAttributes).request.servletContext
+                ).getBean(com.haneef._school.repository.SchoolSubscriptionRepository::class.java).findBySchoolId(selectedSchoolId)
+            } catch (e: Exception) {
+                null
+            }
+            model.addAttribute("subscription", subscription)
         }
         
         // Ensure wallet is loaded (it's a OneToOne, so it might be lazy)
@@ -357,19 +367,16 @@ class ParentDashboardController(
         
         if (totalSettled > java.math.BigDecimal.ZERO) {
              model.addAttribute("error", "Payment settings cannot be changed after payments have started.")
-             parentDashboard(model, authentication, request, response)
-             return "dashboard/parent-dashboard :: #payment-settings-container"
-        }
-        
-        if (distributionType == "SEQUENTIAL") {
-            if (childPriority != null && childPriority.isNotEmpty()) {
-                parent.paymentPriorityOrder = childPriority.joinToString(",")
+        } else {
+            if (distributionType == "SEQUENTIAL") {
+                if (childPriority != null && childPriority.isNotEmpty()) {
+                    parent.paymentPriorityOrder = childPriority.joinToString(",")
+                }
             }
+            
+            parentRepository.save(parent)
+            model.addAttribute("success", "Payment settings updated successfully")
         }
-        
-        parentRepository.save(parent)
-        
-        model.addAttribute("success", "Payment settings updated successfully")
         
         // If HTMX request, return only the settings fragment
         // We need to reload the dashboard data to ensure the model has 'parent' with updated settings

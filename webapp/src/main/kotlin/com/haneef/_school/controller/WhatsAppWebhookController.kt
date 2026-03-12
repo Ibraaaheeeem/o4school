@@ -27,6 +27,7 @@ class WhatsAppWebhookController(
 
     @PostMapping
     fun handleIncomingMessage(@RequestBody payload: Map<String, Any>): ResponseEntity<Void> {
+        println("Received WhatsApp Webhook: $payload")
         whatsappService.processWebhook(payload)
         return ResponseEntity.ok().build()
     }

@@ -217,8 +217,27 @@ class WhatsAppTemplateService(
         templateRepository.save(template)
     }
 
-    fun getBroadcastTemplates(schoolId: UUID): List<WhatsAppTemplate> {
-        return templateRepository.findBySchoolIdAndIsForBroadcast(schoolId, true)
+    fun getBroadcastTemplates(schoolId: UUID, recipientType: String? = null, channel: String? = null): List<WhatsAppTemplate> {
+        var templates = templateRepository.findBySchoolIdAndIsForBroadcast(schoolId, true)
+        
+        // Filter by recipientType
+        if (recipientType != null) {
+            if (recipientType == "ALL") {
+                templates = templates.filter { it.targetRole == "GENERAL" }
+            } else {
+                val mappedRole = if (recipientType == "PARENTS") "PARENT" else recipientType
+                templates = templates.filter {
+                    it.targetRole == "GENERAL" || it.targetRole == mappedRole
+                }
+            }
+        }
+
+        // Filter by channel prefix
+        return when (channel?.uppercase()) {
+            "SMS" -> templates.filter { it.templateName?.startsWith("sms_") == true }
+            "WHATSAPP" -> templates.filter { it.templateName?.startsWith("sms_") != true }
+            else -> templates // INTERNAL or null = all templates
+        }
     }
 
     fun markSelectedTemplates(schoolId: UUID, names: List<String>) {

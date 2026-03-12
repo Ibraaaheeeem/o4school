@@ -1,8 +1,8 @@
 <!-- BROADCAST MODAL FRAGMENT -->
-<div th:fragment="broadcast-modal">
-    <div id="broadcast-modal" class="modal-overlay" onclick="closeBroadcastModal(event)">
+<div th:fragment="broadcast-modal(channel, actionUrl, allowFreeForm, unitName)">
+    <div id="broadcast-modal" class="modal" onclick="closeBroadcastModal(event)">
         <div class="modal-content" style="max-width: 850px;" onclick="event.stopPropagation()">
-            <form id="broadcast-form" th:action="@{/admin/dashboard/whatsapp/broadcast}" method="POST">
+            <form id="broadcast-form" th:action="@{${actionUrl}}" method="POST">
                 <!-- Modal Header -->
                 <div class="modal-header">
                     <div>
@@ -27,12 +27,12 @@
                             </svg>
                             AI Smart Filter
                         </div>
-                        <div style="display: flex; gap: 0.75rem;">
+                        <div style="display: flex; gap: 0.75rem;" class="stack-mobile">
                             <input type="text" id="ai-query-input" class="chat-input"
                                 style="flex: 1; border: 1px solid #f9a8d4; border-radius: 12px; height: 44px; background: #fff;"
                                 placeholder="e.g. 'parents who are owing' or 'staff in JSS1'">
                             <button type="button" class="broadcast-pill" onclick="applyAiFilter()"
-                                style="background: #db2777; color: white; border: none; height: 44px; padding: 0 1.5rem; font-weight: 700;">
+                                style="background: #db2777; color: white; border: none; height: 50px; padding: 0 1.5rem; font-weight: 700; border-radius: 12px;">
                                 Apply AI Magic
                             </button>
                         </div>
@@ -44,22 +44,23 @@
                         <!-- Item 1: Recipient Selection & Type (Full Row) -->
                         <div class="category-group">
                             <div class="category-title">1. Recipient Type</div>
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;"
+                                class="grid-2-mobile">
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="ALL"
-                                        onchange="updateRecipientCount()"> All
+                                        onchange="updateRecipientCount(); fetchTemplates()"> All
                                 </label>
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="STAFF"
-                                        onchange="updateRecipientCount()"> Staff
+                                        onchange="updateRecipientCount(); fetchTemplates()"> Staff
                                 </label>
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="PARENTS"
-                                        onchange="updateRecipientCount()"> Parents
+                                        onchange="updateRecipientCount(); fetchTemplates()"> Parents
                                 </label>
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="NONE" checked
-                                        onchange="updateRecipientCount()"> None
+                                        onchange="updateRecipientCount(); fetchTemplates()"> None
                                 </label>
                             </div>
                         </div>
@@ -81,8 +82,8 @@
                                                 <span th:text="${track.name}">Track</span>
                                             </label>
                                         </div>
-                                        <div
-                                            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding-left: 1.5rem;">
+                                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding-left: 1.5rem;"
+                                            class="grid-2-mobile">
                                             <div th:each="cls : ${classes}" th:if="${cls.track?.id == track.id}">
                                                 <label
                                                     style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #475569;">
@@ -131,46 +132,27 @@
                             </div>
                         </div>
 
-                        <!-- Row for Item 2 and Item 3 -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                            <!-- Item 2: Manual Search -->
-                            <div class="category-group">
-                                <div class="category-title">2. Manual Search</div>
-                                <div style="position: relative;">
-                                    <input type="text" id="recipient-search" class="chat-input"
-                                        style="width: 100%; padding-right: 2.5rem; border: 1px solid #e2e8f0; border-radius: 12px; height: 44px; background: #fff;"
-                                        placeholder="Search student or staff name..."
-                                        onkeyup="searchManualRecipients(this.value)">
-                                    <div id="search-results-dropdown"
-                                        style="position: absolute; top: 48px; left: 0; width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50; display: none; max-height: 250px; overflow-y: auto; padding: 0.5rem;">
-                                    </div>
+                        <!-- Item 2: Manual Search (Full Row) -->
+                        <div class="category-group" style="margin-bottom: 1.5rem;">
+                            <div class="category-title">2. Manual Search</div>
+                            <div style="position: relative;">
+                                <input type="text" id="recipient-search" class="chat-input"
+                                    style="width: 100%; padding-right: 2.5rem; border: 1px solid #e2e8f0; border-radius: 12px; height: 44px; background: #fff;"
+                                    placeholder="Search student or staff name..."
+                                    onkeyup="searchManualRecipients(this.value)">
+                                <div id="search-results-dropdown"
+                                    style="position: absolute; top: 48px; left: 0; width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50; display: none; max-height: 250px; overflow-y: auto; padding: 0.5rem;">
                                 </div>
-                                <div id="manual-ids-container"></div>
-                                <div id="excluded-ids-container"></div>
                             </div>
-
-                            <!-- Item 3: Add Unregistered Number -->
-                            <div class="category-group">
-                                <div class="category-title">3. Add Unregistered Number</div>
-                                <div style="display: flex; gap: 0.75rem;">
-                                    <input type="text" id="unregistered-phone" class="chat-input"
-                                        style="flex: 1; border: 1px solid #e2e8f0; border-radius: 12px; height: 44px; background: #fff;"
-                                        placeholder="e.g. 2348012345678">
-                                    <button type="button" class="btn-save" onclick="addUnregisteredRecipient()"
-                                        style="padding: 0 1.5rem; border-radius: 12px; height: 44px; font-weight: 600;">Add</button>
-                                </div>
-                                <p style="font-size: 0.75rem; color: #94a3b8; margin: 0.5rem 0 0 0.25rem;">Country code
-                                    required, no '+' prefix</p>
-                                <div id="manual-phones-container"></div>
-                                <div id="excluded-phones-container"></div>
-                            </div>
+                            <div id="manual-ids-container"></div>
+                            <div id="excluded-ids-container"></div>
                         </div>
 
-                        <!-- Item 4: Recipient Preview (Full Row) -->
+                        <!-- Item 3: Recipient Preview (Full Row) -->
                         <div class="category-group" style="display: flex; flex-direction: column;">
                             <div
                                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                                <div class="category-title" style="margin: 0;">4. Recipient Preview</div>
+                                <div class="category-title" style="margin: 0;">3. Recipient Preview</div>
                                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                                     <button type="button" onclick="clearAllRecipients()"
                                         style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
@@ -210,42 +192,96 @@
                         </div>
                     </div>
 
-                    <!-- Template & Message Section -->
-                    <div style="border-top: 1px solid #f1f5f9; padding-top: 2rem;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
-                            <div class="category-group">
-                                <div class="category-title">5. WhatsApp Template (Optional)</div>
+                    <!-- Template Section -->
+                    <div style="border-top: 1px solid #f1f5f9; padding-top: 2rem;" id="template-section">
+                        <div class="category-group"
+                            th:style="${allowFreeForm ? 'margin-bottom: 2rem;' : 'margin-bottom: 0;'}">
+                            <div class="category-title">4. WhatsApp/SMS Template</div>
+                            <div th:if="${allowFreeForm}"
+                                style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <label
+                                    style="font-size: 0.85rem; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="use-template-checkbox" checked
+                                        onchange="toggleTemplateUsage(this.checked)">
+                                    Use a predefined template
+                                </label>
+                            </div>
+                            <div id="template-selection-area">
                                 <select id="template-selector" name="templateName" class="param-btn"
                                     style="width: 100%; height: 44px; margin-bottom: 1rem;"
                                     onchange="loadTemplateDetails(this.value)">
-                                    <option value="">-- Plain Text Message --</option>
+                                    <option value="">-- Select a Template --</option>
                                 </select>
                                 <div id="template-params-container"
-                                    style="display: none; padding: 1.25rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; margin-bottom: 1rem;">
+                                    style="display: none; padding: 1.25rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px;">
                                     <h4
                                         style="font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-top: 0; margin-bottom: 1rem; letter-spacing: 0.05em;">
                                         Template Content & Parameters</h4>
                                     <div id="template-params-inputs"></div>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <div class="category-title">6. Broadcast Message</div>
-                                <textarea name="message" id="broadcast-message-area" class="chat-input"
-                                    style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; height: 120px; line-height: 1.5; resize: vertical; width: 100%; padding: 1rem;"
-                                    placeholder="Enter your announcement here..." required></textarea>
+                        </div>
+
+                        <!-- Free-form Message Section (Conditional) -->
+                        <div class="category-group" th:if="${allowFreeForm}" id="free-form-section"
+                            style="display: none; margin-bottom: 0;">
+                            <div class="category-title">Free-form Message</div>
+                            <textarea id="free-form-message" name="message" class="chat-input"
+                                placeholder="Type your message here..."
+                                style="width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 12px; height: 120px; padding: 1rem;"></textarea>
+                        </div>
+
+                        <!-- Internal Messaging Integration -->
+                        <div class="category-group"
+                            style="margin-top: 1.5rem; background: #f0f9ff; padding: 1.25rem; border-radius: 16px; border: 1px solid #bae6fd;">
+                            <div class="category-title"
+                                style="color: #0369a1; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-inbox"></i> Internal Messaging
+                            </div>
+                            <label
+                                style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; margin-bottom: 0.5rem; font-weight: 600; color: #0c4a6e;">
+                                <input type="checkbox" name="pushToInternal" value="true"
+                                    onchange="document.getElementById('internal-subject-area').style.display = this.checked ? 'block' : 'none'">
+                                <span>Also send as an internal message</span>
+                            </label>
+                            <p style="font-size: 0.75rem; color: #0284c7; margin: 0 0 1rem 1.75rem;">Recipients will
+                                also receive this message in their school dashboard inbox.</p>
+
+                            <div id="internal-subject-area" style="display: none; margin-left: 1.75rem;">
+                                <div
+                                    style="font-size: 0.8rem; font-weight: 700; color: #0369a1; margin-bottom: 0.4rem;">
+                                    Message Subject (Required)</div>
+                                <input type="text" name="subject" class="chat-input"
+                                    th:placeholder="${channel == 'whatsapp' ? 'WhatsApp Broadcast' : 'SMS Broadcast'}"
+                                    style="width: 100%; height: 40px; border: 1px solid #bae6fd; border-radius: 10px; background: #fff;">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Sticky Footer -->
-                <div class="modal-footer">
-                    <div style="display: flex; gap: 1rem;">
+                <div class="modal-footer"
+                    style="padding: 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1rem;">
+                    <div id="insufficient-units-warning"
+                        style="display: none; background: #fef2f2; border: 1px solid #fecaca; padding: 1rem; border-radius: 12px; align-items: flex-start; gap: 1rem;">
+                        <i class="fas fa-exclamation-triangle"
+                            style="color: #ef4444; font-size: 1.25rem; margin-top: 0.125rem;"></i>
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0; color: #991b1b; font-weight: 700; font-size: 0.95rem;">Insufficient
+                                WhatsApp Units</h4>
+                            <p style="margin: 0.25rem 0 0 0; color: #b91c1c; font-size: 0.85rem; line-height: 1.5;">
+                                You do not have enough WhatsApp units to send this broadcast. Your active balance is
+                                <strong id="warning-balance-display">0</strong>.
+                                Please top up your account.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; width: 100%;" class="stack-mobile">
                         <button type="button" onclick="closeBroadcastModal()" class="btn-save"
-                            style="flex: 1; background: #f1f5f9; color: #475569; border: none; font-weight: 600;">Cancel</button>
-                        <button type="submit" class="btn-save"
-                            style="flex: 2; background: #4f46e5; color: white; border: none; font-weight: 600; font-size: 1rem;">Send
-                            Broadcast Now</button>
+                            style="flex: 1; padding: 0.75rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 14px; font-weight: 600; height: 56px; cursor: pointer; transition: all 0.2s;">Cancel</button>
+                        <button type="submit" id="send-broadcast-btn" class="btn-save"
+                            style="flex: 2; padding: 0.75rem; background: #4f46e5; color: white; border: none; border-radius: 14px; font-weight: 700; height: 56px; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); transition: all 0.2s;">Send
+                            Broadcast</button>
                     </div>
                 </div>
             </form>
@@ -255,30 +291,49 @@
 
 <!-- CONVERSATION LIST FRAGMENT (SIDEBAR) -->
 <div th:fragment="conversation-list">
-    <div th:each="conv : ${conversations}" class="conversation-item" th:attr="data-recipient=${conv.recipientPhone}"
+    <div th:each="conv : ${conversations}" class="conversation-item"
+        th:classappend="${conv.unreadCount > 0 ? 'unread' : ''}"
+        th:attr="data-recipient=${conv.lastMessage.recipientPhone}"
         onclick="loadThread(this.getAttribute('data-recipient'), this)">
         <div class="avatar-circle"
-            th:text="${(conv.user != null && conv.user.fullName != null) ? #strings.substring(conv.user.fullName,0,1) : 'U'}">
+            th:text="${(conv.lastMessage.user != null && conv.lastMessage.user.fullName != null) ? #strings.substring(conv.lastMessage.user.fullName,0,1) : 'U'}"
+            style="width: 44px; height: 44px; font-size: 1rem; flex-shrink: 0;">
             U</div>
         <div class="conv-info">
             <span class="conv-name"
-                th:text="${(conv.user != null && conv.user.fullName != null) ? conv.user.fullName : conv.recipientPhone}">Contact</span>
-            <span class="conv-last-msg" th:text="${conv.content}">Last message content...</span>
+                th:text="${(conv.lastMessage.user != null && conv.lastMessage.user.fullName != null) ? conv.lastMessage.user.fullName + ' (' + conv.lastMessage.recipientPhone + ')' : conv.lastMessage.recipientPhone}">Contact</span>
+            <span class="conv-last-msg" th:text="${conv.lastMessage.content}">Last message content...</span>
         </div>
-        <div style="text-align: right; min-width: 60px;">
-            <span style="font-size: 0.7rem; color: #94a3b8;"
-                th:text="${#temporals.format(conv.createdAt, 'HH:mm')}">12:00</span>
-            <div th:if="${conv.direction.name() == 'OUTGOING'}" style="margin-top: 2px;">
-                <!-- Status Indicators -->
-                <span th:if="${conv.status == 'SENT'}" style="color: #94a3b8; font-size: 0.8rem;">✓</span>
-                <span th:if="${conv.status == 'DELIVERED'}" style="color: #94a3b8; font-size: 0.8rem;">✓✓</span>
-                <span th:if="${conv.status == 'READ'}" style="color: #3b82f6; font-size: 0.8rem;">✓✓</span>
-                <span th:if="${conv.status == 'FAILED'}" style="color: #ef4444; font-size: 0.8rem;">✕</span>
+        <div
+            style="text-align: right; min-width: 52px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+            <span style="font-size: 0.68rem; color: #94a3b8; white-space: nowrap;"
+                th:text="${#temporals.format(conv.lastMessage.createdAt, 'yyyy-MM-dd') == #temporals.format(#temporals.createNow(), 'yyyy-MM-dd') ? #temporals.format(conv.lastMessage.createdAt, 'HH:mm') : #temporals.format(conv.lastMessage.createdAt, 'd MMM')}">12:00</span>
+
+            <!-- Unread Badge -->
+            <div th:if="${conv.unreadCount > 0}" style="margin-top: 2px;">
+                <span
+                    style="background: #ef4444; color: white; padding: 1px 6px; border-radius: 10px; font-size: 0.6rem; font-weight: bold;"
+                    th:text="${conv.unreadCount}">1</span>
+            </div>
+
+            <div th:if="${conv.lastMessage.direction.name() == 'OUTGOING'}">
+                <span th:if="${conv.lastMessage.status == 'SENT'}"
+                    style="color: #94a3b8; font-size: 0.75rem;">&#10003;</span>
+                <span th:if="${conv.lastMessage.status == 'DELIVERED'}"
+                    style="color: #94a3b8; font-size: 0.75rem;">&#10003;&#10003;</span>
+                <span th:if="${conv.lastMessage.status == 'READ'}"
+                    style="color: #60a5fa; font-size: 0.75rem;">&#10003;&#10003;</span>
+                <span th:if="${conv.lastMessage.status == 'FAILED'}"
+                    style="color: #f87171; font-size: 0.75rem;">&#10005;</span>
+            </div>
+            <div th:if="${conv.lastMessage.direction.name() == 'INCOMING' && conv.unreadCount == 0}"
+                style="font-size: 0.72rem; color: #94a3b8;">&#9664;
             </div>
         </div>
     </div>
-    <div th:if="${#lists.isEmpty(conversations)}" style="padding: 2rem; text-align: center; color: #94a3b8;">
-        <p style="font-size: 0.85rem;">No conversations found</p>
+    <div th:if="${#lists.isEmpty(conversations)}" style="padding: 2.5rem 2rem; text-align: center; color: #94a3b8;">
+        <i class="fas fa-comments" style="font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.4;"></i>
+        <p style="font-size: 0.85rem; margin: 0;">No conversations yet</p>
     </div>
 </div>
 
@@ -286,36 +341,50 @@
 <div th:fragment="chat-thread" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
     <div class="chat-header">
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <div class="avatar-circle" th:text="${recipient != null ? #strings.substring(recipient,0,1) : 'U'}">U</div>
+            <button class="chat-hamburger-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="avatar-circle" th:text="${recipient != null ? #strings.substring(recipient,0,1) : 'U'}"
+                style="width: 42px; height: 42px; font-size: 1rem;">U</div>
             <div>
-                <h3 style="margin: 0; font-size: 1.1rem;" th:text="${recipient}">Contact Name</h3>
-                <span style="font-size: 0.8rem; color: #10b981;">• Online</span>
+                <h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: #1e293b;" th:text="${recipient}">Contact
+                    Name</h3>
+                <span style="font-size: 0.75rem; color: #10b981; font-weight: 500;">● Active</span>
             </div>
         </div>
     </div>
     <div id="message-container"
-        style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; background: #f8fafc;">
+        style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; background: #efeae2;">
         <div th:each="msg : ${messages}"
             th:class="${msg.direction.name() == 'OUTGOING' ? 'message-bubble outgoing' : 'message-bubble incoming'}">
             <div th:text="${msg.content}">Message text...</div>
             <div class="message-meta">
-                <span th:text="${#temporals.format(msg.createdAt, 'HH:mm')}">12:00</span>
+                <span
+                    th:text="${#temporals.format(msg.createdAt, 'yyyy-MM-dd') == #temporals.format(#temporals.createNow(), 'yyyy-MM-dd') ? #temporals.format(msg.createdAt, 'HH:mm') : #temporals.format(msg.createdAt, 'd MMM HH:mm')}">12:00</span>
                 <span th:if="${msg.direction.name() == 'OUTGOING'}" class="status-tick">
-                    <span th:if="${msg.status == 'SENT'}">✓</span>
-                    <span th:if="${msg.status == 'DELIVERED'}">✓✓</span>
-                    <span th:if="${msg.status == 'READ'}" style="color: #3b82f6;">✓✓</span>
-                    <span th:if="${msg.status == 'FAILED'}" style="color: #ef4444;">✕</span>
+                    <span th:if="${msg.status == 'SENT'}" style="color: #94a3b8; font-size: 0.8rem;">&#10003;</span>
+                    <span th:if="${msg.status == 'DELIVERED'}"
+                        style="color: #94a3b8; font-size: 0.8rem;">&#10003;&#10003;</span>
+                    <span th:if="${msg.status == 'READ'}"
+                        style="color: #34B7F1; font-size: 0.8rem;">&#10003;&#10003;</span>
+                    <span th:if="${msg.status == 'FAILED'}" style="color: #ef4444; font-size: 0.8rem;">&#10005;</span>
                 </span>
             </div>
         </div>
     </div>
-    <div class="chat-input-area">
-        <div class="input-wrapper">
-            <input type="text" id="reply-input" class="chat-input" placeholder="Type your message..."
-                onkeypress="if(event.key === 'Enter') sendMessage()">
-            <button onclick="sendMessage()" class="btn-send">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+    <div class="chat-input-area"
+        style="padding: 1rem 1.5rem; background: white; border-top: 1px solid rgba(0,0,0,0.05);">
+        <div class="input-wrapper"
+            style="background: #f1f5f9; border-radius: 50px; display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.35rem 0.35rem 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <input type="text" id="reply-input" class="chat-input"
+                style="flex: 1; border: none; background: transparent; outline: none; font-size: 0.9rem; color: #1e293b; padding: 0.5rem 0;"
+                placeholder="Type your message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()" class="btn-send"
+                style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #5b50f4 0%, #4338ca 100%); color: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 3px 10px rgba(79,70,229,0.35);"
+                onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 4px 14px rgba(79,70,229,0.5)'"
+                onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 3px 10px rgba(79,70,229,0.35)'">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                         d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
             </button>
@@ -343,6 +412,9 @@
     <div class="chat-header">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="chat-hamburger-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <div class="avatar-circle" style="background: #f1f5f9; color: #4f46e5;">T</div>
                 <div>
                     <h3 style="margin: 0; font-size: 1.1rem;" th:text="${template.templateName}">Template Name</h3>

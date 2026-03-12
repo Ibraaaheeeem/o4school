@@ -1,6 +1,7 @@
 <!-- THREAD LIST FRAGMENT -->
 <div th:fragment="thread-list">
-    <div th:each="thread : ${threads}" class="conversation-item" th:attr="data-thread-id=${thread.id}"
+    <div th:each="thread : ${threads}" class="conversation-item"
+        th:classappend="${thread.unreadCount > 0 ? 'unread' : ''}" th:attr="data-thread-id=${thread.id}"
         onclick="loadThread(this.getAttribute('data-thread-id'), this)">
         <div class="avatar-circle" style="background: #f1f5f9; color: #4f46e5;"
             th:text="${#strings.substring(thread.otherParticipantName, 0, 1)}">M</div>
@@ -18,7 +19,7 @@
         </div>
         <div style="text-align: right; min-width: 60px;">
             <span style="font-size: 0.7rem; color: #94a3b8;"
-                th:text="${#temporals.format(thread.updatedAt, 'HH:mm')}">12:00</span>
+                th:text="${#temporals.format(thread.updatedAt, 'yyyy-MM-dd') == #temporals.format(#temporals.createNow(), 'yyyy-MM-dd') ? #temporals.format(thread.updatedAt, 'HH:mm') : #temporals.format(thread.updatedAt, 'd MMM')}">12:00</span>
             <div th:if="${thread.unreadCount > 0}" style="margin-top: 4px;">
                 <span
                     style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.65rem; font-weight: bold;"
@@ -36,9 +37,7 @@
     <div class="chat-header" style="border-bottom: 1px solid #e2e8f0; padding: 1rem 1.5rem; background: white;">
         <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <button class="hamburger-btn mobile-header"
-                    style="display: none; padding: 0.5rem; background: none; border: none; font-size: 1.25rem; color: #475569; cursor: pointer;"
-                    onclick="toggleSidebar()">
+                <button class="chat-hamburger-btn" style="margin-right: 0.5rem;" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h3 style="margin: 0; font-size: 1.1rem; color: #0f172a;" id="active-thread-subject">Message Thread</h3>
@@ -58,7 +57,8 @@
 
             <div th:text="${msg.content}">Message text...</div>
             <div class="message-meta">
-                <span th:text="${#temporals.format(msg.createdAt, 'HH:mm')}">12:00</span>
+                <span
+                    th:text="${#temporals.format(msg.createdAt, 'yyyy-MM-dd') == #temporals.format(#temporals.createNow(), 'yyyy-MM-dd') ? #temporals.format(msg.createdAt, 'HH:mm') : #temporals.format(msg.createdAt, 'd MMM HH:mm')}">12:00</span>
             </div>
         </div>
         <div th:if="${#lists.isEmpty(messages)}" class="empty-chat">
@@ -88,7 +88,8 @@
         <div class="modal-content" style="max-width: 600px;" onclick="event.stopPropagation()">
             <form id="new-message-form" onsubmit="createNewThread(event)">
                 <!-- Modal Header -->
-                <div class="modal-header">
+                <div class="modal-header"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0;">
                     <div>
                         <h3 style="margin: 0; font-size: 1.25rem; color: #0f172a;">New Message</h3>
                     </div>
@@ -125,14 +126,202 @@
                     </div>
                 </div>
 
-                <!-- Footer -->
                 <div class="modal-footer"
-                    style="padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 1rem;">
+                    style="padding: 1.5rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 1rem; background: #f8fafc;">
                     <button type="button" onclick="closeNewMessageModal()"
-                        style="padding: 0.5rem 1rem; background: #f1f5f9; color: #475569; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+                        style="padding: 0.75rem 1.5rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Cancel</button>
                     <button type="submit" id="submit-message-btn"
-                        style="padding: 0.5rem 1.5rem; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Send
+                        style="padding: 0.75rem 2rem; background: #4f46e5; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); transition: all 0.2s;">Send
                         Message</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- BROADCAST MODAL FRAGMENT -->
+<div th:fragment="broadcast-modal">
+    <div id="broadcast-modal" class="modal-overlay" onclick="closeBroadcastModal(event)">
+        <div class="modal-content" style="max-width: 850px;" onclick="event.stopPropagation()">
+            <form id="broadcast-form" onsubmit="submitBroadcast(event)">
+                <!-- Modal Header -->
+                <div class="modal-header"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.5rem; color: #0f172a;">Broadcast Internal Message</h3>
+                        <p style="font-size: 0.9rem; color: #64748b; margin: 0.25rem 0 0 0;">Draft and send messages to
+                            multiple recipients at once</p>
+                    </div>
+                    <button type="button" onclick="closeBroadcastModal()"
+                        style="background: #f1f5f9; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.25rem; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center;">&times;</button>
+                </div>
+
+                <!-- Modal Body (Scrollable) -->
+                <div class="modal-body-scroll" style="max-height: 60vh; overflow-y: auto; padding: 1.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
+                        <!-- Item 1: Recipient Selection & Type -->
+                        <div class="category-group">
+                            <div class="category-title"
+                                style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem;">
+                                1. Recipient Type</div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;"
+                                class="grid-2-mobile">
+                                <label class="param-btn"
+                                    style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
+                                    <input type="radio" name="recipientType" value="ALL"
+                                        onchange="updateRecipientCount()"> All
+                                </label>
+                                <label class="param-btn"
+                                    style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
+                                    <input type="radio" name="recipientType" value="STAFF"
+                                        onchange="updateRecipientCount()"> Staff
+                                </label>
+                                <label class="param-btn"
+                                    style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
+                                    <input type="radio" name="recipientType" value="PARENTS"
+                                        onchange="updateRecipientCount()"> Parents
+                                </label>
+                                <label class="param-btn"
+                                    style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
+                                    <input type="radio" name="recipientType" value="NONE" checked
+                                        onchange="updateRecipientCount()"> None
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Academic Filters (Conditional) -->
+                        <div id="academic-filters-section" style="display: none;">
+                            <div class="category-group">
+                                <div class="category-title"
+                                    style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem;">
+                                    Select Classes</div>
+                                <div class="filter-scroll-list"
+                                    style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem; background: #f8fafc;">
+                                    <div th:each="track : ${tracks}"
+                                        style="margin-bottom: 1.25rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                                        <div
+                                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                                            <label
+                                                style="font-weight: 700; font-size: 0.85rem; color: #1e293b; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                <input type="checkbox" class="track-checkbox"
+                                                    th:attr="data-track-id=${track.id}"
+                                                    onchange="toggleTrackClasses(this)">
+                                                <span th:text="${track.name}">Track</span>
+                                            </label>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding-left: 1.5rem;"
+                                            class="grid-2-mobile">
+                                            <div th:each="cls : ${classes}" th:if="${cls.track?.id == track.id}">
+                                                <label
+                                                    style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #475569;">
+                                                    <input type="checkbox" name="classIds" th:value="${cls.id}"
+                                                        class="class-checkbox" th:attr="data-track-id=${track.id}"
+                                                        onchange="syncTrackCheckbox(this); updateRecipientCount()">
+                                                    <span th:text="${cls.className}">Class</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Manual Search -->
+                        <div class="category-group">
+                            <div class="category-title"
+                                style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem;">
+                                2. Manual Search</div>
+                            <div style="position: relative;">
+                                <input type="text" id="recipient-search" class="chat-input"
+                                    style="width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; height: 44px; padding: 0 1rem;"
+                                    placeholder="Search person by name..." onkeyup="searchManualRecipients(this.value)">
+                                <div id="search-results-dropdown"
+                                    style="position: absolute; top: 48px; left: 0; width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50; display: none; max-height: 250px; overflow-y: auto; padding: 0.5rem;">
+                                </div>
+                            </div>
+                            <div id="manual-ids-container"></div>
+                            <div id="excluded-ids-container"></div>
+                        </div>
+
+                        <!-- Recipient Preview -->
+                        <div class="category-group">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <div class="category-title"
+                                    style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8;">
+                                    3. Recipient Preview</div>
+                                <span id="recipient-preview-badge"
+                                    style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Recipients:
+                                    0</span>
+                            </div>
+                            <div
+                                style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; height: 150px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                    <tbody id="preview-list-body">
+                                        <tr>
+                                            <td colspan="2" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                                                No recipients selected</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Message Content -->
+                        <div style="border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
+                            <div class="category-group" style="margin-bottom: 1.5rem;">
+                                <div class="category-title"
+                                    style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem;">
+                                    4. Message Details</div>
+                                <div style="margin-bottom: 1rem;">
+                                    <label
+                                        style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem;">Subject</label>
+                                    <input type="text" name="subject" required class="chat-input"
+                                        style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; padding: 0 1rem;"
+                                        placeholder="Message Subject">
+                                </div>
+                                <div style="margin-bottom: 1rem;">
+                                    <label
+                                        style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem;">Select
+                                        Template (Optional)</label>
+                                    <select id="template-selector" name="templateName" class="param-btn"
+                                        style="width: 100%; height: 40px; background: white; border: 1px solid #e2e8f0; border-radius: 8px;"
+                                        onchange="toggleTemplateMode(this.value)">
+                                        <option value="">-- Use Free-form Message --</option>
+                                    </select>
+                                </div>
+                                <div id="free-form-message-area">
+                                    <label
+                                        style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem;">Message
+                                        Content</label>
+                                    <textarea name="message" class="chat-input"
+                                        style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; min-height: 120px; padding: 1rem;"
+                                        placeholder="Write your message here..."></textarea>
+                                </div>
+                                <div id="template-preview-area" style="display: none; margin-bottom: 1.5rem;">
+                                    <div class="category-title"
+                                        style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem;">
+                                        Template Preview & Variable Inputs</div>
+                                    <div id="template-text-display"></div>
+                                    <div id="template-params-inputs"></div>
+                                    <p
+                                        style="margin-top: 0.75rem; font-size: 0.75rem; color: #0369a1; font-style: italic;">
+                                        * Blue underlined fields require manual input. Gray fields (like name, date) are
+                                        automatically populated.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer"
+                    style="padding: 1.5rem; border-top: 1px solid #e2e8f0; display: flex; gap: 1rem; background: #f8fafc;">
+                    <button type="button" onclick="closeBroadcastModal()"
+                        style="flex: 1; padding: 0.75rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; height: 56px; cursor: pointer; transition: all 0.2s;">Cancel</button>
+                    <button type="submit" id="send-broadcast-btn"
+                        style="flex: 2; padding: 0.75rem; background: #4f46e5; color: white; border: none; border-radius: 12px; font-weight: 700; height: 56px; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); transition: all 0.2s;">Send
+                        Broadcast</button>
                 </div>
             </form>
         </div>

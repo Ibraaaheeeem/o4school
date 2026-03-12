@@ -7,7 +7,21 @@
     <title>4School - Messaging Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
-    <style>
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- CSRF Tokens -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <style th:fragment="style">
+        :root {
+            --primary-color: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #eef2ff;
+            --bubble-out-bg: #e7ffdb;
+            --chat-bg: #efeae2;
+            --avatar-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
         .messaging-container {
             display: flex;
             height: calc(100vh - 120px);
@@ -34,7 +48,7 @@
         .inline-param-input {
             display: inline-block;
             border: none;
-            border-bottom: 2px solid #4f46e5 !important;
+            border-bottom: 2px solid var(--primary-color) !important;
             background: #f1f5f9 !important;
             padding: 0 8px !important;
             margin: 0 4px !important;
@@ -42,15 +56,15 @@
             font-size: 0.9rem;
             width: 130px;
             height: 28px !important;
-            color: #4338ca;
+            color: var(--primary-dark);
             font-weight: 600;
             transition: all 0.2s;
         }
 
         .inline-param-input:focus {
             outline: none;
-            background: #e0e7ff !important;
-            border-bottom-color: #1e1b4b !important;
+            background: var(--primary-light) !important;
+            border-bottom-color: var(--primary-dark) !important;
         }
 
         /* Sidebar: Conversation List */
@@ -63,8 +77,11 @@
         }
 
         .sidebar-header {
-            padding: 1.5rem;
+            padding: 1.25rem 1.25rem 1rem;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
         .sidebar-header h2 {
@@ -89,22 +106,18 @@
         }
 
         .conversation-item:hover {
-            background: rgba(79, 70, 229, 0.05);
-        }
-
-        .conversation-item:hover {
-            background: #f8fafc;
+            background: #f1f5f9;
         }
 
         .conversation-item.active {
-            background: #f1f5f9;
-            border-left: 3px solid #4f46e5;
+            background: linear-gradient(90deg, var(--primary-light) 0%, #f8fafc 100%);
+            border-left: 3px solid var(--primary-color);
         }
 
         .avatar-circle {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            background: var(--avatar-gradient);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -161,9 +174,7 @@
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            background: #f8fafc;
-            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 20px 20px;
+            background: var(--chat-bg);
         }
 
         .message-bubble {
@@ -178,25 +189,35 @@
 
         .message-bubble.outgoing {
             align-self: flex-end;
-            background: #4f46e5;
-            color: white;
+            background: var(--bubble-out-bg);
+            color: #111b21;
             border-bottom-right-radius: 4px;
+            border: none;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .message-bubble.incoming {
             align-self: flex-start;
             background: white;
-            color: #1e293b;
-            border: 1px solid #e2e8f0;
+            color: #111b21;
+            border: none;
             border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .msg-time {
-            font-size: 0.7rem;
-            margin-top: 0.35rem;
-            display: block;
+            font-size: 0.65rem;
             opacity: 0.8;
-            text-align: right;
+        }
+
+        .message-meta {
+            font-size: 0.65rem;
+            color: #667781;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-top: 4px;
         }
 
         .chat-input-area {
@@ -227,7 +248,7 @@
             width: 45px;
             height: 45px;
             border-radius: 50%;
-            background: #4f46e5;
+            background: var(--primary-color);
             color: white;
             border: none;
             display: flex;
@@ -239,7 +260,56 @@
 
         .btn-send:hover {
             transform: scale(1.05);
-            background: #4338ca;
+            background: var(--primary-dark);
+        }
+
+        /* Mobile structure */
+        @media (max-width: 768px) {
+            .chat-sidebar {
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 280px;
+                transform: translateX(-100%);
+                z-index: 1000;
+                transition: transform 0.3s ease;
+                box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+                background: white;
+            }
+
+            .chat-sidebar.show {
+                transform: translateX(0);
+            }
+
+            .chat-main {
+                width: 100%;
+            }
+
+            .mobile-header {
+                display: flex !important;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.75rem 1rem;
+                background: white;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            }
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
         }
 
         .empty-chat {
@@ -393,7 +463,7 @@
 
         .param-btn input[type="radio"],
         .param-btn input:checked+span {
-            color: #4f46e5;
+            color: var(--primary-color);
         }
 
         /* Recipient Table Styles */
@@ -415,15 +485,15 @@
 
         .param-btn input[type="radio"],
         .param-btn input[type="checkbox"] {
-            accent-color: #4f46e5;
+            accent-color: var(--primary-color);
             width: 16px;
             height: 16px;
         }
 
         .param-btn:has(input:checked) {
-            background: #eef2ff;
-            border-color: #4f46e5;
-            color: #4f46e5;
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
         }
 
         /* Custom Scrollbar for Filter Lists */
@@ -558,111 +628,566 @@
                 opacity: 1;
             }
         }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Broadcast items in Messages tab */
+        .broadcast-item {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: background 0.15s, border-left 0.15s;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .broadcast-item:hover {
+            background: #f1f5f9;
+        }
+
+        .broadcast-item.active {
+            background: linear-gradient(90deg, #eef2ff 0%, #f8fafc 100%);
+            border-left: 3px solid #4f46e5;
+        }
+
+        /* Scrollbar styles for sidebar and message list */
+        .conversation-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .conversation-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .conversation-list::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+
+        .conversation-list::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        /* Message meta styles for timestamp and ticks */
+        .message-meta {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-top: 4px;
+            opacity: 0.85;
+        }
+
+        .message-meta span {
+            font-size: 0.7rem;
+        }
+
+        .message-bubble.outgoing .message-meta span {
+            color: #6366f1;
+        }
+
+        .message-bubble.incoming .message-meta span {
+            color: #94a3b8;
+        }
+
+        .status-sent {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-delivered {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-pending {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .broadcast-item {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .broadcast-item:hover {
+            background: #f8fafc;
+        }
+
+        .broadcast-item.active {
+            background: #f1f5f9;
+            border-left: 4px solid #4f46e5;
+        }
+
+        /* Date Filter Styles */
+        .date-filter-container {
+            padding: 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .date-presets {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .date-preset-btn {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .date-preset-btn.active {
+            background: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+
+        .custom-date-range {
+            display: none;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .custom-date-range.active {
+            display: flex;
+        }
+
+        .date-input {
+            padding: 4px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            outline: none;
+        }
+
+        /* ==================================
+           MOBILE MESSAGING STYLES
+        ================================== */
+
+        /* Page header action bar — wraps on mobile */
+        .msg-page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+
+        .msg-page-header-title h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .msg-page-header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        /* Units balance badge */
+        .units-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        /* Action pill buttons (Broadcast, Buy Units) */
+        .broadcast-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            background: var(--primary-color, #4f46e5);
+            color: white;
+        }
+
+        .broadcast-pill:hover {
+            filter: brightness(1.08);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Internal-messaging specific action bar */
+        .internal-action-bar {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .internal-action-bar .btn-new-message {
+            padding: 0.65rem 1.4rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            font-size: 0.9rem;
+        }
+
+        /* Hamburger button inside chat-main to toggle conversation list */
+        .chat-hamburger-btn {
+            display: none;
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #475569;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-hamburger-btn:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        /* Mobile header bar inside chat-main */
+        .mobile-header {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 10;
+        }
+
+        /* ---- RESPONSIVE BREAKPOINTS ---- */
+        @media (max-width: 768px) {
+
+            /* Page header wraps cleanly */
+            .msg-page-header {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+                margin-top: 1rem !important;
+                margin-bottom: 1.5rem;
+            }
+
+            /* Visibility and color now handled by global setup-layout h1 rule */
+
+            .msg-page-header-actions {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 0.5rem;
+            }
+
+            .units-badge {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .broadcast-pill {
+                padding: 0.5rem 0.9rem;
+                font-size: 0.8rem;
+                border-radius: 10px;
+            }
+
+            .broadcast-pill span.pill-label {
+                display: none;
+                /* hide text, keep icon on very small screens */
+            }
+
+            /* Internal action bar on mobile */
+            .internal-action-bar {
+                padding: 0.75rem 1rem;
+                gap: 0.5rem;
+                border-radius: 12px 12px 0 0;
+            }
+
+            .internal-action-bar .btn-new-message {
+                padding: 0.55rem 1rem;
+                font-size: 0.82rem;
+                border-radius: 10px;
+            }
+
+            /* Conversation sidebar becomes a slide-out drawer */
+            .chat-sidebar {
+                position: fixed !important;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 300px !important;
+                max-width: 85vw;
+                transform: translateX(-110%);
+                z-index: 1200;
+                transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 6px 0 20px rgba(0, 0, 0, 0.15);
+                background: white !important;
+                overflow-y: auto;
+            }
+
+            .chat-sidebar.show {
+                transform: translateX(0);
+            }
+
+            /* Main chat takes full width */
+            .chat-main {
+                width: 100% !important;
+                position: relative;
+            }
+
+            /* Show mobile header hamburger bar */
+            .mobile-header {
+                display: flex !important;
+            }
+
+            /* Show the hamburger button inside chat-main */
+            .chat-hamburger-btn {
+                display: flex;
+            }
+
+            /* Overlay behind drawer */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.45);
+                backdrop-filter: blur(3px);
+                z-index: 1100;
+                transition: opacity 0.3s;
+            }
+
+            .sidebar-overlay.show,
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .broadcast-pill {
+                padding: 0.45rem 0.75rem;
+                font-size: 0.78rem;
+                gap: 0.35rem;
+            }
+
+            .units-badge {
+                font-size: 0.75rem;
+                padding: 0.35rem 0.65rem;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div th:replace="~{fragments/header :: school-header}"></div>
 
-    <main class="main-content">
-        <div class="dashboard-container" style="max-width: 1400px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <div>
-                    <h1 style="font-size: 1.75rem; margin-bottom: 0.25rem;">WhatsApp Service</h1>
-                    <p class="text-secondary" th:text="${school?.name}">School Name</p>
-                </div>
-                <div style="display: flex; gap: 1rem;">
-                    <button class="broadcast-pill" onclick="showBroadcastModal()">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                        </svg>
-                        Broadcast
-                    </button>
-                    <button class="broadcast-pill"
-                        style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;"
-                        onclick="showSettingsModal()">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                        </svg>
-                        Reminders
-                    </button>
-                </div>
-            </div>
+    <main class="main-content setup-layout">
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='messaging')}"></div>
 
-            <div class="messaging-container">
-                <!-- Sidebar -->
-                <div class="chat-sidebar">
-                    <div class="sidebar-header" style="flex-direction: column; gap: 0.75rem; padding: 1rem 1.25rem;">
-                        <div style="display: flex; gap: 1rem;">
-                            <h2 id="tab-conv" class="active-tab" onclick="switchTab('conversations')"
-                                style="cursor: pointer;">Conversations</h2>
-                            <h2 id="tab-temp" class="inactive-tab" onclick="switchTab('templates')"
-                                style="cursor: pointer; opacity: 0.5;">Templates</h2>
+        <div class="setup-content">
+            <div class="dashboard-container" style="max-width: 1400px; padding: 0;">
+
+                <!-- Page Header -->
+                <div class="msg-page-header">
+                    <div class="msg-page-header-title">
+                        <h1>WhatsApp Service</h1>
+                        <p class="text-secondary" th:text="${school?.name}">School Name</p>
+                    </div>
+                    <div class="msg-page-header-actions">
+                        <div class="units-badge"
+                            style="background: #ecfdf5; border: 1px solid #10b981; color: #065f46;">
+                            <i class="fab fa-whatsapp" style="color: #10b981; font-size: 1.1rem;"></i>
+                            <span><span th:text="${#numbers.formatInteger(whatsappBalance, 0, 'COMMA')}">0</span>
+                                Units</span>
                         </div>
-                        <div id="sidebar-search-container" style="position: relative;">
-                            <input type="text" id="sidebar-recipient-search" class="chat-input"
-                                style="width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; height: 36px; padding-left: 2rem; font-size: 0.85rem; background: #f8fafc;"
-                                placeholder="Search contacts..." onkeyup="searchSidebarRecipients(this.value)">
-                            <svg style="position: absolute; left: 10px; top: 10px; color: #94a3b8; width: 16px; height: 16px;"
-                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button class="broadcast-pill" onclick="showBroadcastModal()" style="background: #4f46e5;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                             </svg>
-                        </div>
+                            <span class="pill-label">Broadcast</span>
+                        </button>
+                        <button class="broadcast-pill"
+                            style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;"
+                            data-type="WHATSAPP_SUB_ORDER" data-label="WhatsApp Units" data-default="1000"
+                            th:data-rate="${whatsappSubRate}"
+                            onclick="openPurchaseModal(this.getAttribute('data-type'), this.getAttribute('data-label'), this.getAttribute('data-default'), this.getAttribute('data-rate'))">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="pill-label">Buy Units</span>
+                        </button>
                     </div>
-                    <div id="sidebar-search-results" class="conversation-list"
-                        style="display: none; border-bottom: 2px solid #e2e8f0;"></div>
-                    <div id="conversation-list-container" class="conversation-list">
-                        <div th:replace="~{dashboard/messaging-fragments :: conversation-list}"></div>
+                </div>
+
+                <!-- Validation Error Alert -->
+                <div th:if="${param.broadcastError != null and param.broadcastError[0] == 'insufficient_units'}"
+                    style="margin-bottom: 1.5rem; background: #fef2f2; border: 1px solid #fecaca; padding: 1rem; border-radius: 12px; display: flex; align-items: flex-start; gap: 1rem;">
+                    <i class="fas fa-exclamation-triangle"
+                        style="color: #ef4444; font-size: 1.25rem; margin-top: 0.125rem;"></i>
+                    <div>
+                        <h4 style="margin: 0; color: #991b1b; font-weight: 600;">Insufficient WhatsApp Units</h4>
+                        <p style="margin: 0.25rem 0 0 0; color: #b91c1c; font-size: 0.9rem;">
+                            You do not have enough WhatsApp units to send this broadcast. Your active balance is <strong
+                                th:text="${#numbers.formatInteger(whatsappBalance, 0, 'COMMA')}"></strong>.
+                            Please visit <a th:href="@{/admin/school-setup/subscriptions}"
+                                style="color: #dc2626; font-weight: 600; text-decoration: underline;">Subscriptions &
+                                Billing</a> to top up your account.
+                        </p>
                     </div>
-                    <div id="template-list-container" class="conversation-list" style="display: none;">
-                        <div
-                            style="padding: 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-                            <span style="font-size: 0.8rem; font-weight: 700; color: #1e293b;">WhatsApp Templates</span>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button onclick="newTemplate()" class="broadcast-pill"
-                                    style="padding: 6px 12px; font-size: 0.75rem; background: #10b981; color: white; border-color: #059669;">
-                                    + New
-                                </button>
-                                <button onclick="syncTemplates()" class="broadcast-pill"
-                                    style="padding: 6px 12px; font-size: 0.75rem; background: #4f46e5; color: white; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
-                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        style="margin-right: 4px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                    Sync
+                </div>
+
+                <div th:if="${param.broadcastSent}"
+                    style="margin-bottom: 1.5rem; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem;">
+                    <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.25rem;"></i>
+                    <div>
+                        <p style="margin: 0; color: #065f46; font-size: 0.9rem; font-weight: 500;">
+                            Broadcast queued successfully! Estimated <strong th:text="${param.count}"></strong> messages
+                            sent and deducted from your balance.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="messaging-container" style="position: relative;">
+                    <!-- Overlay to close drawer when tapping outside -->
+                    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+                    <!-- Sidebar -->
+                    <div class="chat-sidebar">
+                        <div class="sidebar-header">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                    <h2 id="tab-conv" class="active-tab" onclick="switchTab('conversations')"
+                                        style="cursor: pointer; font-size: 1rem; margin: 0;">Conversations</h2>
+                                    <h2 id="tab-msg" class="inactive-tab" onclick="switchTab('messages')"
+                                        style="cursor: pointer; font-size: 1rem; margin: 0; opacity: 0.45;">Messages
+                                    </h2>
+                                </div>
+                                <button onclick="manualSync()" title="Refresh messages"
+                                    style="background: none; border: none; cursor: pointer; color: #4f46e5; padding: 0.4rem; border-radius: 50%; transition: transform 0.2s, background 0.2s;"
+                                    onmouseenter="this.style.background='#eef2ff'"
+                                    onmouseleave="this.style.background='none'">
+                                    <i class="fas fa-sync-alt" id="sync-icon" style="font-size: 0.9rem;"></i>
                                 </button>
                             </div>
+                            <div style="position: relative; display: flex; align-items: center;">
+                                <i class="fas fa-search"
+                                    style="position: absolute; left: 11px; color: #94a3b8; font-size: 0.8rem; pointer-events: none;"></i>
+                                <input type="text" id="sidebar-recipient-search"
+                                    style="width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 10px; height: 36px; padding: 0 1rem 0 2.25rem; font-size: 0.85rem; background: #f8fafc; outline: none; transition: border-color 0.2s;"
+                                    onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e2e8f0'"
+                                    placeholder="Search contacts..." onkeyup="searchSidebarRecipients(this.value)">
+                            </div>
                         </div>
-                        <div id="template-list-content">
-                            <!-- Template list fragment will be loaded here -->
+                        <div id="sidebar-search-results" class="conversation-list"
+                            style="display: none; border-bottom: 2px solid #e2e8f0;"></div>
+                        <div id="conversation-list-container" class="conversation-list">
+                            <div th:replace="~{dashboard/messaging-fragments :: conversation-list}"></div>
+                        </div>
+                        <div id="template-list-container" class="conversation-list" style="display: none;">
+                            <div
+                                style="padding: 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                                <span style="font-size: 0.8rem; font-weight: 700; color: #1e293b;">WhatsApp
+                                    Templates</span>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <!-- Buttons removed by request -->
+                                </div>
+                            </div>
+                            <div id="template-list-content">
+                                <!-- Template list fragment will be loaded here -->
+                            </div>
+                        </div>
+                        <div id="messages-list-container" class="conversation-list" style="display: none;">
+                            <div class="date-filter-container">
+                                <div class="date-presets">
+                                    <button class="date-preset-btn active"
+                                        onclick="setDateFilter('today', this)">Today</button>
+                                    <button class="date-preset-btn" onclick="setDateFilter('week', this)">Last
+                                        Week</button>
+                                    <button class="date-preset-btn" onclick="setDateFilter('month', this)">Last
+                                        Month</button>
+                                    <button class="date-preset-btn"
+                                        onclick="setDateFilter('custom', this)">Custom</button>
+                                </div>
+                                <div id="custom-date-range" class="custom-date-range">
+                                    <input type="date" id="history-start-date" class="date-input"
+                                        onchange="loadBroadcasts()">
+                                    <span style="font-size: 0.75rem; color: #94a3b8;">to</span>
+                                    <input type="date" id="history-end-date" class="date-input"
+                                        onchange="loadBroadcasts()">
+                                </div>
+                            </div>
+                            <div id="broadcast-list">
+                                <div style="padding: 2rem; text-align: center; color: #64748b;">
+                                    <i class="fas fa-spinner fa-spin" style="margin-bottom: 1rem;"></i>
+                                    <p>Loading broadcasts...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Chat Area -->
-                <div class="chat-main" id="chat-window">
-                    <div class="empty-chat">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <h3>Select a conversation</h3>
-                        <p>Choose a parent from the list to start messaging or view history.</p>
+                    <!-- Chat Area -->
+                    <div class="chat-main" id="chat-window">
+                        <!-- Mobile Header: hamburger to open conversation list -->
+                        <div class="mobile-header">
+                            <button class="chat-hamburger-btn" onclick="toggleSidebar()"
+                                aria-label="Open conversations">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <h2 style="margin: 0; font-size: 1.1rem; color: #0f172a; font-weight: 700;">Conversations
+                            </h2>
+                        </div>
+                        <div class="empty-chat">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <h3>Select a conversation</h3>
+                            <p>Choose a parent from the list to start messaging or view history.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Include Broadcast Modal -->
-        <div th:replace="~{dashboard/messaging-fragments :: broadcast-modal}"></div>
+            <!-- Include Broadcast Modal -->
+            <div
+                th:replace="~{dashboard/messaging-fragments :: broadcast-modal(channel='whatsapp', actionUrl='/admin/dashboard/whatsapp/broadcast', allowFreeForm=false, unitName='WhatsApp Units')}">
+            </div>
     </main>
 
     <!-- Variable Picker Modal -->
-    <div id="variable-picker-modal" class="modal-overlay" onclick="closeVariablePicker(event)">
+    <div id="variable-picker-modal" class="modal" onclick="closeVariablePicker(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3 style="margin: 0; font-size: 1.25rem;">Insert Variable</h3>
@@ -670,73 +1195,91 @@
                     style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
             </div>
 
-            <div class="category-group">
-                <div class="category-title">Personal</div>
-                <div class="param-grid">
-                    <button class="param-btn" onclick="selectVariable('student_name', 'Student Name')">Student
-                        Name</button>
-                    <button class="param-btn" onclick="selectVariable('parent_name', 'Parent Name')">Parent
-                        Name</button>
-                    <button class="param-btn" onclick="selectVariable('staff_name', 'Staff Name')">Staff Name</button>
+            <div th:fragment="variable-picker-content">
+                <div class="category-group">
+                    <div class="category-title">Personal</div>
+                    <div class="param-grid">
+                        <button class="param-btn" onclick="selectVariable('student_name', 'Student Name')">Student
+                            Name</button>
+                        <button class="param-btn" onclick="selectVariable('parent_name', 'Parent Name')">Parent
+                            Name</button>
+                        <button class="param-btn" onclick="selectVariable('staff_name', 'Staff Name')">Staff
+                            Name</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="category-group">
-                <div class="category-title">Academic & General</div>
-                <div class="param-grid">
-                    <button class="param-btn" onclick="selectVariable('class_name', 'Class Name')">Class Name</button>
-                    <button class="param-btn" onclick="selectVariable('students', 'Children & Classes')">Children &
-                        Classes</button>
-                    <button class="param-btn" onclick="selectVariable('cadre', 'Cadre')">Cadre</button>
-                    <button class="param-btn" onclick="selectVariable('school_name', 'School Name')">School
-                        Name</button>
-                    <button class="param-btn" onclick="selectVariable('current_session', 'Current Session')">Current
-                        Session</button>
-                    <button class="param-btn" onclick="selectVariable('current_term', 'Current Term')">Current
-                        Term</button>
-                    <button class="param-btn" onclick="selectVariable('academic_year', 'Academic Year')">Academic
-                        Year</button>
-                    <button class="param-btn" onclick="selectVariable('term_number', 'Term Number')">Term
-                        Number</button>
-                    <button class="param-btn" onclick="selectVariable('school_contact', 'School Phone')">School
-                        Phone</button>
-                    <button class="param-btn" onclick="selectVariable('date', 'Date')">Date</button>
-                    <button class="param-btn"
-                        onclick="selectVariable('commencement_info', 'Commencement Info')">Commencement Info</button>
+                <div class="category-group">
+                    <div class="category-title">Academic & General</div>
+                    <div class="param-grid">
+                        <button class="param-btn" onclick="selectVariable('class_name', 'Class Name')">Class
+                            Name</button>
+                        <button class="param-btn" onclick="selectVariable('students', 'Children & Classes')">Children &
+                            Classes</button>
+                        <button class="param-btn" onclick="selectVariable('cadre', 'Cadre')">Cadre</button>
+                        <button class="param-btn" onclick="selectVariable('school_name', 'School Name')">School
+                            Name</button>
+                        <button class="param-btn" onclick="selectVariable('current_session', 'Current Session')">Current
+                            Session</button>
+                        <button class="param-btn" onclick="selectVariable('current_term', 'Current Term')">Current
+                            Term</button>
+                        <button class="param-btn" onclick="selectVariable('academic_year', 'Academic Year')">Academic
+                            Year</button>
+                        <button class="param-btn" onclick="selectVariable('term_number', 'Term Number')">Term
+                            Number</button>
+                        <button class="param-btn" onclick="selectVariable('school_contact', 'School Phone')">School
+                            Phone</button>
+                        <button class="param-btn" onclick="selectVariable('date', 'Date')">Date</button>
+                        <button class="param-btn"
+                            onclick="selectVariable('commencement_info', 'Commencement Info')">Commencement
+                            Info</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="category-group">
-                <div class="category-title">Financial</div>
-                <div class="param-grid">
-                    <button class="param-btn" onclick="selectVariable('current_bill', 'Current Bill')">Current
-                        Bill</button>
-                    <button class="param-btn" onclick="selectVariable('settled_bill', 'Paid So Far')">Paid So
-                        Far</button>
-                    <button class="param-btn" onclick="selectVariable('outstanding', 'Historical Debt')">Historical
-                        Debt</button>
-                    <button class="param-btn" onclick="selectVariable('balance', 'Net Balance')">Net Balance</button>
-                    <button class="param-btn" onclick="selectVariable('total_bill', 'Total Bill')">Total Bill</button>
-                    <button class="param-btn" onclick="selectVariable('due_date', 'Due Date')">Due Date</button>
-                    <button class="param-btn" onclick="selectVariable('dedicated_account', 'Account Details')">Account
-                        Details</button>
+                <div class="category-group">
+                    <div class="category-title">Financial</div>
+                    <div class="param-grid">
+                        <button class="param-btn" onclick="selectVariable('current_bill', 'Current Bill')">Current
+                            Bill</button>
+                        <button class="param-btn" onclick="selectVariable('settled_bill', 'Paid So Far')">Paid So
+                            Far</button>
+                        <button class="param-btn" onclick="selectVariable('outstanding', 'Historical Debt')">Historical
+                            Debt</button>
+                        <button class="param-btn" onclick="selectVariable('balance', 'Net Balance')">Net
+                            Balance</button>
+                        <button class="param-btn" onclick="selectVariable('total_bill', 'Total Bill')">Total
+                            Bill</button>
+                        <button class="param-btn" onclick="selectVariable('due_date', 'Due Date')">Due Date</button>
+                        <button class="param-btn"
+                            onclick="selectVariable('dedicated_account', 'Account Details')">Account
+                            Details</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="category-group" style="margin-bottom: 0;">
-                <div class="category-title">Other</div>
-                <div class="param-grid">
-                    <button class="param-btn" onclick="selectCustomVariable()"
-                        style="grid-column: span 2; border-style: dashed; background: #fafafa;">
-                        <span>+ Custom Placeholder</span>
-                    </button>
+                <div class="category-group" style="margin-bottom: 0;">
+                    <div class="category-title">Other</div>
+                    <div class="param-grid">
+                        <button class="param-btn" onclick="selectCustomVariable()"
+                            style="grid-column: span 2; border-style: dashed; background: #fafafa;">
+                            <span>+ Custom Placeholder</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <script th:inline="javascript">
+        const WHATSAPP_BALANCE = /*[[${whatsappBalance != null ? whatsappBalance : 0}]]*/ 0;
+        const PAYSTACK_PUBLIC_KEY = /*[[${paystackPublicKey}]]*/ "";
+        const SQUAD_PUBLIC_KEY = /*[[${squadPublicKey}]]*/ "";
+    </script>
     <script th:inline="none">
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
         async function authenticatedFetch(url, options = {}) {
+            if (!options.headers) options.headers = {};
+            options.headers[csrfHeader] = csrfToken;
             const response = await fetch(url, options);
             if (response.redirected && response.url.includes('/login')) {
                 window.location.href = '/login';
@@ -745,8 +1288,20 @@
             return response;
         }
 
+        // Mobile conversation list drawer toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.chat-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) {
+                sidebar.classList.toggle('show');
+            }
+            if (overlay) {
+                overlay.classList.toggle('show');
+            }
+        }
+
         function showBroadcastModal() {
-            document.getElementById('broadcast-modal').style.display = 'flex';
+            document.getElementById('broadcast-modal').classList.add('active');
             fetchTemplates();
             updateRecipientCount();
         }
@@ -756,142 +1311,199 @@
             if (event && event.target.id !== 'broadcast-modal') {
                 return;
             }
-            document.getElementById('broadcast-modal').style.display = 'none';
+            document.getElementById('broadcast-modal').classList.remove('active');
+        }
+
+        function showVariablePicker() { document.getElementById('variable-picker-modal').classList.add('active'); }
+        function closeVariablePicker(event) {
+            if (event && event.target.id !== 'variable-picker-modal' && event.target.tagName !== 'BUTTON') return;
+            document.getElementById('variable-picker-modal').classList.remove('active');
         }
         let currentRecipient = null;
         let activeTab = 'conversations';
 
+        function toggleTemplateUsage(useTemplate) {
+            const templateArea = document.getElementById('template-selection-area');
+            const freeFormArea = document.getElementById('free-form-section');
+            const templateSelector = document.getElementById('template-selector');
+            const freeFormInput = document.getElementById('free-form-message');
+
+            if (useTemplate) {
+                templateArea.style.display = 'block';
+                freeFormArea.style.display = 'none';
+                templateSelector.required = true;
+                if (freeFormInput) freeFormInput.required = false;
+            } else {
+                templateArea.style.display = 'none';
+                freeFormArea.style.display = 'block';
+                templateSelector.required = false;
+                if (freeFormInput) freeFormInput.required = true;
+            }
+        }
+
         function switchTab(tab) {
             activeTab = tab;
             const convTab = document.getElementById('tab-conv');
-            const tempTab = document.getElementById('tab-temp');
+            const msgTab = document.getElementById('tab-msg');
             const convList = document.getElementById('conversation-list-container');
-            const tempList = document.getElementById('template-list-container');
+            const msgList = document.getElementById('messages-list-container');
+            const searchInput = document.getElementById('sidebar-recipient-search');
+            const searchResults = document.getElementById('sidebar-search-results');
+
+            convTab.style.opacity = '0.5';
+            msgTab.style.opacity = '0.5';
+            convList.style.display = 'none';
+            msgList.style.display = 'none';
+
+            if (searchInput) {
+                searchInput.value = '';
+                if (searchResults) searchResults.style.display = 'none';
+            }
 
             if (tab === 'conversations') {
                 convTab.style.opacity = '1';
-                tempTab.style.opacity = '0.5';
                 convList.style.display = 'block';
-                tempList.style.display = 'none';
+                if (searchInput) searchInput.placeholder = 'Search contacts...';
+                searchSidebarRecipients('');
+            } else if (tab === 'messages') {
+                msgTab.style.opacity = '1';
+                msgList.style.display = 'block';
+                if (searchInput) searchInput.placeholder = 'Search templates...';
+                loadBroadcasts();
+            }
+        }
+
+        function setDateFilter(preset, btn) {
+            document.querySelectorAll('.date-preset-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+
+            const customRange = document.getElementById('custom-date-range');
+            const startInput = document.getElementById('history-start-date');
+            const endInput = document.getElementById('history-end-date');
+
+            if (preset === 'custom') {
+                customRange.classList.add('active');
             } else {
-                convTab.style.opacity = '0.5';
-                tempTab.style.opacity = '1';
-                convList.style.display = 'none';
-                tempList.style.display = 'block';
-                loadTemplates();
+                customRange.classList.remove('active');
+
+                const now = new Date();
+                let start = new Date();
+
+                if (preset === 'today') {
+                    start.setHours(0, 0, 0, 0);
+                } else if (preset === 'week') {
+                    start.setDate(now.getDate() - 7);
+                } else if (preset === 'month') {
+                    start.setMonth(now.getMonth() - 1);
+                }
+
+                startInput.value = start.toISOString().split('T')[0];
+                endInput.value = now.toISOString().split('T')[0];
+                loadBroadcasts();
             }
         }
 
-        async function loadTemplates() {
+        async function loadBroadcasts() {
+            const list = document.getElementById('broadcast-list');
+            const startDate = document.getElementById('history-start-date').value;
+            const endDate = document.getElementById('history-end-date').value;
+
             try {
-                const response = await fetch('/admin/dashboard/whatsapp/templates');
-                const html = await response.text();
-                document.getElementById('template-list-content').innerHTML = html;
+                const response = await fetch(`/admin/dashboard/multimodal/broadcasts?channel=WHATSAPP&startDate=${startDate}&endDate=${endDate}`);
+                const broadcasts = await response.json();
+
+                if (broadcasts.length === 0) {
+                    list.innerHTML = '<div style="padding: 2rem; text-align: center; color: #64748b;">No broadcasts found.</div>';
+                    return;
+                }
+
+                list.innerHTML = broadcasts.map(b => {
+                    const date = new Date(b.createdAt);
+                    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    return `
+                        <div class="broadcast-item" onclick="loadBroadcastDetails('${b.id}', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                                <strong style="font-size: 0.85rem;">${b.templateName}</strong>
+                                <span style="font-size: 0.7rem; color: #94a3b8;">${dateStr}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 0.75rem; color: #64748b;">
+                                    ${b.recipientCount} recipients
+                                </div>
+                                <i class="fas fa-chevron-right" style="font-size: 0.7rem; color: #cbd5e1;"></i>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             } catch (err) {
-                console.error("Failed to load templates:", err);
+                list.innerHTML = '<div style="padding: 2rem; color: #ef4444; border: 1px solid #fee2e2; border-radius: 8px; margin: 1rem;">Failed to load broadcasts.</div>';
             }
         }
 
-        async function syncTemplates() {
-            const btn = event.currentTarget;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = 'Syncing...';
-            btn.disabled = true;
+        async function loadBroadcastDetails(id, element) {
+            document.querySelectorAll('.broadcast-item').forEach(item => item.classList.remove('active'));
+            element?.classList.add('active');
 
-            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+            const window = document.getElementById('chat-window');
+            window.innerHTML = `
+                <div style="padding: 3rem; text-align: center;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #4f46e5;"></i>
+                </div>
+            `;
 
             try {
-                const response = await fetch('/admin/dashboard/whatsapp/templates/sync', {
-                    method: 'POST',
-                    headers: { [csrfHeader]: csrfToken }
-                });
-                const result = await response.json();
-                if (result.success) {
-                    loadTemplates();
-                } else {
-                    alert("Failed to sync templates. Check your Meta credentials.");
+                const response = await authenticatedFetch(`/admin/dashboard/multimodal/broadcast-details/${id}`);
+                const recipients = await response.json();
+
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
                 }
+
+                let recipientsHtml = recipients.map(r => `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 12px;">
+                            <div style="font-weight: 600;">${r.userName}</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">${r.phoneNumber}</div>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                <i class="fab fa-whatsapp" style="color: ${r.whatsappStatus !== 'NONE' ? '#10b981' : '#cbd5e1'}; font-size: 1rem;"></i>
+                                ${r.whatsappStatus !== 'NONE' ? `<span class="status-badge status-${r.whatsappStatus.toLowerCase()}">${r.whatsappStatus}</span>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                window.innerHTML = `
+                    <div style="display: flex; flex-direction: column; height: 100%;">
+                        <div style="padding: 1.25rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: white;">
+                            <h3 style="font-size: 1.1rem; margin: 0;">Broadcast Details</h3>
+                            <span style="background: #e2e8f0; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${recipients.length} Recipient(s)</span>
+                        </div>
+                        <div style="overflow-y: auto; flex: 1; background: #f8fafc;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                <thead style="background: #f1f5f9; position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th style="text-align: left; padding: 12px; color: #64748b;">Recipient</th>
+                                        <th style="text-align: center; padding: 12px; color: #64748b;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${recipientsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
             } catch (err) {
-                console.error("Sync error:", err);
-            } finally {
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
+                window.innerHTML = '<div style="padding: 3rem; text-align: center; color: #ef4444;">Failed to load broadcast details.</div>';
             }
         }
 
-        async function viewTemplate(id, element) {
-            console.log("Viewing template called with ID:", id);
-            if (!id) {
-                console.error("Template ID is missing!");
-                return;
-            }
 
-            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
-
-            try {
-                const url = `/admin/dashboard/whatsapp/templates/${id}`;
-                console.log("Fetching template from:", url);
-                const response = await authenticatedFetch(url);
-                console.log("Response status:", response.status);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const html = await response.text();
-                const chatWindow = document.getElementById('chat-window');
-                chatWindow.innerHTML = html;
-
-                // Render components from data-attribute
-                const display = chatWindow.querySelector(`.components-display[data-components]`);
-                if (display) {
-                    try {
-                        const components = JSON.parse(display.getAttribute('data-components'));
-                        let compHtml = '';
-                        components.forEach(c => {
-                            if (c.type === 'HEADER') compHtml += `<div style="font-weight:bold; margin-bottom:4px; opacity:0.6;">${c.text}</div>`;
-                            if (c.type === 'BODY') compHtml += `<div style="margin-bottom:8px;">${c.text}</div>`;
-                            if (c.type === 'FOOTER') compHtml += `<div style="font-size:0.8rem; color:#64748b;">${c.text}</div>`;
-                        });
-                        display.innerHTML = compHtml || 'No components found.';
-                    } catch (e) {
-                        console.error("Failed to parse components:", e);
-                        display.innerHTML = "Error rendering components.";
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to load template view:", err);
-                alert("Error loading template details: " + err.message);
-            }
-        }
-
-        async function saveMapping(id) {
-            const input = document.getElementById('mapping-input');
-            const mapping = input.value.trim();
-
-            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
-
-            const formData = new FormData();
-            formData.append('mapping', mapping);
-
-            try {
-                const response = await authenticatedFetch(`/admin/dashboard/whatsapp/templates/${id}/mapping`, {
-                    method: 'POST',
-                    headers: { [csrfHeader]: csrfToken },
-                    body: formData
-                });
-                const result = await response.json();
-                if (result.success) {
-                    alert("Mapping saved successfully!");
-                } else {
-                    alert("Error: " + (result.message || "Failed to save mapping"));
-                }
-            } catch (err) {
-                console.error("Save mapping error:", err);
-            }
+        async function viewBroadcast(id, element) {
+            loadBroadcastDetails(id, element);
         }
 
         async function loadThread(recipient, element) {
@@ -905,7 +1517,38 @@
                 const response = await authenticatedFetch(`/admin/dashboard/whatsapp/thread/${encodeURIComponent(recipient)}`);
                 const html = await response.text();
                 document.getElementById('chat-window').innerHTML = html;
+
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+
                 scrollToBottom();
+
+                // Check 24-hour reply window status
+                try {
+                    const statusRes = await authenticatedFetch(`/admin/dashboard/whatsapp/thread/${encodeURIComponent(recipient)}/status`);
+                    const statusData = await statusRes.json();
+                    const inputArea = document.querySelector('.chat-input-area');
+
+                    if (inputArea) {
+                        if (!statusData.canReply) {
+                            inputArea.innerHTML = `
+                                <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 1rem; border-radius: 12px; text-align: center; color: #92400e; font-size: 0.9rem;">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 4px; margin-bottom: 2px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <b>24-Hour Window Closed.</b> Meta API strictly requires the user to have sent a message within the last 24 hours before you can send a free-form reply. Please use a WhatsApp Template via Broadcast instead.
+                                </div>
+                            `;
+                        } else {
+                            // Focus input if window is open
+                            const replyInput = document.getElementById('reply-input');
+                            if (replyInput) replyInput.focus();
+                        }
+                    }
+                } catch (statusErr) {
+                    console.error("Failed to fetch thread status:", statusErr);
+                }
 
                 // If we are in modal, maybe close it if we want to switch context? 
                 // For now, let's just let it load in background or close modal.
@@ -924,6 +1567,24 @@
             clearTimeout(sidebarSearchTimeout);
             const resultsDiv = document.getElementById('sidebar-search-results');
             const convList = document.getElementById('conversation-list-container');
+
+            if (activeTab === 'messages') {
+                const queryLower = (query || '').toLowerCase();
+                const items = document.querySelectorAll('#broadcast-list .broadcast-item');
+
+                items.forEach(item => {
+                    const nameEl = item.querySelector('strong');
+                    if (nameEl) {
+                        const text = nameEl.textContent.toLowerCase();
+                        if (text.includes(queryLower)) {
+                            item.style.display = '';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    }
+                });
+                return;
+            }
 
             if (!query || query.length < 2) {
                 resultsDiv.style.display = 'none';
@@ -1000,50 +1661,53 @@
             }
         }
 
-        // Auto-refresh conversations every 10 seconds (only if in conversations tab)
-        setInterval(async () => {
-            if (activeTab !== 'conversations') return;
+        async function manualSync() {
+            const syncIcon = document.getElementById('sync-icon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
 
             try {
-                const response = await authenticatedFetch('/admin/dashboard/messaging/conversations');
-                if (!response.ok) return;
+                // Refresh conversations list if on that tab
+                if (activeTab === 'conversations') {
+                    const response = await authenticatedFetch('/admin/dashboard/whatsapp/conversations');
+                    if (response.ok) {
+                        const html = await response.text();
+                        const list = document.getElementById('conversation-list-container');
+                        if (list) {
+                            const activeId = document.querySelector('.conversation-item.active')?.getAttribute('data-recipient');
+                            list.innerHTML = html;
+                            if (activeId) {
+                                const newActive = list.querySelector(`[data-recipient="${activeId}"]`);
+                                if (newActive) newActive.classList.add('active');
+                            }
+                        }
+                    }
+                }
 
-                const html = await response.text();
-                const list = document.getElementById('conversation-list-container');
-                if (!list) return;
+                // Refresh active thread if there's a selected recipient
+                if (currentRecipient) {
+                    const response = await authenticatedFetch(`/admin/dashboard/whatsapp/thread/${encodeURIComponent(currentRecipient)}`);
+                    if (response.ok) {
+                        const html = await response.text();
+                        const container = document.getElementById('message-container');
+                        let wasAtBottom = false;
+                        if (container) {
+                            // Check if user is scrolled to the bottom (within 100px tolerance)
+                            wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+                        }
 
-                const activeId = document.querySelector('.conversation-item.active')?.getAttribute('data-recipient');
-                list.innerHTML = html;
-                if (activeId) {
-                    const newActive = list.querySelector(`[data-recipient="${activeId}"]`);
-                    if (newActive) newActive.classList.add('active');
+                        document.getElementById('chat-window').innerHTML = html;
+
+                        if (wasAtBottom) {
+                            scrollToBottom();
+                        }
+                    }
                 }
             } catch (err) {
-                console.warn("Background polling for conversations failed:", err);
+                console.warn("Manual sync failed:", err);
+            } finally {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
             }
-        }, 10000);
-
-        // Auto-refresh active thread every 5 seconds
-        setInterval(async () => {
-            if (activeTab !== 'conversations' || !currentRecipient) return;
-
-            try {
-                const response = await authenticatedFetch(`/admin/dashboard/messaging/thread/${encodeURIComponent(currentRecipient)}`);
-                if (!response.ok) return;
-
-                const html = await response.text();
-                const container = document.getElementById('message-container');
-                const wasAtBottom = container && (container.scrollHeight - container.scrollTop <= container.clientHeight + 100);
-
-                document.getElementById('chat-window').innerHTML = html;
-
-                if (wasAtBottom) {
-                    scrollToBottom();
-                }
-            } catch (err) {
-                console.warn("Background polling for thread failed:", err);
-            }
-        }, 5000);
+        }
 
 
         async function updateRecipientCount() {
@@ -1060,7 +1724,7 @@
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
 
             try {
-                const response = await authenticatedFetch('/admin/dashboard/messaging/broadcast/recipients', {
+                const response = await authenticatedFetch('/admin/dashboard/whatsapp/broadcast/recipients', {
                     method: 'POST',
                     headers: { [csrfHeader]: csrfToken },
                     body: formData
@@ -1072,6 +1736,25 @@
                 badge.innerText = `Recipients: ${recipients.length}`;
                 badge.style.background = recipients.length > 0 ? '#e0e7ff' : '#fee2e2';
                 badge.style.color = recipients.length > 0 ? '#4338ca' : '#ef4444';
+
+                // Balance validation Check
+                const sendBtn = document.getElementById('send-broadcast-btn');
+                const warningDiv = document.getElementById('insufficient-units-warning');
+                const balanceDisplay = document.getElementById('warning-balance-display');
+                if (sendBtn && warningDiv && typeof WHATSAPP_BALANCE !== 'undefined') {
+                    if (recipients.length > WHATSAPP_BALANCE) {
+                        warningDiv.style.display = 'flex';
+                        if (balanceDisplay) balanceDisplay.innerText = new Intl.NumberFormat().format(WHATSAPP_BALANCE);
+                        sendBtn.disabled = true;
+                        sendBtn.style.opacity = '0.5';
+                        sendBtn.style.cursor = 'not-allowed';
+                    } else {
+                        warningDiv.style.display = 'none';
+                        sendBtn.disabled = false;
+                        sendBtn.style.opacity = '1';
+                        sendBtn.style.cursor = 'pointer';
+                    }
+                }
 
                 // Update preview list
                 if (recipients.length === 0) {
@@ -1204,6 +1887,8 @@
         function searchManualRecipients(query) {
             clearTimeout(searchTimeout);
             const dropdown = document.getElementById('search-results-dropdown');
+            const typeNode = document.querySelector('input[name="recipientType"]:checked');
+            const recipientType = typeNode ? typeNode.value : '';
 
             if (!query || query.length < 2) {
                 dropdown.style.display = 'none';
@@ -1212,7 +1897,7 @@
 
             searchTimeout = setTimeout(async () => {
                 try {
-                    const response = await authenticatedFetch(`/admin/dashboard/messaging/broadcast/search?query=${encodeURIComponent(query)}`);
+                    const response = await authenticatedFetch(`/admin/dashboard/whatsapp/broadcast/search?query=${encodeURIComponent(query)}&recipientType=${recipientType}`);
                     const results = await response.json();
 
                     if (results.length === 0) {
@@ -1307,13 +1992,14 @@
         let currentRecipients = [];
         async function fetchTemplates() {
             const selector = document.getElementById('template-selector');
-            if (selector.options.length > 1) return; // Already loaded
+            const typeNode = document.querySelector('input[name="recipientType"]:checked');
+            const recipientType = typeNode ? typeNode.value : '';
 
-            console.log("Fetching broadcast templates from DB...");
+            console.log("Fetching broadcast templates from DB for type:", recipientType);
             selector.innerHTML = '<option value="">-- Loading templates... --</option>';
 
             try {
-                const response = await authenticatedFetch('/admin/dashboard/messaging/broadcast/templates');
+                const response = await authenticatedFetch(`/admin/dashboard/whatsapp/broadcast/templates?recipientType=${recipientType}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                 const templates = await response.json();
@@ -1349,8 +2035,10 @@
 
             if (!templateName) {
                 container.style.display = 'none';
-                messageArea.disabled = false;
-                messageArea.placeholder = "Enter your announcement here...";
+                if (messageArea) {
+                    messageArea.disabled = false;
+                    messageArea.placeholder = "Enter your announcement here...";
+                }
                 const warningDiv = document.getElementById('template-qualification-warning');
                 if (warningDiv) warningDiv.style.display = 'none';
                 return;
@@ -1391,9 +2079,11 @@
             }
 
             container.style.display = 'block';
-            messageArea.disabled = true;
-            messageArea.placeholder = "Message is predefined by template";
-            messageArea.value = "[Template: " + templateName + " selected]";
+            if (messageArea) {
+                messageArea.disabled = true;
+                messageArea.placeholder = "Message is predefined by template";
+                messageArea.value = "[Template: " + templateName + " selected]";
+            }
 
             try {
                 const components = JSON.parse(selectedOpt.dataset.components || '[]');
@@ -1416,7 +2106,7 @@
                 const systemVars = [
                     'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
                     'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
-                    'academic_year', 'term_number', 'current_bill', 'settled_bill', 'outstanding',
+                    'academic_year', 'term_number', 'current_bill', 'current_balance', 'term_fees', 'settled_bill', 'outstanding',
                     'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
                 ];
 
@@ -1488,204 +2178,15 @@
             alert("Reminder Settings: Configure automated balance alerts here.");
         }
 
-        async function newTemplate() {
-            try {
-                const response = await fetch('/admin/dashboard/messaging/templates/new');
-                const html = await response.text();
-                document.getElementById('chat-window').innerHTML = html;
-                document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial dates for "Today"
+            const now = new Date();
+            const start = new Date();
+            start.setHours(0, 0, 0, 0);
 
-                // Initialize variable tracking
-                window.templateVariables = [];
-
-                // Trigger empty update to clear any residual sample views
-                updateSamples('header');
-                updateSamples('body');
-            } catch (err) {
-                console.error("Failed to load new template form:", err);
-            }
-        }
-
-        function updateSamples(type) {
-            const textarea = document.getElementById(type + '-text');
-            const container = document.getElementById(type + '-samples-container');
-            const list = document.getElementById(type + '-samples-list');
-
-            if (!textarea || !container || !list) return;
-
-            const text = textarea.value;
-            const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
-            const uniqueVars = [...new Set(varMatches)];
-
-            if (uniqueVars.length === 0) {
-                container.style.display = 'none';
-                list.innerHTML = '';
-                return;
-            }
-
-            // Keep track of existing values
-            const currentValues = {};
-            list.querySelectorAll('input').forEach(input => {
-                currentValues[input.name] = input.value;
-            });
-
-            list.innerHTML = uniqueVars.map(v => {
-                const key = v.replace(/\{\{|\}\}/g, '');
-                const name = `sample_${type}_${key}`;
-                const val = currentValues[name] || '';
-                return `
-                    <div>
-                        <label style="font-size: 0.7rem; color: #64748b; display: block; margin-bottom: 2px;">Sample for ${v}</label>
-                        <input type="text" name="${name}" value="${val}" class="chat-input" 
-                            style="width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; height: 32px; font-size: 0.8rem;" 
-                            placeholder="e.g. John" required>
-                    </div>
-                `;
-            }).join('');
-
-            container.style.display = 'block';
-        }
-
-        let currentVariableTarget = null;
-        function insertVariable(targetId) {
-            currentVariableTarget = targetId;
-            document.getElementById('variable-picker-modal').style.display = 'flex';
-        }
-
-        function closeVariablePicker(e) {
-            if (e.target.id === 'variable-picker-modal') {
-                e.target.style.display = 'none';
-            }
-        }
-
-        function selectVariable(key, label) {
-            if (!currentVariableTarget) return;
-            const textarea = document.getElementById(currentVariableTarget);
-
-            // Track the variable mapping
-            if (!window.templateVariables) window.templateVariables = [];
-            // Check if variable already exists in mapping to avoid duplicates
-            if (!window.templateVariables.some(v => v.key === key)) {
-                window.templateVariables.push({ key: key, label: label });
-            }
-
-            const text = textarea.value;
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            textarea.value = text.substring(0, start) + `{{${key}}}` + text.substring(end);
-
-            document.getElementById('variable-picker-modal').style.display = 'none';
-            textarea.focus();
-
-            updateVariableLegend();
-
-            // Trigger sample update
-            if (currentVariableTarget === 'body-text') updateSamples('body');
-            if (currentVariableTarget === 'header-text') updateSamples('header');
-        }
-
-        function selectCustomVariable() {
-            const custom = prompt("Enter a label for this custom variable (e.g. balance, subject):");
-            if (custom) {
-                const key = custom.toLowerCase().replace(/[^a-z0-9]/g, '_');
-                selectVariable(key, custom);
-            }
-        }
-
-        function updateVariableLegend() {
-            const legend = document.getElementById('variable-legend');
-            if (!legend) return;
-
-            if (!window.templateVariables || window.templateVariables.length === 0) {
-                legend.innerHTML = '';
-                legend.style.display = 'none';
-                return;
-            }
-
-            let html = '<div style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-            window.templateVariables.forEach(v => {
-                html += `<span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0;"><b>{{${v.key}}}:</b> ${v.label}</span>`;
-            });
-            html += '</div>';
-
-            legend.innerHTML = html;
-            legend.style.display = 'block';
-
-            // Update hidden mapping input
-            const mappingInput = document.getElementById('generated-mapping');
-            if (mappingInput) {
-                mappingInput.value = window.templateVariables.map(v => v.key).join(',');
-            }
-        }
-
-        async function submitTemplate() {
-            const form = document.getElementById('template-editor-form');
-            const btn = form.querySelector('button[type="submit"]');
-            const originalText = btn.innerText;
-
-            const formData = new FormData(form);
-
-            btn.innerText = 'Submitting...';
-            btn.disabled = true;
-
-            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
-
-            try {
-                const response = await fetch('/admin/dashboard/whatsapp/templates', {
-                    method: 'POST',
-                    headers: { [csrfHeader]: csrfToken },
-                    body: formData
-                });
-                const result = await response.json();
-                if (result.success) {
-                    alert("Template submitted to Meta successfully! It will appear as PENDING until approved.");
-                    loadTemplates();
-                    document.getElementById('chat-window').innerHTML = `
-                        <div class="empty-chat">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <h3>Submitted Successfully</h3>
-                            <p>Your template has been sent to Meta for approval.</p>
-                        </div>`;
-                } else {
-                    alert("Failed to subit template. Ensure name is unique (lowercase, no spaces) and content follows rules.");
-                }
-            } catch (err) {
-                console.error("Submission error:", err);
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        async function deleteTemplate(id) {
-            if (!confirm("Are you sure you want to delete this template from Meta? This cannot be undone.")) return;
-
-            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
-
-            try {
-                const response = await fetch(`/admin/dashboard/whatsapp/templates/${id}`, {
-                    method: 'DELETE',
-                    headers: { [csrfHeader]: csrfToken }
-                });
-                const result = await response.json();
-                if (result.success) {
-                    loadTemplates();
-                    document.getElementById('chat-window').innerHTML = `
-                        <div class="empty-chat">
-                            <h3>Template Deleted</h3>
-                            <p>The template has been removed from our system and Meta.</p>
-                        </div>`;
-                } else {
-                    alert("Failed to delete template from Meta.");
-                }
-            } catch (err) {
-                console.error("Delete error:", err);
-            }
-        }
+            document.getElementById('history-start-date').value = start.toISOString().split('T')[0];
+            document.getElementById('history-end-date').value = now.toISOString().split('T')[0];
+        });
 
         function clearAllRecipients() {
             if (!confirm("Remove all selected recipients?")) return;
@@ -1714,7 +2215,164 @@
 
             updateRecipientCount();
         }
+
+        let currentPurchaseType = '';
+        let currentPurchaseRate = 0;
+
+        function openPurchaseModal(type, label, defaultUnits, rate) {
+            currentPurchaseType = type;
+            currentPurchaseRate = parseFloat(rate) || 0;
+
+            document.getElementById('purchaseUnitLabel').innerText = label;
+            document.getElementById('purchaseUnitsInput').value = defaultUnits;
+
+            updatePurchaseTotal();
+
+            document.getElementById('purchaseModal').classList.add('active');
+        }
+
+        function closePurchaseModal() {
+            document.getElementById('purchaseModal').classList.remove('active');
+        }
+
+        function updatePurchaseTotal() {
+            const units = parseInt(document.getElementById('purchaseUnitsInput').value) || 0;
+            const total = units * currentPurchaseRate;
+            document.getElementById('purchaseTotalDisplay').innerText = total.toLocaleString('en-US');
+        }
+
+        function initiatePayment() {
+            const units = parseInt(document.getElementById('purchaseUnitsInput').value);
+            if (!units || units <= 0) {
+                alert("Please enter a valid number of units.");
+                return;
+            }
+
+            const amount = units * currentPurchaseRate;
+            const reference = currentPurchaseType + '_' + new Date().getTime();
+            const email = /*[[${#authentication.name}]]*/ "user@example.com";
+            const redirectUrl = window.location.pathname;
+
+            closePurchaseModal();
+            console.log("Initiating payment for", amount, "to", amount <= 120000 ? "Squad" : "Paystack");
+
+            if (amount <= 120000) {
+                payWithSquad(amount, email, reference, units, redirectUrl);
+            } else {
+                payWithPaystack(amount, email, reference, units, redirectUrl);
+            }
+        }
+
+        function handlePaymentSuccess(reference, units, amount, redirectUrl) {
+            document.getElementById('successReference').value = reference;
+            document.getElementById('successType').value = currentPurchaseType;
+            document.getElementById('successUnits').value = units;
+            document.getElementById('successAmount').value = amount;
+            document.getElementById('successRedirectUrl').value = redirectUrl;
+            document.getElementById('paymentSuccessForm').submit();
+        }
+
+        function payWithPaystack(amount, email, reference, units, redirectUrl) {
+            const amountInKobo = Math.ceil(amount * 100);
+
+            const handler = PaystackPop.setup({
+                key: PAYSTACK_PUBLIC_KEY,
+                email: email,
+                amount: amountInKobo,
+                currency: "NGN",
+                reference: reference,
+                channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+                callback: function (response) {
+                    console.log("Paystack payment successful:", response);
+                    handlePaymentSuccess(response.reference || reference, units, amount, redirectUrl);
+                },
+                onClose: function () {
+                    console.log("Paystack window closed");
+                }
+            });
+            handler.openIframe();
+        }
+
+        function payWithSquad(amount, email, reference, units, redirectUrl) {
+            const amountInKobo = Math.round(amount * 100);
+
+            try {
+                const squadInstance = new squad({
+                    onClose: () => console.log("Squad Widget closed"),
+                    onLoad: () => console.log("Squad Widget loaded successfully"),
+                    onSuccess: (transaction) => {
+                        console.log("Squad Transaction successful:", transaction);
+                        handlePaymentSuccess(transaction.reference || reference, units, amount, redirectUrl);
+                    },
+                    key: SQUAD_PUBLIC_KEY,
+                    email: email,
+                    amount: amountInKobo.toString(),
+                    currency_code: "NGN",
+                    payment_channels: ['card', 'bank', 'ussd', 'transfer'],
+                    pass_charge: true,
+                    transaction_ref: reference
+                });
+
+                squadInstance.setup();
+                squadInstance.open();
+            } catch (e) {
+                console.error("Error initializing Squad widget:", e);
+                alert("Failed to initialize payment widget. Please try again.");
+            }
+        }
     </script>
+
+    <!-- Purchase Modal -->
+    <div id="purchaseModal" class="modal">
+        <div class="modal-content"
+            style="background:white; padding:2rem; border-radius:12px; width:100%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.1); height: auto !important; min-height: fit-content; margin: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h2 style="margin:0;" id="purchaseModalTitle">Purchase Required Units</h2>
+                <button type="button" onclick="closePurchaseModal()"
+                    style="background:none; border:none; font-size:1.5rem; cursor:pointer; color: #94a3b8;">&times;</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label id="purchaseUnitLabel"
+                    style="display:block; margin-bottom:0.5rem; font-weight:500; color: #1e293b;">Units</label>
+                <input type="number" id="purchaseUnitsInput" class="form-control" required min="1"
+                    style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
+                    oninput="updatePurchaseTotal()">
+            </div>
+
+            <div
+                style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.25rem;">Total
+                    Amount (NGN)</div>
+                <div id="purchaseTotalDisplay" style="font-size: 1.5rem; font-weight: 700; color: #4f46e5;">0
+                </div>
+            </div>
+
+            <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                <button type="button" class="btn btn-outline"
+                    style="background: white; border: 1px solid #e2e8f0; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;"
+                    onclick="closePurchaseModal()">Cancel</button>
+                <button type="button" class="btn btn-primary"
+                    style="background: #4f46e5; color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;"
+                    onclick="initiatePayment()">Pay
+                    Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for successful payments -->
+    <form id="paymentSuccessForm" th:action="@{/admin/school-setup/subscriptions/process-payment}" method="post"
+        style="display: none;">
+        <input type="hidden" id="successReference" name="reference">
+        <input type="hidden" id="successType" name="type">
+        <input type="hidden" id="successUnits" name="units">
+        <input type="hidden" id="successAmount" name="amount">
+        <input type="hidden" id="successRedirectUrl" name="redirectUrl">
+    </form>
+
+    <!-- Paystack & Squad Scripts -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="https://checkout.squadco.com/widget/squad.min.js"></script>
 </body>
 
 </html>

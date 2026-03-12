@@ -24,7 +24,9 @@
     <div th:replace="~{fragments/header :: school-header}"></div>
 
     <main class="main-content setup-layout">
-        <div th:replace="~{fragments/community-sidebar :: community-sidebar}"></div>
+        <!-- Global Admin Sidebar -->
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='community')}"></div>
+
 
         <div id="community-content" class="setup-content">
             <div class="setup-header">

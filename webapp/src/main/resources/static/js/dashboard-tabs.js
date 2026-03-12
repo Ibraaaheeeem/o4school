@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function initTabs() {
-    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabButtons = document.querySelectorAll('[data-tab-target]');
 
     if (tabButtons.length === 0) return;
 
@@ -18,7 +18,7 @@ function initTabs() {
     const savedTabId = localStorage.getItem(storageKey);
 
     if (savedTabId) {
-        const savedTabBtn = document.querySelector(`.tab-btn[data-tab-target="${savedTabId}"]`);
+        const savedTabBtn = document.querySelector(`[data-tab-target="${savedTabId}"]`);
         if (savedTabBtn) {
             activateTab(savedTabBtn);
         }
@@ -39,12 +39,12 @@ function initTabs() {
 
 function activateTab(btn) {
     const targetId = btn.getAttribute('data-tab-target');
-    const container = btn.closest('.tabs-container');
+    const container = btn.parentElement;
 
     if (!container || !targetId) return;
 
-    // Update buttons state
-    const buttons = container.querySelectorAll('.tab-btn');
+    // Update buttons state: scoped to the immediate parent navigation container
+    const buttons = container.querySelectorAll('[data-tab-target]');
     buttons.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 

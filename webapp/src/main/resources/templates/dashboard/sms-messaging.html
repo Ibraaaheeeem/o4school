@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>SMS Messaging | 4School</title>
+    <!-- CSRF Tokens -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <!-- Use styles from WhatsApp messaging -->
+    <style th:replace="~{dashboard/messaging :: style}"></style>
+    <style>
+        :root {
+            --primary-color: #f59e0b;
+            --primary-dark: #92400e;
+            --primary-light: #fef3c7;
+            --bubble-out-bg: #fef3c7;
+            --chat-bg: #fffcf0;
+            --avatar-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+
+        .modal-body-scroll {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .filter-scroll-list {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        /* SMS Header Positioning & Mobile Alignment Fixes */
+        @media (max-width: 900px) {
+            .msg-page-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 1rem !important;
+                margin-top: 1rem !important;
+                padding: 0 1rem !important;
+                width: 100% !important;
+            }
+
+            .msg-page-header-title {
+                text-align: left !important;
+                width: 100% !important;
+            }
+
+            .msg-page-header-title h1 {
+                margin: 0 !important;
+                text-align: left !important;
+            }
+
+            .msg-page-header-actions {
+                width: 100% !important;
+                justify-content: flex-start !important;
+                gap: 0.75rem !important;
+                flex-wrap: wrap !important;
+            }
+
+            .messaging-container {
+                height: auto !important;
+                min-height: calc(100vh - 220px) !important;
+                margin-bottom: 2rem !important;
+            }
+
+            /* Ensure school-header stays at top and is visible */
+            .school-header {
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 1001 !important;
+            }
+        }
+    </style>
+    <script th:inline="javascript">
+        const SMS_BALANCE = /*[[${smsBalance != null ? smsBalance : 0}]]*/ 0;
+        const BASE_URL = /*[[@{/admin/dashboard/sms}]]*/ '/admin/dashboard/sms';
+        const PAYSTACK_PUBLIC_KEY = /*[[${paystackPublicKey}]]*/ "";
+        const SQUAD_PUBLIC_KEY = /*[[${squadPublicKey}]]*/ "";
+    </script>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='messaging')}"></div>
+        <div class="setup-content">
+            <div class="dashboard-container" style="max-width: 1400px; padding: 0;">
+
+                <!-- Page Header -->
+                <div class="msg-page-header">
+                    <div class="msg-page-header-title">
+                        <h1>SMS Messaging</h1>
+                        <p class="text-secondary" th:text="${school?.name}">School Name</p>
+                    </div>
+                    <div class="msg-page-header-actions">
+                        <div class="units-badge"
+                            style="background: #fffbeb; border: 1px solid #f59e0b; color: #92400e;">
+                            <i class="fas fa-sms" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                            <span><span th:text="${#numbers.formatInteger(smsBalance, 0, 'COMMA')}">0</span>
+                                Units</span>
+                        </div>
+                        <button class="broadcast-pill"
+                            style="background: #fef3c7; color: #92400e; border: 1px solid #f59e0b;"
+                            data-type="SMS_SUB_ORDER" data-label="SMS Units" data-default="1000"
+                            th:data-rate="${smsSubRate}"
+                            onclick="openPurchaseModal(this.getAttribute('data-type'), this.getAttribute('data-label'), this.getAttribute('data-default'), this.getAttribute('data-rate'))">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="pill-label">Buy Units</span>
+                        </button>
+                        <button class="broadcast-pill" onclick="showBroadcastModal()" style="background: #f59e0b;">
+                            <i class="fas fa-bullhorn"></i>
+                            <span class="pill-label">Broadcast</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Validation Error Alert -->
+                <div th:if="${param.broadcastError != null and param.broadcastError[0] == 'insufficient_units'}"
+                    style="margin-bottom: 1.5rem; background: #fef2f2; border: 1px solid #fecaca; padding: 1rem; border-radius: 12px; display: flex; align-items: flex-start; gap: 1rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: #ef4444; font-size: 1.25rem;"></i>
+                    <div>
+                        <h4 style="margin: 0; color: #991b1b; font-weight: 600;">Insufficient SMS Units</h4>
+                        <p style="margin: 0.25rem 0 0 0; color: #b91c1c; font-size: 0.9rem;">
+                            You do not have enough SMS units to send this broadcast.
+                            Please visit <a th:href="@{/admin/school-setup/subscriptions}"
+                                style="color: #dc2626; font-weight: 600; text-decoration: underline;">Subscriptions</a>
+                            to
+                            top up.
+                        </p>
+                    </div>
+                </div>
+
+                <div th:if="${param.broadcastSent}"
+                    style="margin-bottom: 1.5rem; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem;">
+                    <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.25rem;"></i>
+                    <div>
+                        <p style="margin: 0; color: #065f46; font-size: 0.9rem; font-weight: 500;">
+                            Broadcast queued! <strong th:text="${param.count}"></strong> messages sent.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="messaging-container" style="position: relative;">
+                    <!-- Overlay to close drawer when tapping outside -->
+                    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+                    <!-- Sidebar -->
+                    <div class="chat-sidebar">
+                        <div class="sidebar-header">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                    <h2 id="tab-conv" class="active-tab" onclick="switchTab('conversations')"
+                                        style="cursor: pointer; margin: 0; font-size: 1rem;">Conversations</h2>
+                                    <h2 id="tab-msg" class="inactive-tab" onclick="switchTab('messages')"
+                                        style="cursor: pointer; margin: 0; font-size: 1rem; opacity: 0.45;">Messages
+                                    </h2>
+                                </div>
+                                <button onclick="manualSync()" title="Refresh messages"
+                                    style="background: none; border: none; cursor: pointer; color: #4f46e5; padding: 0.4rem; border-radius: 50%; transition: transform 0.2s, background 0.2s;"
+                                    onmouseenter="this.style.background='#eef2ff'"
+                                    onmouseleave="this.style.background='none'">
+                                    <i class="fas fa-sync-alt" id="sync-icon" style="font-size: 0.9rem;"></i>
+                                </button>
+                            </div>
+                            <div style="position: relative; display: flex; align-items: center;">
+                                <i class="fas fa-search"
+                                    style="position: absolute; left: 11px; color: #94a3b8; font-size: 0.8rem; pointer-events: none;"></i>
+                                <input type="text" id="sidebar-recipient-search"
+                                    style="width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 10px; height: 36px; padding: 0 1rem 0 2.25rem; font-size: 0.85rem; background: #f8fafc; outline: none; transition: border-color 0.2s;"
+                                    onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e2e8f0'"
+                                    placeholder="Search contacts..." onkeyup="searchSidebarRecipients(this.value)">
+                            </div>
+                        </div>
+                        <div id="sidebar-search-results" class="conversation-list"
+                            style="display: none; border-bottom: 2px solid #e2e8f0;"></div>
+                        <div id="conversation-list-container" class="conversation-list">
+                            <div th:replace="~{dashboard/sms-fragments :: conversation-list}"></div>
+                        </div>
+                        <div id="messages-list-container" class="conversation-list" style="display: none;">
+                            <!-- Date Filter -->
+                            <div class="date-filter-container">
+                                <div class="date-presets">
+                                    <button class="date-preset-btn active"
+                                        onclick="setDateFilter('today', this)">Today</button>
+                                    <button class="date-preset-btn" onclick="setDateFilter('week', this)">Last
+                                        Week</button>
+                                    <button class="date-preset-btn" onclick="setDateFilter('month', this)">Last
+                                        Month</button>
+                                    <button class="date-preset-btn"
+                                        onclick="setDateFilter('custom', this)">Custom</button>
+                                </div>
+                                <div id="custom-date-range" class="custom-date-range">
+                                    <input type="date" id="history-start-date" class="chat-input"
+                                        style="flex: 1; height: 32px; font-size: 0.8rem;">
+                                    <span style="color: #94a3b8;">to</span>
+                                    <input type="date" id="history-end-date" class="chat-input"
+                                        style="flex: 1; height: 32px; font-size: 0.8rem;">
+                                    <button onclick="loadBroadcasts()"
+                                        style="background: #4f46e5; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">Go</button>
+                                </div>
+                            </div>
+                            <div id="broadcast-list">
+                                <div style="padding: 2rem; text-align: center; color: #64748b;">
+                                    <i class="fas fa-spinner fa-spin" style="margin-bottom: 1rem;"></i>
+                                    <p>Loading broadcasts...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Area -->
+                    <div class="chat-main" id="chat-window">
+                        <!-- Mobile Header: hamburger to open conversation list -->
+                        <div class="mobile-header">
+                            <button class="chat-hamburger-btn" onclick="toggleSidebar()"
+                                aria-label="Open conversations">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <h2 style="margin: 0; font-size: 1.1rem; color: #0f172a; font-weight: 700;">Conversations
+                            </h2>
+                        </div>
+                        <div class="empty-chat">
+                            <i class="fas fa-sms" style="font-size: 3rem; color: #e2e8f0; margin-bottom: 1rem;"></i>
+                            <h3>Select a conversation</h3>
+                            <p>Choose a contact to view SMS history or send a reply.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Include Broadcast Modal -->
+            <div th:replace="~{dashboard/sms-fragments :: broadcast-modal}"></div>
+        </div>
+    </main>
+
+    <!-- Variable Picker Modal -->
+    <div id="variable-picker-modal" class="modal" onclick="closeVariablePicker(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0; font-size: 1.25rem;">Insert Variable</h3>
+                <button onclick="document.getElementById('variable-picker-modal').style.display='none'"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
+            </div>
+            <div th:replace="~{dashboard/messaging :: variable-picker-content}">
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="none">
+        // Mobile conversation list drawer toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.chat-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('show');
+            if (overlay) overlay.classList.toggle('show');
+        }
+
+        let currentRecipient = null;
+        let activeTab = 'conversations';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const convTab = document.getElementById('tab-conv');
+            const msgTab = document.getElementById('tab-msg');
+            const convList = document.getElementById('conversation-list-container');
+            const msgList = document.getElementById('messages-list-container');
+            const searchInput = document.getElementById('sidebar-recipient-search');
+            const searchResults = document.getElementById('sidebar-search-results');
+
+            convTab.style.opacity = '0.5';
+            msgTab.style.opacity = '0.5';
+            convList.style.display = 'none';
+            msgList.style.display = 'none';
+
+            if (searchInput) {
+                searchInput.value = '';
+                if (searchResults) searchResults.style.display = 'none';
+            }
+
+            if (tab === 'conversations') {
+                convTab.style.opacity = '1';
+                convList.style.display = 'block';
+                if (searchInput) searchInput.placeholder = 'Search contacts...';
+                searchSidebarRecipients('');
+            } else if (tab === 'messages') {
+                msgTab.style.opacity = '1';
+                msgList.style.display = 'block';
+                if (searchInput) searchInput.placeholder = 'Search templates...';
+                loadBroadcasts();
+            }
+        }
+
+        function setDateFilter(preset, btn) {
+            document.querySelectorAll('.date-preset-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+
+            const customRange = document.getElementById('custom-date-range');
+            const startInput = document.getElementById('history-start-date');
+            const endInput = document.getElementById('history-end-date');
+
+            if (preset === 'custom') {
+                customRange.classList.add('active');
+            } else {
+                customRange.classList.remove('active');
+
+                const now = new Date();
+                let start = new Date();
+
+                if (preset === 'today') {
+                    start.setHours(0, 0, 0, 0);
+                } else if (preset === 'week') {
+                    start.setDate(now.getDate() - 7);
+                } else if (preset === 'month') {
+                    start.setMonth(now.getMonth() - 1);
+                }
+
+                startInput.value = start.toISOString().split('T')[0];
+                endInput.value = now.toISOString().split('T')[0];
+                loadBroadcasts();
+            }
+        }
+
+        async function loadBroadcasts() {
+            const list = document.getElementById('broadcast-list');
+            const startDate = document.getElementById('history-start-date').value;
+            const endDate = document.getElementById('history-end-date').value;
+
+            try {
+                const response = await fetch(`/admin/dashboard/multimodal/broadcasts?channel=SMS&startDate=${startDate}&endDate=${endDate}`);
+                const broadcasts = await response.json();
+
+                if (broadcasts.length === 0) {
+                    list.innerHTML = '<div style="padding: 2rem; text-align: center; color: #64748b;">No broadcasts found.</div>';
+                    return;
+                }
+
+                list.innerHTML = broadcasts.map(b => {
+                    const date = new Date(b.createdAt);
+                    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    return `
+                        <div class="broadcast-item" onclick="loadBroadcastDetails('${b.id}', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                                <strong style="font-size: 0.85rem;">Broadcast ${dateStr}</strong>
+                                <span style="font-size: 0.7rem; color: #94a3b8;">${dateStr}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 0.75rem; color: #64748b;">
+                                    ${b.recipientCount} recipients
+                                </div>
+                                <i class="fas fa-chevron-right" style="font-size: 0.7rem; color: #cbd5e1;"></i>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                list.innerHTML = '<div style="padding: 2rem; color: #ef4444; border: 1px solid #fee2e2; border-radius: 8px; margin: 1rem;">Failed to load broadcasts.</div>';
+            }
+        }
+
+        async function loadBroadcastDetails(id, element) {
+            document.querySelectorAll('.broadcast-item').forEach(item => item.classList.remove('active'));
+            element?.classList.add('active');
+
+            const windowDiv = document.getElementById('chat-window');
+            windowDiv.innerHTML = `
+                <div style="padding: 3rem; text-align: center;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #f59e0b;"></i>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/admin/dashboard/multimodal/broadcast-details/${id}`);
+                const recipients = await response.json();
+
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+
+                let recipientsHtml = recipients.map(r => `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 12px;">
+                            <div style="font-weight: 600;">${r.userName}</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">${r.phoneNumber}</div>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                <i class="fas fa-sms" style="color: ${r.smsStatus !== 'NONE' ? '#f59e0b' : '#cbd5e1'}; font-size: 1rem;"></i>
+                                ${r.smsStatus !== 'NONE' ? `<span class="status-badge status-${r.smsStatus.toLowerCase()}">${r.smsStatus}</span>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                windowDiv.innerHTML = `
+                    <div style="display: flex; flex-direction: column; height: 100%;">
+                        <div style="padding: 1.25rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: white;">
+                            <h3 style="font-size: 1.1rem; margin: 0;">SMS Broadcast Details</h3>
+                            <span style="background: #e2e8f0; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${recipients.length} Recipient(s)</span>
+                        </div>
+                        <div style="overflow-y: auto; flex: 1; background: #f8fafc;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                <thead style="background: #f1f5f9; position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th style="text-align: left; padding: 12px; color: #64748b;">Recipient</th>
+                                        <th style="text-align: center; padding: 12px; color: #64748b;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${recipientsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                windowDiv.innerHTML = '<div style="padding: 3rem; text-align: center; color: #ef4444;">Failed to load broadcast details.</div>';
+            }
+        }
+
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+        async function authenticatedFetch(url, options = {}) {
+            if (!options.headers) options.headers = {};
+            options.headers[csrfHeader] = csrfToken;
+            const response = await fetch(url, options);
+            if (response.redirected && response.url.includes('/login')) {
+                window.location.href = '/login';
+                return new Promise(() => { });
+            }
+            return response;
+        }
+
+        function showBroadcastModal() {
+            document.getElementById('broadcast-modal').classList.add('active');
+            fetchTemplates();
+            updateRecipientCount();
+        }
+
+        function closeBroadcastModal(event) {
+            if (event && event.target.id !== 'broadcast-modal' && event.target.tagName !== 'BUTTON') {
+                return;
+            }
+            document.getElementById('broadcast-modal').classList.remove('active');
+        }
+
+        function toggleTemplateUsage(useTemplate) {
+            const templateArea = document.getElementById('template-selection-area');
+            const freeFormArea = document.getElementById('free-form-section');
+            const templateSelector = document.getElementById('template-selector');
+            const freeFormInput = document.getElementById('free-form-message');
+
+            if (useTemplate) {
+                templateArea.style.display = 'block';
+                freeFormArea.style.display = 'none';
+                templateSelector.required = true;
+                if (freeFormInput) freeFormInput.required = false;
+            } else {
+                templateArea.style.display = 'none';
+                freeFormArea.style.display = 'block';
+                templateSelector.required = false;
+                if (freeFormInput) freeFormInput.required = true;
+            }
+        }
+
+        async function loadThread(recipient, element) {
+            currentRecipient = recipient;
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            try {
+                const response = await authenticatedFetch(`${BASE_URL}/thread/${encodeURIComponent(recipient)}`);
+                const html = await response.text();
+                document.getElementById('chat-window').innerHTML = html;
+
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+
+                scrollToBottom();
+
+                const replyInput = document.getElementById('reply-input');
+                if (replyInput) replyInput.focus();
+            } catch (err) {
+                console.error("Failed to load thread:", err);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('reply-input');
+            const message = input.value.trim();
+            if (!message || !currentRecipient) return;
+
+            input.value = '';
+
+            const formData = new FormData();
+            formData.append('recipient', currentRecipient);
+            formData.append('message', message);
+
+            try {
+                const response = await authenticatedFetch(`${BASE_URL}/reply`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    loadThread(currentRecipient, document.querySelector(`.conversation-item.active`));
+                }
+            } catch (err) {
+                console.error("Failed to send message:", err);
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('message-container');
+            if (container) container.scrollTop = container.scrollHeight;
+        }
+
+        // Sidebar Search
+        let sidebarSearchTimeout = null;
+        function searchSidebarRecipients(query) {
+            clearTimeout(sidebarSearchTimeout);
+            const resultsDiv = document.getElementById('sidebar-search-results');
+            const convList = document.getElementById('conversation-list-container');
+
+            if (activeTab === 'messages') {
+                const queryLower = (query || '').toLowerCase();
+                const items = document.querySelectorAll('#broadcast-list .broadcast-item');
+
+                items.forEach(item => {
+                    const nameEl = item.querySelector('strong');
+                    if (nameEl) {
+                        const text = nameEl.textContent.toLowerCase();
+                        if (text.includes(queryLower)) {
+                            item.style.display = '';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    }
+                });
+                return;
+            }
+
+            if (!query || query.length < 2) {
+                resultsDiv.style.display = 'none';
+                convList.style.opacity = '1';
+                return;
+            }
+
+            sidebarSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await authenticatedFetch(`${BASE_URL}/broadcast/search?query=${encodeURIComponent(query)}`);
+                    const results = await response.json();
+
+                    if (results.length === 0) {
+                        resultsDiv.innerHTML = '<div style="padding: 1rem; color: #94a3b8; text-align: center; font-size: 0.8rem;">No contacts found</div>';
+                    } else {
+                        resultsDiv.innerHTML = results.map(r => `
+                            <div class="conversation-item" onclick="loadThread('${r.phoneNumber}', this)">
+                                <div class="avatar-circle">${r.name.charAt(0)}</div>
+                                <div class="conv-info">
+                                    <span class="conv-name">${r.name}</span>
+                                    <span class="conv-last-msg">${r.roles.join(', ')}</span>
+                                </div>
+                                <div style="font-size: 0.7rem; color: #94a3b8;">${r.phoneNumber || ''}</div>
+                            </div>
+                        `).join('');
+                    }
+                    resultsDiv.style.display = 'block';
+                    convList.style.opacity = '0.3';
+                } catch (err) {
+                    console.error("Sidebar search failed:", err);
+                }
+            }, 300);
+        }
+
+        // Broadcast Modal Logic
+        async function updateRecipientCount() {
+            const form = document.getElementById('broadcast-form');
+            const badge = document.getElementById('recipient-preview-badge');
+            const tbody = document.getElementById('preview-list-body');
+            if (!form || !badge) return;
+
+            toggleAcademicFilters();
+
+            const formData = new FormData(form);
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await authenticatedFetch(`${BASE_URL}/broadcast/recipients`, {
+                    method: 'POST',
+                    headers: { [csrfHeader]: csrfToken },
+                    body: formData
+                });
+                const recipients = await response.json();
+                window.currentRecipients = recipients;
+                badge.innerText = `Recipients: ${recipients.length}`;
+
+                const sendBtn = document.getElementById('send-broadcast-btn');
+                const warningDiv = document.getElementById('insufficient-units-warning');
+                const balanceDisplay = document.getElementById('warning-balance-display');
+
+                if (recipients.length > SMS_BALANCE) {
+                    warningDiv.style.display = 'flex';
+                    if (balanceDisplay) balanceDisplay.innerText = new Intl.NumberFormat().format(SMS_BALANCE);
+                    sendBtn.disabled = true;
+                    sendBtn.style.opacity = '0.5';
+                } else {
+                    warningDiv.style.display = 'none';
+                    sendBtn.disabled = false;
+                    sendBtn.style.opacity = '1';
+                }
+
+                if (recipients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #94a3b8;">No matches</td></tr>';
+                } else {
+                    tbody.innerHTML = recipients.map(r => `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px 12px;"><b>${r.name}</b><br><small>${r.roles.join(', ')}</small></td>
+                            <td style="padding: 10px 12px;">${r.phoneNumber || 'N/A'}</td>
+                            <td style="padding: 10px 12px; text-align: right;">
+                                <button type="button" onclick="addExclusion('${r.userId}', '${r.phoneNumber}')" style="color: #ef4444; border: none; background: #fee2e2; border-radius: 50%; cursor: pointer; width: 24px; height: 24px;">&times;</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function toggleAcademicFilters() {
+            const type = document.querySelector('input[name="recipientType"]:checked')?.value;
+            const section = document.getElementById('academic-filters-section');
+            const parentSection = document.getElementById('parent-only-filters');
+            if (section) section.style.display = (type === 'STAFF' || type === 'PARENTS') ? 'block' : 'none';
+            if (parentSection) parentSection.style.display = type === 'PARENTS' ? 'block' : 'none';
+        }
+
+        function toggleTrackClasses(trackCheckbox) {
+            const trackId = trackCheckbox.getAttribute('data-track-id');
+            const classCheckboxes = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+            classCheckboxes.forEach(cb => {
+                cb.checked = trackCheckbox.checked;
+            });
+            updateRecipientCount();
+        }
+
+        function syncTrackCheckbox(classCheckbox) {
+            const trackId = classCheckbox.getAttribute('data-track-id');
+            const trackCheckbox = document.querySelector(`.track-checkbox[data-track-id="${trackId}"]`);
+            if (trackCheckbox) {
+                const allOfTrack = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+                const allChecked = Array.from(allOfTrack).every(cb => cb.checked);
+                trackCheckbox.checked = allChecked;
+            }
+        }
+
+        async function fetchTemplates() {
+            try {
+                const response = await fetch(`${BASE_URL}/broadcast/templates`);
+                window.smsTemplates = await response.json();
+                const selector = document.getElementById('template-selector');
+                const currentVal = selector.value;
+                selector.innerHTML = '<option value="" disabled selected>-- Select Template --</option>' +
+                    window.smsTemplates.map(t => {
+                        return `<option value="${t.name}" 
+                                    data-target-role="${t.target_role || ''}"
+                                    data-components='${t.components || "[]"}'
+                                    data-mapping="${t.mapping || ''}"
+                                    data-language="${t.language || 'en_GB'}"
+                                    data-param-count="${t.parameter_count || 0}">${t.name}</option>`;
+                    }).join('');
+                if (currentVal) selector.value = currentVal;
+            } catch (err) { console.error(err); }
+        }
+
+        function calculateSmsLength() {
+            const inputsContainer = document.getElementById('template-params-inputs');
+            if (!inputsContainer || inputsContainer.style.display === 'none') {
+                document.getElementById('char-count').innerText = "0";
+                document.getElementById('page-count').innerText = "0";
+                const encodingWarning = document.getElementById('encoding-warning');
+                if (encodingWarning) encodingWarning.innerHTML = "";
+                return;
+            }
+
+            const previewDiv = inputsContainer.querySelector('.template-inline-preview');
+            if (!previewDiv) return;
+
+            let simulatedText = "";
+            previewDiv.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    simulatedText += node.textContent;
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (node.tagName === 'BR') {
+                        simulatedText += "\n";
+                    }
+                    // We skip INPUT and SPAN (dynamic fields) as per user request to exclude field data
+                }
+            });
+
+            simulatedText = simulatedText.replace(/\r\n/g, "\n").trim();
+
+            // GSM-7 character sets
+            const gsm7Basic = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ!\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà \t";
+            const gsm7Extended = "^{}\\[~]|€";
+
+            let isUnicode = false;
+            let charCount = 0;
+
+            for (let i = 0; i < simulatedText.length; i++) {
+                const char = simulatedText[i];
+                if (gsm7Extended.indexOf(char) !== -1) {
+                    charCount += 2;
+                } else if (gsm7Basic.indexOf(char) !== -1) {
+                    charCount += 1;
+                } else {
+                    isUnicode = true;
+                    break;
+                }
+            }
+
+            if (isUnicode) {
+                charCount = simulatedText.length;
+            }
+
+            let pageCount = 0;
+            let charsPerPage = isUnicode ? 70 : 160;
+            let charsPerMultipart = isUnicode ? 67 : 153;
+
+            if (charCount > 0) {
+                if (charCount <= charsPerPage) {
+                    pageCount = 1;
+                } else {
+                    pageCount = Math.ceil(charCount / charsPerMultipart);
+                }
+            }
+
+            document.getElementById('char-count').innerText = `At least ${charCount}`;
+            document.getElementById('page-count').innerText = pageCount;
+
+            const encodingWarning = document.getElementById('encoding-warning');
+            if (encodingWarning) {
+                const pageLimit = isUnicode ? 70 : 160;
+                let html = isUnicode ?
+                    `<span style='color:#ef4444;'><i class='fas fa-exclamation-circle'></i> Unicode detected (${pageLimit} chars/page)</span>` :
+                    `<span style='color:#16a34a;'><i class='fas fa-check-circle'></i> Standard GSM (${pageLimit} chars/page)</span>`;
+
+                html += `<div style="margin-top:2px; font-weight:normal; opacity:0.8;">Final length depends on populated data.</div>`;
+                encodingWarning.innerHTML = html;
+            }
+        }
+
+        async function loadTemplateDetails(templateName) {
+            const paramsContainer = document.getElementById('template-params-container');
+            const inputsContainer = document.getElementById('template-params-inputs');
+            const selector = document.getElementById('template-selector');
+            const selectedOpt = selector.options[selector.selectedIndex];
+
+            if (!templateName) {
+                paramsContainer.style.display = 'none';
+                const warningDiv = document.getElementById('template-qualification-warning');
+                if (warningDiv) warningDiv.style.display = 'none';
+                return;
+            }
+
+            // Recipient Qualification Check
+            const targetRole = selectedOpt.dataset.targetRole;
+            const recipients = window.currentRecipients || [];
+            let unqualifiedCount = 0;
+            let unqualifiedType = '';
+
+            if (targetRole === 'PARENT') {
+                unqualifiedCount = recipients.filter(r => r.roles.includes('STAFF')).length;
+                unqualifiedType = 'Staff';
+            } else if (targetRole === 'STAFF') {
+                unqualifiedCount = recipients.filter(r => r.roles.includes('PARENT')).length;
+                unqualifiedType = 'Parents';
+            }
+
+            let warningDiv = document.getElementById('template-qualification-warning');
+            if (!warningDiv) {
+                warningDiv = document.createElement('div');
+                warningDiv.id = 'template-qualification-warning';
+                warningDiv.style.cssText = 'background: #fff7ed; border: 1px solid #ffedd5; color: #9a3412; padding: 1rem; border-radius: 12px; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;';
+                paramsContainer.parentNode.insertBefore(warningDiv, paramsContainer);
+            }
+
+            if (unqualifiedCount > 0) {
+                warningDiv.innerHTML = `
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span><b>Warning:</b> ${unqualifiedCount} recipient(s) (${unqualifiedType}) are not qualified for this template and will be skipped.</span>
+                `;
+                warningDiv.style.display = 'flex';
+            } else {
+                warningDiv.style.display = 'none';
+            }
+
+            paramsContainer.style.display = 'block';
+
+            try {
+                const components = JSON.parse(selectedOpt.dataset.components || '[]');
+                const mappingStr = selectedOpt.dataset.mapping || '';
+                const bodyComp = components.find(c => c.type === 'BODY');
+                const text = bodyComp?.text || "";
+
+                // Parse mapping: "1=student_name,2=due_date"
+                const mapping = {};
+                mappingStr.split(',').forEach(m => {
+                    if (m.includes('=')) {
+                        const [id, key] = m.split('=');
+                        mapping[id.trim()] = key.trim();
+                    } else if (m.trim()) {
+                        mapping[m.trim()] = m.trim();
+                    }
+                });
+
+                // Known system variables
+                const systemVars = [
+                    'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
+                    'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
+                    'academic_year', 'term_number', 'current_bill', 'current_balance', 'term_fees', 'settled_bill', 'outstanding',
+                    'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
+                ];
+
+                const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
+                const uniqueVars = [...new Set(varMatches)];
+
+                if (uniqueVars.length === 0) {
+                    inputsContainer.innerHTML = `<div class="template-inline-preview">${text.replace(/\\n/g, '<br>')}</div>`;
+                } else {
+                    let previewHtml = text;
+                    uniqueVars.forEach((v, index) => {
+                        const key = v.replace(/\{\{|\}\}/g, '');
+                        const mappedKey = mapping[key] || key;
+                        const isAutoFilled = systemVars.includes(mappedKey);
+
+                        const paramId = key;
+
+                        let inputHtml = "";
+                        if (isAutoFilled) {
+                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 0.7; width: auto; min-width: 80px; display: inline-flex; align-items: center; justify-content: center;" title="Auto-filled: ${mappedKey}">
+                                ${mappedKey}
+                            </span>`;
+                        } else {
+                            inputHtml = `<input type="text" name="manualParam_${paramId}" placeholder="${v}" class="inline-param-input" required title="Enter value for ${key}" oninput="calculateSmsLength()">`;
+                        }
+
+                        const escapedV = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        previewHtml = previewHtml.split(v).join(inputHtml);
+                    });
+
+                    // Format newlines for clean display
+                    previewHtml = previewHtml.replace(/\\n/g, '<br>');
+
+                    inputsContainer.innerHTML = `<div class="template-inline-preview" style="line-height: 1.8;">${previewHtml}</div>`;
+                    inputsContainer.style.display = 'block';
+                }
+
+                // Trigger initial calculation
+                setTimeout(calculateSmsLength, 100);
+
+            } catch (e) {
+                console.error("Error parsing template components:", e);
+                inputsContainer.innerHTML = 'Error loading params';
+            }
+        }
+
+        async function applyAiFilter(event) {
+            const query = document.getElementById('ai-query-input').value.trim();
+            if (!query) return;
+            const btn = (event && event.currentTarget) || document.querySelector('button[onclick*="applyAiFilter"]');
+            if (btn) {
+                btn.innerText = 'AI thinking...';
+                btn.disabled = true;
+            }
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                const response = await fetch('/api/admin/query/parents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', [csrfHeader]: csrfToken },
+                    body: JSON.stringify({ query: query })
+                });
+                const parents = await response.json();
+                parents.forEach(p => addManualRecipient(p.id, p.name, p.phone, ['AI Found']));
+                alert(`Added ${parents.length} recipients.`);
+            } catch (err) { alert(err.message); }
+            finally { btn.innerText = 'Apply AI Magic'; btn.disabled = false; }
+        }
+
+        function addManualRecipient(id, name, phone, roles) {
+            const container = document.getElementById('manual-ids-container');
+            if (!container.querySelector(`input[value="${id}"]`)) {
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = 'manualUserIds'; input.value = id;
+                container.appendChild(input);
+            }
+            document.getElementById('search-results-dropdown').style.display = 'none';
+            updateRecipientCount();
+        }
+
+        function addExclusion(userId, phone) {
+            const container = document.getElementById(userId !== 'null' ? 'excluded-ids-container' : 'excluded-phones-container');
+            const inputName = userId !== 'null' ? 'excludedUserIds' : 'excludedPhoneNumbers';
+            const val = userId !== 'null' ? userId : phone;
+
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = inputName; input.value = val;
+            container.appendChild(input);
+            updateRecipientCount();
+        }
+
+        function searchManualRecipients(query) {
+            const dropdown = document.getElementById('search-results-dropdown');
+            if (!query || query.length < 2) { dropdown.style.display = 'none'; return; }
+            setTimeout(async () => {
+                const response = await fetch(`${BASE_URL}/broadcast/search?query=${encodeURIComponent(query)}`);
+                const results = await response.json();
+                dropdown.innerHTML = results.map(r => `
+                    <div onclick="addManualRecipient('${r.userId}', '${r.name}', '${r.phoneNumber}', '${r.roles}')" style="padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;">
+                        <b>${r.name}</b> (${r.phoneNumber})
+                    </div>
+                `).join('');
+                dropdown.style.display = 'block';
+            }, 300);
+        }
+
+        // Variable Picker logic
+        function showVariablePicker() { document.getElementById('variable-picker-modal').classList.add('active'); }
+        function closeVariablePicker(event) {
+            if (event && event.target.id !== 'variable-picker-modal' && event.target.tagName !== 'BUTTON') return;
+            document.getElementById('variable-picker-modal').classList.remove('active');
+        }
+        function selectVariable(code, label) {
+            const textarea = document.getElementById('broadcast-textarea');
+            if (textarea) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                textarea.value = text.substring(0, start) + `{{${code}}}` + text.substring(end);
+                textarea.focus();
+                textarea.setSelectionRange(start + code.length + 4, start + code.length + 4);
+            }
+            document.getElementById('variable-picker-modal').style.display = 'none';
+        }
+
+        async function manualSync() {
+            const syncIcon = document.getElementById('sync-icon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+
+            try {
+                if (activeTab === 'conversations') {
+                    const response = await fetch(`${BASE_URL}/conversations`);
+                    if (response.ok) {
+                        const html = await response.text();
+                        const activeId = document.querySelector('.conversation-item.active')?.getAttribute('data-recipient');
+                        document.getElementById('conversation-list-container').innerHTML = html;
+                        if (activeId) {
+                            const el = document.querySelector(`[data-recipient="${activeId}"]`);
+                            if (el) el.classList.add('active');
+                        }
+                    }
+                }
+
+                if (currentRecipient) {
+                    const response = await fetch(`${BASE_URL}/thread/${encodeURIComponent(currentRecipient)}`);
+                    if (response.ok) {
+                        const html = await response.text();
+                        const container = document.getElementById('message-container');
+                        let wasAtBottom = false;
+                        if (container) {
+                            wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+                        }
+                        document.getElementById('chat-window').innerHTML = html;
+                        if (wasAtBottom) scrollToBottom();
+                    }
+                }
+            } catch (err) {
+                console.warn("Manual sync failed:", err);
+            } finally {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial dates for "Today"
+            const now = new Date();
+            const start = new Date();
+            start.setHours(0, 0, 0, 0);
+
+            document.getElementById('history-start-date').value = start.toISOString().split('T')[0];
+            document.getElementById('history-end-date').value = now.toISOString().split('T')[0];
+        });
+
+        let currentPurchaseType = '';
+        let currentPurchaseRate = 0;
+
+        function openPurchaseModal(type, label, defaultUnits, rate) {
+            currentPurchaseType = type;
+            currentPurchaseRate = parseFloat(rate) || 0;
+
+            document.getElementById('purchaseUnitLabel').innerText = label;
+            document.getElementById('purchaseUnitsInput').value = defaultUnits;
+
+            updatePurchaseTotal();
+
+            document.getElementById('purchaseModal').classList.add('active');
+        }
+
+        function closePurchaseModal() {
+            document.getElementById('purchaseModal').classList.remove('active');
+        }
+
+        function updatePurchaseTotal() {
+            const units = parseInt(document.getElementById('purchaseUnitsInput').value) || 0;
+            const total = units * currentPurchaseRate;
+            document.getElementById('purchaseTotalDisplay').innerText = total.toLocaleString('en-US');
+        }
+
+        function initiatePayment() {
+            const units = parseInt(document.getElementById('purchaseUnitsInput').value);
+            if (!units || units <= 0) {
+                alert("Please enter a valid number of units.");
+                return;
+            }
+
+            const amount = units * currentPurchaseRate;
+            const reference = currentPurchaseType + '_' + new Date().getTime();
+            const email = /*[[${#authentication.name}]]*/ "user@example.com";
+            const redirectUrl = window.location.pathname;
+
+            closePurchaseModal();
+            console.log("Initiating payment for", amount, "to", amount <= 120000 ? "Squad" : "Paystack");
+
+            if (amount <= 120000) {
+                payWithSquad(amount, email, reference, units, redirectUrl);
+            } else {
+                payWithPaystack(amount, email, reference, units, redirectUrl);
+            }
+        }
+
+        function handlePaymentSuccess(reference, units, amount, redirectUrl) {
+            document.getElementById('successReference').value = reference;
+            document.getElementById('successType').value = currentPurchaseType;
+            document.getElementById('successUnits').value = units;
+            document.getElementById('successAmount').value = amount;
+            document.getElementById('successRedirectUrl').value = redirectUrl;
+            document.getElementById('paymentSuccessForm').submit();
+        }
+
+        function payWithPaystack(amount, email, reference, units, redirectUrl) {
+            const amountInKobo = Math.ceil(amount * 100);
+
+            const handler = PaystackPop.setup({
+                key: PAYSTACK_PUBLIC_KEY,
+                email: email,
+                amount: amountInKobo,
+                currency: "NGN",
+                reference: reference,
+                channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+                callback: function (response) {
+                    console.log("Paystack payment successful:", response);
+                    handlePaymentSuccess(response.reference || reference, units, amount, redirectUrl);
+                },
+                onClose: function () {
+                    console.log("Paystack window closed");
+                }
+            });
+            handler.openIframe();
+        }
+
+        function payWithSquad(amount, email, reference, units, redirectUrl) {
+            const amountInKobo = Math.round(amount * 100);
+
+            try {
+                const squadInstance = new squad({
+                    onClose: () => console.log("Squad Widget closed"),
+                    onLoad: () => console.log("Squad Widget loaded successfully"),
+                    onSuccess: (transaction) => {
+                        console.log("Squad Transaction successful:", transaction);
+                        handlePaymentSuccess(transaction.reference || reference, units, amount, redirectUrl);
+                    },
+                    key: SQUAD_PUBLIC_KEY,
+                    email: email,
+                    amount: amountInKobo.toString(),
+                    currency_code: "NGN",
+                    payment_channels: ['card', 'bank', 'ussd', 'transfer'],
+                    pass_charge: true,
+                    transaction_ref: reference
+                });
+
+                squadInstance.setup();
+                squadInstance.open();
+            } catch (e) {
+                console.error("Error initializing Squad widget:", e);
+                alert("Failed to initialize payment widget. Please try again.");
+            }
+        }
+    </script>
+
+    <!-- Purchase Modal -->
+    <div id="purchaseModal" class="modal">
+        <div class="modal-content"
+            style="background:white; padding:2rem; border-radius:12px; width:100%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.1); height: auto !important; min-height: fit-content; margin: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h2 style="margin:0;" id="purchaseModalTitle">Purchase Required Units</h2>
+                <button type="button" onclick="closePurchaseModal()"
+                    style="background:none; border:none; font-size:1.5rem; cursor:pointer; color: #94a3b8;">&times;</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label id="purchaseUnitLabel"
+                    style="display:block; margin-bottom:0.5rem; font-weight:500; color: #1e293b;">Units</label>
+                <input type="number" id="purchaseUnitsInput" class="form-control" required min="1"
+                    style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
+                    oninput="updatePurchaseTotal()">
+            </div>
+
+            <div
+                style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.25rem;">Total
+                    Amount (NGN)</div>
+                <div id="purchaseTotalDisplay" style="font-size: 1.5rem; font-weight: 700; color: #4f46e5;">0
+                </div>
+            </div>
+
+            <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                <button type="button" class="btn btn-outline"
+                    style="background: white; border: 1px solid #e2e8f0; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;"
+                    onclick="closePurchaseModal()">Cancel</button>
+                <button type="button" class="btn btn-primary"
+                    style="background: #4f46e5; color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer;"
+                    onclick="initiatePayment()">Pay
+                    Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for successful payments -->
+    <form id="paymentSuccessForm" th:action="@{/admin/school-setup/subscriptions/process-payment}" method="post"
+        style="display: none;">
+        <input type="hidden" id="successReference" name="reference">
+        <input type="hidden" id="successType" name="type">
+        <input type="hidden" id="successUnits" name="units">
+        <input type="hidden" id="successAmount" name="amount">
+        <input type="hidden" id="successRedirectUrl" name="redirectUrl">
+    </form>
+
+    <!-- Paystack & Squad Scripts -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="https://checkout.squadco.com/widget/squad.min.js"></script>
+</body>
+
+</html>

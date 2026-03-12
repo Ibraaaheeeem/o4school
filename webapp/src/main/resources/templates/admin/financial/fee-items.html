@@ -19,8 +19,10 @@
     <div th:replace="~{fragments/header :: school-header}"></div>
 
     <main class="main-content setup-layout">
+        <!-- Global Admin Sidebar -->
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='financial')}"></div>
+
         <!-- Include Financial Sidebar -->
-        <div th:replace="~{fragments/financial-sidebar :: financial-sidebar}"></div>
 
         <!-- Main Content Area -->
         <div class="setup-content">

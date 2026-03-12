@@ -354,6 +354,14 @@
                 cursor: pointer;
             }
 
+            .user-pill.inactive {
+                cursor: default;
+            }
+
+            .user-pill.inactive:hover {
+                transform: none;
+            }
+
             .user-pill:hover {
                 transform: translateY(-1px);
             }
@@ -459,7 +467,7 @@
                     height: auto !important;
                     min-height: 60px;
                     padding-top: 0.5rem;
-                    padding-bottom: 0.5rem;
+                    padding-bottom: 0;
                 }
 
                 .header-container {
@@ -484,8 +492,7 @@
                 }
 
                 .logo-container {
-                    width: 44px;
-                    height: 44px;
+                    display: none !important;
                 }
 
                 .brand-info {
@@ -554,7 +561,7 @@
                     position: relative;
                 }
 
-                .dropdown-trigger .trigger-label-group {
+                .trigger-label-group {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
@@ -592,9 +599,11 @@
                 .dropdown-menu {
                     position: fixed;
                     top: 80px;
-                    left: 4%;
-                    right: 4%;
-                    width: 92%;
+                    left: 2%;
+                    right: 2%;
+                    width: 96%;
+                    max-height: 400px;
+                    z-index: 9999;
                 }
 
                 /* Non-Admin Mobile Badges Style */
@@ -639,7 +648,7 @@
 
                 .header-right {
                     display: flex !important;
-                    order: 3;
+                    order: 4;
                     gap: 0;
                     flex: 0 0 auto;
                     align-items: center;
@@ -676,9 +685,72 @@
             .mobile-school-name {
                 display: none;
             }
+
+            /* Hamburger Menu Styles */
+            .hamburger-menu {
+                display: none;
+                background: none;
+                border: none;
+                color: var(--text-primary);
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0.5rem;
+                border-radius: 8px;
+                transition: background 0.2s;
+            }
+
+            .hamburger-menu:hover {
+                background: var(--surface-hover);
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(4px);
+                z-index: 1050;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+                opacity: 1;
+            }
+
+            @media (max-width: 900px) {
+                .hamburger-menu {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    order: 1;
+                }
+
+                .brand-section {
+                    order: 2;
+                }
+
+                .header-center {
+                    order: 3;
+                    flex: 1;
+                }
+
+                .header-right {
+                    order: 4;
+                }
+            }
         </style>
 
         <div class="header-container">
+            <!-- Hamburger Menu for Mobile -->
+            <button class="hamburger-menu" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+
             <!-- Branding -->
             <a href="/" class="brand-section">
                 <!-- Fallback Logic matches original -->
@@ -828,13 +900,16 @@
 
             <!-- User Profile & Logout -->
             <div class="header-right" sec:authorize="isAuthenticated()">
-                <div class="user-pill">
+                <a class="user-pill" style="text-decoration: none;"
+                    th:with="isSysAdmin=${userRole == 'SYSTEM_ADMIN' || userRole == 'System Administrator'}, schoolCount=${user != null ? user.getSchools().size() : 0}, roleCount=${user != null ? user.schoolRoles.size() : 0}"
+                    th:href="${isSysAdmin || schoolCount > 1 ? '/select-school' : (roleCount > 1 ? '/select-role' : null)}"
+                    th:classappend="${!(isSysAdmin || schoolCount > 1 || roleCount > 1) ? 'inactive' : ''}">
                     <div class="avatar-circle" th:text="${#strings.substring(user?.firstName ?: 'U', 0, 1)}">U</div>
                     <div class="user-meta">
                         <span class="user-fullname" th:text="${user?.fullName ?: 'User'}">User Name</span>
                         <span class="user-role-badge" th:text="${userRole ?: 'Access'}">Role</span>
                     </div>
-                </div>
+                </a>
 
                 <form th:action="@{/auth/logout}" method="post">
                     <button type="submit" class="logout-button" title="Sign Out">
@@ -844,8 +919,65 @@
             </div>
         </div>
 
+        <!-- Sidebar Overlay -->
+        <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
         <!-- Dashboard Navigation Script & Financial History Management -->
         <script>
+            function toggleMobileSidebar() {
+                const sidebar = document.getElementById('quickActionsSidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) {
+                    sidebar.classList.toggle('mobile-active');
+                }
+                if (overlay) {
+                    overlay.classList.toggle('active');
+                }
+                // Prevent body scroll when sidebar is open
+                if (sidebar && sidebar.classList.contains('mobile-active')) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
+            }
+
+            // Close sidebar on navigation if it's mobile
+            document.addEventListener('htmx:beforeRequest', () => {
+                const sidebar = document.getElementById('quickActionsSidebar');
+                if (sidebar && sidebar.classList.contains('mobile-active')) {
+                    toggleMobileSidebar();
+                }
+            });
+
+            /* Custom Dropdown UI Logic */
+            function toggleHeaderDropdown(id) {
+                const dropdown = document.getElementById(id);
+                const isOpen = dropdown.classList.contains('open');
+
+                // Close all other dropdowns
+                document.querySelectorAll('.custom-dropdown').forEach(d => {
+                    d.classList.remove('open');
+                });
+
+                if (!isOpen) {
+                    dropdown.classList.add('open');
+                }
+            }
+
+            function submitContext(formId, inputId, value) {
+                document.getElementById(inputId).value = value;
+                document.getElementById(formId).submit();
+            }
+
+            // Close dropdowns when clicking outside
+            window.addEventListener('click', function (e) {
+                if (!e.target.closest('.custom-dropdown')) {
+                    document.querySelectorAll('.custom-dropdown').forEach(d => {
+                        d.classList.remove('open');
+                    });
+                }
+            });
+
             document.addEventListener('DOMContentLoaded', function () {
                 const currentPath = window.location.pathname;
                 const dashboardNav = document.getElementById('dashboardNav');

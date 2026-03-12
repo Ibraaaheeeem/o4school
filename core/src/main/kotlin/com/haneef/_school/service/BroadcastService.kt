@@ -76,21 +76,27 @@ class BroadcastService(
             .filter { it.phoneNumber == null || it.phoneNumber !in filter.excludedPhoneNumbers }
     }
 
-    fun searchDetailedRecipients(query: String, schoolId: UUID): List<BroadcastRecipientDTO> {
+    fun searchDetailedRecipients(query: String, schoolId: UUID, recipientType: String? = null): List<BroadcastRecipientDTO> {
         if (query.length < 2) return emptyList()
         val results = mutableListOf<BroadcastRecipientDTO>()
 
         // Search Staff
-        staffRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
-            .forEach { results.add(it.toDTO()) }
+        if (recipientType == null || recipientType == "ALL" || recipientType == "STAFF") {
+            staffRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
+                .forEach { results.add(it.toDTO()) }
+        }
 
         // Search Parents
-        parentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
-            .forEach { results.add(it.toDTO()) }
+        if (recipientType == null || recipientType == "ALL" || recipientType == "PARENTS") {
+            parentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
+                .forEach { results.add(it.toDTO()) }
+        }
 
         // Search Students
-        studentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
-            .forEach { results.add(it.toDTO()) }
+        if (recipientType == null || recipientType == "ALL" || recipientType == "STUDENTS") {
+            studentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
+                .forEach { results.add(it.toDTO()) }
+        }
 
         return results.distinctBy { it.userId }
     }

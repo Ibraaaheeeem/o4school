@@ -10,21 +10,35 @@
 .setup-sidebar {
     width: 280px;
     background: white;
-    border-right: 1px solid #e2e8f0;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    margin: 1.5rem 1.5rem 1.5rem 0;
+    /* Float with margins, attached to right of rail */
+    border-radius: 16px;
+    /* Floating card roundness */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    /* Soft elevated drop shadow */
+    border: 1px solid #e2e8f0;
+    /* Crisp light border */
+    height: calc(100vh - 90px - 3rem);
+    /* Match rail height */
+    overflow-y: auto;
+    /* Scrollable if long */
+    position: sticky;
+    /* Keep it on screen */
+    top: 90px;
+    /* Offset below header */
 }
 
 .sidebar-header h3 {
     color: #1a202c;
     font-size: 1.25rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e2e8f0;
+    margin: 0;
 }
+
 
 .setup-nav {
     display: flex;
@@ -50,8 +64,9 @@
 }
 
 .nav-item.active {
-    background-color: #ebf8ff;
-    color: #3182ce;
+    background-color: #f1f5f9;
+    color: #1e293b;
+    font-weight: 600;
 }
 
 .nav-item .icon {
@@ -639,7 +654,7 @@
 }
 
 /* Responsive header */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .header-content {
         flex-direction: column;
         align-items: stretch;
@@ -3711,7 +3726,7 @@ ademic Sessions Styles */
 }
 
 /* Responsive Design for Academic Sessions */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .sessions-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -3767,9 +3782,29 @@ cademic Layout Improvements */
 }
 
 .sidebar-header {
+    margin-top: 0.5rem;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid #e2e8f0;
+    height: 32px;
+    /* Fix height to match main sidebar logo height 32px */
+    display: flex;
+    align-items: center;
+    box-sizing: content-box;
+    /* Padding doesn't shrink height */
+}
+
+/* Messaging-specific override: chat sidebar header needs multi-row layout */
+.chat-sidebar .sidebar-header {
+    height: auto !important;
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    padding: 1.1rem 1.25rem !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-sizing: border-box !important;
 }
 
 .sidebar-header h3 {
@@ -3975,37 +4010,101 @@ cademic Layout Improvements */
     }
 }
 
-@media (max-width: 768px) {
+.mobile-only {
+    display: none !important;
+}
+
+.desktop-only {
+    display: flex !important;
+}
+
+@media (max-width: 900px) {
     .setup-layout {
         flex-direction: column;
-        gap: 0;
+        gap: 0 !important;
+        min-height: auto !important;
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+
+    .setup-layout h1 {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: #1a202c !important;
     }
 
     .setup-sidebar {
+        position: relative;
         width: 100%;
+        height: auto;
+        border-radius: 0;
+        margin: 0 !important;
         border-right: none;
         border-bottom: 1px solid #e2e8f0;
-        padding: 1rem;
+        padding: 10px;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        z-index: 10;
+    }
+
+    .setup-nav {
+        display: flex;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px;
+    }
+
+    .nav-item {
+        flex: 1 1 calc(33.33% - 10px);
+        min-width: 90px;
+        max-width: 120px;
+        aspect-ratio: 1/1;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center;
+        padding: 12px 8px !important;
+        font-size: 0.75rem !important;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        white-space: normal !important;
+        gap: 4px !important;
+    }
+
+    .nav-item .icon {
+        margin-right: 0 !important;
+        margin-bottom: 2px;
+        font-size: 1.4rem !important;
+        display: block;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    .nav-item.active {
+        background: var(--primary-color, #3b82f6) !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .sidebar-header,
+    .setup-progress-widget {
+        display: none !important;
     }
 
     .setup-content {
         padding: 1rem;
-    }
-
-    .setup-nav {
-        flex-direction: row;
-        overflow-x: auto;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .nav-item {
-        white-space: nowrap;
-        padding: 0.5rem 1rem;
-    }
-
-    .setup-progress-widget {
-        display: none;
+        min-height: auto !important;
     }
 }
 

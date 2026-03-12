@@ -7,29 +7,29 @@
             <h3>Academic Management</h3>
         </div>
         <nav class="setup-nav">
-            <a th:href="@{/admin/academic}" 
-               th:classappend="${requestURI == '/admin/academic' ? 'active' : ''}"
-               class="nav-item">
+            <a th:href="@{/admin/dashboard}" class="nav-item mobile-only">
+                <span class="icon">🏠</span>
+                Dashboard
+            </a>
+            <a th:href="@{/admin/academic}" th:classappend="${requestURI == '/admin/academic' ? 'active' : ''}"
+                class="nav-item">
                 <span class="icon">📊</span>
                 Overview
             </a>
             <a th:href="@{/admin/academic/sessions}"
-               th:classappend="${requestURI.contains('academic/sessions') ? 'active' : ''}" 
-               class="nav-item">
+                th:classappend="${requestURI.contains('academic/sessions') ? 'active' : ''}" class="nav-item">
                 <span class="icon">🎓</span>
-                Academic Sessions
+                Sessions
             </a>
             <a th:href="@{/admin/academic/calendar}"
-               th:classappend="${requestURI.contains('academic/calendar') ? 'active' : ''}" 
-               class="nav-item">
+                th:classappend="${requestURI.contains('academic/calendar') ? 'active' : ''}" class="nav-item">
                 <span class="icon">📅</span>
-                School Calendar
+                Calendar
             </a>
             <a th:href="@{/admin/academic/timetable}"
-               th:classappend="${requestURI.contains('academic/timetable') ? 'active' : ''}" 
-               class="nav-item">
+                th:classappend="${requestURI.contains('academic/timetable') ? 'active' : ''}" class="nav-item">
                 <span class="icon">🕐</span>
-                School Timetable
+                Timetable
             </a>
         </nav>
 

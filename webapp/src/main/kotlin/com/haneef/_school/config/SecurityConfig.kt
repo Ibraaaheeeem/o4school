@@ -35,11 +35,11 @@ class SecurityConfig(
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { csrf ->
-                csrf.ignoringRequestMatchers("/paystack/webhooks", "/squad/webhooks", "/webhook/whatsapp", "/h2-console/**", "/auth/login", "/auth/logout")
+                csrf.ignoringRequestMatchers("/paystack/webhooks", "/paystack/webhooks/**", "/squad/webhooks", "/squad/webhooks/**", "/webhook/whatsapp", "/webhook/whatsapp/**", "/h2-console/**", "/auth/login", "/auth/logout")
             }
             .authorizeHttpRequests { requests ->
                 requests
-                    .requestMatchers("/", "/login", "/register", "/activate-account", "/forgot-password", "/auth/**", "/error", "/css/**", "/js/**", "/images/**", "/paystack/webhooks", "/squad/webhooks", "/webhook/whatsapp", "/favicon.ico").permitAll()
+                    .requestMatchers("/", "/login", "/register", "/activate-account", "/forgot-password", "/auth/**", "/error", "/css/**", "/js/**", "/images/**", "/paystack/webhooks", "/paystack/webhooks/**", "/squad/webhooks", "/squad/webhooks/**", "/webhook/whatsapp", "/webhook/whatsapp/**", "/favicon.ico").permitAll()
                     .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                     .requestMatchers("/actuator/**").hasRole("SYSTEM_ADMIN")
                     .requestMatchers("/h2-console/**").hasRole("SYSTEM_ADMIN")

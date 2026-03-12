@@ -6,7 +6,9 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import com.haneef._school.repository.*
-import com.haneef._school.service.InternalMessagingService
+import com.haneef._school.service.*
+import com.haneef._school.dto.BroadcastRecipientFilter
+import com.haneef._school.dto.BroadcastRecipientDTO
 import java.util.*
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -18,7 +20,14 @@ import org.springframework.security.core.userdetails.UserDetails
 class InternalMessagingController(
     private val schoolRepository: SchoolRepository,
     private val userRepository: UserRepository,
-    private val messagingService: InternalMessagingService
+    private val messagingService: InternalMessagingService,
+    private val broadcastService: BroadcastService,
+    private val templateService: WhatsAppTemplateService,
+    private val educationTrackRepository: EducationTrackRepository,
+    private val schoolClassRepository: SchoolClassRepository,
+    private val departmentRepository: DepartmentRepository,
+    private val whatsappMessageRepository: WhatsAppMessageRepository,
+    private val smsMessageRepository: SmsMessageRepository
 ) {
 
     @GetMapping
@@ -56,6 +65,11 @@ class InternalMessagingController(
         model.addAttribute("threads", threads)
         model.addAttribute("currentUser", user)
         model.addAttribute("dashboardUrl", dashboardUrl)
+        
+        // Data for broadcast filtering
+        model.addAttribute("tracks", educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true))
+        model.addAttribute("classes", schoolClassRepository.findBySchoolIdAndIsActiveWithTrack(selectedSchoolId, true))
+        model.addAttribute("departments", departmentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true))
         
         return "dashboard/internal-messaging"
     }
@@ -126,14 +140,126 @@ class InternalMessagingController(
 
     @GetMapping("/unread-count")
     @ResponseBody
-    fun getUnreadCount(session: HttpSession, @AuthenticationPrincipal userDetails: UserDetails): ResponseEntity<Map<String, Int>> {
+    fun getUnreadCount(session: HttpSession, @AuthenticationPrincipal userDetails: UserDetails): ResponseEntity<Map<String, Any>> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID 
             ?: return ResponseEntity.badRequest().build()
             
         val user = userRepository.findByEmailIgnoreCase(userDetails.username) ?: return ResponseEntity.badRequest().build()
         
-        val count = messagingService.getTotalUnreadCount(user.id!!, selectedSchoolId)
-        return ResponseEntity.ok(mapOf("count" to count))
+        val internalCount = messagingService.getTotalUnreadCount(user.id!!, selectedSchoolId)
+        val whatsappCount = whatsappMessageRepository.countUnreadIncomingBySchoolId(selectedSchoolId).toInt()
+        val smsCount = smsMessageRepository.countUnreadIncomingBySchoolId(selectedSchoolId).toInt()
+        
+        val total = internalCount + whatsappCount + smsCount
+        
+        return ResponseEntity.ok(mapOf(
+            "count" to total,
+            "internal" to internalCount,
+            "whatsapp" to whatsappCount,
+            "sms" to smsCount,
+            "multimodal" to 0 // No incoming multimodal yet
+        ))
+    }
+
+    @PostMapping("/broadcast/preview-count")
+    @ResponseBody
+    fun getPreviewCount(
+        @ModelAttribute filter: com.haneef._school.dto.BroadcastRecipientFilter,
+        session: HttpSession
+    ): Map<String, Any> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("count" to 0)
+        val recipients = broadcastService.getDetailedRecipients(filter, selectedSchoolId)
+        return mapOf("count" to recipients.size)
+    }
+
+    @PostMapping("/broadcast/recipients")
+    @ResponseBody
+    fun getRecipients(
+        @ModelAttribute filter: com.haneef._school.dto.BroadcastRecipientFilter,
+        session: HttpSession
+    ): List<com.haneef._school.dto.BroadcastRecipientDTO> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
+        return broadcastService.getDetailedRecipients(filter, selectedSchoolId)
+    }
+
+    @GetMapping("/broadcast/search")
+    @ResponseBody
+    fun searchRecipients(
+        @RequestParam("query") query: String,
+        @RequestParam(value = "recipientType", required = false) recipientType: String?,
+        session: HttpSession
+    ): List<com.haneef._school.dto.BroadcastRecipientDTO> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
+        return broadcastService.searchDetailedRecipients(query, selectedSchoolId, recipientType)
+    }
+
+    @GetMapping("/broadcast/templates")
+    @ResponseBody
+    fun getTemplates(
+        @RequestParam(value = "recipientType", required = false) recipientType: String?,
+        session: HttpSession
+    ): List<Map<String, Any>> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
+        val templates = templateService.getBroadcastTemplates(selectedSchoolId, recipientType)
+        
+        return templates.map { template ->
+            mapOf(
+                "name" to template.templateName,
+                "language" to template.language,
+                "status" to template.status,
+                "category" to template.category,
+                "parameter_count" to template.parameterCount,
+                "mapping" to (template.parameterMapping ?: ""),
+                "components" to (template.componentsJson ?: "[]"),
+                "target_role" to template.targetRole
+            )
+        }
+    }
+
+    @PostMapping("/broadcast")
+    @ResponseBody
+    fun sendBroadcast(
+        @ModelAttribute filter: com.haneef._school.dto.BroadcastRecipientFilter,
+        @RequestParam(value = "subject", required = true) subject: String,
+        @RequestParam(value = "templateName", required = false) templateName: String?,
+        @RequestParam(value = "message", required = false) message: String?,
+        session: HttpSession,
+        request: jakarta.servlet.http.HttpServletRequest,
+        @AuthenticationPrincipal userDetails: UserDetails
+    ): ResponseEntity<Map<String, Any>> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID 
+            ?: return ResponseEntity.badRequest().body(mapOf("success" to false, "message" to "No school selected"))
+            
+        val user = userRepository.findByEmailIgnoreCase(userDetails.username) 
+            ?: return ResponseEntity.status(401).body(mapOf("success" to false, "message" to "User not found"))
+            
+        // Extract manual parameters
+        val extraParams = mutableMapOf<String, String>()
+        val paramNames = request.parameterNames
+        while (paramNames.hasMoreElements()) {
+            val name = paramNames.nextElement()
+            if (name.startsWith("manualParam_")) {
+                val key = name.removePrefix("manualParam_")
+                extraParams[key] = request.getParameter(name) ?: ""
+            }
+        }
+
+        val recipients = broadcastService.getDetailedRecipients(filter, selectedSchoolId)
+        
+        return try {
+            val sentCount = messagingService.sendInternalBroadcast(
+                schoolId = selectedSchoolId,
+                senderId = user.id!!,
+                subject = subject,
+                content = message,
+                templateName = templateName,
+                recipients = recipients,
+                extraParams = extraParams
+            )
+            ResponseEntity.ok(mapOf("success" to true, "count" to sentCount))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("success" to false, "message" to (e.message ?: "Unknown error")))
+        }
     }
 
 }

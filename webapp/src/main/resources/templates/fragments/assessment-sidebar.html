@@ -7,6 +7,10 @@
             <h3>Assessment Management</h3>
         </div>
         <nav class="setup-nav">
+            <a th:href="@{/admin/dashboard}" class="nav-item mobile-only">
+                <span class="icon">🏠</span>
+                Dashboard
+            </a>
             <a th:href="@{/admin/assessments}" class="nav-item"
                 th:classappend="${requestURI == '/admin/assessments' ? 'active' : ''}">
                 <span class="icon"><i class="fas fa-chart-pie"></i></span>
@@ -21,7 +25,7 @@
             <a th:href="@{/admin/assessments/scoring-schemes}" class="nav-item"
                 th:classappend="${requestURI.startsWith('/admin/assessments/scoring-schemes') ? 'active' : ''}">
                 <span class="icon"><i class="fas fa-balance-scale"></i></span>
-                Scoring Schemes
+                Scoring
             </a>
 
             <a th:href="@{/admin/assessments/reports}" class="nav-item"

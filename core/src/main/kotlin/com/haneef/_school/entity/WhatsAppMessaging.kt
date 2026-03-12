@@ -35,6 +35,23 @@ class WhatsAppMessage(
     var school: School? = null,
 
     @Column(nullable = false)
+    var triggerFallback: Boolean = false,
+
+    @Column(nullable = false)
+    var isFallback: Boolean = false,
+
+    @Column(name = "template_name")
+    var templateName: String? = null,
+
+    @Column(columnDefinition = "TEXT")
+    var paramsJson: String? = null,
+
+    @Column(name = "fallback_channel")
+    var fallbackChannel: String? = null,
+
+    var broadcastId: UUID? = null,
+
+    @Column(nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
 )
 

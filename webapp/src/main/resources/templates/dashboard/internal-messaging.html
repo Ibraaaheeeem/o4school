@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head>
     <meta charset="UTF-8">
@@ -12,114 +12,36 @@
 
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style th:replace="~{dashboard/messaging :: style}"></style>
     <style>
-        .messaging-layout {
-            display: flex;
-            height: calc(100vh - 60px);
-            /* Adjust based on header */
-            background: #f8fafc;
-            overflow: hidden;
-            position: relative;
+        :root {
+            --primary-color: #10b981;
+            --primary-dark: #059669;
+            --primary-light: #d1fae5;
+            --bubble-out-bg: #d1fae5;
+            --chat-bg: #f8fafc;
+            --avatar-gradient: linear-gradient(135deg, #34d399 0%, #10b981 100%);
         }
 
-        /* Sidebar with threads */
-        .messaging-sidebar {
-            width: 350px;
-            background: #ffffff;
-            border-right: 1px solid #e2e8f0;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            z-index: 100;
-            transition: transform 0.3s ease;
-        }
-
-        /* Mobile specific styles */
-        @media (max-width: 768px) {
-            .messaging-sidebar {
-                position: absolute;
-                top: 0;
-                left: 0;
-                bottom: 0;
-                width: 280px;
-                transform: translateX(-100%);
-                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            }
-
-            .messaging-sidebar.show {
-                transform: translateX(0);
-            }
-
-            .messaging-overlay {
-                display: none;
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(15, 23, 42, 0.4);
-                backdrop-filter: blur(2px);
-                z-index: 90;
-            }
-
-            .messaging-overlay.show {
-                display: block;
-            }
-
-            .mobile-header {
-                display: flex !important;
-                align-items: center;
-                gap: 1rem;
-                padding: 0.75rem 1rem;
-                background: white;
-                border-bottom: 1px solid #e2e8f0;
-            }
-
-            .desktop-only {
-                display: none !important;
-            }
-        }
-
-        .mobile-header {
-            display: none;
-        }
-
-        .hamburger-btn {
-            background: none;
-            border: none;
-            font-size: 1.25rem;
-            color: #475569;
-            cursor: pointer;
-            padding: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            transition: background 0.2s;
-        }
-
-        .hamburger-btn:hover {
-            background: #f1f5f9;
-        }
-
-        /* Main chat area */
-        .messaging-main {
+        /* Override some fragment styles if needed */
+        .messaging-container {
             flex: 1;
+            height: 0;
+            min-height: 0;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 16px 16px;
+            box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.1);
             display: flex;
-            flex-direction: column;
-            background: #f8fafc;
-            min-width: 0;
-            /* Important for flex child truncation */
-            position: relative;
+            overflow: hidden;
         }
 
-        .sidebar-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
+        .chat-sidebar {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: white;
+            flex-direction: column;
+            height: 100%;
         }
 
         .conversation-list {
@@ -127,67 +49,51 @@
             overflow-y: auto;
         }
 
-        .conversation-item {
+        .chat-main {
             display: flex;
-            padding: 1rem 1.5rem;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
-            transition: all 0.2s ease;
-            position: relative;
+            flex-direction: column;
+            height: 100%;
+            flex: 1;
+            min-width: 0;
         }
 
-        .conversation-item:hover {
-            background: #f1f5f9;
+        .empty-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .internal-action-bar {
+            padding: 1rem 1.5rem;
+            background: #fff;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .setup-layout {
+                height: calc(100vh - 60px) !important;
+            }
+
+            .setup-content {
+                height: 100% !important;
+            }
+        }
+
+        .modal-overlay.active {
+            display: flex !important;
         }
 
         .conversation-item.active {
-            background: #e0e7ff;
-            border-left: 4px solid #4f46e5;
-        }
-
-        .avatar-circle {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #475569;
-            margin-right: 1rem;
-            flex-shrink: 0;
-            font-size: 1.1rem;
-        }
-
-        .conv-info {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .conv-name {
-            font-weight: 600;
-            color: #1e293b;
-            font-size: 0.95rem;
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .conv-last-msg {
-            font-size: 0.8rem;
-            color: #64748b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            border-left: 4px solid var(--primary-color);
         }
 
         .btn-new-message {
-            background: #4f46e5;
+            background: var(--primary-color);
             color: white;
             border: none;
             padding: 0.5rem 1rem;
@@ -202,77 +108,7 @@
         }
 
         .btn-new-message:hover {
-            background: #4338ca;
-        }
-
-        /* Chat bubbles */
-        .message-bubble {
-            max-width: 70%;
-            padding: 0.75rem 1.25rem;
-            border-radius: 16px;
-            position: relative;
-            line-height: 1.5;
-            font-size: 0.95rem;
-            word-wrap: break-word;
-        }
-
-        .message-bubble.incoming {
-            background: #ffffff;
-            color: #1e293b;
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
-        }
-
-        .message-bubble.outgoing {
-            background: #4f46e5;
-            color: #ffffff;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-            box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
-        }
-
-        .message-meta {
-            font-size: 0.7rem;
-            opacity: 0.7;
-            margin-top: 0.4rem;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 4px;
-        }
-
-        .empty-chat {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #94a3b8;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(15, 23, 42, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            overflow: hidden;
+            background: var(--primary-dark);
         }
     </style>
 </head>
@@ -280,59 +116,107 @@
 <body>
     <div th:replace="~{fragments/header :: school-header}"></div>
 
-    <main class="main-content" style="padding: 0; margin: 0; height: calc(100vh - 60px);">
-        <!-- No Sidebar -> Go straight to the Messaging Layout -->
-        <div class="messaging-layout">
-            <div class="messaging-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <main class="main-content setup-layout"
+        style="padding: 1rem 2rem; margin: 0; height: calc(100vh - 90px); overflow: hidden;">
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='messaging')}"></div>
 
-            <!-- Contextual Dashboard Return Link (in sidebar) -->
-            <div class="messaging-sidebar">
-                <div class="sidebar-header" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+        <div class="setup-content"
+            style="padding: 0; display: flex; flex-direction: column; height: 100%; min-height: 0;">
 
-                    <a th:href="${dashboardUrl}" class="quick-action-link"
-                        style="display: flex; align-items: center; gap: 8px; color: #64748b; text-decoration: none; font-size: 0.9rem; margin-bottom: 0.5rem; transition: color 0.2s;">
-                        <i class="fas fa-arrow-left"></i>
-                        <span>Back to Dashboard</span>
-                    </a>
+            <!-- Persistent Top Action Bar -->
+            <div class="internal-action-bar">
+                <button class="btn-new-message" onclick="openNewMessageModal()">
+                    <i class="fas fa-plus"></i>
+                    <span style="margin-left: 6px; font-weight: 700;">New Message</span>
+                </button>
+                <button sec:authorize="hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')" class="btn-new-message"
+                    onclick="openBroadcastModal()"
+                    style="background: #ef4444; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">
+                    <i class="fas fa-bullhorn" style="margin-right: 8px;"></i>
+                    <span>Broadcast Announcement</span>
+                </button>
+            </div>
+            <div class="messaging-container">
+                <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2 style="margin: 0; font-size: 1.25rem; color: #0f172a;">Messages</h2>
-                        <button class="btn-new-message" onclick="openNewMessageModal()">
-                            <i class="fas fa-pen"></i> New
-                        </button>
+                <!-- Contextual Dashboard Return Link (in sidebar) -->
+                <div class="chat-sidebar">
+                    <!-- Fixed Sidebar Header -->
+                    <div
+                        style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0; background: white; flex-shrink: 0; display: flex; flex-direction: column; gap: 1.25rem;">
+
+                        <!-- Back Link -->
+                        <a th:href="${dashboardUrl}"
+                            style="display: flex; align-items: center; gap: 8px; color: #64748b; text-decoration: none; font-size: 0.9rem; font-weight: 600; width: fit-content; transition: all 0.2s;"
+                            onmouseover="this.style.color='#4f46e5'; this.style.transform='translateX(-4px)'"
+                            onmouseout="this.style.color='#64748b'; this.style.transform='translateX(0)'">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Back to Dashboard</span>
+                        </a>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2
+                                style="margin: 0; font-size: 1.25rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em;">
+                                Messages</h2>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn-new-message" onclick="openNewMessageModal()" title="New Message"
+                                    style="width: auto; padding: 0.5rem 0.8rem; border-radius: 8px;">
+                                    <i class="fas fa-plus"></i>
+                                    <span style="margin-left: 4px; font-size: 0.85rem; font-weight: 600;">New</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div style="position: relative; display: flex; align-items: center; margin-top: 0.5rem;">
+                            <i class="fas fa-search"
+                                style="position: absolute; left: 11px; color: #94a3b8; font-size: 0.8rem; pointer-events: none;"></i>
+                            <input type="text" id="internal-chat-search"
+                                style="width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 10px; height: 36px; padding: 0 1rem 0 2.25rem; font-size: 0.85rem; background: #f8fafc; outline: none; transition: border-color 0.2s;"
+                                onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e2e8f0'"
+                                placeholder="Search conversations..." onkeyup="searchInternalConversations(this.value)">
+                        </div>
+                    </div>
+
+                    <div class="conversation-list" id="thread-list-container">
+                        <!-- Loaded via Fragment -->
+                        <div th:replace="~{dashboard/internal-messaging-fragments :: thread-list}"></div>
                     </div>
                 </div>
 
-                <div class="conversation-list" id="thread-list-container">
-                    <!-- Loaded via Fragment -->
-                    <div th:replace="~{dashboard/internal-messaging-fragments :: thread-list}"></div>
-                </div>
-            </div>
+                <div class="chat-main" id="chat-window">
+                    <div class="mobile-header" style="justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <button class="chat-hamburger-btn" onclick="toggleSidebar()">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <h2 style="margin: 0; font-size: 1.1rem; color: #0f172a;">Messages</h2>
+                        </div>
 
-            <!-- Active Chat Area -->
-            <div class="messaging-main" id="chat-window">
-                <div class="mobile-header">
-                    <button class="hamburger-btn" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h2 style="margin: 0; font-size: 1.1rem; color: #0f172a;">Messages</h2>
+                        <div style="display: flex; gap: 0.5rem; visibility: hidden; pointer-events: none;">
+                            <!-- Removed relocated buttons -->
+                        </div>
+                    </div>
+                    <div class="empty-chat">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="width: 64px; height: 64px; margin-bottom: 1rem; color: #cbd5e1;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <h3 style="margin: 0; font-size: 1.25rem; color: #475569;">Your Messages</h3>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Select a conversation to start reading.</p>
+                    </div>
                 </div>
-                <div class="empty-chat">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        style="width: 64px; height: 64px; margin-bottom: 1rem; color: #cbd5e1;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <h3 style="margin: 0; font-size: 1.25rem; color: #475569;">Your Messages</h3>
-                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Select a conversation to start reading.</p>
-                </div>
-            </div>
 
+            </div>
         </div>
     </main>
 
-    <!-- Modal Fragment -->
+    <!-- Modal Fragments -->
     <div th:replace="~{dashboard/internal-messaging-fragments :: new-message-modal}"></div>
+    <div
+        th:replace="~{dashboard/messaging-fragments :: broadcast-modal(channel='internal', actionUrl='/dashboard/messaging/broadcast', allowFreeForm=true, unitName='')}">
+    </div>
 
     <script th:src="@{/js/dashboard-tabs.js}"></script>
     <script>
@@ -352,10 +236,27 @@
         }
 
         function toggleSidebar() {
-            const sidebar = document.querySelector('.messaging-sidebar');
+            const sidebar = document.querySelector('.chat-sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             sidebar.classList.toggle('show');
             overlay.classList.toggle('show');
+        }
+
+        function searchInternalConversations(query) {
+            const queryLower = (query || '').toLowerCase();
+            const items = document.querySelectorAll('#thread-list-container .conversation-item');
+
+            items.forEach(item => {
+                const nameEl = item.querySelector('.conv-name');
+                const roleEl = item.querySelector('.conv-last-msg:not([style*="color: #4f46e5"])'); // usually just .conv-last-msg but there are multiple, including subject. Actually let's just grab textContent of the whole item.
+                const textContent = item.textContent.toLowerCase();
+
+                if (textContent.includes(queryLower)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         }
 
         async function loadThread(threadId, element) {
@@ -374,6 +275,11 @@
 
                 const html = await response.text();
                 document.getElementById('chat-window').innerHTML = html;
+
+                // Ensured mobile header hamburger is present/restored in the loaded fragment if needed, 
+                // but usually the fragment replaces the whole chat-window. 
+                // loadThread already closed sidebar on mobile at the start of the function.
+
                 scrollToBottom();
 
                 // Copy subject over cleanly
@@ -460,36 +366,310 @@
             }
         }
 
-        async function createNewThread(e) {
-            e.preventDefault();
-            const btn = document.getElementById('submit-message-btn');
-            btn.disabled = true;
-            btn.innerText = 'Sending...';
+        // --- BROADCAST LOGIC ---
+        let manualRecipients = [];
+        let excludedRecipients = [];
+        let allTemplates = [];
 
-            const form = document.getElementById('new-message-form');
-            const formData = new FormData(form);
+        function openBroadcastModal() {
+            const modal = document.getElementById('broadcast-modal');
+            if (modal) {
+                modal.classList.add('active');
+                fetchTemplates();
+                updateRecipientCount();
+            }
+        }
+
+        function closeBroadcastModal(e) {
+            if (e && e.target.id !== 'broadcast-modal' && e.target.tagName !== 'BUTTON') {
+                return;
+            }
+            document.getElementById('broadcast-modal').classList.remove('active');
+        }
+
+        function toggleTemplateUsage(useTemplate) {
+            const templateArea = document.getElementById('template-selection-area');
+            const freeFormArea = document.getElementById('free-form-section');
+            const templateSelector = document.getElementById('template-selector');
+            const freeFormInput = document.getElementById('free-form-message');
+
+            if (useTemplate) {
+                templateArea.style.display = 'block';
+                freeFormArea.style.display = 'none';
+                templateSelector.required = true;
+                if (freeFormInput) freeFormInput.required = false;
+            } else {
+                templateArea.style.display = 'none';
+                freeFormArea.style.display = 'block';
+                templateSelector.required = false;
+                if (freeFormInput) freeFormInput.required = true;
+            }
+        }
+
+        async function fetchTemplates() {
+            try {
+                const typeNode = document.querySelector('input[name="recipientType"]:checked');
+                const recipientType = typeNode ? typeNode.value : '';
+                const response = await authenticatedFetch(`/dashboard/messaging/broadcast/templates?recipientType=${recipientType}`);
+                window.internalTemplates = await response.json();
+                const selector = document.getElementById('template-selector');
+                const currentValue = selector.value;
+
+                selector.innerHTML = '<option value="">-- Select Template --</option>' +
+                    window.internalTemplates.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+
+                if (currentValue) selector.value = currentValue;
+            } catch (err) {
+                console.error("Failed to load templates", err);
+            }
+        }
+
+        async function loadTemplateDetails(templateName) {
+            const container = document.getElementById('template-params-container');
+            const inputsContainer = document.getElementById('template-params-inputs');
+            const selector = document.getElementById('template-selector');
+            const selectedOpt = selector.options[selector.selectedIndex];
+
+            if (!templateName) {
+                container.style.display = 'none';
+                return;
+            }
+
+            const template = window.internalTemplates?.find(t => t.name === templateName);
+            if (!template) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
 
             try {
-                const response = await authenticatedFetch('/dashboard/messaging/threads', {
+                const components = JSON.parse(template.components || '[]');
+                const mappingStr = template.mapping || '';
+                const bodyComp = components.find(c => c.type === 'BODY');
+                const text = bodyComp?.text || "";
+
+                // Parse mapping: "1=student_name,2=due_date"
+                const mapping = {};
+                mappingStr.split(',').forEach(m => {
+                    if (m.includes('=')) {
+                        const [id, key] = m.split('=');
+                        mapping[id.trim()] = key.trim();
+                    } else if (m.trim()) {
+                        mapping[m.trim()] = m.trim();
+                    }
+                });
+
+                // Known system variables
+                const systemVars = [
+                    'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
+                    'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
+                    'academic_year', 'term_number', 'current_bill', 'current_balance', 'term_fees', 'settled_bill', 'outstanding',
+                    'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
+                ];
+
+                const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
+                const uniqueVars = [...new Set(varMatches)];
+
+                if (uniqueVars.length === 0) {
+                    inputsContainer.innerHTML = `<div class="template-inline-preview">${text.replace(/\\n/g, '<br>')}</div>`;
+                } else {
+                    let previewHtml = text;
+                    uniqueVars.forEach((v, index) => {
+                        const key = v.replace(/\{\{|\}\}/g, '');
+                        const mappedKey = mapping[key] || key;
+                        const isAutoFilled = systemVars.includes(mappedKey);
+
+                        const paramId = key;
+
+                        let inputHtml = "";
+                        if (isAutoFilled) {
+                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 0.7; width: auto; min-width: 80px; display: inline-flex; align-items: center; justify-content: center;" title="Auto-filled: ${mappedKey}">
+                                ${mappedKey}
+                            </span>`;
+                        } else {
+                            inputHtml = `<input type="text" name="manualParam_${paramId}" placeholder="${v}" class="inline-param-input" required title="Enter value for ${key}">`;
+                        }
+
+                        const escapedV = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        previewHtml = previewHtml.split(v).join(inputHtml);
+                    });
+
+                    // Format newlines for clean display
+                    previewHtml = previewHtml.replace(/\\n/g, '<br>');
+
+                    inputsContainer.innerHTML = `<div class="template-inline-preview" style="line-height: 1.8;">${previewHtml}</div>`;
+                    inputsContainer.style.display = 'block';
+                }
+            } catch (e) {
+                console.error("Error parsing template components:", e);
+                inputsContainer.innerHTML = 'Error loading params';
+            }
+        }
+
+        function toggleTrackClasses(checkbox) {
+            const trackId = checkbox.dataset.trackId;
+            const classes = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+            classes.forEach(c => c.checked = checkbox.checked);
+            updateRecipientCount();
+        }
+
+        function syncTrackCheckbox(classCheckbox) {
+            const trackId = classCheckbox.dataset.trackId;
+            const trackCheckbox = document.querySelector(`.track-checkbox[data-track-id="${trackId}"]`);
+            const allOfTrack = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+            const allChecked = Array.from(allOfTrack).every(c => c.checked);
+            trackCheckbox.checked = allChecked;
+        }
+
+        async function updateRecipientCount() {
+            const form = document.getElementById('broadcast-form');
+            const type = form.querySelector('input[name="recipientType"]:checked').value;
+            const academicSection = document.getElementById('academic-filters-section');
+
+            academicSection.style.display = (type === 'PARENTS' || type === 'ALL') ? 'block' : 'none';
+
+            const formData = new FormData(form);
+            manualRecipients.forEach(id => formData.append('manualIds', id));
+            excludedRecipients.forEach(id => formData.append('excludedIds', id));
+
+            try {
+                const response = await authenticatedFetch('/dashboard/messaging/broadcast/preview-count', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                document.getElementById('recipient-preview-badge').innerText = `Recipients: ${data.count}`;
+
+                // Also update preview list
+                updatePreviewList(formData);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function updatePreviewList(formData) {
+            try {
+                const response = await authenticatedFetch('/dashboard/messaging/broadcast/recipients', {
+                    method: 'POST',
+                    body: formData
+                });
+                const recipients = await response.json();
+                const tbody = document.getElementById('preview-list-body');
+
+                if (recipients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 2rem; color: #94a3b8;">No recipients selected</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = recipients.slice(0, 20).map(r => `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 0.75rem 1rem;">
+                            <div style="font-weight: 600; color: #334155;">${r.name}</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8;">${r.type} ${r.subType ? '• ' + r.subType : ''}</div>
+                        </td>
+                        <td style="padding: 0.75rem 1rem; text-align: right;">
+                            <button type="button" onclick="excludeRecipient('${r.userId}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem;"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>
+                `).join('') + (recipients.length > 20 ? `<tr><td colspan="2" style="text-align: center; padding: 0.5rem; color: #64748b; font-size: 0.75rem;">...and ${recipients.length - 20} more</td></tr>` : '');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function searchManualRecipients(query) {
+            const dropdown = document.getElementById('search-results-dropdown');
+            const typeNode = document.querySelector('input[name="recipientType"]:checked');
+            const recipientType = typeNode ? typeNode.value : '';
+            if (query.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await authenticatedFetch(`/dashboard/messaging/broadcast/search?query=${encodeURIComponent(query)}&recipientType=${recipientType}`);
+                const results = await response.json();
+
+                if (results.length === 0) {
+                    dropdown.innerHTML = '<div style="padding: 1rem; text-align: center; color: #94a3b8;">No results found</div>';
+                } else {
+                    dropdown.innerHTML = results.map(r => `
+                        <div onclick="addManualRecipient('${r.userId}', '${r.name}')" style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
+                            <div style="font-weight: 600; color: #1e293b;">${r.name}</div>
+                            <div style="font-size: 0.75rem; color: #64748b;">${r.type} ${r.subType ? '• ' + r.subType : ''}</div>
+                        </div>
+                    `).join('');
+                }
+                dropdown.style.display = 'block';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function addManualRecipient(userId, name) {
+            if (!manualRecipients.includes(userId)) {
+                manualRecipients.push(userId);
+                renderPills('manual-ids-container', manualRecipients, name, removeManualRecipient);
+                updateRecipientCount();
+            }
+            document.getElementById('search-results-dropdown').style.display = 'none';
+            document.getElementById('recipient-search').value = '';
+        }
+
+        function removeManualRecipient(userId) {
+            manualRecipients = manualRecipients.filter(id => id !== userId);
+            updateRecipientCount();
+        }
+
+        function excludeRecipient(userId) {
+            if (!excludedRecipients.includes(userId)) {
+                excludedRecipients.push(userId);
+                updateRecipientCount();
+            }
+        }
+
+        function renderPills(containerId, ids, name, removeFn) {
+            // Since we only have the ID in the list, for manual ones we'd ideally need a name mapping
+            // For now, let's just use the name passed in or "Selected User"
+            // (In a more robust UI, we'd maintain a map of ID -> Name)
+        }
+
+        async function submitBroadcast(e) {
+            e.preventDefault();
+            const btn = document.getElementById('send-broadcast-btn');
+            const originalText = btn.innerText;
+
+            if (!confirm('Are you sure you want to send this broadcast message?')) return;
+
+            btn.disabled = true;
+            btn.innerText = 'Sending Broadcast...';
+
+            const form = document.getElementById('broadcast-form');
+            const formData = new FormData(form);
+            manualRecipients.forEach(id => formData.append('manualIds', id));
+            excludedRecipients.forEach(id => formData.append('excludedIds', id));
+
+            try {
+                const response = await authenticatedFetch('/dashboard/messaging/broadcast', {
                     method: 'POST',
                     body: formData
                 });
                 const result = await response.json();
 
                 if (result.success) {
-                    closeNewMessageModal();
-                    form.reset();
-                    // Just reload the page to refresh the thread list
+                    alert(`Successfully sent broadcast to ${result.count} recipients.`);
+                    closeBroadcastModal();
                     window.location.reload();
                 } else {
-                    alert('Error creating message: ' + result.message);
+                    alert('Broadcast failed: ' + result.message);
                 }
             } catch (err) {
                 console.error(err);
-                alert('Connection error.');
+                alert('Connection error while sending broadcast.');
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'Send Message';
+                btn.innerText = originalText;
             }
         }
     </script>

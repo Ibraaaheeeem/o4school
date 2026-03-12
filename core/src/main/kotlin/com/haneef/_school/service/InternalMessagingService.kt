@@ -4,6 +4,8 @@ import com.haneef._school.entity.*
 import com.haneef._school.repository.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -17,7 +19,10 @@ class InternalMessagingService(
     private val studentRepository: StudentRepository,
     private val classTeacherRepository: ClassTeacherRepository,
     private val subjectTeacherRepository: SubjectTeacherRepository,
-    private val staffRepository: StaffRepository
+    private val staffRepository: StaffRepository,
+    private val broadcastService: BroadcastService,
+    private val templateParameterResolver: TemplateParameterResolver,
+    private val templateRepository: WhatsAppTemplateRepository
 ) {
 
     fun getUserThreads(userId: UUID, schoolId: UUID): List<ThreadDTO> {
@@ -141,6 +146,123 @@ class InternalMessagingService(
         }
 
         return savedMessage
+    }
+
+    fun sendInternalBroadcast(
+        schoolId: UUID,
+        senderId: UUID,
+        subject: String,
+        content: String?,
+        templateName: String?,
+        recipients: List<com.haneef._school.dto.BroadcastRecipientDTO>,
+        extraParams: Map<String, String> = emptyMap()
+    ): Int {
+        val sender = userRepository.findById(senderId).orElseThrow { IllegalArgumentException("Sender not found") }
+        val template = if (!templateName.isNullOrBlank()) {
+            templateRepository.findByTemplateNameAndSchoolId(templateName, schoolId).orElse(null)
+        } else null
+
+        var count = 0
+        recipients.forEach { recipient ->
+            try {
+                val receiver = userRepository.findById(recipient.userId).orElse(null) ?: return@forEach
+                
+                // Resolve content
+                val finalContent = if (template != null) {
+                    val placeholders = templateParameterResolver.resolveAllParameters(receiver, schoolId, template, extraParams)
+                    // Simple replacement for internal messaging (since we don't use Meta's component structure here)
+                    var text = extractTemplateText(template.componentsJson)
+                    placeholders.forEach { param ->
+                        val key = param["parameter_name"] as? String ?: ""
+                        val value = param["text"] as? String ?: ""
+                        if (key.isNotEmpty()) {
+                            text = text.replace("{{$key}}", value)
+                        }
+                    }
+                    // Handle indexed placeholders too {{1}}, {{2}}...
+                    placeholders.forEachIndexed { index, param ->
+                        val value = param["text"] as? String ?: ""
+                        text = text.replace("{{${index + 1}}}", value)
+                    }
+                    text
+                } else {
+                    content ?: ""
+                }
+
+                if (finalContent.isBlank()) return@forEach
+
+                // Find or create thread
+                // For internal broadcast, we usually create a new thread per recipient or if one exists with same subject?
+                // Standard internal messaging here seems to be 1-on-1. 
+                // Let's check if there's an existing 1-on-1 thread between these two.
+                
+                var thread = findExisting1on1Thread(senderId, receiver.id!!, schoolId, subject)
+                
+                if (thread == null) {
+                    thread = InternalMessageThread(subject = subject).apply {
+                        this.schoolId = schoolId
+                        this.lastMessagePreview = finalContent.take(100)
+                        this.createdAt = LocalDateTime.now()
+                        this.updatedAt = LocalDateTime.now()
+                    }
+                    thread = threadRepository.save(thread)
+
+                    val senderPart = InternalMessageParticipant(thread, sender).apply {
+                        this.schoolId = schoolId
+                        this.unreadCount = 0
+                        this.lastReadAt = LocalDateTime.now()
+                    }
+                    val receiverPart = InternalMessageParticipant(thread, receiver).apply {
+                        this.schoolId = schoolId
+                        this.unreadCount = 1
+                    }
+                    participantRepository.saveAll(listOf(senderPart, receiverPart))
+                } else {
+                    // Update existing thread
+                    thread.lastMessagePreview = finalContent.take(100)
+                    thread.updatedAt = LocalDateTime.now()
+                    threadRepository.save(thread)
+                    
+                    val receiverPart = participantRepository.findByThreadIdAndUserId(thread.id!!, receiver.id!!)
+                    if (receiverPart != null) {
+                        receiverPart.unreadCount++
+                        participantRepository.save(receiverPart)
+                    }
+                }
+
+                val message = InternalMessage(thread, sender, finalContent).apply {
+                    this.schoolId = schoolId
+                }
+                messageRepository.save(message)
+                count++
+            } catch (e: Exception) {
+                // Log and continue
+            }
+        }
+        return count
+    }
+
+    private fun findExisting1on1Thread(user1Id: UUID, user2Id: UUID, schoolId: UUID, subject: String): InternalMessageThread? {
+        val user1Threads = participantRepository.findByUserIdAndThreadSchoolIdOrderByThreadUpdatedAtDesc(user1Id, schoolId)
+            .map { it.thread }
+            .filter { it.subject == subject }
+            
+        return user1Threads.find { thread ->
+            val participants = participantRepository.findByThreadId(thread.id!!)
+            participants.size == 2 && participants.any { it.user.id == user2Id }
+        }
+    }
+
+    private fun extractTemplateText(componentsJson: String?): String {
+        if (componentsJson.isNullOrBlank()) return ""
+        return try {
+            val mapper = jacksonObjectMapper()
+            val components = mapper.readValue<List<Map<String, Any>>>(componentsJson)
+            val body = components.find { it["type"] == "BODY" || it["type"] == "body" }
+            body?.get("text")?.toString() ?: ""
+        } catch (e: Exception) {
+            ""
+        }
     }
 
     fun getEligibleContacts(user: User, schoolId: UUID): List<ContactDTO> {

@@ -4,73 +4,309 @@
 <body>
     <aside th:fragment="admin-sidebar(activePage)" class="quick-actions-sidebar" id="quickActionsSidebar">
         <div class="sidebar-brand">
-            <img src="/images/header-logo.svg" alt="4School" style="height: 24px; width: auto;">
+            <img src="/images/school-logo.svg" alt="Icon" class="brand-icon">
+            <img src="/images/home_logo_white.svg" alt="4School" class="brand-logo">
         </div>
 
+        <!-- Dashboard (no submenu) -->
         <a th:href="@{/admin/dashboard}" class="quick-action-link"
             th:classappend="${activePage == 'dashboard' ? 'active' : ''}">
             <i class="fas fa-th-large"></i>
             <span>Dashboard</span>
         </a>
-        <a th:href="@{/admin/school-setup}" class="quick-action-link"
-            th:classappend="${activePage == 'setup' ? 'active' : ''}">
-            <i class="fas fa-cog"></i>
-            <span>School Setup</span>
-        </a>
-        <a th:href="@{/admin/community}" class="quick-action-link"
-            th:classappend="${activePage == 'community' ? 'active' : ''}">
-            <i class="fas fa-users"></i>
-            <span>Community</span>
-        </a>
-        <a th:href="@{/admin/academic}" class="quick-action-link"
-            th:classappend="${activePage == 'academic' ? 'active' : ''}">
-            <i class="fas fa-calendar-alt"></i>
-            <span>Terms, Sessions, Timetable and School Calendar</span>
-        </a>
-        <a th:href="@{/admin/financial}" class="quick-action-link"
-            th:classappend="${activePage == 'financial' ? 'active' : ''}">
-            <i class="fas fa-wallet"></i>
-            <span>Financial</span>
-        </a>
-        <a th:href="@{/admin/assessments}" class="quick-action-link"
-            th:classappend="${activePage == 'assessments' ? 'active' : ''}">
-            <i class="fas fa-file-alt"></i>
-            <span>Assessments</span>
-        </a>
-        <a th:href="@{/admin/assessments/reports}" class="quick-action-link"
-            th:classappend="${activePage == 'reports' ? 'active' : ''}">
-            <i class="fas fa-chart-pie"></i>
-            <span>Reports</span>
-        </a>
-        <a th:href="@{/dashboard/messaging}" class="quick-action-link"
-            th:classappend="${activePage == 'messaging' ? 'active' : ''}" style="position: relative;">
-            <i class="fas fa-envelope"></i>
-            <span>Internal Messages</span>
-            <span id="nav-unread-badge"
-                style="display: none; position: absolute; right: 1rem; background: #ef4444; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.65rem; font-weight: bold;"></span>
-        </a>
-        <a sec:authorize="hasRole('SYSTEM_ADMIN')" th:href="@{/admin/dashboard/whatsapp}" class="quick-action-link"
-            th:classappend="${activePage == 'whatsapp' ? 'active' : ''}">
-            <i class="fab fa-whatsapp"></i>
-            <span>WhatsApp</span>
-        </a>
+
+        <!-- School Setup -->
+        <div class="sidebar-menu-item" th:classappend="${activePage == 'setup' ? 'expanded' : ''}">
+            <a href="javascript:void(0)" class="quick-action-link"
+                th:classappend="${activePage == 'setup' ? 'active' : ''}">
+                <i class="fas fa-cog"></i>
+                <span>School Setup</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <div class="submenu">
+                <a th:href="@{/admin/school-setup}" class="submenu-link"
+                    th:classappend="${requestURI == '/admin/school-setup' ? 'active' : ''}">
+                    <span class="submenu-icon">📊</span> Overview
+                </a>
+                <a th:href="@{/admin/school-setup/school-details}" class="submenu-link"
+                    th:classappend="${requestURI.contains('school-details') ? 'active' : ''}">
+                    <span class="submenu-icon">🏫</span> School Details
+                </a>
+                <a th:href="@{/admin/school-setup/academic-structure}" class="submenu-link"
+                    th:classappend="${requestURI.contains('academic-structure') ? 'active' : ''}">
+                    <span class="submenu-icon">🏛️</span> Academic Structure
+                </a>
+                <a th:href="@{/admin/school-setup/subjects}" class="submenu-link"
+                    th:classappend="${requestURI.contains('subjects') ? 'active' : ''}">
+                    <span class="submenu-icon">📚</span> Subjects
+                </a>
+                <a th:href="@{/admin/school-setup/landing-page}" class="submenu-link"
+                    th:classappend="${requestURI.contains('landing-page') ? 'active' : ''}">
+                    <span class="submenu-icon">🌐</span> Landing Page
+                </a>
+                <a th:href="@{/admin/school-setup/custom-domain}" class="submenu-link"
+                    th:classappend="${requestURI.contains('custom-domain') ? 'active' : ''}">
+                    <span class="submenu-icon">🌍</span> Custom Domain
+                </a>
+                <a th:href="@{/admin/school-setup/subscriptions}" class="submenu-link"
+                    th:classappend="${requestURI.contains('subscriptions') ? 'active' : ''}">
+                    <span class="submenu-icon">💳</span> Subscriptions
+                </a>
+            </div>
+        </div>
+
+        <!-- Community -->
+        <div class="sidebar-menu-item" th:classappend="${activePage == 'community' ? 'expanded' : ''}">
+            <a href="javascript:void(0)" class="quick-action-link"
+                th:classappend="${activePage == 'community' ? 'active' : ''}">
+                <i class="fas fa-users"></i>
+                <span>Community</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <div class="submenu">
+                <a th:href="@{/admin/community}" class="submenu-link"
+                    th:classappend="${requestURI == '/admin/community' ? 'active' : ''}">
+                    <span class="submenu-icon">📊</span> Overview
+                </a>
+                <a th:href="@{/admin/community/overviews(tab='staff')}" class="submenu-link"
+                    th:classappend="${(requestURI.contains('community/overviews') and activeTab == 'staff') or requestURI.contains('/admin/community/staff') ? 'active' : ''}">
+                    <span class="submenu-icon">👨‍🏫</span> Staff
+                </a>
+                <a th:href="@{/admin/community/overviews(tab='students')}" class="submenu-link"
+                    th:classappend="${(requestURI.contains('community/overviews') and activeTab == 'students') or requestURI.contains('/admin/community/students') ? 'active' : ''}">
+                    <span class="submenu-icon">🎓</span> Students
+                </a>
+                <a th:href="@{/admin/community/overviews(tab='parents')}" class="submenu-link"
+                    th:classappend="${(requestURI.contains('community/overviews') and activeTab == 'parents') or requestURI.contains('/admin/community/parents') ? 'active' : ''}">
+                    <span class="submenu-icon">👨‍👩‍👧‍👦</span> Parents
+                </a>
+                <a th:href="@{/admin/community/approvals}" class="submenu-link"
+                    th:classappend="${requestURI.contains('community/approvals') ? 'active' : ''}">
+                    <span class="submenu-icon">👥</span> Users
+                </a>
+            </div>
+        </div>
+
+        <!-- Schedule (Academic) -->
+        <div class="sidebar-menu-item" th:classappend="${activePage == 'academic' ? 'expanded' : ''}">
+            <a href="javascript:void(0)" class="quick-action-link"
+                th:classappend="${activePage == 'academic' ? 'active' : ''}">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Schedule</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <div class="submenu">
+                <a th:href="@{/admin/academic}" class="submenu-link"
+                    th:classappend="${requestURI == '/admin/academic' ? 'active' : ''}">
+                    <span class="submenu-icon">📊</span> Overview
+                </a>
+                <a th:href="@{/admin/academic/sessions}" class="submenu-link"
+                    th:classappend="${requestURI.contains('academic/sessions') ? 'active' : ''}">
+                    <span class="submenu-icon">🎓</span> Sessions
+                </a>
+                <a th:href="@{/admin/academic/calendar}" class="submenu-link"
+                    th:classappend="${requestURI.contains('academic/calendar') ? 'active' : ''}">
+                    <span class="submenu-icon">📅</span> Calendar
+                </a>
+                <a th:href="@{/admin/academic/timetable}" class="submenu-link"
+                    th:classappend="${requestURI.contains('academic/timetable') ? 'active' : ''}">
+                    <span class="submenu-icon">🕐</span> Timetable
+                </a>
+            </div>
+        </div>
+
+        <!-- Financial -->
+        <div class="sidebar-menu-item" th:classappend="${activePage == 'financial' ? 'expanded' : ''}">
+            <a href="javascript:void(0)" class="quick-action-link"
+                th:classappend="${activePage == 'financial' ? 'active' : ''}">
+                <i class="fas fa-wallet"></i>
+                <span>Financial</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <div class="submenu">
+                <a th:href="@{/admin/financial}" class="submenu-link"
+                    th:classappend="${requestURI == '/admin/financial' ? 'active' : ''}">
+                    <span class="submenu-icon">📊</span> Overview
+                </a>
+                <a th:href="@{/admin/financial/fee-items}" class="submenu-link"
+                    th:classappend="${requestURI.contains('fee-items') ? 'active' : ''}">
+                    <span class="submenu-icon">💳</span> Fee Items
+                </a>
+                <a th:href="@{/admin/financial/optional-fees}" class="submenu-link"
+                    th:classappend="${requestURI.contains('optional-fees') ? 'active' : ''}">
+                    <span class="submenu-icon">🔒</span> Optional Fees
+                </a>
+                <a th:href="@{/admin/financial/payments}" class="submenu-link"
+                    th:classappend="${requestURI.contains('payments') ? 'active' : ''}">
+                    <span class="submenu-icon">💰</span> Payments
+                </a>
+                <a th:href="@{/admin/financial/analytics}" class="submenu-link"
+                    th:classappend="${requestURI.contains('analytics') ? 'active' : ''}">
+                    <span class="submenu-icon">📈</span> Analytics
+                </a>
+            </div>
+        </div>
+
+        <!-- Assessments -->
+        <div class="sidebar-menu-item"
+            th:classappend="${activePage == 'assessments' or activePage == 'reports' ? 'expanded' : ''}">
+            <a href="javascript:void(0)" class="quick-action-link"
+                th:classappend="${activePage == 'assessments' or activePage == 'reports' ? 'active' : ''}">
+                <i class="fas fa-file-alt"></i>
+                <span>Assessments</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <div class="submenu">
+                <a th:href="@{/admin/assessments}" class="submenu-link"
+                    th:classappend="${requestURI == '/admin/assessments' ? 'active' : ''}">
+                    <span class="submenu-icon"><i class="fas fa-chart-pie"></i></span> Overview
+                </a>
+                <a th:href="@{/admin/assessments/examinations}" class="submenu-link"
+                    th:classappend="${requestURI.startsWith('/admin/assessments/examinations') and !requestURI.contains('/questions') ? 'active' : ''}">
+                    <span class="submenu-icon"><i class="fas fa-file-alt"></i></span> Examinations
+                </a>
+                <a th:href="@{/admin/assessments/scoring-schemes}" class="submenu-link"
+                    th:classappend="${requestURI.startsWith('/admin/assessments/scoring-schemes') ? 'active' : ''}">
+                    <span class="submenu-icon"><i class="fas fa-balance-scale"></i></span> Scoring
+                </a>
+                <a th:href="@{/admin/assessments/reports}" class="submenu-link"
+                    th:classappend="${requestURI.startsWith('/admin/assessments/reports') ? 'active' : ''}">
+                    <span class="submenu-icon"><i class="fas fa-chart-line"></i></span> Reports
+                </a>
+            </div>
+        </div>
+
+        <!-- Messaging -->
+        <div class="sidebar-menu-item" th:classappend="${activePage == 'messaging' ? 'expanded' : ''}">
+            <a href="javascript:void(0)" class="quick-action-link"
+                th:classappend="${activePage == 'messaging' ? 'active' : ''}">
+                <i class="fas fa-envelopes-bulk"></i>
+                <span>Messaging</span>
+                <span id="nav-unread-badge"
+                    style="display: none; position: absolute; right: 2.5rem; background: #ef4444; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.65rem; font-weight: bold; min-width: 18px; text-align: center;"></span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
+            </a>
+            <div class="submenu">
+                <a th:href="@{/dashboard/messaging}" class="submenu-link"
+                    th:classappend="${activeSubPage == 'internal' ? 'active' : ''}">
+                    <span class="submenu-icon">💬</span> Internal
+                    <span id="nav-internal-badge" class="badge-pill bg-danger text-white ms-auto px-2 py-0"
+                        style="display: none; font-size: 0.65rem; border-radius: 12px; font-weight: bold;"></span>
+                </a>
+                <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/whatsapp}"
+                    class="submenu-link" th:classappend="${activeSubPage == 'whatsapp' ? 'active' : ''}">
+                    <span class="submenu-icon" style="color:#25D366"><i class="fab fa-whatsapp"></i></span> WhatsApp
+                    <span id="nav-whatsapp-badge" class="badge-pill bg-danger text-white ms-auto px-2 py-0"
+                        style="display: none; font-size: 0.65rem; border-radius: 12px; font-weight: bold;"></span>
+                </a>
+                <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/sms}"
+                    class="submenu-link" th:classappend="${activeSubPage == 'sms' ? 'active' : ''}">
+                    <span class="submenu-icon">📱</span> SMS
+                    <span id="nav-sms-badge" class="badge-pill bg-danger text-white ms-auto px-2 py-0"
+                        style="display: none; font-size: 0.65rem; border-radius: 12px; font-weight: bold;"></span>
+                </a>
+                <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/multimodal}"
+                    class="submenu-link" th:classappend="${activeSubPage == 'multimodal' ? 'active' : ''}">
+                    <span class="submenu-icon">📣</span> Multimodal
+                    <span id="nav-multimodal-badge" class="badge-pill bg-danger text-white ms-auto px-2 py-0"
+                        style="display: none; font-size: 0.65rem; border-radius: 12px; font-weight: bold;"></span>
+                </a>
+            </div>
+        </div>
 
         <script>
             // Fetch unread count for global sidebar
             document.addEventListener("DOMContentLoaded", async () => {
-                try {
-                    const response = await fetch('/dashboard/messaging/unread-count');
-                    const result = await response.json();
-                    if (result && result.count > 0) {
-                        const badge = document.getElementById('nav-unread-badge');
-                        if (badge) {
-                            badge.textContent = result.count;
-                            badge.style.display = 'inline-block';
+                const updateUnreadCount = async () => {
+                    try {
+                        const response = await fetch('/dashboard/messaging/unread-count');
+                        const data = await response.json();
+
+                        const totalBadge = document.getElementById('nav-unread-badge');
+                        const internalBadge = document.getElementById('nav-internal-badge');
+                        const whatsappBadge = document.getElementById('nav-whatsapp-badge');
+                        const smsBadge = document.getElementById('nav-sms-badge');
+                        const multimodalBadge = document.getElementById('nav-multimodal-badge');
+
+                        const total = Number(data.count) || 0;
+                        if (total > 0) {
+                            totalBadge.innerText = total;
+                            totalBadge.style.display = 'inline-block';
+                        } else {
+                            totalBadge.style.display = 'none';
+                            totalBadge.innerText = '';
+                        }
+
+                        // Update individual badges
+                        if (internalBadge) {
+                            if (data.internal > 0) {
+                                internalBadge.innerText = data.internal;
+                                internalBadge.style.display = 'block';
+                            } else {
+                                internalBadge.style.display = 'none';
+                            }
+                        }
+
+                        if (whatsappBadge) {
+                            if (data.whatsapp > 0) {
+                                whatsappBadge.innerText = data.whatsapp;
+                                whatsappBadge.style.display = 'block';
+                            } else {
+                                whatsappBadge.style.display = 'none';
+                            }
+                        }
+
+                        if (smsBadge) {
+                            if (data.sms > 0) {
+                                smsBadge.innerText = data.sms;
+                                smsBadge.style.display = 'block';
+                            } else {
+                                smsBadge.style.display = 'none';
+                            }
+                        }
+
+                        if (multimodalBadge) {
+                            if (data.multimodal > 0) {
+                                multimodalBadge.innerText = data.multimodal;
+                                multimodalBadge.style.display = 'block';
+                            } else {
+                                multimodalBadge.style.display = 'none';
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch unread count:", err);
+                    }
+                };
+
+                updateUnreadCount();
+                // Refresh counts every 60 seconds
+                setInterval(updateUnreadCount, 60000);
+            });
+
+            // Toggle submenu on click
+            document.querySelectorAll('.sidebar-menu-item > .quick-action-link').forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const item = this.closest('.sidebar-menu-item');
+                    const submenu = item.querySelector('.submenu');
+
+                    if (submenu) {
+                        e.preventDefault(); // Parent links with submenus only toggle
+                        e.stopPropagation();
+
+                        const isExpanded = item.classList.contains('expanded');
+
+                        // Close other expanded menus
+                        document.querySelectorAll('.sidebar-menu-item.expanded').forEach(other => {
+                            if (other !== item) other.classList.remove('expanded');
+                        });
+
+                        if (isExpanded) {
+                            item.classList.remove('expanded'); // Dismiss the list
+                        } else {
+                            item.classList.add('expanded'); // Open the list
                         }
                     }
-                } catch (err) {
-                    console.error("Failed to fetch unread count:", err);
-                }
+                });
             });
         </script>
     </aside>

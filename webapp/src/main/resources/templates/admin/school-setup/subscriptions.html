@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4School - Subscriptions & Billing</title>
+    <!-- CSRF Meta Tags -->
+    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <!-- Include CSRF JavaScript -->
+    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+    <style>
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .balance-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-card.active-sub {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .balance-card.inactive-sub {
+            border-top: 4px solid var(--secondary-color);
+        }
+
+        .balance-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .balance-card.active-sub .balance-icon {
+            color: var(--success-color);
+        }
+
+        .balance-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .balance-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            margin-top: 1rem;
+        }
+
+        .log-table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .log-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+        }
+
+        .log-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 1.25rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .status-badge.active-status {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-badge.active-status i {
+            color: white;
+            font-size: 1.05rem;
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+        }
+
+        .status-badge.inactive-status {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-badge.inactive-status i {
+            color: white;
+            font-size: 1.05rem;
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
+
+    <main class="main-content setup-layout">
+        <!-- Global Admin Sidebar -->
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='setup')}"></div>
+
+        <!-- Include Setup Sidebar -->
+
+        <!-- Main Content Area -->
+        <div class="setup-content">
+            <div class="setup-header">
+                <div>
+                    <h1>Subscriptions & Billing</h1>
+                    <p>Manage your school's premium service subscriptions and track staff usage of resources like AI
+                        Tokens and SMS messaging.</p>
+                </div>
+            </div>
+
+            <div class="form-section" style="margin-top: 2rem;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                            Current Subscription Status
+                            <span class="status-badge"
+                                th:classappend="${subscription.subscriptionStatus.name() == 'ACTIVE' ? 'active-status' : 'inactive-status'}">
+                                <i class="fas fa-check-circle"
+                                    th:if="${subscription.subscriptionStatus.name() == 'ACTIVE'}"></i>
+                                <i class="fas fa-exclamation-circle"
+                                    th:if="${subscription.subscriptionStatus.name() != 'ACTIVE'}"></i>
+                                <span th:text="${subscription.subscriptionStatus}">ACTIVE</span>
+                            </span>
+                        </h3>
+                        <p style="color: var(--text-light); margin-bottom: 1rem;">
+                            Valid Until: <strong
+                                th:text="${subscription.validUntil != null ? #temporals.format(subscription.validUntil, 'dd MMM yyyy') : 'N/A'}">31
+                                Dec 2026</strong>
+                        </p>
+                        <div
+                            style="display: flex; gap: 1rem; margin-top: 1.5rem; color: var(--text-main); flex-wrap: wrap;">
+                            <div
+                                style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1.25rem; display: flex; flex-direction: column; min-width: 140px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <span
+                                    style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
+                                    <i class="fas fa-user-graduate" style="color: #94a3b8;"></i> Active Students
+                                    <i class="fas fa-info-circle text-muted" title="Billed at NGN 1000 per student/year"
+                                        style="margin-left: auto;"></i>
+                                </span>
+                                <strong style="font-size: 1.5rem; color: #0f172a;"
+                                    th:text="${#numbers.formatInteger(activeStudents, 0, 'COMMA')}">0</strong>
+                            </div>
+
+                            <div
+                                style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 0.75rem 1.25rem; display: flex; flex-direction: column; min-width: 140px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <span
+                                    style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #166534; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
+                                    <i class="fas fa-wallet" style="color: #4ade80;"></i> Renewal Fee
+                                </span>
+                                <strong style="font-size: 1.5rem; color: #14532d;">
+                                    <span
+                                        style="font-size: 0.9rem; font-weight: 600; vertical-align: middle; margin-right: 0.15rem;">NGN</span>
+                                    <span th:text="${#numbers.formatInteger(renewalFee, 0, 'COMMA')}">0</span>
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="background: var(--bg-color); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; min-width: 250px;">
+                        <h4 style="margin-bottom: 1rem; color: var(--text-main);">Renew Subscription</h4>
+                        <p style="font-size: 0.875rem; color: var(--text-light); margin-bottom: 1rem;">Add 1 year
+                            entirely to your school's validity.</p>
+                        <button type="button" class="btn btn-primary" style="width: 100%;" data-type="MAIN_SUB_ORDER"
+                            data-label="Years to Renew" data-default="1" th:data-rate="${renewalFee}"
+                            onclick="openPurchaseModal(this.getAttribute('data-type'), this.getAttribute('data-label'), this.getAttribute('data-default'), this.getAttribute('data-rate'))">
+                            <i class="fas fa-sync-alt" style="margin-right: 0.5rem;"></i> Renew Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Cards for Current Balances -->
+            <div class="balance-grid">
+                <!-- Fee Collection Sub -->
+                <div class="balance-card"
+                    th:classappend="${subscription.feeCollectionActive} ? 'active-sub' : 'inactive-sub'">
+                    <i class="fas fa-money-check-alt balance-icon"></i>
+                    <h3 class="balance-title">Fee Collection</h3>
+                    <div class="balance-amount" th:text="${subscription.feeCollectionActive ? 'Active' : 'Inactive'}">
+                        Active</div>
+
+                    <button th:if="${!subscription.feeCollectionActive}" type="button" class="btn btn-primary btn-sm"
+                        style="width: 100%;" onclick="openFeeCollectionModal()">
+                        Enable Fee Collection
+                    </button>
+
+                    <form th:if="${subscription.feeCollectionActive}"
+                        th:action="@{/admin/school-setup/subscriptions/fee-collection}" method="post"
+                        style="width: 100%;">
+                        <input type="hidden" name="active" value="false">
+                        <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;"
+                            onclick="return confirm('Are you sure you want to disable Fee Collection? Parents will no longer be able to pay online.');">
+                            Disable Feature
+                        </button>
+                    </form>
+                </div>
+
+                <!-- AI Tokens -->
+                <div class="balance-card active-sub">
+                    <i class="fas fa-robot balance-icon" style="color: #38bdf8;"></i>
+                    <h3 class="balance-title">AI Staff Tokens</h3>
+                    <div class="balance-amount"
+                        th:text="${#numbers.formatInteger(subscription.aiTokenBalance, 0, 'COMMA')}">0</div>
+                    <button class="btn btn-outline btn-sm" style="width: 100%;" data-type="AI_SUB_ORDER"
+                        data-label="AI Tokens (Units)" data-default="1000"
+                        th:data-rate="${aiSubRate != null ? aiSubRate : 10}"
+                        onclick="openPurchaseModal(this.getAttribute('data-type'), this.getAttribute('data-label'), this.getAttribute('data-default'), this.getAttribute('data-rate'))">Top
+                        Up</button>
+                </div>
+
+                <!-- SMS Balance -->
+                <div class="balance-card active-sub">
+                    <i class="fas fa-sms balance-icon" style="color: #f59e0b;"></i>
+                    <h3 class="balance-title">SMS Credits</h3>
+                    <div class="balance-amount"
+                        th:text="${#numbers.formatInteger(subscription.smsBalance, 0, 'COMMA')}">0</div>
+                    <button class="btn btn-outline btn-sm" style="width: 100%;" data-type="SMS_SUB_ORDER"
+                        data-label="SMS Units" data-default="1000" th:data-rate="${smsSubRate != null ? smsSubRate : 5}"
+                        onclick="openPurchaseModal(this.getAttribute('data-type'), this.getAttribute('data-label'), this.getAttribute('data-default'), this.getAttribute('data-rate'))">Buy
+                        SMS Units</button>
+                </div>
+
+                <!-- WhatsApp Balance -->
+                <div class="balance-card active-sub">
+                    <i class="fab fa-whatsapp balance-icon" style="color: #10b981;"></i>
+                    <h3 class="balance-title">WhatsApp Credits</h3>
+                    <div class="balance-amount"
+                        th:text="${#numbers.formatInteger(subscription.whatsappBalance, 0, 'COMMA')}">0</div>
+                    <button class="btn btn-outline btn-sm" style="width: 100%;" data-type="WHATSAPP_SUB_ORDER"
+                        data-label="WhatsApp Units" data-default="1000"
+                        th:data-rate="${whatsappSubRate != null ? whatsappSubRate : 500}"
+                        onclick="openPurchaseModal(this.getAttribute('data-type'), this.getAttribute('data-label'), this.getAttribute('data-default'), this.getAttribute('data-rate'))">Buy
+                        WhatsApp Units</button>
+                </div>
+            </div>
+
+            <div class="section-divider" style="margin: 2rem 0; border-top: 1px solid var(--border-color);"></div>
+
+            <!-- Usage Logs Table -->
+            <div class="form-section">
+                <h3>Recent Staff Usage Logs</h3>
+                <p>Track exactly which staff members are consuming the school's premium credits.</p>
+
+                <div th:if="${usageLogs.empty}" class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>No usage logs found for your school yet.</p>
+                </div>
+
+                <table th:unless="${usageLogs.empty}" class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Date / Time</th>
+                            <th>Staff Member</th>
+                            <th>Service</th>
+                            <th>Amount Deducted</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="log : ${usageLogs.content}">
+                            <td th:text="${#temporals.format(log.timestamp, 'dd MMM yyyy HH:mm')}">Date</td>
+                            <td>
+                                <strong><span
+                                        th:text="${log.user.firstName + ' ' + log.user.lastName}">Name</span></strong><br>
+                                <small style="color: #64748b;" th:text="${log.user.email}">Email</small>
+                            </td>
+                            <td>
+                                <span class="log-badge" th:text="${log.serviceType.description}">Service</span>
+                            </td>
+                            <td>
+                                <span style="font-weight: 600; color: var(--danger-color);">
+                                    -<span th:text="${log.amount}">1</span>
+                                </span>
+                            </td>
+                            <td th:text="${log.description}">Description</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <br>
+                <!-- Pagination -->
+                <div th:if="${totalPages > 1}" style="display: flex; gap: 0.5rem; justify-content: center;">
+                    <a th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}"
+                        th:href="@{/admin/school-setup/subscriptions(page=${pageNum})}" th:text="${pageNum + 1}"
+                        th:style="${pageNum == currentPage ? 'background-color: var(--primary-color); color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none;' : 'padding: 5px 10px; border: 1px solid #ccc; border-radius: 5px; text-decoration: none; color: black;'}">
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Collection Setup Modal -->
+        <div id="feeCollectionModal" class="modal">
+            <div class="modal-content"
+                style="background:white; padding:2rem; border-radius:12px; width:100%; max-width:500px; box-shadow:0 10px 25px rgba(0,0,0,0.1); height: auto !important; min-height: fit-content; margin: auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h2 style="margin:0;">Enable Fee Collection</h2>
+                    <button type="button" onclick="closeFeeCollectionModal()"
+                        style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                </div>
+
+                <p style="margin-bottom:1.5rem; color:#64748b;">To enable online payments for parents, please
+                    provide
+                    the bank account where remittances should be sent.</p>
+
+                <form th:action="@{/admin/school-setup/subscriptions/fee-collection}" method="post">
+                    <input type="hidden" name="active" value="true">
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="bankName" style="display:block; margin-bottom:0.5rem; font-weight:500;">Bank
+                            Name</label>
+                        <input type="text" id="bankName" name="bankName" class="form-control" required
+                            style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
+                            placeholder="e.g. Guarantee Trust Bank">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="accountNumber" style="display:block; margin-bottom:0.5rem; font-weight:500;">Account
+                            Number</label>
+                        <input type="text" id="accountNumber" name="accountNumber" class="form-control" required
+                            style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
+                            placeholder="10 digit account number" pattern="[0-9]{10}"
+                            title="Please enter a valid 10-digit account number">
+                    </div>
+
+                    <div class="form-group"
+                        style="margin-bottom: 2rem; display:flex; gap:0.5rem; align-items:flex-start;">
+                        <input type="checkbox" id="termsAccepted" name="termsAccepted" required
+                            style="margin-top:0.25rem;">
+                        <label for="termsAccepted" style="font-size:0.9rem; color:#475569;">
+                            I accept the fee collection conditions and understand that payment remittances to this
+                            account may take 1-2 working days to process.
+                        </label>
+                    </div>
+
+                    <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                        <button type="button" class="btn btn-outline"
+                            onclick="closeFeeCollectionModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Enable Feature</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Purchase Modal -->
+        <div id="purchaseModal" class="modal">
+            <div class="modal-content"
+                style="background:white; padding:2rem; border-radius:12px; width:100%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.1); height: auto !important; min-height: fit-content; margin: auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h2 style="margin:0;" id="purchaseModalTitle">Purchase Required Units</h2>
+                    <button type="button" onclick="closePurchaseModal()"
+                        style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label id="purchaseUnitLabel"
+                        style="display:block; margin-bottom:0.5rem; font-weight:500;">Units</label>
+                    <input type="number" id="purchaseUnitsInput" class="form-control" required min="1"
+                        style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
+                        oninput="updatePurchaseTotal()">
+                </div>
+
+                <div
+                    style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+                    <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.25rem;">Total
+                        Amount (NGN)</div>
+                    <div id="purchaseTotalDisplay"
+                        style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">0
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closePurchaseModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="initiatePayment()">Pay
+                        Now</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden form for successful payments -->
+        <form id="paymentSuccessForm" th:action="@{/admin/school-setup/subscriptions/process-payment}" method="post"
+            style="display: none;">
+            <input type="hidden" id="successReference" name="reference">
+            <input type="hidden" id="successType" name="type">
+            <input type="hidden" id="successUnits" name="units">
+            <input type="hidden" id="successAmount" name="amount">
+        </form>
+
+    </main>
+
+    <!-- Paystack & Squad Scripts -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="https://checkout.squadco.com/widget/squad.min.js"></script>
+
+    <script th:inline="javascript">
+        let currentPurchaseType = '';
+        let currentPurchaseRate = 0;
+
+        function openPurchaseModal(type, label, defaultUnits, rate) {
+            currentPurchaseType = type;
+            currentPurchaseRate = parseFloat(rate) || 0;
+
+            document.getElementById('purchaseUnitLabel').innerText = label;
+            document.getElementById('purchaseUnitsInput').value = defaultUnits;
+
+            updatePurchaseTotal();
+
+            document.getElementById('purchaseModal').classList.add('active');
+        }
+
+        function closePurchaseModal() {
+            document.getElementById('purchaseModal').classList.remove('active');
+        }
+
+        function updatePurchaseTotal() {
+            const units = parseInt(document.getElementById('purchaseUnitsInput').value) || 0;
+            const total = units * currentPurchaseRate;
+            document.getElementById('purchaseTotalDisplay').innerText = total.toLocaleString('en-US');
+        }
+
+        function initiatePayment() {
+            const units = parseInt(document.getElementById('purchaseUnitsInput').value);
+            if (!units || units <= 0) {
+                alert("Please enter a valid number of units.");
+                return;
+            }
+
+            const amount = units * currentPurchaseRate;
+            const reference = currentPurchaseType + '_' + new Date().getTime();
+            const email = /*[[${#authentication.name}]]*/ "user@example.com";
+
+            closePurchaseModal();
+            console.log("Initiating payment for", amount, "to", amount <= 120000 ? "Squad" : "Paystack");
+
+            if (amount <= 120000) {
+                payWithSquad(amount, email, reference, units);
+            } else {
+                payWithPaystack(amount, email, reference, units);
+            }
+        }
+
+        function handlePaymentSuccess(reference, units, amount) {
+            document.getElementById('successReference').value = reference;
+            document.getElementById('successType').value = currentPurchaseType;
+            document.getElementById('successUnits').value = units;
+            document.getElementById('successAmount').value = amount;
+            document.getElementById('paymentSuccessForm').submit();
+        }
+
+        function payWithPaystack(amount, email, reference, units) {
+            const key = /*[[${paystackPublicKey}]]*/ "pk_test";
+
+            const amountInKobo = Math.ceil(amount * 100);
+
+            const handler = PaystackPop.setup({
+                key: key,
+                email: email,
+                amount: amountInKobo,
+                currency: "NGN",
+                reference: reference,
+                channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+                callback: function (response) {
+                    console.log("Paystack payment successful:", response);
+                    handlePaymentSuccess(response.reference || reference, units, amount);
+                },
+                onClose: function () {
+                    console.log("Paystack window closed");
+                }
+            });
+            handler.openIframe();
+        }
+
+        function payWithSquad(amount, email, reference, units) {
+            const key = /*[[${squadPublicKey}]]*/ "sandbox";
+            const amountInKobo = Math.round(amount * 100);
+
+            try {
+                const squadInstance = new squad({
+                    onClose: () => console.log("Squad Widget closed"),
+                    onLoad: () => console.log("Squad Widget loaded successfully"),
+                    onSuccess: (transaction) => {
+                        console.log("Squad Transaction successful:", transaction);
+                        handlePaymentSuccess(transaction.reference || reference, units, amount);
+                    },
+                    key: key,
+                    email: email,
+                    amount: amountInKobo.toString(),
+                    currency_code: "NGN",
+                    payment_channels: ['card', 'bank', 'ussd', 'transfer'],
+                    pass_charge: true,
+                    transaction_ref: reference
+                });
+
+                squadInstance.setup();
+                squadInstance.open();
+            } catch (e) {
+                console.error("Error initializing Squad widget:", e);
+                alert("Failed to initialize payment widget. Please try again.");
+            }
+        }
+        function openFeeCollectionModal() {
+            const modal = document.getElementById('feeCollectionModal');
+            modal.classList.add('active');
+        }
+
+        function closeFeeCollectionModal() {
+            const modal = document.getElementById('feeCollectionModal');
+            modal.classList.remove('active');
+        }
+    </script>
+</body>
+
+</html>

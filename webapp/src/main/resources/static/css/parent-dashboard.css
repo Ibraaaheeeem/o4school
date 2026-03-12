@@ -3,11 +3,12 @@
 /* Fees Overview Section */
 .fees-overview-section {
     background: #ffffff;
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 32px;
     margin-bottom: 32px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    backdrop-filter: blur(10px);
 }
 
 .section-header {
@@ -37,20 +38,21 @@
 
 /* Fee Stat Cards */
 .fee-stat-card {
-    background: #f9fafb;
-    border-radius: 12px;
+    background: linear-gradient(145deg, #ffffff 0%, #f9fafb 100%);
+    border-radius: 16px;
     padding: 24px;
-    border: 1px solid #e5e7eb;
-    transition: all 0.3s ease;
+    border: 1px solid rgba(229, 231, 235, 0.6);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     gap: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
 }
 
 .fee-stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border-color: #d1d5db;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(79, 70, 229, 0.15);
+    border-color: rgba(79, 70, 229, 0.3);
 }
 
 /* Stat Icon */
@@ -176,12 +178,18 @@
 
 /* Child Fee Card */
 .child-fee-card {
-    background: white;
-    border-radius: 12px;
+    background: #ffffff;
+    border-radius: 16px;
     padding: 24px;
     margin-bottom: 20px;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.child-fee-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
 }
 
 .child-fee-card:last-child {
@@ -602,38 +610,47 @@
     border: 1px solid #e5e7eb;
 }
 
-/* Child Tabs */
+/* Child Tabs Refined for Pill Style */
 .child-tabs {
     display: flex;
     gap: 12px;
     margin-bottom: 24px;
     overflow-x: auto;
     padding-bottom: 8px;
+    scrollbar-width: none;
+}
+
+.child-tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .child-tab-btn {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 20px;
-    background: white;
+    padding: 10px 24px;
+    background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 9999px;
+    /* Pill shape */
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .child-tab-btn:hover {
-    border-color: #9333ea;
-    background: #fdf4ff;
+    border-color: #6366f1;
+    background: #fafafa;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
 }
 
 .child-tab-btn.active {
-    background: #9333ea;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
     color: white;
-    border-color: #9333ea;
-    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.2);
+    border-color: transparent;
+    box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
 }
 
 .child-tab-avatar {
@@ -671,13 +688,18 @@
 }
 
 .info-group {
-    background: white;
+    background: linear-gradient(145deg, #ffffff 0%, #f9fafb 100%);
     padding: 24px;
     border-radius: 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid rgba(229, 231, 235, 0.6);
     box-sizing: border-box;
     min-width: 0;
     overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.info-group:hover {
+    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.05);
 }
 
 .info-group h4 {
@@ -737,16 +759,19 @@
     }
 }
 
-/* Dashboard Tabs */
+/* Dashboard Tabs - Pill Style Injection */
 .dashboard-tabs {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     margin-bottom: 24px;
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 2px;
+    border-bottom: none;
+    padding: 4px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    background: #f1f5f9;
+    border-radius: 999px;
+    width: max-content;
 }
 
 .dashboard-tabs::-webkit-scrollbar {
@@ -754,45 +779,46 @@
 }
 
 .tab-btn {
-    padding: 12px 24px;
+    padding: 10px 24px;
     border: none;
-    background: none;
-    font-size: 1rem;
+    background: transparent;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #6b7280;
+    color: #64748b;
     cursor: pointer;
     position: relative;
-    transition: all 0.2s;
-    border-radius: 8px 8px 0 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 999px;
 }
 
 .tab-btn:hover {
-    color: #111827;
-    background: #f3f4f6;
+    color: #1e293b;
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .tab-btn.active {
-    color: #9333ea;
+    color: #4f46e5;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #9333ea;
-    border-radius: 3px;
+    display: none;
+    /* Removed the underline artifact since we use pills now */
 }
 
+/* Base Tab Pane Animations */
 .tab-pane {
     display: none;
-    animation: fadeIn 0.3s ease;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-pane.active {
     display: block;
+    opacity: 1;
+    transform: translateY(0);
 }
 
 @keyframes fadeIn {

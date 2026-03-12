@@ -27,15 +27,25 @@ class WhatsAppMessagingController(
     private val educationTrackRepository: EducationTrackRepository,
     private val departmentRepository: DepartmentRepository,
     private val schoolClassRepository: SchoolClassRepository,
-    private val templateParameterResolver: TemplateParameterResolver
+    private val templateParameterResolver: TemplateParameterResolver,
+    private val subscriptionService: SubscriptionService,
+    private val internalMessagingService: InternalMessagingService,
+    @org.springframework.beans.factory.annotation.Value("\${paystack.public.key:}") private val paystackPublicKey: String,
+    @org.springframework.beans.factory.annotation.Value("\${squad.public.key:}") private val squadPublicKey: String,
+    @org.springframework.beans.factory.annotation.Value("\${WHATSAPP_SUB_RATE:500}") private val whatsappSubRate: Long
 ) {
+    data class WhatsAppConversationDTO(
+        val lastMessage: com.haneef._school.entity.WhatsAppMessage,
+        val unreadCount: Long
+    )
+
 
     @GetMapping
     fun messagingDashboard(model: Model, session: HttpSession): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "redirect:/select-school"
         val school = schoolRepository.findById(selectedSchoolId).orElse(null)
         
-        val latestConversations = messageRepository.findLatestMessagesByRecipient(selectedSchoolId)
+        val latestConversations = getDeduplicatedConversations(selectedSchoolId)
         val schedules = feeReminderScheduleRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         
         // Add data for broadcast filtering
@@ -48,15 +58,36 @@ class WhatsAppMessagingController(
         model.addAttribute("school", school)
         model.addAttribute("isSchoolAdmin", true)
         
+        try {
+            val subscription = subscriptionService.getSubscription(selectedSchoolId)
+            model.addAttribute("whatsappBalance", subscription.whatsappBalance)
+            model.addAttribute("paystackPublicKey", paystackPublicKey)
+            model.addAttribute("squadPublicKey", squadPublicKey)
+            model.addAttribute("whatsappSubRate", whatsappSubRate)
+        } catch (e: Exception) {
+            model.addAttribute("whatsappBalance", 0)
+        }
+        
         return "dashboard/messaging"
     }
 
     @GetMapping("/conversations")
     fun getConversations(model: Model, session: HttpSession): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "fragments/error :: error-message"
-        val conversations = messageRepository.findLatestMessagesByRecipient(selectedSchoolId)
+        val conversations = getDeduplicatedConversations(selectedSchoolId)
         model.addAttribute("conversations", conversations)
         return "dashboard/messaging-fragments :: conversation-list"
+    }
+    
+    private fun getDeduplicatedConversations(schoolId: UUID): List<WhatsAppConversationDTO> {
+        val rawConversations = messageRepository.findBySchoolIdOrderByCreatedAtDesc(schoolId)
+        return rawConversations.groupBy { 
+            it.user?.id?.toString() ?: it.recipientPhone.removePrefix("+").takeLast(10)
+        }.map { (_, group) -> 
+            val lastMessage = group.maxByOrNull { it.createdAt }!!
+            val unreadCount = messageRepository.countUnreadByRecipient(schoolId, lastMessage.recipientPhone)
+            WhatsAppConversationDTO(lastMessage, unreadCount)
+        }.sortedByDescending { it.lastMessage.createdAt }
     }
 
     @GetMapping("/thread/{recipient}")
@@ -68,16 +99,77 @@ class WhatsAppMessagingController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "fragments/error :: error-message"
         val cleanedRecipient = recipient.removePrefix("+")
         
-        // Fetch messages for this recipient and school
-        val messages = (messageRepository.findByRecipientPhoneOrderByCreatedAtDesc(cleanedRecipient) +
-                       messageRepository.findByRecipientPhoneOrderByCreatedAtDesc("+" + cleanedRecipient))
-            .distinctBy { it.id }
+        val last10 = if (cleanedRecipient.length >= 10) cleanedRecipient.substring(cleanedRecipient.length - 10) else cleanedRecipient
+        val user = userRepository.findByPhoneNumber(cleanedRecipient).orElse(null)
+            ?: userRepository.findByPhoneNumber("+" + cleanedRecipient).orElse(null)
+            ?: userRepository.findAll().firstOrNull { u -> 
+                val ph = u.phoneNumber ?: ""
+                ph.endsWith(last10)
+            }
+        
+        // Fetch messages for this recipient (and user if matched)
+        var rawMessages = if (user != null) {
+            messageRepository.findByUserIdOrderByCreatedAtDesc(user.id!!)
+        } else {
+            emptyList()
+        }
+        
+        rawMessages = rawMessages + messageRepository.findByRecipientPhoneOrderByCreatedAtDesc(cleanedRecipient) +
+                      messageRepository.findByRecipientPhoneOrderByCreatedAtDesc("+" + cleanedRecipient)
+                      
+        val messages = rawMessages.distinctBy { it.id }
             .filter { it.school?.id == selectedSchoolId }
             .sortedBy { it.createdAt }
+
+        // Mark incoming messages as READ
+        val unreadIncoming = messages.filter { it.direction == com.haneef._school.entity.MessageDirection.INCOMING && it.status != "READ" }
+        if (unreadIncoming.isNotEmpty()) {
+            unreadIncoming.forEach { it.status = "READ" }
+            messageRepository.saveAll(unreadIncoming)
+        }
         
         model.addAttribute("messages", messages)
-        model.addAttribute("recipient", recipient)
+        val displayName = if (user?.fullName != null) "${user.fullName} ($recipient)" else recipient
+        model.addAttribute("recipient", displayName)
         return "dashboard/messaging-fragments :: chat-thread"
+    }
+    
+    @GetMapping("/thread/{recipient}/status")
+    @ResponseBody
+    fun getThreadStatus(
+        @PathVariable recipient: String,
+        session: HttpSession
+    ): Map<String, Any?> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("canReply" to false)
+        val cleanedRecipient = recipient.removePrefix("+")
+        
+        val last10 = if (cleanedRecipient.length >= 10) cleanedRecipient.substring(cleanedRecipient.length - 10) else cleanedRecipient
+        val user = userRepository.findByPhoneNumber(cleanedRecipient).orElse(null)
+            ?: userRepository.findByPhoneNumber("+" + cleanedRecipient).orElse(null)
+            ?: userRepository.findAll().firstOrNull { u -> 
+                val ph = u.phoneNumber ?: ""
+                ph.endsWith(last10)
+            }
+            
+        var rawMessages = if (user != null) {
+            messageRepository.findByUserIdOrderByCreatedAtDesc(user.id!!)
+        } else {
+            emptyList()
+        }
+        
+        rawMessages = rawMessages + messageRepository.findByRecipientPhoneOrderByCreatedAtDesc(cleanedRecipient) +
+                      messageRepository.findByRecipientPhoneOrderByCreatedAtDesc("+" + cleanedRecipient)
+                      
+        val lastIncoming = rawMessages.distinctBy { it.id }
+            .filter { it.school?.id == selectedSchoolId && it.direction == com.haneef._school.entity.MessageDirection.INCOMING }
+            .maxByOrNull { it.createdAt }
+            
+        val canReply = lastIncoming != null && lastIncoming.createdAt.isAfter(java.time.LocalDateTime.now().minusHours(24))
+        
+        return mapOf(
+            "canReply" to canReply,
+            "lastIncoming" to lastIncoming?.createdAt?.toString()
+        )
     }
 
     @PostMapping("/reply")
@@ -87,12 +179,40 @@ class WhatsAppMessagingController(
         @RequestParam("message") message: String,
         session: HttpSession
     ): Map<String, Any> {
-        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("success" to false)
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf<String, Any>("success" to false, "error" to "No school selected")
         
-        val user = userRepository.findByPhoneNumber(recipient.removePrefix("+")).orElse(null)
-            ?: userRepository.findByPhoneNumber("+" + recipient.removePrefix("+")).orElse(null)
+        val cleanedRecipient = recipient.removePrefix("+")
+        val last10 = if (cleanedRecipient.length >= 10) cleanedRecipient.substring(cleanedRecipient.length - 10) else cleanedRecipient
+        val user = userRepository.findByPhoneNumber(cleanedRecipient).orElse(null)
+            ?: userRepository.findByPhoneNumber("+" + cleanedRecipient).orElse(null)
+            ?: userRepository.findAll().firstOrNull { u -> 
+                val ph = u.phoneNumber ?: ""
+                ph.endsWith(last10)
+            }
             
-        val success = whatsappService.sendTextMessage(recipient, message, user)
+        // Enforce 24-hour rule
+        var rawMessages = if (user != null) {
+            messageRepository.findByUserIdOrderByCreatedAtDesc(user.id!!)
+        } else {
+            emptyList()
+        }
+        rawMessages = rawMessages + messageRepository.findByRecipientPhoneOrderByCreatedAtDesc(cleanedRecipient) +
+                      messageRepository.findByRecipientPhoneOrderByCreatedAtDesc("+" + cleanedRecipient)
+                      
+        val lastIncoming = rawMessages.distinctBy { it.id }
+            .filter { it.school?.id == selectedSchoolId && it.direction == com.haneef._school.entity.MessageDirection.INCOMING }
+            .maxByOrNull { it.createdAt }
+            
+        val canReply = lastIncoming != null && lastIncoming.createdAt.isAfter(java.time.LocalDateTime.now().minusHours(24))
+        
+        if (!canReply) {
+            return mapOf<String, Any>(
+                "success" to false, 
+                "error" to "Meta API strictly requires the user to have sent a message within the last 24 hours before you can send a free-form reply. Please use a WhatsApp Template instead."
+            )
+        }
+            
+        val success = whatsappService.sendTextMessage(recipient, message, user, selectedSchoolId)
         return mapOf("success" to success)
     }
 
@@ -122,17 +242,22 @@ class WhatsAppMessagingController(
     @ResponseBody
     fun searchRecipients(
         @RequestParam("query") query: String,
+        @RequestParam(value = "recipientType", required = false) recipientType: String?,
         session: HttpSession
     ): List<BroadcastRecipientDTO> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
-        return broadcastService.searchDetailedRecipients(query, selectedSchoolId)
+        return broadcastService.searchDetailedRecipients(query, selectedSchoolId, recipientType)
     }
 
     @GetMapping("/broadcast/templates")
     @ResponseBody
-    fun getTemplates(session: HttpSession): List<Map<String, Any>> {
+    fun getTemplates(
+        @RequestParam(value = "recipientType", required = false) recipientType: String?,
+        @RequestParam(value = "channel", required = false) channel: String?,
+        session: HttpSession
+    ): List<Map<String, Any>> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
-        val templates = templateService.getBroadcastTemplates(selectedSchoolId)
+        val templates = templateService.getBroadcastTemplates(selectedSchoolId, recipientType, channel ?: "WHATSAPP")
         
         return templates.map { template ->
             mapOf(
@@ -153,11 +278,19 @@ class WhatsAppMessagingController(
         @ModelAttribute filter: BroadcastRecipientFilter,
         @RequestParam(value = "templateName", required = false) templateName: String?,
         @RequestParam(value = "message", required = false) message: String?,
+        @RequestParam(value = "pushToInternal", required = false, defaultValue = "false") pushToInternal: Boolean,
+        @RequestParam(value = "subject", required = false, defaultValue = "WhatsApp Broadcast") subject: String,
         request: jakarta.servlet.http.HttpServletRequest,
-        session: HttpSession
+        session: HttpSession,
+        authentication: Authentication
     ): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "redirect:/select-school"
         val recipients = broadcastService.getDetailedRecipients(filter, selectedSchoolId)
+        
+        // Fetch current user and their subscription to validate balance
+        val currentUserEmail = authentication.name
+        val currentUser = userRepository.findByEmail(currentUserEmail).orElseThrow()
+        val subscription = subscriptionService.getSubscription(selectedSchoolId)
         
         // Pre-fetch template mapping if applicable
         val template = if (!templateName.isNullOrBlank()) {
@@ -191,42 +324,85 @@ class WhatsAppMessagingController(
         }
 
         val userMap = userRepository.findAllById(recipients.map { it.userId }).associateBy { it.id }
-
-        recipients.forEach { recipient ->
-            // Qualification Check
+        
+        // Pre-calculate valid recipients to ensure proper balance check
+        val validRecipients = recipients.filter { recipient ->
             val isQualified = when (template?.targetRole) {
                 "PARENT" -> recipient.type == "PARENT"
                 "STAFF" -> recipient.type == "STAFF"
-                else -> true // GENERAL or no template
+                else -> true 
             }
+            isQualified && recipient.phoneNumber != null
+        }
+        
+        if (subscription.whatsappBalance < validRecipients.size) {
+        return "redirect:/admin/dashboard/whatsapp?broadcastError=insufficient_units"
+    }
 
-            val phoneNumber = recipient.phoneNumber
-            if (isQualified && phoneNumber != null) {
-                val user = userMap[recipient.userId]
-                if (!templateName.isNullOrBlank()) {
-                    val components = if (template != null && user != null) {
-                        // Use the new robust resolver that extracts all placeholders from the template JSON
-                        val resolved = templateParameterResolver.resolveAllParameters(user, selectedSchoolId, template, namedManualParams)
-                        if (resolved.isNotEmpty()) listOf(mapOf("type" to "body", "parameters" to resolved)) else emptyList()
-                    } else if (manualParams.isNotEmpty()) {
-                        listOf(mapOf("type" to "body", "parameters" to manualParams))
-                    } else emptyList()
+    var messagesSuccessfullySent = 0
+    val broadcastId = UUID.randomUUID()
 
-                    whatsappService.sendTemplateMessage(
-                        to = phoneNumber,
-                        templateName = templateName,
-                        languageCode = template?.language ?: "en_GB",
-                        components = components,
-                        user = user,
-                        schoolId = selectedSchoolId
-                    )
-                } else if (!message.isNullOrBlank()) {
-                    whatsappService.sendTextMessage(phoneNumber, message, user = user, schoolId = selectedSchoolId)
-                }
+    validRecipients.forEach { recipient ->
+            val phoneNumber = recipient.phoneNumber!!
+            val user = userMap[recipient.userId]
+            
+            if (!templateName.isNullOrBlank()) {
+                val components = if (template != null && user != null) {
+                    val resolved = templateParameterResolver.resolveAllParameters(user, selectedSchoolId, template, namedManualParams)
+                    if (resolved.isNotEmpty()) listOf(mapOf("type" to "body", "parameters" to resolved)) else emptyList()
+                } else if (manualParams.isNotEmpty()) {
+                    listOf(mapOf("type" to "body", "parameters" to manualParams))
+                } else emptyList()
+
+                whatsappService.sendTemplateMessage(
+                to = phoneNumber,
+                templateName = templateName,
+                languageCode = template?.language ?: "en_GB",
+                components = components,
+                user = user,
+                schoolId = selectedSchoolId,
+                broadcastId = broadcastId
+            )
+            messagesSuccessfullySent++
+        } else if (!message.isNullOrBlank()) {
+            val success = whatsappService.sendTextMessage(phoneNumber, message, user = user, schoolId = selectedSchoolId, broadcastId = broadcastId)
+            if (success) messagesSuccessfullySent++
+        }
+    }
+        
+        // Deduct exactly the number of messages successfully dispatched
+        if (messagesSuccessfullySent > 0) {
+            try {
+                subscriptionService.deductTokens(
+                    schoolId = selectedSchoolId,
+                    userId = currentUser.id!!,
+                    feature = com.haneef._school.entity.ServiceFeature.WHATSAPP_MESSAGING,
+                    amount = messagesSuccessfullySent,
+                    description = "WhatsApp Broadcast"
+                )
+            } catch (e: Exception) {
+                // Ignore deduction errors post-send to ensure user gets sent confirmation
             }
         }
 
-        return "redirect:/admin/dashboard/whatsapp?broadcastSent=true&count=${recipients.size}"
+        // Push to internal if requested
+        if (pushToInternal) {
+            try {
+                internalMessagingService.sendInternalBroadcast(
+                    schoolId = selectedSchoolId,
+                    senderId = currentUser.id!!,
+                    subject = subject,
+                    content = message,
+                    templateName = templateName,
+                    recipients = recipients,
+                    extraParams = namedManualParams
+                )
+            } catch (e: Exception) {
+                // Log and continue
+            }
+        }
+
+        return "redirect:/admin/dashboard/whatsapp?broadcastSent=true&count=$messagesSuccessfullySent"
     }
 
     @PostMapping("/schedule-reminder")
@@ -248,7 +424,7 @@ class WhatsAppMessagingController(
     @GetMapping("/templates")
     fun listTemplates(model: Model, session: HttpSession): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "fragments/error :: error-message"
-        val templates = templateService.getAllTemplates(selectedSchoolId)
+        val templates = templateService.getAllTemplates(selectedSchoolId).filter { it.status == "APPROVED" }
         model.addAttribute("templates", templates)
         return "dashboard/messaging-fragments :: template-list"
     }

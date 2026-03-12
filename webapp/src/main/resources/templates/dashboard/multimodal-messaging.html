@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Multimodal Broadcast | 4School</title>
+    <style th:replace="~{dashboard/messaging :: style}"></style>
+    <style>
+        /* =============================================
+           MULTIMODAL BROADCAST — PREMIUM STYLES
+        ============================================= */
+
+        .main-broadcast-panel {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Section cards inside the form */
+        .mm-section {
+            margin-bottom: 1.75rem;
+            background: #f8fafc;
+            border: 1px solid #e8edf3;
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: box-shadow 0.2s;
+        }
+
+        .mm-section:hover {
+            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.07);
+        }
+
+        /* Section header with numbered badge */
+        .mm-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.875rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .mm-section-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .mm-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+            margin: 0;
+        }
+
+        /* Strategy radio cards */
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .strategy-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .strategy-card:has(input:checked) {
+            border-color: #4f46e5;
+            background: #eef2ff;
+        }
+
+        .strategy-card input[type="radio"] {
+            margin-top: 3px;
+            flex-shrink: 0;
+            accent-color: #4f46e5;
+            width: 16px;
+            height: 16px;
+        }
+
+        .strategy-card-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .strategy-card strong {
+            display: block;
+            font-size: 0.95rem;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+
+        .strategy-card small {
+            font-size: 0.78rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        /* Fallback order box */
+        .fallback-order-box {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-top: 0.5rem;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .fallback-order-box label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.88rem;
+            cursor: pointer;
+            color: #334155;
+        }
+
+        .fallback-order-box label input {
+            accent-color: #4f46e5;
+        }
+
+        /* AI filter section */
+        .ai-filter-section {
+            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+            border: 1px solid #fbcfe8;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .ai-filter-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #be185d;
+            margin-bottom: 0.875rem;
+        }
+
+        .ai-filter-row {
+            display: flex;
+            gap: 0.75rem;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        .ai-input-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding-left: 1rem;
+            background: white;
+            border: 2px solid #f9a8d4;
+            border-radius: 14px;
+            transition: all 0.2s;
+        }
+
+        .ai-input-wrapper:focus-within {
+            border-color: #ec4899;
+            box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
+        }
+
+        .ai-input-wrapper i {
+            color: #ec4899;
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        .ai-filter-row input {
+            flex: 1;
+            border: none;
+            height: 50px;
+            background: transparent;
+            padding: 0 1rem;
+            font-size: 0.95rem;
+            outline: none;
+            color: #0f172a;
+        }
+
+        .ai-apply-btn {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            color: white;
+            border: none;
+            height: 50px;
+            padding: 0 2rem;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.875rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .ai-apply-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px -2px rgba(219, 39, 119, 0.5);
+        }
+
+        .ai-filter-hint {
+            font-size: 0.75rem;
+            color: #db2777;
+            margin: 0.5rem 0 0 0.25rem;
+        }
+
+        /* Audience selector grid */
+        .audience-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .audience-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 0.5rem;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            transition: all 0.2s;
+            background: white;
+            text-align: center;
+        }
+
+        .audience-card:has(input:checked) {
+            border-color: #4f46e5;
+            color: #4f46e5;
+            background: #eef2ff;
+        }
+
+        .audience-card input[type="radio"] {
+            display: none;
+        }
+
+        /* Submit bar */
+        .mm-submit-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1.5rem;
+            border-top: 2px solid #f1f5f9;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .mm-recipient-count {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #eef2ff;
+            color: #4338ca;
+            font-weight: 700;
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 1px solid #c7d2fe;
+        }
+
+        .mm-submit-btn {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            padding: 0.875rem 2.5rem;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 16px -4px rgba(79, 70, 229, 0.5);
+        }
+
+        .mm-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px -4px rgba(79, 70, 229, 0.6);
+        }
+
+        /* Status badges */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-sent {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-delivered {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-none {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .filter-scroll-list {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        /* ---- MOBILE ---- */
+        @media (max-width: 768px) {
+            .main-broadcast-panel {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .mm-section {
+                padding: 1rem;
+            }
+
+            .strategy-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .audience-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .ai-filter-row {
+                flex-direction: column;
+            }
+
+            .ai-apply-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .mm-submit-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .mm-submit-btn {
+                justify-content: center;
+                padding: 0.875rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .audience-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+    <script th:inline="javascript">
+        const SMS_BALANCE = /*[[${smsBalance != null ? smsBalance : 0}]]*/ 0;
+        const WHATSAPP_BALANCE = /*[[${whatsappBalance != null ? whatsappBalance : 0}]]*/ 0;
+        const BASE_URL = /*[[@{/admin/dashboard/whatsapp}]]*/ '/admin/dashboard/whatsapp'; // Using WhatsApp endpoint for templates
+        const MULTIMODAL_URL = /*[[@{/admin/dashboard/multimodal}]]*/ '/admin/dashboard/multimodal';
+    </script>
+</head>
+
+<body>
+    <div th:replace="~{fragments/header :: school-header}"></div>
+    <main class="main-content setup-layout">
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='messaging')}"></div>
+        <div class="setup-content">
+            <div class="dashboard-container" style="padding: 0;">
+
+                <!-- Page Header -->
+                <div class="msg-page-header">
+                    <div class="msg-page-header-title">
+                        <h1>Multimodal Broadcast</h1>
+                        <p class="text-secondary">Send messages across WhatsApp and SMS simultaneously or with fallback.
+                        </p>
+                    </div>
+                    <div class="msg-page-header-actions">
+                        <div class="units-badge"
+                            style="background: #ecfdf5; border: 1px solid #10b981; color: #065f46;">
+                            <i class="fab fa-whatsapp" style="color: #10b981; font-size: 1.1rem;"></i>
+                            <span th:text="${#numbers.formatInteger(whatsappBalance, 0, 'COMMA')}">0</span>
+                        </div>
+                        <div class="units-badge"
+                            style="background: #fffbeb; border: 1px solid #f59e0b; color: #92400e;">
+                            <i class="fas fa-sms" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                            <span th:text="${#numbers.formatInteger(smsBalance, 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${param.broadcastSent}"
+                    style="margin-bottom: 1.5rem; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem;">
+                    <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.25rem;"></i>
+                    <p style="margin: 0; color: #065f46; font-size: 0.9rem; font-weight: 500;">
+                        Broadcast queued successfully! Processed <strong th:text="${param.count}"></strong> recipients.
+                    </p>
+                </div>
+
+                <div id="content-new-broadcast">
+                    <div class="main-broadcast-panel">
+                        <form id="multimodal-form" th:action="@{/admin/dashboard/multimodal/broadcast}" method="POST"
+                            onsubmit="return validateForm(event)">
+
+                            <!-- 1. Delivery Strategy -->
+                            <div class="mm-section">
+                                <div class="mm-section-header">
+                                    <div class="mm-section-badge" style="background: #eef2ff; color: #4f46e5;">1</div>
+                                    <h3 class="mm-section-title">Delivery Strategy</h3>
+                                </div>
+
+                                <div class="strategy-grid">
+                                    <label class="strategy-card">
+                                        <input type="radio" name="strategy" value="SIMULTANEOUS" checked
+                                            onchange="toggleFallbackOrder()">
+                                        <span class="strategy-card-icon">📡</span>
+                                        <div>
+                                            <strong>Simultaneous</strong>
+                                            <small>Send to all selected channels at once.</small>
+                                        </div>
+                                    </label>
+                                    <label class="strategy-card">
+                                        <input type="radio" name="strategy" value="FALLBACK"
+                                            onchange="toggleFallbackOrder()">
+                                        <span class="strategy-card-icon">🔄</span>
+                                        <div>
+                                            <strong>Fallback Sequence</strong>
+                                            <small>Try channels in order. Stop on first success.</small>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <input type="hidden" name="channels" value="WHATSAPP">
+                                <input type="hidden" name="channels" value="SMS">
+
+                                <div class="fallback-order-box">
+                                    <div id="fallback-order-section">
+                                        <p
+                                            style="font-weight: 700; font-size: 0.85rem; color: #334155; margin: 0 0 0.75rem 0;">
+                                            <i class="fas fa-sort-amount-down"
+                                                style="color: #4f46e5; margin-right: 4px;"></i>
+                                            Fallback Priority Order:
+                                        </p>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                                            <label class
+                                                style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
+                                                <input type="radio" name="fallback_sequence" value="WHATSAPP,SMS"
+                                                    checked onchange="updatePriorityOrder()"
+                                                    style="accent-color: #4f46e5;">
+                                                <i class="fab fa-whatsapp" style="color: #10b981;"></i> WhatsApp &rarr;
+                                                SMS
+                                            </label>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
+                                                <input type="radio" name="fallback_sequence" value="SMS,WHATSAPP"
+                                                    onchange="updatePriorityOrder()" style="accent-color: #4f46e5;">
+                                                <i class="fas fa-sms" style="color: #f59e0b;"></i> SMS &rarr; WhatsApp
+                                            </label>
+                                        </div>
+                                        <p style="font-size: 0.72rem; color: #94a3b8; margin: 0.5rem 0 0;">
+                                            * Fallback will only attempt the second channel if the first one fails.
+                                        </p>
+                                    </div>
+                                    <input type="hidden" id="channelPriorityInput" name="channelPriority"
+                                        value="WHATSAPP,SMS">
+                                </div>
+                            </div>
+
+                            <!-- AI Smart Filter -->
+                            <div class="ai-filter-section">
+                                <div class="ai-filter-title">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    AI Smart Filter
+                                </div>
+                                <div class="ai-filter-row">
+                                    <div class="ai-input-wrapper">
+                                        <i class="fas fa-magic"></i>
+                                        <input type="text" id="ai-query-input"
+                                            placeholder="e.g. 'parents who are owing' or 'staff in JSS1'">
+                                    </div>
+                                    <button type="button" class="ai-apply-btn" onclick="applyAiFilter()">
+                                        Generate List
+                                    </button>
+                                </div>
+                                <p class="ai-filter-hint">Type your criteria naturally and the AI will find the
+                                    recipients for you.</p>
+                            </div>
+
+                            <!-- 2. Target Audience -->
+                            <div class="mm-section">
+                                <div class="mm-section-header">
+                                    <div class="mm-section-badge" style="background: #f0fdf4; color: #16a34a;">2</div>
+                                    <h3 class="mm-section-title">Target Audience</h3>
+                                </div>
+
+                                <div class="audience-grid" style="margin-bottom: 1rem;">
+                                    <label class="audience-card">
+                                        <input type="radio" name="recipientType" value="ALL"
+                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                        <i class="fas fa-users" style="font-size: 1rem;"></i> All
+                                    </label>
+                                    <label class="audience-card">
+                                        <input type="radio" name="recipientType" value="STAFF"
+                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                        <i class="fas fa-chalkboard-teacher" style="font-size: 1rem;"></i> Staff
+                                    </label>
+                                    <label class="audience-card">
+                                        <input type="radio" name="recipientType" value="PARENTS"
+                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                        <i class="fas fa-user-friends" style="font-size: 1rem;"></i> Parents
+                                    </label>
+                                    <label class="audience-card">
+                                        <input type="radio" name="recipientType" value="NONE" checked
+                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                        <i class="fas fa-pen" style="font-size: 1rem;"></i> Manual
+                                    </label>
+                                </div>
+
+                                <!-- Academic Filters (Conditional) -->
+                                <div id="academic-filters-section" style="display: none;">
+                                    <div class="category-group">
+                                        <div class="category-title" id="class-selection-label">Select Classes</div>
+                                        <div class="filter-scroll-list" style="max-height: 200px; padding-right: 8px;">
+                                            <div th:each="track : ${tracks}"
+                                                style="margin-bottom: 1.25rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                                                <div
+                                                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                                                    <label
+                                                        style="font-weight: 700; font-size: 0.85rem; color: #1e293b; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                        <input type="checkbox" class="track-checkbox"
+                                                            th:attr="data-track-id=${track.id}"
+                                                            onchange="toggleTrackClasses(this)">
+                                                        <span th:text="${track.name}">Track</span>
+                                                    </label>
+                                                </div>
+                                                <div
+                                                    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding-left: 1.5rem;">
+                                                    <div th:each="cls : ${classes}"
+                                                        th:if="${cls.track?.id == track.id}">
+                                                        <label
+                                                            style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #475569;">
+                                                            <input type="checkbox" name="classIds" th:value="${cls.id}"
+                                                                class="class-checkbox"
+                                                                th:attr="data-track-id=${track.id}"
+                                                                onchange="syncTrackCheckbox(this); updateRecipientCount()">
+                                                            <span th:text="${cls.className}">Class</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Parent Specific Filters (Conditional) -->
+                                <div id="parent-only-filters" style="display: none;">
+                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                                        <div class="category-group">
+                                            <div class="category-title">Gender</div>
+                                            <select name="studentGender" class="param-btn" style="width: 100%;"
+                                                onchange="updateRecipientCount()">
+                                                <option value="ANY">Any</option>
+                                                <option value="MALE">Male</option>
+                                                <option value="FEMALE">Female</option>
+                                            </select>
+                                        </div>
+                                        <div class="category-group">
+                                            <div class="category-title">Status</div>
+                                            <select name="studentStatus" class="param-btn" style="width: 100%;"
+                                                onchange="updateRecipientCount()">
+                                                <option value="ANY">Any</option>
+                                                <option value="NEW">New</option>
+                                                <option value="RETURNING">Returning</option>
+                                            </select>
+                                        </div>
+                                        <div class="category-group">
+                                            <div class="category-title">Fee Status</div>
+                                            <select name="feeStatus" class="param-btn" style="width: 100%;"
+                                                onchange="updateRecipientCount()">
+                                                <option value="ANY">Ignore Fees</option>
+                                                <option value="OWING">Owing</option>
+                                                <option value="COMPLETED">Completed</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Manual Search -->
+                                <div style="position: relative; margin-top: 1rem;">
+                                    <input type="text" class="chat-input"
+                                        style="width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; height: 44px; background: #fff;"
+                                        placeholder="Search parent or staff name..."
+                                        onkeyup="searchManualRecipients(this.value)">
+                                    <div id="search-results-dropdown"
+                                        style="position: absolute; top: 48px; left: 0; width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50; display: none; max-height: 200px; overflow-y: auto; padding: 0.5rem;">
+                                    </div>
+                                </div>
+
+                                <!-- Recipient Preview -->
+                                <div style="margin-top: 1rem;">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                        <div class="category-title" style="margin: 0;">Recipient Preview</div>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <button type="button" onclick="clearAllRecipients()"
+                                                style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                                Remove All
+                                            </button>
+                                            <span id="recipient-preview-badge"
+                                                style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Total:
+                                                0</span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; height: 220px; overflow-y: auto;">
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                            <thead
+                                                style="background: #f1f5f9; position: sticky; top: 0; border-bottom: 1px solid #e2e8f0;">
+                                                <tr>
+                                                    <th
+                                                        style="text-align: left; padding: 10px 12px; color: #64748b; font-weight: 600;">
+                                                        Name</th>
+                                                    <th
+                                                        style="text-align: left; padding: 10px 12px; color: #64748b; font-weight: 600;">
+                                                        Role</th>
+                                                    <th
+                                                        style="text-align: right; padding: 10px 12px; color: #64748b; font-weight: 600;">
+                                                        Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="preview-list-body">
+                                                <tr>
+                                                    <td colspan="3"
+                                                        style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                                                        No
+                                                        recipients selected</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div id="manual-ids-container"></div>
+                                <div id="excluded-ids-container"></div>
+                            </div>
+
+                            <!-- 3. Message Content -->
+                            <div class="mm-section" style="margin-bottom: 1.75rem;">
+                                <div class="mm-section-header">
+                                    <div class="mm-section-badge" style="background: #fff7ed; color: #c2410c;">3</div>
+                                    <h3 class="mm-section-title">Message Content</h3>
+                                </div>
+
+                                <!-- WhatsApp/SMS require Template -->
+                                <div id="template-section" style="margin-bottom: 1.5rem;">
+                                    <label
+                                        style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">WhatsApp
+                                        / SMS Template (Required for external channels)</label>
+                                    <select id="template-selector" name="templateName" class="param-btn"
+                                        style="width: 100%; height: 44px; margin-bottom: 1rem;"
+                                        onchange="loadTemplateDetails(this.value)">
+                                        <option value="" disabled selected>-- Select Template --</option>
+                                    </select>
+
+                                    <div id="template-params-container"
+                                        style="display: none; padding: 1.25rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px;">
+                                        <h4
+                                            style="font-size: 0.7rem; text-transform: uppercase; color: #92400e; font-weight: 700; margin-bottom: 1rem;">
+                                            Template Presentation</h4>
+                                        <div id="template-params-inputs" style="margin-bottom: 1rem;"></div>
+
+                                        <!-- Live Character Count & Preview Area -->
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #fcd34d; padding-top: 1rem; margin-top: 1rem;">
+                                            <div>
+                                                <div
+                                                    style="font-size: 0.75rem; color: #b45309; font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">
+                                                    Estimated Length</div>
+                                                <div style="font-size: 0.85rem; color: #92400e;">
+                                                    <span id="char-count" style="font-weight: 700;">0</span> chars •
+                                                    <span id="page-count" style="font-weight: 700;">0</span> SMS page(s)
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="font-size: 0.7rem; color: #d97706; max-width: 250px; text-align: right; line-height: 1.4;">
+                                                *Final length depends on the actual recipient's data if auto-expanded
+                                                fields like {{name}} are used.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                            </div>
+
+                            <!-- Internal Messaging Integration -->
+                            <div
+                                style="margin-top: 1.5rem; background: #f0f9ff; padding: 1.25rem 1.5rem; border-radius: 14px; border: 1px solid #bae6fd;">
+                                <div
+                                    style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #0369a1; margin-bottom: 0.875rem;">
+                                    <i class="fas fa-inbox"></i> Internal Messaging
+                                </div>
+                                <label
+                                    style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; margin-bottom: 0.5rem; font-weight: 600; color: #0c4a6e;">
+                                    <input type="checkbox" name="pushToInternal" value="true"
+                                        onchange="document.getElementById('internal-subject-area').style.display = this.checked ? 'block' : 'none'">
+                                    <span>Also send as an internal message</span>
+                                </label>
+                                <p style="font-size: 0.8rem; color: #0284c7; margin: 0 0 1rem 1.75rem;">
+                                    Recipients will also receive this message in their school dashboard inbox.</p>
+
+                                <div id="internal-subject-area" style="display: none; margin-left: 1.75rem;">
+                                    <div
+                                        style="font-size: 0.85rem; font-weight: 700; color: #0369a1; margin-bottom: 0.5rem;">
+                                        Message Subject (Required)</div>
+                                    <input type="text" name="subject" class="chat-input"
+                                        placeholder="Multimodal Broadcast"
+                                        style="width: 100%; height: 44px; border: 1px solid #bae6fd; border-radius: 12px; background: #fff;">
+                                </div>
+                            </div>
+                    </div>
+
+                    <div class="mm-submit-bar"
+                        style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <div class="mm-recipient-count" id="recipient-count-display">
+                            <i class="fas fa-users"></i>
+                            <span id="recipient-count">0</span> recipients selected
+                        </div>
+                        <div style="display: flex; gap: 1rem;" class="stack-mobile">
+                            <button type="button" onclick="history.back()"
+                                style="background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; font-weight: 700; font-size: 0.95rem; height: 50px; padding: 0 1.5rem; border-radius: 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                            <button type="submit" id="send-broadcast-btn" class="mm-submit-btn">
+                                <i class="fas fa-paper-plane"></i> Send Broadcast Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        fetchTemplates();
+        updatePriorityOrder();
+
+        // Toggle fallback order section visibility
+        document.querySelectorAll('input[name="strategy"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                updatePriorityOrder();
+                fetchTemplates(); // Refetch templates as priority logic might change
+            });
+        });
+
+        document.querySelectorAll('input[name="fallback_sequence"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                updatePriorityOrder();
+                fetchTemplates(); // Refetch templates as primary channel changed
+            });
+        });
+
+        function updatePriorityOrder() {
+            const strategy = document.querySelector('input[name="strategy"]:checked')?.value;
+            const fallbackSection = document.getElementById('fallback-order-section');
+            if (fallbackSection) {
+                fallbackSection.style.display = (strategy === 'FALLBACK') ? 'block' : 'none';
+            }
+            const seq = document.querySelector('input[name="fallback_sequence"]:checked')?.value || 'WHATSAPP,SMS';
+            document.getElementById('channelPriorityInput').value = seq;
+        }
+
+        async function authenticatedFetch(url, options = {}) {
+            const response = await fetch(url, options);
+            if (response.redirected && response.url.includes('/login')) {
+                window.location.href = '/login'; return new Promise(() => { });
+            }
+            return response;
+        }
+
+        async function fetchTemplates() {
+            try {
+                const typeNode = document.querySelector('input[name="recipientType"]:checked');
+                const recipientType = typeNode ? typeNode.value : '';
+
+                // Determine channel based on strategy and priority
+                const strategy = document.querySelector('input[name="strategy"]:checked')?.value;
+                const seq = document.querySelector('input[name="fallback_sequence"]:checked')?.value || 'WHATSAPP,SMS';
+
+                let channel = 'WHATSAPP'; // Default
+                if (strategy === 'FALLBACK') {
+                    channel = seq.split(',')[0]; // Use primary channel in sequence
+                } else {
+                    // In Simultaneous, we usually prefer WhatsApp for template selection
+                    channel = 'WHATSAPP';
+                }
+
+                const response = await fetch(`${BASE_URL}/broadcast/templates?recipientType=${recipientType}&channel=${channel}`);
+                window.templatesData = await response.json();
+                const selector = document.getElementById('template-selector');
+                const currentVal = selector.value;
+                selector.innerHTML = '<option value="" disabled selected>-- Select Template --</option>' +
+                    window.templatesData.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+                if (currentVal) selector.value = currentVal;
+            } catch (err) { console.error(err); }
+        }
+
+        function calculateSmsLength() {
+            const inputsContainer = document.getElementById('template-params-inputs');
+            if (!inputsContainer || inputsContainer.style.display === 'none') {
+                document.getElementById('char-count').innerText = "0";
+                document.getElementById('page-count').innerText = "0";
+                const encodingWarning = document.getElementById('encoding-warning');
+                if (encodingWarning) encodingWarning.innerHTML = "";
+                return;
+            }
+
+            const previewDiv = inputsContainer.querySelector('.template-inline-preview');
+            if (!previewDiv) return;
+
+            let simulatedText = "";
+            previewDiv.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    simulatedText += node.textContent;
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (node.tagName === 'BR') {
+                        simulatedText += "\n";
+                    }
+                    // We skip INPUT and SPAN (dynamic fields) as per user request to exclude field data
+                }
+            });
+
+            simulatedText = simulatedText.replace(/\r\n/g, "\n").trim();
+
+            // GSM-7 character sets
+            const gsm7Basic = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ!\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà \t";
+            const gsm7Extended = "^{}\\[~]|€";
+
+            let isUnicode = false;
+            let charCount = 0;
+
+            for (let i = 0; i < simulatedText.length; i++) {
+                const char = simulatedText[i];
+                if (gsm7Extended.indexOf(char) !== -1) {
+                    charCount += 2;
+                } else if (gsm7Basic.indexOf(char) !== -1) {
+                    charCount += 1;
+                } else {
+                    isUnicode = true;
+                    break;
+                }
+            }
+
+            if (isUnicode) {
+                charCount = simulatedText.length;
+            }
+
+            let pageCount = 0;
+            let charsPerPage = isUnicode ? 70 : 160;
+            let charsPerMultipart = isUnicode ? 67 : 153;
+
+            if (charCount > 0) {
+                if (charCount <= charsPerPage) {
+                    pageCount = 1;
+                } else {
+                    pageCount = Math.ceil(charCount / charsPerMultipart);
+                }
+            }
+
+            document.getElementById('char-count').innerText = `At least ${charCount}`;
+            document.getElementById('page-count').innerText = pageCount;
+
+            const encodingWarning = document.getElementById('encoding-warning');
+            if (encodingWarning) {
+                const pageLimit = isUnicode ? 70 : 160;
+                let html = isUnicode ?
+                    `<span style='color:#ef4444;'><i class='fas fa-exclamation-circle'></i> Unicode detected (${pageLimit} chars/page)</span>` :
+                    `<span style='color:#16a34a;'><i class='fas fa-check-circle'></i> Standard GSM (${pageLimit} chars/page)</span>`;
+
+                html += `<div style="margin-top:2px; font-weight:normal; opacity:0.8;">Final length depends on populated data.</div>`;
+                encodingWarning.innerHTML = html;
+            }
+        }
+
+        function loadTemplateDetails(name) {
+            const paramsContainer = document.getElementById('template-params-container');
+            const inputsContainer = document.getElementById('template-params-inputs');
+            const selector = document.getElementById('template-selector');
+            const selectedOpt = selector.options[selector.selectedIndex];
+
+            if (!name) {
+                paramsContainer.style.display = 'none';
+                return;
+            }
+
+            const template = window.templatesData?.find(t => t.name === name);
+            if (!template) {
+                paramsContainer.style.display = 'none';
+                return;
+            }
+
+            paramsContainer.style.display = 'block';
+
+            try {
+                const components = JSON.parse(template.components || '[]');
+                const mappingStr = template.mapping || '';
+                const bodyComp = components.find(c => c.type === 'BODY');
+                const text = bodyComp?.text || "";
+
+                const mapping = {};
+                mappingStr.split(',').forEach(m => {
+                    if (m.includes('=')) {
+                        const [id, key] = m.split('=');
+                        mapping[id.trim()] = key.trim();
+                    } else if (m.trim()) {
+                        mapping[m.trim()] = m.trim();
+                    }
+                });
+
+                const systemVars = [
+                    'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
+                    'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
+                    'academic_year', 'term_number', 'current_bill', 'current_balance', 'term_fees', 'settled_bill', 'outstanding',
+                    'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
+                ];
+
+                const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
+                const uniqueVars = [...new Set(varMatches)];
+
+                if (uniqueVars.length === 0) {
+                    inputsContainer.innerHTML = `<div class="template-inline-preview">${text.replace(/\\n/g, '<br>')}</div>`;
+                } else {
+                    let previewHtml = text;
+                    uniqueVars.forEach((v, index) => {
+                        const key = v.replace(/\{\{|\}\}/g, '');
+                        const mappedKey = mapping[key] || key;
+                        const isAutoFilled = systemVars.includes(mappedKey);
+
+                        const paramId = key;
+
+                        let inputHtml = "";
+                        if (isAutoFilled) {
+                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 0.7; width: auto; min-width: 80px; display: inline-flex; align-items: center; justify-content: center;" title="Auto-filled: ${mappedKey}">
+                                ${mappedKey}
+                            </span>`;
+                        } else {
+                            inputHtml = `<input type="text" name="manualParam_${paramId}" placeholder="${v}" class="inline-param-input" required title="Enter value for ${key}" oninput="calculateSmsLength()">`;
+                        }
+
+                        const escapedV = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        previewHtml = previewHtml.split(v).join(inputHtml);
+                    });
+
+                    previewHtml = previewHtml.replace(/\\n/g, '<br>');
+                    inputsContainer.innerHTML = `<div class="template-inline-preview" style="line-height: 1.8;">${previewHtml}</div>`;
+                }
+
+                setTimeout(calculateSmsLength, 100);
+
+            } catch (e) {
+                console.error("Error parsing template components:", e);
+                // Fallback to basic parameter loop if JSON parsing fails
+                if (template) {
+                    let html = '';
+                    const paramCount = template.parameterCount || 0;
+                    for (let i = 1; i <= paramCount; i++) {
+                        html += `
+                            <div style="margin-bottom: 0.75rem;">
+                                <label style="font-size: 0.75rem; color: #92400e; font-weight: 600; display: block; margin-bottom: 4px;">Parameter {{${i}}}</label>
+                                <input type="text" name="manualParam_${i}" class="chat-input inline-param-input" style="width: 100%; border: 1px solid #fcd34d; height: 36px; background: #fff;" placeholder="Value for {{${i}}}" required oninput="calculateSmsLength()">
+                            </div>
+                        `;
+                    }
+                    inputsContainer.innerHTML = html || '<p style="font-size: 0.8rem; color: #92400e; opacity: 0.7;">This template has no dynamic parameters.</p>';
+                    setTimeout(calculateSmsLength, 100);
+                }
+            }
+        }
+
+        async function updateRecipientCount() {
+            const form = document.getElementById('multimodal-form');
+            const type = document.querySelector('input[name="recipientType"]:checked').value;
+            const academicSection = document.getElementById('academic-filters-section');
+            const parentFilters = document.getElementById('parent-only-filters');
+
+            // Toggle filter visibility based on recipient type
+            if (academicSection) academicSection.style.display = (type === 'PARENTS' || type === 'ALL') ? 'block' : 'none';
+            if (parentFilters) parentFilters.style.display = (type === 'PARENTS') ? 'block' : 'none';
+
+            const formData = new FormData(form);
+
+            // Add manual IDs
+            document.querySelectorAll('#manual-ids-container input').forEach(inp => formData.append('manualUserIds', inp.value));
+            document.querySelectorAll('#excluded-ids-container input').forEach(inp => formData.append('excludedUserIds', inp.value));
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            try {
+                // Using Whatsapp endpoint just for resolving the recipients list logic
+                const response = await authenticatedFetch(`${BASE_URL}/broadcast/recipients`, {
+                    method: 'POST',
+                    headers: { [csrfHeader]: csrfToken },
+                    body: formData
+                });
+                const recipients = await response.json();
+
+                document.getElementById('recipient-preview-badge').innerText = `Total: ${recipients.length}`;
+                const tbody = document.getElementById('preview-list-body');
+
+                if (recipients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #94a3b8;">No recipients selected</td></tr>';
+                } else {
+                    tbody.innerHTML = recipients.map(r => `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px 12px;"><b>${r.name}</b></td>
+                            <td style="padding: 10px 12px;">${r.roles.join(', ')}</td>
+                            <td style="padding: 10px 12px; text-align: right;">
+                                <button type="button" onclick="addExclusion('${r.userId}')" style="color: #ef4444; border: none; background: #fee2e2; border-radius: 50%; cursor: pointer; width: 24px; height: 24px;">&times;</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function searchManualRecipients(query) {
+            const dropdown = document.getElementById('search-results-dropdown');
+            const typeNode = document.querySelector('input[name="recipientType"]:checked');
+            const recipientType = typeNode ? typeNode.value : '';
+            if (!query || query.length < 2) { dropdown.style.display = 'none'; return; }
+            setTimeout(async () => {
+                const response = await fetch(`${BASE_URL}/broadcast/search?query=${encodeURIComponent(query)}&recipientType=${recipientType}`);
+                const results = await response.json();
+                dropdown.innerHTML = results.map(r => `
+                    <div onclick="addManualRecipient('${r.userId}', '${r.name}', '${r.roles}')" style="padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;">
+                        <b>${r.name}</b> - <small>${r.roles.join(', ')}</small>
+                    </div>
+                `).join('');
+                dropdown.style.display = 'block';
+            }, 300);
+        }
+
+        function toggleTrackClasses(checkbox) {
+            const trackId = checkbox.dataset.trackId;
+            const classes = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+            classes.forEach(c => c.checked = checkbox.checked);
+            updateRecipientCount();
+        }
+
+        function syncTrackCheckbox(classCheckbox) {
+            const trackId = classCheckbox.dataset.trackId;
+            const trackCheckbox = document.querySelector(`.track-checkbox[data-track-id="${trackId}"]`);
+            if (trackCheckbox) {
+                const allOfTrack = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
+                const allChecked = Array.from(allOfTrack).every(c => c.checked);
+                trackCheckbox.checked = allChecked;
+            }
+        }
+
+        function clearAllRecipients() {
+            document.getElementById('manual-ids-container').innerHTML = '';
+            document.getElementById('excluded-ids-container').innerHTML = '';
+            document.querySelector('input[name="recipientType"][value="NONE"]').checked = true;
+            document.querySelectorAll('.class-checkbox, .track-checkbox').forEach(cb => cb.checked = false);
+            const academicSection = document.getElementById('academic-filters-section');
+            const parentFilters = document.getElementById('parent-only-filters');
+            if (academicSection) academicSection.style.display = 'none';
+            if (parentFilters) parentFilters.style.display = 'none';
+            document.getElementById('recipient-preview-badge').innerText = 'Total: 0';
+            document.getElementById('preview-list-body').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">No recipients selected</td></tr>';
+        }
+
+        function applyAiFilter() {
+            const query = document.getElementById('ai-query-input').value;
+            if (!query) { alert('Please enter a filter criteria.'); return; }
+            // AI filter is a placeholder — for now just trigger a search
+            searchManualRecipients(query);
+        }
+
+        function addManualRecipient(id, name, roles) {
+            const container = document.getElementById('manual-ids-container');
+            if (!container.querySelector(`input[value="${id}"]`)) {
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = 'manualUserIds'; input.value = id;
+                container.appendChild(input);
+            }
+            document.getElementById('search-results-dropdown').style.display = 'none';
+            // Auto switch to "Manual Add" if not already
+            document.querySelector('input[name="recipientType"][value="NONE"]').checked = true;
+            updateRecipientCount();
+        }
+
+        function addExclusion(id) {
+            if (id && id !== 'null') {
+                const container = document.getElementById('excluded-ids-container');
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = 'excludedUserIds'; input.value = id;
+                container.appendChild(input);
+            }
+            updateRecipientCount();
+        }
+
+        function toggleFallbackOrder() {
+            const strategy = document.querySelector('input[name="strategy"]:checked').value;
+            const fallbackSection = document.querySelector('.fallback-order-box');
+            if (strategy === 'FALLBACK') {
+                fallbackSection.style.display = 'block';
+            } else {
+                fallbackSection.style.display = 'none';
+            }
+        }
+
+        function updatePriorityOrder() {
+            const fbSeq = document.querySelector('input[name="fallback_sequence"]:checked');
+            const priorityInput = document.getElementById('channelPriorityInput');
+            if (fbSeq && priorityInput) {
+                priorityInput.value = fbSeq.value;
+            }
+        }
+
+        function validateForm(event) {
+
+            const template = document.getElementById('template-selector').value;
+            if (!template) {
+                alert("A template is REQUIRED for WhatsApp and SMS broadcasts!");
+                event.preventDefault();
+                return false;
+            }
+
+            const badgeText = document.getElementById('recipient-preview-badge').innerText;
+            if (badgeText === 'Total: 0') {
+                alert("Please select at least one recipient for the broadcast.");
+                event.preventDefault();
+                return false;
+            }
+
+            return true;
+        }
+    </script>
+</body>
+
+</html>

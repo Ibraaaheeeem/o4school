@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<body>
+    <aside th:fragment="messaging-sidebar(activeSubPage)" class="setup-sidebar">
+        <div class="sidebar-header">
+            <h3>Messaging Center</h3>
+        </div>
+        <nav class="setup-nav">
+            <a th:href="@{/admin/dashboard}" class="nav-item mobile-only">
+                <span class="icon">🏠</span>
+                Dashboard
+            </a>
+            <button class="nav-item mobile-only" onclick="openNewMessageModal()" style="border: none; cursor: pointer;">
+                <span class="icon">➕</span>
+                New
+            </button>
+            <a th:href="@{/dashboard/messaging}" class="nav-item"
+                th:classappend="${activeSubPage == 'internal' ? 'active' : ''}">
+                <span class="icon">💬</span>
+                Internal
+            </a>
+            <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/whatsapp}"
+                class="nav-item" th:classappend="${activeSubPage == 'whatsapp' ? 'active' : ''}">
+                <span class="icon" style="color:#25D366"><i class="fab fa-whatsapp"></i></span>
+                WhatsApp
+            </a>
+            <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/sms}"
+                class="nav-item" th:classappend="${activeSubPage == 'sms' ? 'active' : ''}">
+                <span class="icon">📱</span>
+                SMS
+            </a>
+            <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/multimodal}"
+                class="nav-item" th:classappend="${activeSubPage == 'multimodal' ? 'active' : ''}">
+                <span class="icon">📣</span>
+                Multimodal
+            </a>
+        </nav>
+
+        <div class="setup-progress-widget" th:if="${whatsappBalance != null or smsBalance != null}">
+            <h4>Balances</h4>
+            <div class="stats-grid">
+                <div class="stat-item" th:if="${whatsappBalance != null}">
+                    <span class="stat-number" th:text="${#numbers.formatInteger(whatsappBalance, 0, 'COMMA')}">0</span>
+                    <span class="stat-label">WhatsApp</span>
+                </div>
+                <div class="stat-item" th:if="${smsBalance != null}">
+                    <span class="stat-number" th:text="${#numbers.formatInteger(smsBalance, 0, 'COMMA')}">0</span>
+                    <span class="stat-label">SMS</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

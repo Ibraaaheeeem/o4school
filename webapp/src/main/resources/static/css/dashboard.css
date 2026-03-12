@@ -57,7 +57,8 @@
 }
 
 .main-content.setup-layout {
-    padding: 0;
+    padding: 0 !important;
+    margin-top: 0 !important;
 }
 
 .dashboard-container {
@@ -81,24 +82,34 @@
 
 /* Vertical Sidebar Settings */
 .quick-actions-sidebar {
-    width: 90px;
-    background: white;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+    width: 260px;
+    background: #1e293b;
+    /* Dark slate background */
+    border-radius: 24px;
+    /* Pill-shaped */
+
+    border: none;
+    /* Remove border lines */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    /* Strong dark shadow */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 1rem 0.5rem;
+    align-items: stretch;
+    padding: 1.5rem 0.5rem;
+    /* Clean padding */
     gap: 0.5rem;
     position: sticky;
     top: 90px;
-    height: calc(100vh - 120px);
+    margin: 1.5rem 0 1.5rem 1.5rem;
+    /* Float off edge */
+    height: calc(100vh - 90px - 3rem);
+    /* Height minus header and margins */
     overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: none;
-    /* Firefox */
-    transition: width 0.3s ease;
-    z-index: 10;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 20;
+    /* Ensure it floats above */
 }
 
 .quick-actions-sidebar::-webkit-scrollbar {
@@ -106,146 +117,322 @@
     /* Chrome/Safari */
 }
 
-/* Expanded state for sidebar */
-.quick-actions-sidebar.expanded {
-    width: 200px;
-    align-items: stretch;
-}
-
-.sidebar-toggle-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.25rem;
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.sidebar-toggle-btn:hover {
-    background: var(--bg-hover);
-    color: var(--text-main);
-}
-
 .sidebar-brand {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+    padding: 0 1.25rem 1.5rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     width: 100%;
+    box-sizing: border-box;
+    gap: 0.75rem;
 }
 
-.sidebar-brand img {
-    height: 32px;
+.sidebar-brand .brand-icon {
+    height: 48px;
+    width: auto;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+}
+
+.sidebar-brand .brand-logo {
+    height: 22px;
     width: auto;
 }
 
 .quick-action-link {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    color: var(--text-muted);
-    padding: 0.75rem 0.5rem;
-    border-radius: var(--radius-md);
-    transition: all 0.2s ease;
-    text-align: center;
-    min-height: 70px;
-}
-
-.quick-actions-sidebar.expanded .quick-action-link {
     flex-direction: row;
+    align-items: center;
     justify-content: flex-start;
-    padding: 0.75rem 1rem;
-    gap: 1rem;
-    min-height: auto;
+    text-decoration: none;
+    color: #94a3b8;
+    /* Muted slate */
+    padding: 0.85rem 1.25rem;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 1.25rem;
+    position: relative;
 }
 
 .quick-action-link:hover {
-    background: var(--bg-hover);
-    color: var(--text-main);
+    background: #334155;
+    /* Darker slate hover */
+    color: #f8fafc;
 }
 
-.quick-action-link i {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-}
 
-.quick-actions-sidebar.expanded .quick-action-link i {
-    margin-bottom: 0;
-    font-size: 1.1rem;
+.quick-action-link i:first-child {
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
 }
 
 .quick-action-link span {
-    font-size: 0.7rem;
-    font-weight: 500;
+    font-size: 1.05rem;
+    font-weight: 600;
     line-height: 1.2;
-}
-
-.quick-actions-sidebar.expanded .quick-action-link span {
-    font-size: 0.85rem;
+    white-space: nowrap;
+    flex: 1;
+    /* Pushes the arrow to the right */
 }
 
 .quick-action-link.active {
-    background: #f97316;
-    /* Orange color matching screenshot */
-    color: white;
-    box-shadow: var(--shadow-sm);
+    background: #334155;
+    /* Dark slate active background */
+    color: #38bdf8;
+    /* Cyan active text */
+    position: relative;
+    /* Optional edge highlight for active state */
+    box-shadow: inset 2px 0 0 #38bdf8;
+}
+
+.quick-action-link.active i {
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    /* Cyan glow around icon */
 }
 
 .quick-action-link.active:hover {
-    background: #ea580c;
-    color: white;
+    background: #475569;
 }
 
+/* --- Sidebar Submenu Styles --- */
+.sidebar-menu-item {
+    width: 100%;
+    position: relative;
+}
+
+.sidebar-menu-item>.quick-action-link {
+    position: relative;
+}
+
+.submenu-arrow {
+    font-size: 0.65rem !important;
+    margin: 0 !important;
+    opacity: 0.6;
+    transition: transform 0.3s ease, opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-menu-item.expanded>.quick-action-link .submenu-arrow {
+    transform: rotate(180deg);
+    opacity: 0.8;
+}
+
+.submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    background: #f8fafc;
+    /* Light contrasting background */
+    margin: 0.25rem 0;
+    /* Full width */
+    border-radius: 0;
+    /* Remove radius for full width integration */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-menu-item.expanded>.submenu {
+    max-height: 500px;
+    /* Large enough to fit all items */
+    padding: 0.4rem 0;
+}
+
+.submenu-link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1.5rem 0.75rem 3.5rem;
+    /* Standardized padding */
+    margin: 0;
+    /* Remove margin for full width color */
+    border-radius: 0;
+    /* Squared for full width stripe look */
+    color: #334155;
+    /* Dark text for light background */
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.submenu-link:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.submenu-link.active {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.submenu-icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+
 @media (max-width: 900px) {
+
+    /* Convert the global sidebar into a slide-out drawer on mobile */
+    .quick-actions-sidebar,
+    .setup-layout .quick-actions-sidebar,
+    .dashboard-layout-with-sidebar .quick-actions-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 250px !important;
+        height: 100vh !important;
+        transform: translateX(-100%);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        background: #1e293b !important;
+        /* Dark Slate Header BG */
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 2rem 1rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        z-index: 2100 !important;
+        /* Above everything including header */
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+    }
+
+    /* Active state when hamburger is clicked */
+    .quick-actions-sidebar.mobile-active {
+        transform: translateX(0) !important;
+    }
+
+    /* Keep icons and labels visible in the drawer */
+    .quick-actions-sidebar .quick-action-link,
+    .setup-layout .quick-actions-sidebar .quick-action-link {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        padding: 1rem !important;
+        gap: 1.25rem !important;
+        width: 100% !important;
+        min-height: auto !important;
+        text-align: left !important;
+        border-radius: 12px !important;
+        color: #94a3b8 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .quick-actions-sidebar .quick-action-link i,
+    .setup-layout .quick-actions-sidebar .quick-action-link i {
+        font-size: 1.25rem !important;
+        margin: 0 !important;
+        width: 24px;
+        text-align: center;
+    }
+
+    .quick-actions-sidebar .quick-action-link span,
+    .setup-layout .quick-actions-sidebar .quick-action-link span {
+        display: block !important;
+        font-size: 0.95rem !important;
+        font-weight: 500 !important;
+    }
+
+    .quick-actions-sidebar .quick-action-link.active {
+        background: rgba(56, 189, 248, 0.1) !important;
+        color: #38bdf8 !important;
+        box-shadow: inset 4px 0 0 #38bdf8 !important;
+    }
+
+    /* Show the brand/logo in the drawer */
+    .quick-actions-sidebar .sidebar-brand {
+        display: flex !important;
+        margin-bottom: 2rem !important;
+        padding-bottom: 1.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        justify-content: flex-start !important;
+        height: auto !important;
+    }
+
+    /* Mobile submenu styles */
+    .submenu-arrow {
+        position: static !important;
+        transform: none !important;
+        margin-left: auto !important;
+        font-size: 0.7rem !important;
+        bottom: auto !important;
+        left: auto !important;
+    }
+
+    .sidebar-menu-item.expanded>.quick-action-link .submenu-arrow {
+        transform: rotate(180deg) !important;
+    }
+
+    .submenu-link {
+        font-size: 0.85rem !important;
+        padding: 0.65rem 1rem 0.65rem 3.5rem !important;
+        margin: 0 !important;
+        border-radius: 8px !important;
+        gap: 0.75rem !important;
+    }
+
+    .submenu-icon {
+        font-size: 0.9rem;
+        width: 20px;
+    }
+
     .dashboard-layout-with-sidebar {
         flex-direction: column;
+        padding: 0 1rem;
     }
 
-    .quick-actions-sidebar {
-        width: 100%;
-        height: auto;
-        flex-direction: row;
+    /* Setup layout must flow vertically on mobile */
+    .setup-layout,
+    .main-content.setup-layout {
+        flex-direction: column !important;
+        padding: 0 !important;
+        margin-top: 0 !important;
+        gap: 0 !important;
+    }
+
+    /* Setup layout secondary sidebar goes full-width under the bar */
+    .setup-layout>aside:not(.quick-actions-sidebar),
+    .setup-layout>*:not(.quick-actions-sidebar):not(.setup-content) {
+        width: 100% !important;
+    }
+
+    .responsive-flex-column {
+        flex-direction: column !important;
+        display: flex !important;
+        height: auto !important;
         position: relative;
-        top: 0;
-        overflow-x: auto;
-        padding: 0.5rem;
-        border-radius: var(--radius-md);
-        margin-bottom: 1.5rem;
-        z-index: 1;
     }
 
-    .sidebar-toggle-btn {
-        display: none;
-    }
-
-    .sidebar-brand {
-        display: none;
-    }
-
-    .quick-action-link {
-        min-width: 70px;
-        min-height: 60px;
+    .admin-sidebar-wrapper {
+        height: auto !important;
+        width: 100% !important;
     }
 }
 
 @media (max-width: 640px) {
-
-    .dashboard-container,
-    .dashboard-layout-with-sidebar {
+    .dashboard-container {
         padding: 0 1rem;
     }
 }
+
+/* Removed `.setup-layout` border merging logic because both sidebars are now floating widgets */
 
 /* Welcome Section */
 .welcome-section {
@@ -661,6 +848,44 @@
     .tabs-nav {
         gap: 1.5rem;
     }
+
+    /* Responsive Modal Utilities */
+    .modal-content {
+        width: 96% !important;
+        max-width: 96% !important;
+        margin: 10px auto !important;
+        border-radius: 16px !important;
+    }
+
+    .modal-body-scroll {
+        max-height: 75vh !important;
+        padding: 1rem !important;
+    }
+
+    .modal-footer {
+        flex-direction: column !important;
+        padding: 1rem !important;
+    }
+
+    .modal-footer button {
+        width: 100% !important;
+        height: 56px !important;
+        border-radius: 14px !important;
+    }
+
+    /* Responsive Grid Utilities */
+    .grid-2-mobile {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .grid-1-mobile {
+        grid-template-columns: 1fr !important;
+    }
+
+    .stack-mobile {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
 }
 
 @media (max-width: 480px) {
@@ -729,4 +954,20 @@
 .role-parent .dashboard-card:hover .card-icon {
     background: #8b5cf6;
     color: white;
+}
+
+/* Unread Conversation Highlights */
+.conversation-item.unread {
+    background-color: #f0f9ff !important;
+    /* Extremely light blue */
+}
+
+.conversation-item.unread .conv-name {
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+.conversation-item.unread .conv-last-msg {
+    font-weight: 600 !important;
+    color: #334155 !important;
 }

@@ -37,6 +37,11 @@
                 <span class="icon">🌍</span>
                 Custom Domain
             </a>
+            <a th:href="@{/admin/school-setup/subscriptions}"
+                th:classappend="${requestURI.contains('subscriptions') ? 'active' : ''}" class="nav-item">
+                <span class="icon">💳</span>
+                Subscriptions & Billing
+            </a>
         </nav>
 
         <div class="setup-progress-widget" th:if="${setupProgress != null}">

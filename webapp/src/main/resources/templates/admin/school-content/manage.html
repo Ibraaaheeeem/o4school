@@ -97,9 +97,11 @@
     <div th:replace="~{fragments/header :: school-header}"></div>
 
     <main class="main-content setup-layout">
+        <!-- Global Admin Sidebar -->
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar(activePage='community')}"></div>
+
         <!-- Include School Setup Sidebar -->
         <!-- Include Sidebar -->
-        <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 
         <!-- Main Content Area -->
         <div class="setup-content">

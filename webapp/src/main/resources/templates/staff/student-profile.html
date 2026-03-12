@@ -43,14 +43,13 @@
             <div class="welcome-section" style="align-items: flex-start;">
                 <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
                     <div style="position: relative;">
+                        <!-- Profile Image -->
                         <img th:if="${student.passportPhotoUrl}" th:src="${student.passportPhotoUrl}"
                             style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: var(--shadow-md);"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div th:unless="${student.passportPhotoUrl}"
-                            style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; border: 4px solid white; box-shadow: var(--shadow-md);"
-                            th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
-                        <div th:if="${student.passportPhotoUrl}"
-                            style="display: none; width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; border: 4px solid white; box-shadow: var(--shadow-md);"
+
+                        <!-- Initials Fallback (Shown only if no photo URL or if photo fails to load) -->
+                        <div th:style="${student.passportPhotoUrl != null ? 'display: none;' : ''} + 'width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; border: 4px solid white; box-shadow: var(--shadow-md);'"
                             th:text="${#strings.substring(student.user.firstName, 0, 1)}">S</div>
                     </div>
 
@@ -77,11 +76,14 @@
                             <span style="display: flex; align-items: center; gap: 0.5rem;"><i
                                     class="fas fa-id-card"></i> <span
                                     th:text="${student.admissionNumber}">ADM-001</span></span>
-                            <span style="display: flex; align-items: center; gap: 0.5rem;"><i
-                                    class="fas fa-envelope"></i> <span
-                                    th:text="${student.user.email}">email@example.com</span></span>
-                            <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-phone"></i>
-                                <span th:text="${student.user.phoneNumber}">+1234567890</span></span>
+                            <th:block th:if="${userRole != 'Parent'}">
+                                <span style="display: flex; align-items: center; gap: 0.5rem;"><i
+                                        class="fas fa-envelope"></i> <span
+                                        th:text="${student.user.email}">email@example.com</span></span>
+                                <span style="display: flex; align-items: center; gap: 0.5rem;"><i
+                                        class="fas fa-phone"></i>
+                                    <span th:text="${student.user.phoneNumber}">+1234567890</span></span>
+                            </th:block>
                         </div>
                     </div>
                 </div>
