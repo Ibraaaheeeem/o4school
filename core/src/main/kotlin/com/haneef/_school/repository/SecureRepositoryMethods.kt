@@ -72,3 +72,15 @@ interface SecureEducationTrackRepository {
     @Query("SELECT e FROM EducationTrack e WHERE e.id = :id AND e.schoolId = :schoolId AND e.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<EducationTrack>
 }
+
+// Class Fee Item Repository Extensions
+interface SecureClassFeeItemRepository {
+    @Query("SELECT cfi FROM ClassFeeItem cfi WHERE cfi.id = :id AND cfi.schoolId = :schoolId AND cfi.isActive = true")
+    fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<ClassFeeItem>
+}
+
+// Student Optional Fee Repository Extensions
+interface SecureStudentOptionalFeeRepository {
+    @Query("SELECT sof FROM StudentOptionalFee sof WHERE sof.id = :id AND sof.schoolId = :schoolId AND sof.isActive = true")
+    fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<StudentOptionalFee>
+}

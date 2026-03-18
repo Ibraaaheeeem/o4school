@@ -40,9 +40,6 @@ class ClassFeeItem(
     @Column(name = "is_applicable")
     var isApplicable: Boolean = true,
     
-    @Column(name = "is_locked")
-    var isLocked: Boolean = false,
-    
     var notes: String? = null
 ) : TenantAwareEntity() {
     

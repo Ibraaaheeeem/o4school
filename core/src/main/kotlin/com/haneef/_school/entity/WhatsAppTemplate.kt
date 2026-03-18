@@ -39,4 +39,4 @@ class WhatsAppTemplate(
 
     @Column(name = "target_role")
     var targetRole: String = "GENERAL"
-) : TenantAwareEntity()
+) : BaseEntity()

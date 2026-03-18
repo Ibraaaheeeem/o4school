@@ -2,6 +2,7 @@ package com.haneef._school.config
 
 import com.haneef._school.service.CustomUserDetailsService
 import com.haneef._school.service.UserSchoolRoleService
+import com.haneef._school.service.ActivityLogService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
@@ -28,7 +29,9 @@ class SecurityConfig(
     private val customUserDetailsService: CustomUserDetailsService,
     private val userSchoolRoleService: UserSchoolRoleService,
     private val customAuthenticationFailureHandler: CustomAuthenticationFailureHandler,
-    private val customAuthenticationEntryPoint: CustomAuthenticationEntryPoint
+    private val customAuthenticationEntryPoint: CustomAuthenticationEntryPoint,
+    private val customLogoutHandler: CustomLogoutHandler,
+    private val activityLogService: ActivityLogService
 ) {
 
     @Bean
@@ -70,7 +73,7 @@ class SecurityConfig(
                     .loginProcessingUrl("/auth/login")
                     .usernameParameter("combinedUsername")
                     .passwordParameter("password")
-                    .successHandler(CustomAuthenticationSuccessHandler(userSchoolRoleService))
+                    .successHandler(CustomAuthenticationSuccessHandler(userSchoolRoleService, activityLogService))
                     .failureHandler(customAuthenticationFailureHandler)
                     .permitAll()
             }
@@ -85,6 +88,7 @@ class SecurityConfig(
             .logout { logout ->
                 logout
                     .logoutUrl("/auth/logout")
+                    .addLogoutHandler(customLogoutHandler)
                     .logoutSuccessUrl("/")
                     .permitAll()
             }

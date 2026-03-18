@@ -106,6 +106,7 @@ class GlobalControllerAdvice {
                 model.addAttribute("isSchoolAdmin", authorities.any { it == "ROLE_SCHOOL_ADMIN" || it == "ROLE_ADMIN" })
                 model.addAttribute("isParent", authorities.contains("ROLE_PARENT"))
                 model.addAttribute("isStudent", authorities.contains("ROLE_STUDENT"))
+                model.addAttribute("isStaff", authorities.any { it == "ROLE_STAFF" || it == "ROLE_TEACHER" })
             }
         }
     }

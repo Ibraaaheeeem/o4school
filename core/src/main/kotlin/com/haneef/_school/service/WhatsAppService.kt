@@ -319,7 +319,7 @@ open class WhatsAppService(
         if (schoolId == null) return "[Template: $templateName]"
         
         return try {
-            val template = templateRepository.findByTemplateNameAndSchoolId(templateName, schoolId).orElse(null)
+            val template = templateRepository.findByTemplateName(templateName).orElse(null)
                 ?: return "[Template: $templateName]"
             
             val componentsJson = template.componentsJson ?: return "[Template: $templateName]"

@@ -72,25 +72,25 @@ class ActivityLogService(
     /**
      * Log user authentication activities
      */
-    fun logUserLogin(schoolId: UUID, user: User, request: HttpServletRequest?) {
+    fun logUserLogin(schoolId: UUID, user: User, role: String, request: HttpServletRequest?) {
         logActivity(
             schoolId = schoolId,
             activityType = ActivityType.USER_LOGIN,
             title = "User logged in",
             userId = user.id!!,
-            userRole = "USER", // Will be updated with actual role
+            userRole = role,
             description = "User successfully logged into the system",
             request = request
         )
     }
     
-    fun logUserLogout(schoolId: UUID, user: User, request: HttpServletRequest?) {
+    fun logUserLogout(schoolId: UUID, user: User, role: String, request: HttpServletRequest?) {
         logActivity(
             schoolId = schoolId,
             activityType = ActivityType.USER_LOGOUT,
             title = "User logged out",
             userId = user.id!!,
-            userRole = "USER",
+            userRole = role,
             description = "User logged out of the system",
             request = request
         )
@@ -172,10 +172,40 @@ class ActivityLogService(
             title = "New parent added",
             userId = actorUserId,
             userRole = actorRole,
-            description = "Parent linked to student $studentName",
+            description = "Parent profile created",
             targetUserId = parentUserId,
             entityType = "Parent",
             metadata = mapOf("studentName" to studentName),
+            request = request
+        )
+    }
+
+    fun logParentStudentLinked(schoolId: UUID, actorUserId: UUID, actorRole: String, parentUserId: UUID, studentUserId: UUID, relationshipType: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.PARENT_STUDENT_LINKED,
+            title = "Parent linked to student",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Linked as $relationshipType",
+            targetUserId = studentUserId,
+            entityType = "ParentStudent",
+            metadata = mapOf("parentUserId" to parentUserId, "relationshipType" to relationshipType),
+            request = request
+        )
+    }
+
+    fun logParentStudentUnlinked(schoolId: UUID, actorUserId: UUID, actorRole: String, parentUserId: UUID, studentUserId: UUID, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.PARENT_STUDENT_UNLINKED,
+            title = "Parent-student link removed",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Removed relationship between parent and student",
+            targetUserId = studentUserId,
+            entityType = "ParentStudent",
+            metadata = mapOf("parentUserId" to parentUserId),
             request = request
         )
     }
@@ -218,6 +248,108 @@ class ActivityLogService(
                 "subject" to subject,
                 "grade" to grade
             ),
+            request = request
+        )
+    }
+
+    fun logClassTeacherAssigned(schoolId: UUID, actorUserId: UUID, actorRole: String, staffUserId: UUID, className: String, sessionName: String, termName: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.CLASS_TEACHER_ASSIGNED,
+            title = "Class teacher assigned",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Assigned to class $className for $sessionName - $termName",
+            targetUserId = staffUserId,
+            entityType = "ClassTeacher",
+            metadata = mapOf("className" to className, "sessionName" to sessionName, "termName" to termName),
+            request = request
+        )
+    }
+
+    fun logClassTeacherRemoved(schoolId: UUID, actorUserId: UUID, actorRole: String, staffUserId: UUID, className: String, sessionName: String, termName: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.CLASS_TEACHER_REMOVED,
+            title = "Class teacher removed",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Removed from class $className ($sessionName - $termName)",
+            targetUserId = staffUserId,
+            entityType = "ClassTeacher",
+            metadata = mapOf("className" to className, "sessionName" to sessionName, "termName" to termName),
+            request = request
+        )
+    }
+
+    fun logSubjectTeacherAssigned(schoolId: UUID, actorUserId: UUID, actorRole: String, staffUserId: UUID, subjectName: String, className: String, sessionName: String, termName: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.SUBJECT_TEACHER_ASSIGNED,
+            title = "Subject teacher assigned",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Assigned to $subjectName in $className for $sessionName - $termName",
+            targetUserId = staffUserId,
+            entityType = "SubjectTeacher",
+            metadata = mapOf("subjectName" to subjectName, "className" to className, "sessionName" to sessionName, "termName" to termName),
+            request = request
+        )
+    }
+
+    fun logSubjectTeacherRemoved(schoolId: UUID, actorUserId: UUID, actorRole: String, staffUserId: UUID, subjectName: String, className: String, sessionName: String, termName: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.SUBJECT_TEACHER_REMOVED,
+            title = "Subject teacher removed",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Removed from $subjectName in $className ($sessionName - $termName)",
+            targetUserId = staffUserId,
+            entityType = "SubjectTeacher",
+            metadata = mapOf("subjectName" to subjectName, "className" to className, "sessionName" to sessionName, "termName" to termName),
+            request = request
+        )
+    }
+
+    /**
+     * Log communication activities
+     */
+    fun logSmsSent(schoolId: UUID, actorUserId: UUID, actorRole: String, recipient: String, content: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.SMS_SENT,
+            title = "SMS Sent",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Message sent to $recipient",
+            metadata = mapOf("recipient" to recipient, "content" to content.take(100)),
+            request = request
+        )
+    }
+
+    fun logWhatsAppSent(schoolId: UUID, actorUserId: UUID, actorRole: String, recipient: String, content: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.WHATSAPP_SENT,
+            title = "WhatsApp Message Sent",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Message sent to $recipient",
+            metadata = mapOf("recipient" to recipient, "content" to content.take(100)),
+            request = request
+        )
+    }
+
+    fun logInternalMessageSent(schoolId: UUID, actorUserId: UUID, actorRole: String, recipientName: String, content: String, request: HttpServletRequest? = null) {
+        logActivity(
+            schoolId = schoolId,
+            activityType = ActivityType.INTERNAL_MESSAGE_SENT,
+            title = "Internal Message Sent",
+            userId = actorUserId,
+            userRole = actorRole,
+            description = "Message sent to $recipientName",
+            metadata = mapOf("recipientName" to recipientName, "content" to content.take(100)),
             request = request
         )
     }

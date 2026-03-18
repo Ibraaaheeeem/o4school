@@ -141,7 +141,7 @@ class MultimodalMessagingService(
         // Fetch the template if the name changed or if it was null
         val effectiveTemplate = if (effectiveTemplateName != templateName || template == null) {
             effectiveTemplateName?.let { tName ->
-                templateRepository.findByTemplateNameAndSchoolId(tName, schoolId).orElse(null)
+                templateRepository.findByTemplateName(tName).orElse(null)
             } ?: template
         } else {
             template
@@ -255,7 +255,7 @@ class MultimodalMessagingService(
         }
 
         val template = fallbackTemplateName?.let { tName ->
-            templateRepository.findByTemplateNameAndSchoolId(tName, schoolId).orElse(null)
+            templateRepository.findByTemplateName(tName).orElse(null)
         }
 
         val manualParams = try {

@@ -183,6 +183,7 @@ class TemplateParameterResolver(
             }.distinct()
             
             data["class_name"] = if (classes.isNotEmpty()) classes.joinToString(", ") else ""
+            data["student_names"] = data["student_name"]
             
             // Financial Data
             val currentSession = academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
@@ -199,57 +200,28 @@ class TemplateParameterResolver(
             val termBalance = currentBill.subtract(settledBill)
             
             // Truly all-time balance: Total Owed (All Time) - Total Paid (All Time)
-            // Calculate the higher of invoices vs fee structure PER STUDENT and sum them up
-            var totalOwedAllTime = BigDecimal.ZERO
+            val financialStatus = financialService.calculateParentFinancialStatus(parent)
+            val totalOwedAllTime = financialStatus.totalOwed
+            val totalSettledAllTime = financialStatus.totalPaid
+            val netBalance = financialStatus.balance
             
-            activeChildren.forEach { student ->
-                // Invoices for this student
-                val studentInvoices = invoiceRepository.findByStudentIdAndSchoolIdAndIsActive(student.id!!, schoolId, true)
-                    .filter { it.status != InvoiceStatus.DRAFT && it.status != InvoiceStatus.CANCELLED }
-                    
-                val invoiceTotal = studentInvoices.fold(BigDecimal.ZERO) { acc, inv ->
-                    acc.add(BigDecimal.valueOf(inv.totalAmount.toLong(), 2))
-                }
-                
-                // Structure for this student
-                val structureTotal = financialService.calculateAllTimeFees(student)
-                
-                // Take the higher of the two ensuring we don't miss any debt for this specific child
-                totalOwedAllTime = totalOwedAllTime.add(invoiceTotal.max(structureTotal))
-            }
-
-            // Settlements (Total paid by parent - successful only)
-            val studentIds = activeChildren.mapNotNull { it.id }
-            val settlements = settlementRepository.findByParentContext(
-                schoolId,
-                parent.id!!,
-                studentIds,
-                parent.user.email,
-                null, 
-                null
-            )
-            val totalSettledAllTime = settlements.sumOf { it.amount }
+            // Refined Mappings as requested:
+            // current_bill: Bill for just the current term
+            // total_bill: current_bill + any outstanding bill (basically Total Owed - Total Paid in the past)
+            // settled_bill: Amount settled in the current term
+            // current_balance: Remaining balance to pay (net all-time balance)
             
-            val netBalance = totalOwedAllTime.subtract(totalSettledAllTime)
-            
-            // netBalance is the TOTAL outstanding (Debt minus any payments)
-            // outstandingAmount in the template usually refers to PREVIOUS terms' balance
-            val outstandingAmountFromPast = netBalance.subtract(termBalance)
-            
-            // For the 'outstanding' parameter, we show the past debt (0 if they are in credit or fully paid)
-            val outstanding = if (outstandingAmountFromPast.compareTo(BigDecimal.ZERO) > 0) outstandingAmountFromPast else BigDecimal.ZERO
-            
-            // Important: totalBill is the amount they actually owe RIGHT NOW (inclusive of current term and past balance/credit)
-            val totalBill = netBalance.max(BigDecimal.ZERO)
+            val totalBill = netBalance.add(settledBill)
+            val outstanding = totalBill.subtract(currentBill).max(BigDecimal.ZERO)
             
             data["term_fees"] = currencyFormatter.format(currentBill)
             data["settled_bill"] = currencyFormatter.format(settledBill)
             data["outstanding"] = currencyFormatter.format(outstanding)
-            data["amount"] = currencyFormatter.format(totalBill)
-            data["balance"] = currencyFormatter.format(totalBill)
-            data["current_bill"] = currencyFormatter.format(totalBill)
-            data["current_balance"] = currencyFormatter.format(totalBill)
-            data["total_bill"] = currencyFormatter.format(totalBill)
+            data["amount"] = currencyFormatter.format(netBalance)
+            data["balance"] = currencyFormatter.format(netBalance)
+            data["current_bill"] = currencyFormatter.format(currentBill)
+            data["total_bill"] = currencyFormatter.format(totalBill.max(BigDecimal.ZERO))
+            data["current_balance"] = currencyFormatter.format(netBalance.max(BigDecimal.ZERO))
             data["net_balance"] = currencyFormatter.format(netBalance) // Can be negative if they have credit
             
             // Dedicated Account Details
@@ -266,6 +238,7 @@ class TemplateParameterResolver(
                 else -> "Not Assigned"
             }
             data["dedicated_account"] = accountDetails
+            data["account_number"] = paystackWallet?.accountNumber ?: squadWallet?.accountNumber ?: "Not Assigned"
         }
 
         val staff = staffRepository.findByUserIdAndSchoolId(user.id!!, schoolId)

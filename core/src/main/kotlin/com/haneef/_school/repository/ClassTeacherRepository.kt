@@ -17,6 +17,20 @@ interface ClassTeacherRepository : JpaRepository<ClassTeacher, UUID> {
     
     fun findBySchoolClassIdAndIsActive(classId: UUID, isActive: Boolean): List<ClassTeacher>
     
+    // For pre-fetching the "Target" term assignments
+    fun findBySchoolIdAndTermId(
+        schoolId: UUID, 
+        termId: UUID
+    ): List<ClassTeacher>
+
+    // Your existing source fetcher (ensure it uses JOIN FETCH to avoid N+1 on Staff/Class)
+    @Query("SELECT ct FROM ClassTeacher ct JOIN FETCH ct.staff JOIN FETCH ct.schoolClass WHERE ct.schoolId = :schoolId AND ct.isActive = :active AND ct.academicSession.id = :sessionId AND ct.term.id = :termId")
+    fun findBySchoolIdAndIsActiveAndTermWithDetails(
+        schoolId: UUID, 
+        active: Boolean,
+        termId: UUID
+    ): List<ClassTeacher>
+    
     @Query("SELECT ct FROM ClassTeacher ct JOIN FETCH ct.staff s JOIN FETCH s.user JOIN FETCH ct.schoolClass sc LEFT JOIN FETCH sc.track JOIN FETCH ct.academicSession JOIN FETCH ct.term WHERE ct.schoolId = :schoolId AND ct.isActive = :isActive AND ct.academicSession.id = :sessionId AND ct.term.id = :termId")
     fun findBySchoolIdAndIsActiveAndSessionAndTermWithDetails(
         @Param("schoolId") schoolId: UUID,

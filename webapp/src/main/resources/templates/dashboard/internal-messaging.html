@@ -13,6 +13,7 @@
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
+    <link rel="stylesheet" th:href="@{/css/broadcast-modal.css}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style th:replace="~{dashboard/messaging :: style}"></style>
     <style>
@@ -125,10 +126,6 @@
 
             <!-- Persistent Top Action Bar -->
             <div class="internal-action-bar">
-                <button class="btn-new-message" onclick="openNewMessageModal()">
-                    <i class="fas fa-plus"></i>
-                    <span style="margin-left: 6px; font-weight: 700;">New Message</span>
-                </button>
                 <button sec:authorize="hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')" class="btn-new-message"
                     onclick="openBroadcastModal()"
                     style="background: #ef4444; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">
@@ -158,13 +155,6 @@
                             <h2
                                 style="margin: 0; font-size: 1.25rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em;">
                                 Messages</h2>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button class="btn-new-message" onclick="openNewMessageModal()" title="New Message"
-                                    style="width: auto; padding: 0.5rem 0.8rem; border-radius: 8px;">
-                                    <i class="fas fa-plus"></i>
-                                    <span style="margin-left: 4px; font-size: 0.85rem; font-weight: 600;">New</span>
-                                </button>
-                            </div>
                         </div>
 
                         <!-- Search Bar -->
@@ -215,10 +205,11 @@
     <!-- Modal Fragments -->
     <div th:replace="~{dashboard/internal-messaging-fragments :: new-message-modal}"></div>
     <div
-        th:replace="~{dashboard/messaging-fragments :: broadcast-modal(channel='internal', actionUrl='/dashboard/messaging/broadcast', allowFreeForm=true, unitName='')}">
+        th:replace="~{dashboard/messaging-fragments :: broadcast-modal(channel='internal', actionUrl='/admin/dashboard/internal/broadcast', utilityBaseUrl='/dashboard/messaging/broadcast', allowFreeForm=true, unitName='Internal Messages')}">
     </div>
 
     <script th:src="@{/js/dashboard-tabs.js}"></script>
+    <script th:src="@{/js/broadcast-modal.js}"></script>
     <script>
         // Use full URL or CSRF setup for requests
         const csrfToken = document.querySelector('meta[name="_csrf"]').content;
@@ -366,311 +357,9 @@
             }
         }
 
-        // --- BROADCAST LOGIC ---
-        let manualRecipients = [];
-        let excludedRecipients = [];
-        let allTemplates = [];
-
+        // Broadcast modal trigger alias
         function openBroadcastModal() {
-            const modal = document.getElementById('broadcast-modal');
-            if (modal) {
-                modal.classList.add('active');
-                fetchTemplates();
-                updateRecipientCount();
-            }
-        }
-
-        function closeBroadcastModal(e) {
-            if (e && e.target.id !== 'broadcast-modal' && e.target.tagName !== 'BUTTON') {
-                return;
-            }
-            document.getElementById('broadcast-modal').classList.remove('active');
-        }
-
-        function toggleTemplateUsage(useTemplate) {
-            const templateArea = document.getElementById('template-selection-area');
-            const freeFormArea = document.getElementById('free-form-section');
-            const templateSelector = document.getElementById('template-selector');
-            const freeFormInput = document.getElementById('free-form-message');
-
-            if (useTemplate) {
-                templateArea.style.display = 'block';
-                freeFormArea.style.display = 'none';
-                templateSelector.required = true;
-                if (freeFormInput) freeFormInput.required = false;
-            } else {
-                templateArea.style.display = 'none';
-                freeFormArea.style.display = 'block';
-                templateSelector.required = false;
-                if (freeFormInput) freeFormInput.required = true;
-            }
-        }
-
-        async function fetchTemplates() {
-            try {
-                const typeNode = document.querySelector('input[name="recipientType"]:checked');
-                const recipientType = typeNode ? typeNode.value : '';
-                const response = await authenticatedFetch(`/dashboard/messaging/broadcast/templates?recipientType=${recipientType}`);
-                window.internalTemplates = await response.json();
-                const selector = document.getElementById('template-selector');
-                const currentValue = selector.value;
-
-                selector.innerHTML = '<option value="">-- Select Template --</option>' +
-                    window.internalTemplates.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
-
-                if (currentValue) selector.value = currentValue;
-            } catch (err) {
-                console.error("Failed to load templates", err);
-            }
-        }
-
-        async function loadTemplateDetails(templateName) {
-            const container = document.getElementById('template-params-container');
-            const inputsContainer = document.getElementById('template-params-inputs');
-            const selector = document.getElementById('template-selector');
-            const selectedOpt = selector.options[selector.selectedIndex];
-
-            if (!templateName) {
-                container.style.display = 'none';
-                return;
-            }
-
-            const template = window.internalTemplates?.find(t => t.name === templateName);
-            if (!template) {
-                container.style.display = 'none';
-                return;
-            }
-
-            container.style.display = 'block';
-
-            try {
-                const components = JSON.parse(template.components || '[]');
-                const mappingStr = template.mapping || '';
-                const bodyComp = components.find(c => c.type === 'BODY');
-                const text = bodyComp?.text || "";
-
-                // Parse mapping: "1=student_name,2=due_date"
-                const mapping = {};
-                mappingStr.split(',').forEach(m => {
-                    if (m.includes('=')) {
-                        const [id, key] = m.split('=');
-                        mapping[id.trim()] = key.trim();
-                    } else if (m.trim()) {
-                        mapping[m.trim()] = m.trim();
-                    }
-                });
-
-                // Known system variables
-                const systemVars = [
-                    'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
-                    'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
-                    'academic_year', 'term_number', 'current_bill', 'current_balance', 'term_fees', 'settled_bill', 'outstanding',
-                    'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
-                ];
-
-                const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
-                const uniqueVars = [...new Set(varMatches)];
-
-                if (uniqueVars.length === 0) {
-                    inputsContainer.innerHTML = `<div class="template-inline-preview">${text.replace(/\\n/g, '<br>')}</div>`;
-                } else {
-                    let previewHtml = text;
-                    uniqueVars.forEach((v, index) => {
-                        const key = v.replace(/\{\{|\}\}/g, '');
-                        const mappedKey = mapping[key] || key;
-                        const isAutoFilled = systemVars.includes(mappedKey);
-
-                        const paramId = key;
-
-                        let inputHtml = "";
-                        if (isAutoFilled) {
-                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 0.7; width: auto; min-width: 80px; display: inline-flex; align-items: center; justify-content: center;" title="Auto-filled: ${mappedKey}">
-                                ${mappedKey}
-                            </span>`;
-                        } else {
-                            inputHtml = `<input type="text" name="manualParam_${paramId}" placeholder="${v}" class="inline-param-input" required title="Enter value for ${key}">`;
-                        }
-
-                        const escapedV = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        previewHtml = previewHtml.split(v).join(inputHtml);
-                    });
-
-                    // Format newlines for clean display
-                    previewHtml = previewHtml.replace(/\\n/g, '<br>');
-
-                    inputsContainer.innerHTML = `<div class="template-inline-preview" style="line-height: 1.8;">${previewHtml}</div>`;
-                    inputsContainer.style.display = 'block';
-                }
-            } catch (e) {
-                console.error("Error parsing template components:", e);
-                inputsContainer.innerHTML = 'Error loading params';
-            }
-        }
-
-        function toggleTrackClasses(checkbox) {
-            const trackId = checkbox.dataset.trackId;
-            const classes = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
-            classes.forEach(c => c.checked = checkbox.checked);
-            updateRecipientCount();
-        }
-
-        function syncTrackCheckbox(classCheckbox) {
-            const trackId = classCheckbox.dataset.trackId;
-            const trackCheckbox = document.querySelector(`.track-checkbox[data-track-id="${trackId}"]`);
-            const allOfTrack = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
-            const allChecked = Array.from(allOfTrack).every(c => c.checked);
-            trackCheckbox.checked = allChecked;
-        }
-
-        async function updateRecipientCount() {
-            const form = document.getElementById('broadcast-form');
-            const type = form.querySelector('input[name="recipientType"]:checked').value;
-            const academicSection = document.getElementById('academic-filters-section');
-
-            academicSection.style.display = (type === 'PARENTS' || type === 'ALL') ? 'block' : 'none';
-
-            const formData = new FormData(form);
-            manualRecipients.forEach(id => formData.append('manualIds', id));
-            excludedRecipients.forEach(id => formData.append('excludedIds', id));
-
-            try {
-                const response = await authenticatedFetch('/dashboard/messaging/broadcast/preview-count', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                document.getElementById('recipient-preview-badge').innerText = `Recipients: ${data.count}`;
-
-                // Also update preview list
-                updatePreviewList(formData);
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function updatePreviewList(formData) {
-            try {
-                const response = await authenticatedFetch('/dashboard/messaging/broadcast/recipients', {
-                    method: 'POST',
-                    body: formData
-                });
-                const recipients = await response.json();
-                const tbody = document.getElementById('preview-list-body');
-
-                if (recipients.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 2rem; color: #94a3b8;">No recipients selected</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = recipients.slice(0, 20).map(r => `
-                    <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 0.75rem 1rem;">
-                            <div style="font-weight: 600; color: #334155;">${r.name}</div>
-                            <div style="font-size: 0.7rem; color: #94a3b8;">${r.type} ${r.subType ? '• ' + r.subType : ''}</div>
-                        </td>
-                        <td style="padding: 0.75rem 1rem; text-align: right;">
-                            <button type="button" onclick="excludeRecipient('${r.userId}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem;"><i class="fas fa-times"></i></button>
-                        </td>
-                    </tr>
-                `).join('') + (recipients.length > 20 ? `<tr><td colspan="2" style="text-align: center; padding: 0.5rem; color: #64748b; font-size: 0.75rem;">...and ${recipients.length - 20} more</td></tr>` : '');
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function searchManualRecipients(query) {
-            const dropdown = document.getElementById('search-results-dropdown');
-            const typeNode = document.querySelector('input[name="recipientType"]:checked');
-            const recipientType = typeNode ? typeNode.value : '';
-            if (query.length < 2) {
-                dropdown.style.display = 'none';
-                return;
-            }
-
-            try {
-                const response = await authenticatedFetch(`/dashboard/messaging/broadcast/search?query=${encodeURIComponent(query)}&recipientType=${recipientType}`);
-                const results = await response.json();
-
-                if (results.length === 0) {
-                    dropdown.innerHTML = '<div style="padding: 1rem; text-align: center; color: #94a3b8;">No results found</div>';
-                } else {
-                    dropdown.innerHTML = results.map(r => `
-                        <div onclick="addManualRecipient('${r.userId}', '${r.name}')" style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
-                            <div style="font-weight: 600; color: #1e293b;">${r.name}</div>
-                            <div style="font-size: 0.75rem; color: #64748b;">${r.type} ${r.subType ? '• ' + r.subType : ''}</div>
-                        </div>
-                    `).join('');
-                }
-                dropdown.style.display = 'block';
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function addManualRecipient(userId, name) {
-            if (!manualRecipients.includes(userId)) {
-                manualRecipients.push(userId);
-                renderPills('manual-ids-container', manualRecipients, name, removeManualRecipient);
-                updateRecipientCount();
-            }
-            document.getElementById('search-results-dropdown').style.display = 'none';
-            document.getElementById('recipient-search').value = '';
-        }
-
-        function removeManualRecipient(userId) {
-            manualRecipients = manualRecipients.filter(id => id !== userId);
-            updateRecipientCount();
-        }
-
-        function excludeRecipient(userId) {
-            if (!excludedRecipients.includes(userId)) {
-                excludedRecipients.push(userId);
-                updateRecipientCount();
-            }
-        }
-
-        function renderPills(containerId, ids, name, removeFn) {
-            // Since we only have the ID in the list, for manual ones we'd ideally need a name mapping
-            // For now, let's just use the name passed in or "Selected User"
-            // (In a more robust UI, we'd maintain a map of ID -> Name)
-        }
-
-        async function submitBroadcast(e) {
-            e.preventDefault();
-            const btn = document.getElementById('send-broadcast-btn');
-            const originalText = btn.innerText;
-
-            if (!confirm('Are you sure you want to send this broadcast message?')) return;
-
-            btn.disabled = true;
-            btn.innerText = 'Sending Broadcast...';
-
-            const form = document.getElementById('broadcast-form');
-            const formData = new FormData(form);
-            manualRecipients.forEach(id => formData.append('manualIds', id));
-            excludedRecipients.forEach(id => formData.append('excludedIds', id));
-
-            try {
-                const response = await authenticatedFetch('/dashboard/messaging/broadcast', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    alert(`Successfully sent broadcast to ${result.count} recipients.`);
-                    closeBroadcastModal();
-                    window.location.reload();
-                } else {
-                    alert('Broadcast failed: ' + result.message);
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Connection error while sending broadcast.');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
+            showBroadcastModal();
         }
     </script>
 </body>

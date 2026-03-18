@@ -30,33 +30,33 @@
         <div class="setup-content">
             <div class="setup-header animate-in">
                 <div>
-                    <h1>Scoring Schemes</h1>
-                    <p>Configure how end-of-term assessments are graded for different subjects and classes.</p>
+                    <h1>Grading Rules</h1>
+                    <p>Set up how marks are divided for exams and continuous assessments.</p>
                 </div>
             </div>
 
             <div class="scoring-grid">
                 <!-- Left Column: Configuration -->
                 <div class="glass-card animate-in" style="animation-delay: 0.1s;">
-                    <div class="card-header mb-4">
+                    <div class="card-header mb-4 d-block">
                         <h2 class="section-title mb-0">
-                            <i class="fas fa-cog me-2 text-primary"></i>
-                            Configuration
+                            <i class="fas fa-sliders-h me-2 text-primary"></i>
+                            Set Grading Rules
                         </h2>
-                        <p class="text-muted small mt-1">Define and apply scoring rules.</p>
+                        <p class="text-muted small mt-1">Decide how marks are divided.</p>
                     </div>
 
                     <form id="scoringSchemeForm">
                         <div class="form-section mb-4">
-                            <label class="form-label fw-bold text-dark">1. Select Scope</label>
+                            <label class="form-label fw-bold text-dark">1. Choose Where to Apply</label>
                             <div class="form-group">
                                 <select id="scopeType" class="form-control glass-input"
                                     onchange="handleScopeTypeChange()" required>
-                                    <option value="">Select Scope</option>
-                                    <option value="SCHOOL">Entire School</option>
-                                    <option value="TRACK">Specific Track</option>
-                                    <option value="DEPARTMENT">Specific Department</option>
-                                    <option value="CLASS">Specific Class</option>
+                                    <option value="">Select Level</option>
+                                    <option value="SCHOOL">Whole School</option>
+                                    <option value="TRACK">Specific Section (e.g. Primary)</option>
+                                    <option value="DEPARTMENT">Specific Department (e.g. JSS)</option>
+                                    <option value="CLASS">Specific Class (e.g. JSS 1A)</option>
                                 </select>
                             </div>
 
@@ -88,8 +88,8 @@
                         </div>
 
                         <div class="form-section">
-                            <label class="form-label fw-bold text-dark">2. Scoring Components</label>
-                            <p class="text-muted small mb-3">Define assessment parts (e.g., CA 1, Exam).</p>
+                            <label class="form-label fw-bold text-dark">2. Marks Breakdown</label>
+                            <p class="text-muted small mb-3">Add the tests and exams that make up 100 marks.</p>
 
 
                             <div id="scoring-items-list" class="scoring-items-container mb-3">
@@ -98,7 +98,7 @@
 
                             <button type="button" class="btn btn-outline-primary btn-sm w-100 dashed-border mb-3"
                                 onclick="addScoringItem()">
-                                <i class="fas fa-plus me-2"></i>Add Component
+                                <i class="fas fa-plus me-2"></i>Add Test/Exam
                             </button>
 
                             <div
@@ -115,7 +115,7 @@
                             <button type="button" id="apply-scheme-btn"
                                 class="btn btn-primary w-100 py-2 fw-bold shadow-sm" onclick="submitScoringScheme()"
                                 disabled>
-                                <i class="fas fa-check-circle me-2"></i>Apply Scheme
+                                <i class="fas fa-check-circle me-2"></i>Save Grading Rule
                             </button>
                         </div>
                     </form>
@@ -127,7 +127,7 @@
                         <div>
                             <h2 class="section-title mb-0">
                                 <i class="fas fa-list-ul me-2 text-info"></i>
-                                Current Configurations
+                                Active Rules
                             </h2>
                         </div>
                         <button class="btn btn-sm btn-light shadow-sm" onclick="loadCurrentSchemes()" title="Refresh">
@@ -147,7 +147,7 @@
                                 <tr>
                                     <td colspan="2" class="text-center py-5 text-muted">
                                         <i class="fas fa-mouse-pointer d-block mb-3 fa-2x opacity-50"></i>
-                                        Select a scope to view configurations
+                                        Select a level on the left to view active rules
                                     </td>
                                 </tr>
                             </tbody>
@@ -220,7 +220,7 @@
                     <tr>
                         <td colspan="2" class="text-center py-5 text-muted">
                             <i class="fas fa-mouse-pointer d-block mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
-                            Select a scope to view configurations
+                            Select a level to view rules
                         </td>
                     </tr>
                 `;
@@ -236,7 +236,7 @@
                     <tr>
                         <td colspan="2" class="text-center py-5 text-muted">
                             <i class="fas fa-info-circle d-block mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
-                            Please complete the selection to view configurations
+                            Please complete the selection to view rules
                         </td>
                     </tr>
                 `;
@@ -247,7 +247,7 @@
                 <tr>
                     <td colspan="2" class="text-center py-5">
                         <i class="fas fa-spinner fa-spin d-block mb-3" style="font-size: 2rem; color: #6366f1;"></i>
-                        Loading configurations...
+                        Loading rules...
                     </td>
                 </tr>
             `;
@@ -262,7 +262,7 @@
                         <tr>
                             <td colspan="2" class="text-center py-5 text-muted">
                                 <i class="fas fa-folder-open d-block mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
-                                No subject-class combinations found for this scope
+                                No rules set for this level yet
                             </td>
                         </tr>
                     `;
@@ -286,7 +286,7 @@
                     <tr>
                         <td colspan="2" class="text-center py-5 text-danger">
                             <i class="fas fa-exclamation-triangle d-block mb-3" style="font-size: 2rem;"></i>
-                            Error loading configurations
+                            Error loading rules
                         </td>
                     </tr>
                 `;
@@ -391,32 +391,26 @@
         function renderScoringItems() {
             const container = document.getElementById('scoring-items-list');
             container.innerHTML = scoringItems.map(item => `
-                <div class="scoring-item-row animate-in" data-id="${item.id}">
+                <div class="scoring-item-row animate-in mb-3 border rounded p-2 bg-white position-relative" data-id="${item.id}">
                     <div class="remove-btn-container">
                         <button type="button" class="btn btn-link text-danger p-0" onclick="removeScoringItem(${item.id})" title="Remove">
                             <i class="fas fa-times-circle fa-lg"></i>
                         </button>
                     </div>
-                    <div class="scoring-item-content">
-                        <div class="mb-3">
-                            <label class="field-label">Component Name</label>
-                            <input type="text" class="form-control glass-input" value="${item.name}" placeholder="e.g. Continuous Assessment" 
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-5 mb-2 mb-md-0">
+                            <input type="text" class="form-control glass-input" value="${item.name}" placeholder="Name (e.g. Exam)" 
                                 oninput="updateItemName(${item.id}, this.value)" required>
                         </div>
-                        <div class="row g-3">
-                            <div class="col-7">
-                                <label class="field-label">Alias</label>
-                                <input type="text" class="form-control glass-input" value="${item.alias || ''}" placeholder="e.g. CA" 
-                                    oninput="updateItemAlias(${item.id}, this.value)" required>
-                            </div>
-                            <div class="col-5">
-                                <label class="field-label">Max Score</label>
-                                <input type="number" class="form-control glass-input text-center" value="${item.max}" min="1" max="100" 
-                                    oninput="updateItemMax(${item.id}, this.value)" required>
-                            </div>
+                        <div class="col-md-3 mb-2 mb-md-0">
+                            <input type="text" class="form-control glass-input" value="${item.alias || ''}" placeholder="Short Code (e.g. EX)" 
+                                oninput="updateItemAlias(${item.id}, this.value)" title="A short abbreviation (e.g. CA1)" required>
+                        </div>
+                        <div class="col-md-4 mb-2 mb-md-0">
+                            <input type="number" class="form-control glass-input text-center" value="${item.max}" min="1" max="100" placeholder="Marks"
+                                oninput="updateItemMax(${item.id}, this.value)" required>
                         </div>
                     </div>
-                    
                 </div>
             `).join('');
         }

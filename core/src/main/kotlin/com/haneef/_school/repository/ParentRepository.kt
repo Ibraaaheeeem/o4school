@@ -19,16 +19,42 @@ interface ParentRepository : JpaRepository<Parent, UUID>, SecureParentRepository
     
     fun countBySchoolIdAndIsActive(schoolId: UUID, isActive: Boolean): Long
     
-    @Query("SELECT p FROM Parent p WHERE p.schoolId = :schoolId AND p.isActive = :isActive AND " +
-           "(CAST(p.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+    @Query("SELECT DISTINCT p FROM Parent p " +
+           "LEFT JOIN p.studentRelationships ps " +
+           "LEFT JOIN ps.student s " +
+           "WHERE p.schoolId = :schoolId AND p.isActive = :isActive AND (" +
+           "CAST(p.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
            "CAST(p.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
-           "CAST(p.user.phoneNumber AS string) ILIKE CONCAT('%', :search, '%'))")
+           "CAST(p.user.phoneNumber AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "(ps.isActive = true AND s.isActive = true AND (" +
+           "CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.studentId AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.admissionNumber AS string) ILIKE CONCAT('%', :search, '%'))))")
     fun findBySchoolIdAndIsActiveAndSearch(
         @Param("schoolId") schoolId: UUID,
         @Param("isActive") isActive: Boolean,
         @Param("search") search: String,
         pageable: Pageable
     ): Page<Parent>
+
+    @Query("SELECT DISTINCT p FROM Parent p " +
+           "LEFT JOIN p.studentRelationships ps " +
+           "LEFT JOIN ps.student s " +
+           "WHERE p.schoolId = :schoolId AND p.isActive = :isActive AND (" +
+           "CAST(p.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(p.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(p.user.phoneNumber AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "(ps.isActive = true AND s.isActive = true AND (" +
+           "CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.studentId AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.admissionNumber AS string) ILIKE CONCAT('%', :search, '%'))))")
+    fun findBySchoolIdAndIsActiveAndSearch(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("search") search: String
+    ): List<Parent>
     
     fun findByUserIdAndSchoolId(userId: UUID, schoolId: UUID): Parent?
 
@@ -53,6 +79,30 @@ interface ParentRepository : JpaRepository<Parent, UUID>, SecureParentRepository
         @Param("search") search: String,
         pageable: Pageable
     ): Page<Parent>
+
+    @Query("SELECT DISTINCT p FROM Parent p LEFT JOIN FETCH p.user " +
+           "LEFT JOIN FETCH p.studentRelationships sr " +
+           "LEFT JOIN FETCH sr.student s " +
+           "LEFT JOIN FETCH s.user " +
+           "WHERE p.schoolId = :schoolId AND p.isActive = :isActive AND (" +
+           "(:hasClassFilter = false OR EXISTS (SELECT 1 FROM StudentClass sc WHERE sc.student = s AND sc.schoolClass.id IN :classIds AND sc.isActive = true)) AND " +
+           "(:hasTrackFilter = false OR EXISTS (SELECT 1 FROM StudentClass sc WHERE sc.student = s AND sc.schoolClass.track.id IN :trackIds AND sc.isActive = true)) AND " +
+           "(:hasDeptFilter = false OR EXISTS (SELECT 1 FROM StudentClass sc WHERE sc.student = s AND sc.schoolClass.department.name IN :deptNames AND sc.isActive = true)) AND " +
+           "(:studentGender = 'ANY' OR s.user.gender = :studentGender) AND " +
+           "(:studentStatus = 'ANY' OR s._isNew = :isNew))")
+    fun findByFilter(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("hasClassFilter") hasClassFilter: Boolean,
+        @Param("classIds") classIds: List<UUID>?,
+        @Param("hasTrackFilter") hasTrackFilter: Boolean,
+        @Param("trackIds") trackIds: List<UUID>?,
+        @Param("deptNames") deptNames: List<String>?,
+        @Param("hasDeptFilter") hasDeptFilter: Boolean,
+        @Param("studentGender") studentGender: String?,
+        @Param("studentStatus") studentStatus: String?,
+        @Param("isNew") isNew: Boolean
+    ): List<Parent>
 
     fun findByUserEmail(email: String): java.util.Optional<Parent>
 }

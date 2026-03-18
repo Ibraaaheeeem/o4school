@@ -2310,6 +2310,13 @@ class CommunityController(
                     existingRelationship.isActive = true
                     existingRelationship.relationshipType = relationshipType // Update relationship type if changed
                     parentStudentRepository.save(existingRelationship)
+                    
+                    // Log the linking activity
+                    val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+                    activityLogService.logParentStudentLinked(
+                        selectedSchoolId, customUser.user.id!!, userRole, parentId, studentId, relationshipType
+                    )
+
                     model.addAttribute("success", "Parent successfully assigned to student")
                 }
             } else {
@@ -2324,6 +2331,13 @@ class CommunityController(
                 }
 
                 parentStudentRepository.save(parentStudent)
+
+                // Log the linking activity
+                val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+                activityLogService.logParentStudentLinked(
+                    selectedSchoolId, customUser.user.id!!, userRole, parentId, studentId, relationshipType
+                )
+
                 model.addAttribute("success", "Parent successfully assigned to student")
             }
             
@@ -2390,6 +2404,12 @@ class CommunityController(
 
             assignment.isActive = false
             parentStudentRepository.save(assignment)
+            
+            // Log the unlinking activity
+            val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+            activityLogService.logParentStudentUnlinked(
+                selectedSchoolId, customUser.user.id!!, userRole, parentId, assignment.student.id!!
+            )
             
             model.addAttribute("success", "Student removed successfully")
 
@@ -3336,6 +3356,7 @@ class CommunityController(
         model: Model,
         authentication: Authentication
     ): String {
+        val customUser = authentication.principal as CustomUserDetails
         logger.info("=== Starting Class Teacher Assignment ===")
         logger.info("Request Parameters - staffId: $staffId, assignedClassId: $assignedClassId")
         
@@ -3382,6 +3403,14 @@ class CommunityController(
                 } else {
                     existingAssignment.isActive = true
                     classTeacherRepository.save(existingAssignment)
+                    
+                    // Log the assignment activity
+                    val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+                    activityLogService.logClassTeacherAssigned(
+                        selectedSchoolId, customUser.user.id!!, userRole, staffId, 
+                        schoolClass.className, targetSession.sessionName, targetTerm.termName
+                    )
+
                     model.addAttribute("success", "Assignment reactivated successfully!")
                 }
             } else {
@@ -3395,6 +3424,14 @@ class CommunityController(
                     this.isActive = true
                 }
                 classTeacherRepository.save(classTeacher)
+                
+                // Log the assignment activity
+                val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+                activityLogService.logClassTeacherAssigned(
+                    selectedSchoolId, customUser.user.id!!, userRole, staffId, 
+                    schoolClass.className, targetSession.sessionName, targetTerm.termName
+                )
+
                 model.addAttribute("success", "Class teacher assigned successfully!")
             }
         } catch (e: Exception) {
@@ -3416,7 +3453,6 @@ class CommunityController(
             staffId, targetSession.id!!, targetTerm.id!!, true
         )
         
-        val customUser = authentication.principal as CustomUserDetails
         model.addAttribute("user", customUser.user)
         model.addAttribute("staff", updatedStaff)
         model.addAttribute("tracks", tracks)
@@ -3452,6 +3488,7 @@ class CommunityController(
         model: Model,
         authentication: Authentication
     ): String {
+        val customUser = authentication.principal as CustomUserDetails
         logger.info("=== Starting Subject Teacher Assignment ===")
         logger.info("Request Parameters - staffId: $staffId, assignedClassId: $assignedClassId, subjectId: $subjectId")
         
@@ -3499,6 +3536,14 @@ class CommunityController(
                 } else {
                     existingAssignment.isActive = true
                     subjectTeacherRepository.save(existingAssignment)
+                    
+                    // Log the assignment activity
+                    val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+                    activityLogService.logSubjectTeacherAssigned(
+                        selectedSchoolId, customUser.user.id!!, userRole, staffId, 
+                        subject.subjectName, schoolClass.className, targetSession.sessionName, targetTerm.termName
+                    )
+
                     model.addAttribute("success", "Assignment reactivated successfully!")
                 }
             } else {
@@ -3513,6 +3558,14 @@ class CommunityController(
                     this.isActive = true
                 }
                 subjectTeacherRepository.save(subjectTeacher)
+                
+                // Log the assignment activity
+                val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+                activityLogService.logSubjectTeacherAssigned(
+                    selectedSchoolId, customUser.user.id!!, userRole, staffId, 
+                    subject.subjectName, schoolClass.className, targetSession.sessionName, targetTerm.termName
+                )
+
                 model.addAttribute("success", "Subject teacher assigned successfully!")
             }
         } catch (e: Exception) {
@@ -3534,7 +3587,6 @@ class CommunityController(
             staffId, targetSession.id!!, targetTerm.id!!, true
         )
         
-        val customUser = authentication.principal as CustomUserDetails
         model.addAttribute("user", customUser.user)
         model.addAttribute("staff", updatedStaff)
         model.addAttribute("tracks", tracks)
@@ -3590,6 +3642,7 @@ class CommunityController(
         session: HttpSession,
         authentication: Authentication
     ): Map<String, Any> {
+        val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return mapOf("success" to false, "message" to "Unauthorized")
 
@@ -3606,6 +3659,13 @@ class CommunityController(
             assignment.isActive = false
             classTeacherRepository.save(assignment)
             
+            // Log the removal activity
+            val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+            activityLogService.logClassTeacherRemoved(
+                selectedSchoolId, customUser.user.id!!, userRole, assignment.staff.id!!,
+                assignment.schoolClass.className, assignment.academicSession.sessionName, assignment.term.termName
+            )
+            
             return mapOf("success" to true, "message" to "Assignment removed successfully")
         } catch (e: Exception) {
             return mapOf("success" to false, "message" to "Error removing assignment: ${e.message}")
@@ -3619,6 +3679,7 @@ class CommunityController(
         session: HttpSession,
         authentication: Authentication
     ): Map<String, Any> {
+        val customUser = authentication.principal as CustomUserDetails
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return mapOf("success" to false, "message" to "Unauthorized")
 
@@ -3634,6 +3695,13 @@ class CommunityController(
             
             assignment.isActive = false
             subjectTeacherRepository.save(assignment)
+            
+            // Log the removal activity
+            val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+            activityLogService.logSubjectTeacherRemoved(
+                selectedSchoolId, customUser.user.id!!, userRole, assignment.staff.id!!,
+                assignment.subject.subjectName, assignment.schoolClass.className, assignment.academicSession.sessionName, assignment.term.termName
+            )
             
             return mapOf("success" to true, "message" to "Assignment removed successfully")
         } catch (e: Exception) {

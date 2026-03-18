@@ -29,184 +29,127 @@ class AcademicDataService(
         importStudents: Boolean = true,
         studentPromotions: Map<UUID, String> = emptyMap()
     ) {
-        val fromTerm = termRepository.findById(fromTermId).orElseThrow { RuntimeException("Source term not found") }
-        val toTerm = termRepository.findById(toTermId).orElseThrow { RuntimeException("Destination term not found") }
+        // 1. Fetch Terms with School Context
+        val fromTerm = termRepository.findByIdAndSchoolIdAndIsActive(fromTermId, schoolId, true)
+            ?: throw RuntimeException("Source term not found or access denied")
 
-        if (fromTerm.schoolId != schoolId || toTerm.schoolId != schoolId) {
-            throw RuntimeException("Unauthorized access to terms")
-        }
+        val toTerm = termRepository.findByIdAndSchoolIdAndIsActive(toTermId, schoolId, true)
+            ?: throw RuntimeException("Destination term not found or access denied")
+        
+        val toSession = toTerm.academicSession ?: throw RuntimeException("Destination session not found")
 
-        val toSession = toTerm.academicSession
-
-        // 1. Import Staff Assignments (Class & Subject Teachers)
+        // --- 2. Import Staff (Class & Subject Teachers) ---
         if (importStaff) {
-            // Class Teachers
-            val classTeachers = classTeacherRepository.findBySchoolIdAndIsActiveAndSessionAndTermWithDetails(
-                schoolId, true, fromTerm.academicSession.id!!, fromTermId
-            )
-            classTeachers.forEach { ct ->
-                val existing = classTeacherRepository.findByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolId(
-                    ct.staff.id!!, ct.schoolClass.id!!, toSession.id!!, toTermId, schoolId
-                )
-                if (existing == null) {
-                    val newCt = ClassTeacher(
-                        staff = ct.staff,
-                        schoolClass = ct.schoolClass,
-                        academicSession = toSession,
-                        term = toTerm
-                    ).apply {
-                        this.schoolId = schoolId
-                        this.isActive = true
+            val sourceClassTeachers = classTeacherRepository.findBySchoolIdAndIsActiveAndTermWithDetails(schoolId, true, fromTermId)
+            
+            if (sourceClassTeachers.isNotEmpty()) {
+                val existingCTMap = classTeacherRepository.findBySchoolIdAndTermId(schoolId, toTermId)
+                    .associateBy { "${it.staff.id}-${it.schoolClass.id}" }
+
+                sourceClassTeachers.mapNotNull { ct ->
+                    val key = "${ct.staff.id}-${ct.schoolClass.id}"
+                    val existing = existingCTMap[key]
+                    when {
+                        existing == null -> ClassTeacher(ct.staff, ct.schoolClass, toSession, toTerm).apply { 
+                            this.schoolId = schoolId; this.isActive = true 
+                        }
+                        !existing.isActive -> existing.apply { this.isActive = true }
+                        else -> null
                     }
-                    classTeacherRepository.save(newCt)
-                } else if (!existing.isActive) {
-                    existing.isActive = true
-                    classTeacherRepository.save(existing)
-                }
+                }.chunked(500).forEach { classTeacherRepository.saveAll(it) }
             }
 
             // Subject Teachers
-            val subjectTeachers = subjectTeacherRepository.findBySchoolIdAndIsActiveAndSessionAndTermWithDetails(
-                schoolId, true, fromTerm.academicSession.id!!, fromTermId
-            )
-            subjectTeachers.forEach { st ->
-                val existing = subjectTeacherRepository.findByStaffIdAndSubjectIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolId(
-                    st.staff.id!!, st.subject.id!!, st.schoolClass.id!!, toSession.id!!, toTermId, schoolId
-                )
-                if (existing == null) {
-                    val newSt = SubjectTeacher(
-                        staff = st.staff,
-                        subject = st.subject,
-                        schoolClass = st.schoolClass,
-                        academicSession = toSession,
-                        term = toTerm
-                    ).apply {
-                        this.schoolId = schoolId
-                        this.isActive = true
+            val sourceSubjectTeachers = subjectTeacherRepository.findBySchoolIdAndIsActiveAndTermWithDetails(schoolId, true, fromTermId)
+            
+            if (sourceSubjectTeachers.isNotEmpty()) {
+                val existingSTMap = subjectTeacherRepository.findBySchoolIdAndTermId(schoolId, toTermId)
+                    .associateBy { "${it.staff.id}-${it.subject.id}-${it.schoolClass.id}" }
+
+                sourceSubjectTeachers.mapNotNull { st ->
+                    val key = "${st.staff.id}-${st.subject.id}-${st.schoolClass.id}"
+                    val existing = existingSTMap[key]
+                    when {
+                        existing == null -> SubjectTeacher(st.staff, st.subject, st.schoolClass, toSession, toTerm).apply { 
+                            this.schoolId = schoolId; this.isActive = true 
+                        }
+                        !existing.isActive -> existing.apply { this.isActive = true }
+                        else -> null
                     }
-                    subjectTeacherRepository.save(newSt)
-                } else if (!existing.isActive) {
-                    existing.isActive = true
-                    subjectTeacherRepository.save(existing)
-                }
+                }.chunked(500).forEach { subjectTeacherRepository.saveAll(it) }
             }
         }
 
-        // 2. Import Student Enrollments & Promotions
+        // --- 3. Import Students & Promotions ---
         if (importStudents) {
-            val studentClasses = studentClassRepository.findByAcademicSessionIdAndTermIdAndIsActive(
-                fromTerm.academicSession.id!!, fromTermId, true
-            )
+            val sourceEnrollments = studentClassRepository.findBySchoolIdAndTermIdAndIsActive(schoolId, fromTermId, true)
             
-            // Prefetch classes in school to avoid N+1
-            val allClassesInSchool = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
-
-            studentClasses.forEach { sc ->
-                val action = studentPromotions[sc.id!!] ?: "RETAIN"
-                val currentClass = sc.schoolClass
+            if (sourceEnrollments.isNotEmpty()) {
+                val allClasses = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
                 
-                val targetClass = when (action) {
-                    "UPGRADE" -> {
-                        val targetGradeLevel = (currentClass.gradeLevel ?: 0) + 1
-                        allClassesInSchool.find { 
-                            it.track?.id == currentClass.track?.id && it.gradeLevel == targetGradeLevel 
-                        } ?: currentClass
-                    }
-                    "DOWNGRADE" -> {
-                        val targetGradeLevel = (currentClass.gradeLevel ?: 0) - 1
-                        allClassesInSchool.find { 
-                            it.track?.id == currentClass.track?.id && it.gradeLevel == targetGradeLevel 
-                        } ?: currentClass
-                    }
-                    else -> currentClass // RETAIN
-                }
+                // Optimize Promotion Lookup: Map<TrackID, Map<GradeLevel, SchoolClass>>
+                val classHierarchy = allClasses.groupBy { it.track?.id }
+                    .mapValues { entry -> entry.value.associateBy { it.gradeLevel } }
 
-                // Check if student already enrolled in this term
-                val existingList = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermId(
-                    sc.student.id!!, toSession.id!!, toTermId
-                )
-                
-                // We find if there is an enrollment for the TARGET class specifically
-                val sameClassExisting = existingList.find { it.schoolClass.id == targetClass.id }
+                // Bulk pre-fetch all existing enrollments for these students in the target term
+                val studentIds = sourceEnrollments.map { it.student.id!! }
+                val targetEnrollments = studentClassRepository.findBySchoolIdAndStudentIdInAndTermId(schoolId, studentIds, toTermId)
+                    .groupBy { it.student.id!! }
 
-                if (sameClassExisting == null) {
-                    // Check if they are enrolled in an ACTIVE class within the SAME TRACK
-                    val activeInTrack = existingList.find { 
-                        it.isActive && it.schoolClass.track?.id == targetClass.track?.id 
-                    }
+                val now = java.time.LocalDate.now()
+                sourceEnrollments.mapNotNull { sc ->
+                    val action = studentPromotions[sc.id!!] ?: "RETAIN"
+                    val currentClass = sc.schoolClass
                     
-                    if (activeInTrack != null) {
-                        // OVERSIGHT FIX: If they are in a DIFFERENT class within the same track, MOVE them
-                        activeInTrack.schoolClass = targetClass
-                        studentClassRepository.save(activeInTrack)
-                    } else {
-                        // Check for inactive record in the TARGET class to reactivate
-                        val inactiveInSameClass = existingList.find { it.schoolClass.id == targetClass.id && !it.isActive }
-                        if (inactiveInSameClass != null) {
-                            inactiveInSameClass.isActive = true
-                            studentClassRepository.save(inactiveInSameClass)
-                        } else {
-                            val newSc = StudentClass(
-                                student = sc.student,
-                                schoolClass = targetClass,
-                                academicSession = toSession,
-                                term = toTerm
-                            ).apply {
-                                this.schoolId = schoolId
-                                this.isActive = true
-                                this.enrollmentDate = java.time.LocalDate.now()
-                            }
-                            studentClassRepository.save(newSc)
+                    val targetClass = when (action) {
+                        "UPGRADE" -> classHierarchy[currentClass.track?.id]?.get((currentClass.gradeLevel ?: 0) + 1) ?: currentClass
+                        "DOWNGRADE" -> classHierarchy[currentClass.track?.id]?.get((currentClass.gradeLevel ?: 0) - 1) ?: currentClass
+                        else -> currentClass
+                    }
+
+                    val existing = targetEnrollments[sc.student.id!!] ?: emptyList()
+                    val sameClassRecord = existing.find { it.schoolClass.id == targetClass.id }
+                    val activeInTrack = existing.find { it.isActive && it.schoolClass.track?.id == targetClass.track?.id }
+
+                    when {
+                        sameClassRecord != null -> if (!sameClassRecord.isActive) sameClassRecord.apply { isActive = true } else null
+                        activeInTrack != null -> activeInTrack.apply { schoolClass = targetClass }
+                        else -> StudentClass(sc.student, targetClass, toSession, toTerm).apply {
+                            this.schoolId = schoolId; this.isActive = true; this.enrollmentDate = now
                         }
                     }
-                } else if (!sameClassExisting.isActive) {
-                    sameClassExisting.isActive = true
-                    studentClassRepository.save(sameClassExisting)
-                }
-                // If it exists and is already active, we assume it's correct because sameClassExisting found it.
+                }.chunked(500).forEach { studentClassRepository.saveAll(it) }
             }
         }
 
-        // 3. Import Class Fee Items
+        // --- 4. Import Fee Items ---
         if (importFees) {
-            val classFeeItems = classFeeItemRepository.findBySchoolIdAndIsActiveOrderBySchoolClassAscFeeItemAsc(
-                schoolId, true
-            ).filter { it.termId?.id == fromTermId }
+            val sourceFees = classFeeItemRepository.findBySchoolIdAndTermIdAndIsActive(schoolId, fromTermId, true)
             
-            classFeeItems.forEach { cfi ->
-                 val existing = classFeeItemRepository.findBySchoolClassIdAndFeeItemIdAndAcademicSessionIdAndTermId(
-                    cfi.schoolClass.id!!, cfi.feeItem.id!!, toSession.id!!, toTerm
-                )
-                if (existing.isEmpty) {
-                    val newCfi = ClassFeeItem(
-                        schoolClass = cfi.schoolClass,
-                        feeItem = cfi.feeItem,
-                        academicSession = toSession,
-                        termId = toTerm,
-                        academicYear = toSession.sessionYear,
-                        customAmount = cfi.customAmount,
-                        isApplicable = cfi.isApplicable,
-                        isLocked = cfi.isLocked,
-                        notes = cfi.notes
-                    ).apply {
-                        this.schoolId = schoolId
-                        this.isActive = true
+            if (sourceFees.isNotEmpty()) {
+                val existingFees = classFeeItemRepository.findBySchoolIdAndTermId(schoolId, toTermId)
+                    .associateBy { "${it.schoolClass.id}-${it.feeItem.id}" }
+
+                sourceFees.map { source ->
+                    val key = "${source.schoolClass.id}-${source.feeItem.id}"
+                    val target = existingFees[key]
+
+                    if (target == null) {
+                        ClassFeeItem(source.schoolClass, source.feeItem, toSession, toTerm, toSession.sessionYear, 
+                                    source.customAmount, source.isApplicable, source.notes).apply {
+                            this.schoolId = schoolId; this.isActive = true
+                        }
+                    } else {
+                        target.apply {
+                            this.isActive = true
+                            this.customAmount = source.customAmount
+                            this.isApplicable = source.isApplicable
+                            this.notes = source.notes
+                        }
                     }
-                    classFeeItemRepository.save(newCfi)
-                } else {
-                    val existingItem = existing.get()
-                    // OVERSIGHT FIX: Sync values from source even if already active
-                    existingItem.isActive = true
-                    existingItem.customAmount = cfi.customAmount
-                    existingItem.isApplicable = cfi.isApplicable
-                    existingItem.isLocked = cfi.isLocked
-                    existingItem.notes = cfi.notes
-                    classFeeItemRepository.save(existingItem)
-                }
+                }.chunked(500).forEach { classFeeItemRepository.saveAll(it) }
             }
         }
-        
-        logger.info("Imported relationships from term {} to term {} for school {} (Fees: {}, Staff: {}, Students: {})", 
-            fromTermId, toTermId, schoolId, importFees, importStaff, importStudents)
+
     }
 }

@@ -448,6 +448,7 @@
                     <div class="main-broadcast-panel">
                         <form id="multimodal-form" th:action="@{/admin/dashboard/multimodal/broadcast}" method="POST"
                             onsubmit="return validateForm(event)">
+                            <input type="hidden" name="addAll" id="add-all-input" value="false">
 
                             <!-- 1. Delivery Strategy -->
                             <div class="mm-section">
@@ -513,28 +514,6 @@
                                 </div>
                             </div>
 
-                            <!-- AI Smart Filter -->
-                            <div class="ai-filter-section">
-                                <div class="ai-filter-title">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                    AI Smart Filter
-                                </div>
-                                <div class="ai-filter-row">
-                                    <div class="ai-input-wrapper">
-                                        <i class="fas fa-magic"></i>
-                                        <input type="text" id="ai-query-input"
-                                            placeholder="e.g. 'parents who are owing' or 'staff in JSS1'">
-                                    </div>
-                                    <button type="button" class="ai-apply-btn" onclick="applyAiFilter()">
-                                        Generate List
-                                    </button>
-                                </div>
-                                <p class="ai-filter-hint">Type your criteria naturally and the AI will find the
-                                    recipients for you.</p>
-                            </div>
 
                             <!-- 2. Target Audience -->
                             <div class="mm-section">
@@ -546,22 +525,22 @@
                                 <div class="audience-grid" style="margin-bottom: 1rem;">
                                     <label class="audience-card">
                                         <input type="radio" name="recipientType" value="ALL"
-                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                            onchange="setAddAll('false'); updateRecipientCount(); fetchTemplates()">
                                         <i class="fas fa-users" style="font-size: 1rem;"></i> All
                                     </label>
                                     <label class="audience-card">
                                         <input type="radio" name="recipientType" value="STAFF"
-                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                            onchange="setAddAll('false'); updateRecipientCount(); fetchTemplates()">
                                         <i class="fas fa-chalkboard-teacher" style="font-size: 1rem;"></i> Staff
                                     </label>
                                     <label class="audience-card">
                                         <input type="radio" name="recipientType" value="PARENTS"
-                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                            onchange="setAddAll('false'); updateRecipientCount(); fetchTemplates()">
                                         <i class="fas fa-user-friends" style="font-size: 1rem;"></i> Parents
                                     </label>
                                     <label class="audience-card">
                                         <input type="radio" name="recipientType" value="NONE" checked
-                                            onchange="updateRecipientCount(); fetchTemplates()">
+                                            onchange="setAddAll('false'); updateRecipientCount(); fetchTemplates()">
                                         <i class="fas fa-pen" style="font-size: 1rem;"></i> Manual
                                     </label>
                                 </div>
@@ -652,6 +631,10 @@
                                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                                         <div class="category-title" style="margin: 0;">Recipient Preview</div>
                                         <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <button type="button" onclick="setAddAll('true')"
+                                                style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                                Add All
+                                            </button>
                                             <button type="button" onclick="clearAllRecipients()"
                                                 style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
                                                 Remove All
@@ -969,9 +952,9 @@
 
                 const systemVars = [
                     'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
-                    'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
+                    'parent_name', 'students', 'student_name', 'student_names', 'class_name', 'current_session', 'current_term',
                     'academic_year', 'term_number', 'current_bill', 'current_balance', 'term_fees', 'settled_bill', 'outstanding',
-                    'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
+                    'total_bill', 'balance', 'amount', 'dedicated_account', 'account_number', 'staff_name', 'cadre', 'department'
                 ];
 
                 const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
@@ -981,6 +964,10 @@
                     inputsContainer.innerHTML = `<div class="template-inline-preview">${text.replace(/\\n/g, '<br>')}</div>`;
                 } else {
                     let previewHtml = text;
+
+                    // Collapse multiple spaces and trim excessive newlines BEFORE splitting/joining with inputs
+                    previewHtml = previewHtml.replace(/ +/g, ' ').replace(/\\n\\n+/g, '\\n\\n');
+
                     uniqueVars.forEach((v, index) => {
                         const key = v.replace(/\{\{|\}\}/g, '');
                         const mappedKey = mapping[key] || key;
@@ -990,19 +977,16 @@
 
                         let inputHtml = "";
                         if (isAutoFilled) {
-                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 0.7; width: auto; min-width: 80px; display: inline-flex; align-items: center; justify-content: center;" title="Auto-filled: ${mappedKey}">
-                                ${mappedKey}
-                            </span>`;
+                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 1; width: auto; font-family: inherit;" title="Auto-filled: ${mappedKey}">${mappedKey}</span>`;
                         } else {
                             inputHtml = `<input type="text" name="manualParam_${paramId}" placeholder="${v}" class="inline-param-input" required title="Enter value for ${key}" oninput="calculateSmsLength()">`;
                         }
 
-                        const escapedV = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                         previewHtml = previewHtml.split(v).join(inputHtml);
                     });
 
                     previewHtml = previewHtml.replace(/\\n/g, '<br>');
-                    inputsContainer.innerHTML = `<div class="template-inline-preview" style="line-height: 1.8;">${previewHtml}</div>`;
+                    inputsContainer.innerHTML = `<div class="template-inline-preview">${previewHtml}</div>`;
                 }
 
                 setTimeout(calculateSmsLength, 100);
@@ -1063,10 +1047,18 @@
                 } else {
                     tbody.innerHTML = recipients.map(r => `
                         <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 10px 12px;"><b>${r.name}</b></td>
-                            <td style="padding: 10px 12px;">${r.roles.join(', ')}</td>
+                            <td style="padding: 10px 12px;">
+                                <div style="font-weight: 600; color: #334155;">${r.name}</div>
+                            </td>
+                            <td style="padding: 10px 12px; color: #64748b; font-family: monospace; font-size: 0.85rem;">
+                                ${r.phoneNumber || '<span style="color: #cbd5e1;">N/A</span>'}
+                            </td>
                             <td style="padding: 10px 12px; text-align: right;">
-                                <button type="button" onclick="addExclusion('${r.userId}')" style="color: #ef4444; border: none; background: #fee2e2; border-radius: 50%; cursor: pointer; width: 24px; height: 24px;">&times;</button>
+                                <button type="button" onclick="addExclusion('${r.userId}')" 
+                                    title="Remove from this broadcast"
+                                    style="background: #fee2e2; border: none; color: #ef4444; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: auto; transition: all 0.2s;">
+                                    &times;
+                                </button>
                             </td>
                         </tr>
                     `).join('');
@@ -1074,20 +1066,38 @@
             } catch (err) { console.error(err); }
         }
 
+        let searchTimeout = null;
         function searchManualRecipients(query) {
+            clearTimeout(searchTimeout);
             const dropdown = document.getElementById('search-results-dropdown');
             const typeNode = document.querySelector('input[name="recipientType"]:checked');
-            const recipientType = typeNode ? typeNode.value : '';
-            if (!query || query.length < 2) { dropdown.style.display = 'none'; return; }
-            setTimeout(async () => {
-                const response = await fetch(`${BASE_URL}/broadcast/search?query=${encodeURIComponent(query)}&recipientType=${recipientType}`);
-                const results = await response.json();
-                dropdown.innerHTML = results.map(r => `
-                    <div onclick="addManualRecipient('${r.userId}', '${r.name}', '${r.roles}')" style="padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;">
-                        <b>${r.name}</b> - <small>${r.roles.join(', ')}</small>
-                    </div>
-                `).join('');
-                dropdown.style.display = 'block';
+            const recipientType = typeNode ? typeNode.value : 'NONE';
+
+            if (!query || query.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${BASE_URL}/broadcast/search?query=${encodeURIComponent(query)}&recipientType=${recipientType}`);
+                    const results = await response.json();
+
+                    if (results.length === 0) {
+                        dropdown.innerHTML = '<div style="padding: 12px; color: #94a3b8; text-align: center;">No results found</div>';
+                    } else {
+                        dropdown.innerHTML = results.map(r => `
+                            <div onclick="addManualRecipient('${r.userId}', '${r.name}', '${r.phoneNumber}', '${r.roles.join(', ')}')" 
+                                style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
+                                <div style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">${r.name}</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">${r.roles.join(', ')} • ${r.phoneNumber || 'No phone'}</div>
+                            </div>
+                        `).join('');
+                    }
+                    dropdown.style.display = 'block';
+                } catch (err) {
+                    console.error("Search failed:", err);
+                }
             }, 300);
         }
 
@@ -1108,17 +1118,52 @@
             }
         }
 
+        function setAddAll(val) {
+            const el = document.getElementById('add-all-input');
+            if (el) el.value = val;
+            updateRecipientCount();
+        }
+
         function clearAllRecipients() {
-            document.getElementById('manual-ids-container').innerHTML = '';
-            document.getElementById('excluded-ids-container').innerHTML = '';
-            document.querySelector('input[name="recipientType"][value="NONE"]').checked = true;
-            document.querySelectorAll('.class-checkbox, .track-checkbox').forEach(cb => cb.checked = false);
+            if (!confirm("Remove all selected recipients?")) return;
+
+            if (typeof manualRecipients !== 'undefined') manualRecipients = [];
+            if (typeof excludedRecipients !== 'undefined') excludedRecipients = [];
+
+            const clearHTML = (id) => { const el = document.getElementById(id); if (el) el.innerHTML = ''; };
+            const clearValue = (id) => { const el = document.getElementById(id); if (el) el.value = ''; };
+
+            clearValue('add-all-input');
+
+            clearHTML('manual-ids-container');
+            clearHTML('manual-phones-container');
+            clearHTML('excluded-ids-container');
+            clearHTML('excluded-phones-container');
+
+            const noneFilter = document.querySelector('input[name="recipientType"][value="NONE"]');
+            if (noneFilter) noneFilter.checked = true;
+
             const academicSection = document.getElementById('academic-filters-section');
-            const parentFilters = document.getElementById('parent-only-filters');
             if (academicSection) academicSection.style.display = 'none';
+
+            const parentFilters = document.getElementById('parent-only-filters');
             if (parentFilters) parentFilters.style.display = 'none';
-            document.getElementById('recipient-preview-badge').innerText = 'Total: 0';
-            document.getElementById('preview-list-body').innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">No recipients selected</td></tr>';
+
+            document.querySelectorAll('.class-checkbox, .track-checkbox').forEach(cb => cb.checked = false);
+
+            clearValue('ai-query-input');
+            clearValue('recipient-search');
+            clearValue('unregistered-phone');
+            const otherSearch = document.querySelector('input[onkeyup*="searchManualRecipients"]');
+            if (otherSearch) otherSearch.value = '';
+
+            if (typeof toggleAcademicFilters === 'function') {
+                toggleAcademicFilters();
+            }
+
+            if (typeof updateRecipientCount === 'function') {
+                updateRecipientCount();
+            }
         }
 
         function applyAiFilter() {

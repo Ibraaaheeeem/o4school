@@ -70,6 +70,26 @@ class BankService(
     fun getAllBanks(): List<BankInfo> = banks
 
     fun getBankByCode(code: String): BankInfo? = banks.find { it.code == code }
+ 
+    fun resolveAccountNumber(accountNumber: String, bankCode: String): String? {
+        return try {
+            val headers = HttpHeaders().apply {
+                set("Authorization", "Bearer $paystackSecretKey")
+            }
+            val entity = HttpEntity<Any>(headers)
+            val url = "https://api.paystack.co/bank/resolve?account_number=$accountNumber&bank_code=$bankCode"
+            val response = restTemplate.exchange(url, HttpMethod.GET, entity, Map::class.java)
+ 
+            val body = response.body as? Map<*, *>
+            if (body?.get("status") == true) {
+                val data = body["data"] as? Map<*, *>
+                data?.get("account_name") as? String
+            } else null
+        } catch (e: Exception) {
+            println("Error resolving account number: ${e.message}")
+            null
+        }
+    }
 
     data class BankInfo(
         val name: String,

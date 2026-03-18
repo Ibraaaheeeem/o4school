@@ -11,6 +11,12 @@ import org.springframework.stereotype.Repository
 @Repository
 interface StudentClassRepository : JpaRepository<StudentClass, UUID> {
     
+    fun findBySchoolIdAndTermId(schoolId: UUID, termId: UUID): List<StudentClass>
+    
+    fun findBySchoolIdAndTermIdAndIsActive(schoolId: UUID, termId: UUID, isActive: Boolean): List<StudentClass>
+    
+    fun findBySchoolIdAndStudentIdInAndTermId(schoolId: UUID, studentIds: List<UUID>, termId: UUID): List<StudentClass>
+    
     fun existsByStudentIdAndSchoolClassIdAndIsActive(studentId: UUID, schoolClassId: UUID, isActive: Boolean): Boolean
     
     fun findBySchoolIdAndIsActive(schoolId: UUID, isActive: Boolean): List<StudentClass>

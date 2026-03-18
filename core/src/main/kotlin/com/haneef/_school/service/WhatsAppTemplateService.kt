@@ -24,7 +24,7 @@ class WhatsAppTemplateService(
     private val restTemplate = RestTemplate()
     private val objectMapper = jacksonObjectMapper()
     
-    fun syncTemplates(schoolId: UUID): Boolean {
+    fun syncTemplates(): Boolean {
         val businessAccountId = properties.businessAccountId
         val accessToken = properties.accessToken
 
@@ -50,7 +50,7 @@ class WhatsAppTemplateService(
 
             data.forEach { item ->
                 val templateMap = item as? Map<*, *> ?: return@forEach
-                updateLocalTemplate(templateMap, schoolId)
+                updateLocalTemplate(templateMap)
             }
             true
         } catch (e: Exception) {
@@ -59,7 +59,7 @@ class WhatsAppTemplateService(
         }
     }
 
-    private fun updateLocalTemplate(metaTemplate: Map<*, *>, schoolId: UUID) {
+    private fun updateLocalTemplate(metaTemplate: Map<*, *>) {
         val metaId = metaTemplate["id"] as? String ?: return
         val name = metaTemplate["name"] as? String ?: return
         val language = metaTemplate["language"] as? String ?: "en_US"
@@ -117,13 +117,11 @@ class WhatsAppTemplateService(
                 componentsJson = componentsJson,
                 status = status
             )
-            newTemplate.schoolId = schoolId
             templateRepository.save(newTemplate)
         }
     }
 
     fun createMetaTemplate(
-        schoolId: UUID,
         name: String,
         category: String,
         language: String,
@@ -153,7 +151,7 @@ class WhatsAppTemplateService(
         return try {
             val response = restTemplate.postForEntity(url, entity, Map::class.java)
             if (response.statusCode.is2xxSuccessful) {
-                syncTemplates(schoolId)
+                syncTemplates()
                 
                 // If mapping provided, find the new template and apply it
                 if (!mapping.isNullOrBlank()) {
@@ -177,7 +175,7 @@ class WhatsAppTemplateService(
         }
     }
 
-    fun deleteMetaTemplate(schoolId: UUID, templateId: UUID): Boolean {
+    fun deleteMetaTemplate(templateId: UUID): Boolean {
         val template = templateRepository.findById(templateId).orElseThrow { RuntimeException("Template not found") }
         val businessAccountId = properties.businessAccountId
         val accessToken = properties.accessToken
@@ -207,8 +205,8 @@ class WhatsAppTemplateService(
         }
     }
 
-    fun getAllTemplates(schoolId: UUID): List<WhatsAppTemplate> {
-        return templateRepository.findBySchoolId(schoolId)
+    fun getAllTemplates(): List<WhatsAppTemplate> {
+        return templateRepository.findAll()
     }
 
     fun updateParameterMapping(templateId: UUID, mapping: String) {
@@ -217,8 +215,8 @@ class WhatsAppTemplateService(
         templateRepository.save(template)
     }
 
-    fun getBroadcastTemplates(schoolId: UUID, recipientType: String? = null, channel: String? = null): List<WhatsAppTemplate> {
-        var templates = templateRepository.findBySchoolIdAndIsForBroadcast(schoolId, true)
+    fun getBroadcastTemplates(recipientType: String? = null, channel: String? = null): List<WhatsAppTemplate> {
+        var templates = templateRepository.findByIsForBroadcast(true)
         
         // Filter by recipientType
         if (recipientType != null) {
@@ -240,8 +238,8 @@ class WhatsAppTemplateService(
         }
     }
 
-    fun markSelectedTemplates(schoolId: UUID, names: List<String>) {
-        val templates = templateRepository.findBySchoolId(schoolId)
+    fun markSelectedTemplates(names: List<String>) {
+        val templates = templateRepository.findAll()
         templates.forEach { template ->
             template.isForBroadcast = names.contains(template.templateName)
             templateRepository.save(template)
@@ -252,8 +250,8 @@ class WhatsAppTemplateService(
         return templateRepository.findById(id).orElseThrow { RuntimeException("Template not found") }
     }
 
-    fun markTemplatesForBroadcast(schoolId: UUID, templateNames: List<String>) {
-        val allTemplates = templateRepository.findBySchoolId(schoolId)
+    fun markTemplatesForBroadcast(templateNames: List<String>) {
+        val allTemplates = templateRepository.findAll()
         allTemplates.forEach { template ->
             val shouldBeForBroadcast = templateNames.contains(template.templateName)
             if (template.isForBroadcast != shouldBeForBroadcast) {

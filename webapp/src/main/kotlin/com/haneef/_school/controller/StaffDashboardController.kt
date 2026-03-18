@@ -45,7 +45,8 @@ class StaffDashboardController(
     private val parentStudentRepository: ParentStudentRepository,
     private val htmlSanitizerService: com.haneef._school.service.HtmlSanitizerService,
     private val examinationSubmissionRepository: ExaminationSubmissionRepository,
-    private val geminiService: com.haneef._school.service.GeminiService
+    private val aiService: com.haneef._school.service.AiService,
+    private val authorizationService: com.haneef._school.service.AuthorizationService
 ) {
     private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
     private val logger = LoggerFactory.getLogger(StaffDashboardController::class.java)
@@ -997,12 +998,7 @@ class StaffDashboardController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "fragments/error :: error-message"
 
         val attendanceDate = if (date != null) LocalDate.parse(date) else LocalDate.now()
-        val schoolClass = schoolClassRepository.findById(classId).orElse(null) ?: return "fragments/error :: error-message"
-
-        // Security Check: Ensure class belongs to the selected school
-        if (schoolClass.schoolId != selectedSchoolId) {
-            return "fragments/error :: error-message"
-        }
+        val schoolClass = authorizationService.validateAndGetSchoolClass(classId, selectedSchoolId)
 
         val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
         
@@ -1039,10 +1035,7 @@ class StaffDashboardController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "fragments/error :: error-message"
         
         // Security Check: Ensure class belongs to the selected school
-        val schoolClass = schoolClassRepository.findById(classId).orElse(null)
-        if (schoolClass == null || schoolClass.schoolId != selectedSchoolId) {
-            return "fragments/error :: error-message"
-        }
+        val schoolClass = authorizationService.validateAndGetSchoolClass(classId, selectedSchoolId)
 
         val currentTerm = termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(selectedSchoolId, true, true).orElse(null)
         
@@ -1077,10 +1070,7 @@ class StaffDashboardController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "fragments/error :: error-message"
         
         // Security Check: Ensure class belongs to the selected school
-        val schoolClass = schoolClassRepository.findById(classId).orElse(null)
-        if (schoolClass == null || schoolClass.schoolId != selectedSchoolId) {
-            return "fragments/error :: error-message"
-        }
+        val schoolClass = authorizationService.validateAndGetSchoolClass(classId, selectedSchoolId)
 
         val currentTerm = termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(selectedSchoolId, true, true).orElse(null)
         
@@ -1500,7 +1490,7 @@ class StaffDashboardController(
         val isClassTeacher = isClassTeacherForRequested || isClassTeacherCurrently
         val subjectsTaught = (subjectsTaughtInRequested + subjectsTaughtCurrently).distinct()
 
-        val student = studentRepository.findById(request.studentId).orElseThrow { RuntimeException("Student not found") }
+        val student = authorizationService.validateAndGetStudent(request.studentId, selectedSchoolId)
 
         val assessment = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
             request.studentId, sessionId, termId, selectedSchoolId, true
@@ -1758,7 +1748,7 @@ class StaffDashboardController(
             }
         }
 
-        val student = studentRepository.findById(studentId).orElseThrow { RuntimeException("Student not found") }
+        val student = authorizationService.validateAndGetStudent(studentId, selectedSchoolId)
         
         // Get all subjects for this class
         val classSubjects = classSubjectRepository.findBySchoolClassIdAndIsActive(classId, true)
@@ -2710,7 +2700,7 @@ class StaffDashboardController(
                 gradeLevel = examination.schoolClass.gradeLevelDisplayName
             )
 
-            val generatedQuestions = geminiService.generateQuestions(enhancedRequest)
+            val generatedQuestions = aiService.generateQuestions(enhancedRequest)
             mapOf("success" to true, "questions" to generatedQuestions)
         } catch (e: Exception) {
             logger.error("AI Generation failed", e)

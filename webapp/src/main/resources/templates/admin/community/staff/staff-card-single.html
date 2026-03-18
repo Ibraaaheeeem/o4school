@@ -10,10 +10,7 @@
         <div class="staff-info">
             <h3 th:text="${staff.user.fullName}">John Doe</h3>
             <p class="staff-email" th:text="${staff.user.email}">john@example.com</p>
-            <p class="staff-id">
-                <i class="fas fa-id-badge me-1"></i>
-                <span th:text="${staff.staffId ?: 'N/A'}">STF001</span>
-            </p>
+
         </div>
         <div class="staff-status">
             <span class="badge badge-success" th:if="${staff.isActive}"

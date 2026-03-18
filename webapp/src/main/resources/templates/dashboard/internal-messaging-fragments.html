@@ -113,7 +113,7 @@
                     <div class="form-group" style="margin-bottom: 1.5rem;">
                         <label
                             style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem;">Subject</label>
-                        <input type="text" id="message-subject" name="subject" required
+                        <input type="text" id="message-subject" name="subject"
                             placeholder="e.g. Inquiry regarding math class"
                             style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 44px; padding: 0 1rem; outline: none;">
                     </div>
@@ -143,7 +143,8 @@
 <div th:fragment="broadcast-modal">
     <div id="broadcast-modal" class="modal-overlay" onclick="closeBroadcastModal(event)">
         <div class="modal-content" style="max-width: 850px;" onclick="event.stopPropagation()">
-            <form id="broadcast-form" onsubmit="submitBroadcast(event)">
+            <form id="broadcast-form" th:action="@{/admin/dashboard/internal/broadcast}" method="POST">
+                <input type="hidden" name="addAll" id="add-all-input" value="false">
                 <!-- Modal Header -->
                 <div class="modal-header"
                     style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
@@ -169,22 +170,22 @@
                                 <label class="param-btn"
                                     style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
                                     <input type="radio" name="recipientType" value="ALL"
-                                        onchange="updateRecipientCount()"> All
+                                        onchange="setAddAll('false'); updateRecipientCount()"> All
                                 </label>
                                 <label class="param-btn"
                                     style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
                                     <input type="radio" name="recipientType" value="STAFF"
-                                        onchange="updateRecipientCount()"> Staff
+                                        onchange="setAddAll('false'); updateRecipientCount()"> Staff
                                 </label>
                                 <label class="param-btn"
                                     style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
                                     <input type="radio" name="recipientType" value="PARENTS"
-                                        onchange="updateRecipientCount()"> Parents
+                                        onchange="setAddAll('false'); updateRecipientCount()"> Parents
                                 </label>
                                 <label class="param-btn"
                                     style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; font-size: 0.9rem;">
                                     <input type="radio" name="recipientType" value="NONE" checked
-                                        onchange="updateRecipientCount()"> None
+                                        onchange="setAddAll('false'); updateRecipientCount()"> None
                                 </label>
                             </div>
                         </div>
@@ -250,9 +251,19 @@
                                 <div class="category-title"
                                     style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8;">
                                     3. Recipient Preview</div>
-                                <span id="recipient-preview-badge"
-                                    style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Recipients:
-                                    0</span>
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <button type="button" onclick="setAddAll('true')"
+                                        style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                        Add All
+                                    </button>
+                                    <button type="button" onclick="clearAllRecipients()"
+                                        style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                        Remove All
+                                    </button>
+                                    <span id="recipient-preview-badge"
+                                        style="background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Recipients:
+                                        0</span>
+                                </div>
                             </div>
                             <div
                                 style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; height: 150px; overflow-y: auto;">
@@ -276,7 +287,7 @@
                                 <div style="margin-bottom: 1rem;">
                                     <label
                                         style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem;">Subject</label>
-                                    <input type="text" name="subject" required class="chat-input"
+                                    <input type="text" name="subject" class="chat-input"
                                         style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; padding: 0 1rem;"
                                         placeholder="Message Subject">
                                 </div>

@@ -31,7 +31,8 @@ class MultimodalMessagingController(
     private val schoolRepository: SchoolRepository,
     private val smsMessageRepository: SmsMessageRepository,
     private val whatsappMessageRepository: WhatsAppMessageRepository,
-    private val internalMessagingService: InternalMessagingService
+    private val internalMessagingService: InternalMessagingService,
+    private val activityLogService: ActivityLogService
 ) {
 
     @GetMapping
@@ -78,7 +79,7 @@ class MultimodalMessagingController(
         val currentUser = userRepository.findByEmail(authentication.name).orElseThrow()
         
         val template = if (!templateName.isNullOrBlank()) {
-            whatsappTemplateService.getAllTemplates(selectedSchoolId).find { it.templateName == templateName }
+            whatsappTemplateService.getAllTemplates().find { it.templateName == templateName }
         } else null
 
         val manualParams = mutableListOf<Map<String, Any>>()
@@ -150,6 +151,21 @@ class MultimodalMessagingController(
                 )
                 if (results.values.any { it }) {
                     messagesSuccessfullySent++
+                    
+                    // Log the activity
+                    val userRole = (session.getAttribute("selectedRole") as? String) ?: "USER"
+                    val content = if (!templateName.isNullOrBlank()) "[Template: $templateName]" else (message ?: "[Multimodal Message]")
+                    
+                    if (results[MultimodalChannel.WHATSAPP] == true) {
+                        activityLogService.logWhatsAppSent(
+                            selectedSchoolId, currentUser.id!!, userRole, phoneNumber ?: "Unknown", content
+                        )
+                    }
+                    if (results[MultimodalChannel.SMS] == true) {
+                        activityLogService.logSmsSent(
+                            selectedSchoolId, currentUser.id!!, userRole, phoneNumber ?: "Unknown", content
+                        )
+                    }
                 }
             }
         }

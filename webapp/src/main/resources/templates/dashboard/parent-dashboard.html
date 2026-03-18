@@ -600,29 +600,29 @@
                                         <div
                                             style="text-align: center; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
                                             <div
-                                                style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
-                                                Bill</div>
-                                            <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b;"
-                                                th:text="${'₦' + #numbers.formatDecimal(childFee.total, 1, 'COMMA', 2, 'POINT')}">
+                                                style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+                                                Current Bill</div>
+                                            <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b;"
+                                                th:text="${'₦' + #numbers.formatDecimal(childFee.currentBillStatus, 1, 'COMMA', 0, 'POINT')}">
                                                 ₦0</div>
                                         </div>
                                         <div
-                                            style="text-align: center; padding: 0.5rem; background: #ecfdf5; border-radius: 8px;">
+                                            style="text-align: center; padding: 0.5rem; background: #fffbeb; border-radius: 8px;">
                                             <div
-                                                style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
-                                                Paid</div>
-                                            <div class="text-success" style="font-weight: 700; font-size: 1.1rem;"
-                                                th:text="${'₦' + #numbers.formatDecimal(childFee.settled, 1, 'COMMA', 2, 'POINT')}">
+                                                style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+                                                Outstanding</div>
+                                            <div class="text-warning" style="font-weight: 700; font-size: 0.95rem;"
+                                                th:text="${'₦' + #numbers.formatDecimal(childFee.outstandingStatus, 1, 'COMMA', 0, 'POINT')}">
                                                 ₦0</div>
                                         </div>
                                         <div
                                             style="text-align: center; padding: 0.5rem; background: #fef2f2; border-radius: 8px;">
                                             <div
-                                                style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+                                                style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
                                                 Balance</div>
-                                            <div th:classappend="${childFee.balance > 0 ? 'text-danger' : 'text-success'}"
-                                                style="font-weight: 700; font-size: 1.1rem;"
-                                                th:text="${'₦' + #numbers.formatDecimal(childFee.balance, 1, 'COMMA', 2, 'POINT')}">
+                                            <div th:classappend="${childFee.totalBalanceStatus > 0 ? 'text-danger' : 'text-success'}"
+                                                style="font-weight: 700; font-size: 0.95rem;"
+                                                th:text="${'₦' + #numbers.formatDecimal(childFee.totalBalanceStatus, 1, 'COMMA', 0, 'POINT')}">
                                                 ₦0</div>
                                         </div>
                                     </div>

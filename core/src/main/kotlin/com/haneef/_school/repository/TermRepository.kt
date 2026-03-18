@@ -41,4 +41,6 @@ interface TermRepository : JpaRepository<Term, UUID>, SecureTermRepository {
     
     @Query("SELECT t FROM Term t WHERE t.schoolId = :schoolId AND t.isActive = :isActive ORDER BY t.startDate ASC")
     fun findBySchoolIdAndIsActiveOrderByStartDate(@Param("schoolId") schoolId: UUID, @Param("isActive") isActive: Boolean): List<Term>
+
+    fun findByIdAndSchoolIdAndIsActive(id: UUID, schoolId: UUID, isActive: Boolean): Term?
 }

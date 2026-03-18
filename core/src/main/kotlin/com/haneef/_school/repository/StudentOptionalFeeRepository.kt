@@ -8,12 +8,23 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface StudentOptionalFeeRepository : JpaRepository<StudentOptionalFee, UUID> {
+interface StudentOptionalFeeRepository : JpaRepository<StudentOptionalFee, UUID>, SecureStudentOptionalFeeRepository {
     fun findByStudentIdAndClassFeeItemId(studentId: UUID, classFeeItemId: UUID): StudentOptionalFee?
     fun findByStudentIdAndIsActive(studentId: UUID, isActive: Boolean): List<StudentOptionalFee>
     fun existsByStudentIdAndClassFeeItemIdAndIsActive(studentId: UUID, classFeeItemId: UUID, isActive: Boolean): Boolean
     
     fun findByClassFeeItemIdAndIsActive(classFeeItemId: UUID, isActive: Boolean): List<StudentOptionalFee>
+    fun countByClassFeeItemIdAndIsActive(classFeeItemId: UUID, isActive: Boolean): Long
+    
+    @Query("""
+        SELECT sof FROM StudentOptionalFee sof 
+        JOIN FETCH sof.student s 
+        JOIN FETCH s.user u
+        WHERE sof.classFeeItem.id = :classFeeItemId 
+        AND sof.isActive = true 
+        ORDER BY u.firstName, u.lastName
+    """)
+    fun findActiveByClassFeeItem(@Param("classFeeItemId") classFeeItemId: UUID): List<StudentOptionalFee>
     
     @Query("""
         SELECT sof FROM StudentOptionalFee sof 

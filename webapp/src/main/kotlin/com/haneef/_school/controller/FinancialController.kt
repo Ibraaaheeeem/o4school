@@ -550,7 +550,6 @@ class FinancialController(
                 return "fragments/error :: error-message"
             }
             
-            classFeeItem.isLocked = locked
             classFeeItemRepository.save(classFeeItem)
             
             // Refresh list data
@@ -584,15 +583,7 @@ class FinancialController(
         )
             
         try {
-            val classFeeItem = classFeeItemRepository.findById(id).orElseThrow { 
-                RuntimeException("Assignment not found") 
-            }
-            
-            // Validate school access
-            if (classFeeItem.schoolClass.schoolId != selectedSchoolId) {
-                model.addAttribute("error", "Unauthorized access to class assignment")
-                return "fragments/error :: error-message"
-            }
+            val classFeeItem = authorizationService.validateAndGetClassFeeItem(id, selectedSchoolId)
             
             val feeItem = classFeeItem.feeItem
             
@@ -775,9 +766,25 @@ class FinancialController(
             
             logger.info("Stats - Total: $totalOptionalFees, Locked: $lockedCount, Unlocked: $unlockedCount")
 
+            // Get attributes
+            val availableOptionalFees = if (effectiveSession != null) {
+                classFeeItemRepository.findOptionalFees(
+                    selectedSchoolId,
+                    effectiveSession.id!!,
+                    effectiveTerm?.id
+                ).map { cfi ->
+                    val optInCount = studentOptionalFeeRepository.countByClassFeeItemIdAndIsActive(cfi.id!!, true)
+                    mapOf(
+                        "item" to cfi,
+                        "optInCount" to optInCount
+                    )
+                }
+            } else emptyList()
+
             // Add attributes
             model.addAttribute("user", customUser.user)
             model.addAttribute("school", school)
+            model.addAttribute("availableOptionalFees", availableOptionalFees)
             model.addAttribute("search", search ?: "")
             model.addAttribute("studentOptionalFees", filteredFees)
             
@@ -879,21 +886,7 @@ class FinancialController(
         }
 
         try {
-            val studentOptionalFee = studentOptionalFeeRepository.findById(id).orElse(null)
-            if (studentOptionalFee == null) {
-                return ResponseEntity.badRequest().body(mapOf(
-                    "success" to false,
-                    "message" to "Student optional fee not found"
-                ))
-            }
-
-            // Verify the fee belongs to the selected school
-            if (studentOptionalFee.classFeeItem.schoolId != selectedSchoolId) {
-                return ResponseEntity.badRequest().body(mapOf(
-                    "success" to false,
-                    "message" to "Unauthorized access"
-                ))
-            }
+            val studentOptionalFee = authorizationService.validateAndGetStudentOptionalFee(id, selectedSchoolId)
 
             studentOptionalFee.isLocked = locked
             studentOptionalFeeRepository.save(studentOptionalFee)
@@ -913,6 +906,61 @@ class FinancialController(
                 "success" to false,
                 "message" to "Error updating fee: ${e.message}"
             ))
+        }
+    }
+
+    @GetMapping("/optional-fees/{classFeeItemId}/opted-students")
+    @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
+    fun getOptedStudents(
+        @PathVariable classFeeItemId: UUID,
+        authentication: Authentication,
+        session: HttpSession,
+        model: Model
+    ): String {
+        logger.info("=== GET OPTED STUDENTS REQUEST ===")
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+        if (selectedSchoolId == null) return "redirect:/select-school"
+
+        val optedFees = studentOptionalFeeRepository.findActiveByClassFeeItem(classFeeItemId)
+        val classFeeItem = classFeeItemRepository.findById(classFeeItemId).orElseThrow { RuntimeException("Fee item not found") }
+
+        model.addAttribute("optedFees", optedFees)
+        model.addAttribute("classFeeItem", classFeeItem)
+        return "admin/financial/fragments/opted-students-list :: opted-students-list"
+    }
+
+    @PostMapping("/optional-fees/{classFeeItemId}/toggle-lock-all")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('SCHOOL_ADMIN', 'SYSTEM_ADMIN')")
+    fun toggleOptionalFeeLockAll(
+        @PathVariable classFeeItemId: UUID,
+        @RequestParam locked: Boolean,
+        authentication: Authentication,
+        session: HttpSession
+    ): ResponseEntity<Map<String, Any>> {
+        logger.info("=== TOGGLE OPTIONAL FEE LOCK ALL REQUEST ===")
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID 
+            ?: return ResponseEntity.badRequest().body(mapOf("success" to false, "message" to "No school selected"))
+
+        try {
+            val optedFees = studentOptionalFeeRepository.findByClassFeeItemIdAndIsActive(classFeeItemId, true)
+            optedFees.forEach { 
+                it.isLocked = locked
+            }
+            studentOptionalFeeRepository.saveAll(optedFees)
+            
+            val action = if (locked) "locked" else "unlocked"
+            logger.info("Successfully $action all (${optedFees.size}) students for fee item $classFeeItemId")
+            
+            return ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Successfully $action all students for this fee",
+                "isLocked" to locked,
+                "count" to optedFees.size
+            ))
+        } catch (e: Exception) {
+            logger.error("Error toggling lock all for optional fee", e)
+            return ResponseEntity.internalServerError().body(mapOf("success" to false, "message" to "Error: ${e.message}"))
         }
     }
 
@@ -941,22 +989,10 @@ class FinancialController(
 
         try {
             // Validate student belongs to the school
-            val student = studentRepository.findById(studentId).orElse(null)
-            if (student == null || student.schoolId != selectedSchoolId) {
-                return ResponseEntity.badRequest().body(mapOf(
-                    "success" to false,
-                    "message" to "Student not found or doesn't belong to this school"
-                ))
-            }
+            val student = authorizationService.validateAndGetStudent(studentId, selectedSchoolId)
 
             // Validate class fee item belongs to the school and is optional
-            val classFeeItem = classFeeItemRepository.findById(classFeeItemId).orElse(null)
-            if (classFeeItem == null || classFeeItem.schoolId != selectedSchoolId) {
-                return ResponseEntity.badRequest().body(mapOf(
-                    "success" to false,
-                    "message" to "Fee item not found or doesn't belong to this school"
-                ))
-            }
+            val classFeeItem = authorizationService.validateAndGetClassFeeItem(classFeeItemId, selectedSchoolId)
 
             if (classFeeItem.feeItem.isMandatory) {
                 return ResponseEntity.badRequest().body(mapOf(
@@ -1154,12 +1190,28 @@ class FinancialController(
                 return ResponseEntity.ok(emptyList())
             }
 
+            val studentGender = student.gender
+            val isStudentNew = student.isNew
+
             // Get optional fees for student's classes
             val classFeeItems = classFeeItemRepository.findOptionalFees(
                 selectedSchoolId,
                 targetSessionId,
                 targetTermId
-            ).filter { it.schoolClass.id in classIds }
+            ).filter { cfi -> 
+                val feeItem = cfi.feeItem
+                
+                val classMatch = cfi.schoolClass.id in classIds
+                
+                val genderMatch = feeItem.genderEligibility == GenderEligibility.ALL || 
+                                  (studentGender != null && feeItem.genderEligibility.name == studentGender.name)
+                                  
+                val statusMatch = feeItem.studentStatusEligibility == StudentStatusEligibility.ALL ||
+                                  (feeItem.studentStatusEligibility == StudentStatusEligibility.NEW && isStudentNew) ||
+                                  (feeItem.studentStatusEligibility == StudentStatusEligibility.RETURNING && !isStudentNew)
+                                  
+                classMatch && genderMatch && statusMatch
+            }
 
             
             val feeItemData = classFeeItems.map { classFeeItem ->
@@ -1300,13 +1352,17 @@ class FinancialController(
                 return mapOf("error" to "Unauthorized access to parent")
             }
             
+            // Use the new granular calculation service
+            val financialStatus = financialService.calculateParentFinancialStatus(parent, sessionId, termId)
+            
             val paystackWallet = paystackParentWalletRepository.findByParentId(parentId)
             val squadWallet = squadParentWalletRepository.findByParentId(parentId)
             
             val paystackSettlements = paystackWallet?.let { settlementRepository.findByPaystackWalletId(it.id!!) } ?: emptyList()
             val squadSettlements = squadWallet?.let { settlementRepository.findBySquadWalletId(it.id!!) } ?: emptyList()
+            val directSettlements = settlementRepository.findByParentId(parent.id!!)
             
-            val allSettlements = paystackSettlements + squadSettlements
+            val allSettlements = paystackSettlements + squadSettlements + directSettlements
             
             // Filter settlements by session and term if provided
             val filteredSettlements = if (sessionId != null && termId != null) {
@@ -1322,33 +1378,28 @@ class FinancialController(
             }
             
             val totalPaid = filteredSettlements.sumOf { it.amount }
-            val totalFees = calculateTotalFeesForParent(parent, sessionId, termId)
-            val outstanding = totalFees - totalPaid
             
-            // Get children details
-            val children = parent.activeStudentRelationships
-                .filter { it.student.isActive }
-                .map { rel ->
-                    val student = rel.student
-                    val studentFees = calculateTotalFeesForStudent(student, sessionId, termId)
-                    mapOf(
-                        "studentId" to student.id,
-                        "studentName" to "${student.user.firstName} ${student.user.lastName}",
-                        "className" to (student.classEnrollments.find { it.isActive }?.schoolClass?.className ?: "N/A"),
-                        "relationshipType" to rel.relationshipType,
-                        "fees" to studentFees
-                    )
-                }
+            // Map students to detailed status
+            val children = financialStatus.students.map { studentStatus ->
+                mapOf(
+                    "studentId" to studentStatus.studentId,
+                    "studentName" to studentStatus.studentName,
+                    "className" to (parent.activeStudentRelationships.find { it.student.id == studentStatus.studentId }?.student?.classEnrollments?.find { it.isActive }?.schoolClass?.className ?: "N/A"),
+                    "fees" to studentStatus.currentBill, // Current bill for specific period
+                    "outstanding" to studentStatus.outstanding, // Past debt
+                    "balance" to studentStatus.currentBalance // Final balance
+                )
+            }
             
             mapOf(
                 "parentName" to "${parent.user.firstName} ${parent.user.lastName}",
                 "parentEmail" to parent.user.email,
                 "parentPhone" to parent.user.phoneNumber,
-                "totalFees" to totalFees,
-                "totalPaid" to totalPaid,
-                "outstanding" to outstanding,
-                "paymentPercentage" to if (totalFees > BigDecimal.ZERO) {
-                    (totalPaid.divide(totalFees, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toDouble()
+                "totalFees" to financialStatus.totalOwed,
+                "totalPaid" to financialStatus.totalPaid,
+                "outstanding" to financialStatus.balance,
+                "paymentPercentage" to if (financialStatus.totalOwed > BigDecimal.ZERO) {
+                    (financialStatus.totalPaid.divide(financialStatus.totalOwed, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toDouble()
                 } else 0.0,
                 "children" to children,
                 "settlements" to filteredSettlements.sortedByDescending { it.transactionDate }.map { settlement ->
@@ -1430,29 +1481,45 @@ class FinancialController(
                 return mapOf("error" to "Unauthorized access to student")
             }
             
-            // Get all parents for this student
+            // Get current bill details for this specific student
+            val detailedFees = financialService.calculateDetailedFees(student, sessionId, termId)
+            
+            // Get all parents for this student to calculate total allocated
             val parents = student.parentRelationships
                 .filter { it.isActive }
                 .map { it.parent }
                 .distinctBy { it.id }
             
-            // Calculate total allocated from all parents
+            // Calculate total allocated from all parents (All Time)
             var totalWalletAllocated = BigDecimal.ZERO
-            val studentInvoicedPaid = calculateInvoicedPaidForStudent(student, sessionId, termId)
             
             parents.forEach { parent ->
-                val breakdown = financialService.getFeeBreakdown(parent, sessionId, termId)
-                @Suppress("UNCHECKED_CAST")
-                val feeBreakdown = breakdown["feeBreakdown"] as List<Map<String, Any>>
-                val studentEntry = feeBreakdown.find { it["studentId"] == student.studentId }
-                if (studentEntry != null) {
-                    totalWalletAllocated = totalWalletAllocated.add(studentEntry["walletAllocated"] as? BigDecimal ?: BigDecimal.ZERO)
+                val status = financialService.calculateParentFinancialStatus(parent) // Use all-time context for balance
+                val studentStatus = status.students.find { it.studentId == student.id }
+                if (studentStatus != null) {
+                    // This is slightly inefficient but ensures consistency with how balance is calculated elsewhere
+                    // In a real scenario, we might want a student-specific balanced calculation method
                 }
             }
             
-            val totalPaid = studentInvoicedPaid.add(totalWalletAllocated)
-            val totalFees = calculateTotalFeesForStudent(student, sessionId, termId)
-            val outstanding = totalFees - totalPaid
+            // Re-calculate based on distribution logic to be absolutely sure
+            var studentTotalPaid = BigDecimal.ZERO
+            parents.forEach { parent ->
+                 val status = financialService.calculateParentFinancialStatus(parent)
+                 status.students.find { it.studentId == student.id }?.let { studentStatus ->
+                     // We need to know how much of the parent's total paid was allocated to this student.
+                     // The studentStatus.currentBalance is (AllTimeFees - AllocatedToStudent)
+                     // So AllocatedToStudent = AllTimeFees - studentStatus.currentBalance
+                     val allocated = studentStatus.allTimeFees.subtract(studentStatus.currentBalance)
+                     studentTotalPaid = studentTotalPaid.add(allocated)
+                 }
+            }
+            
+            val totalInvoicedPaid = calculateInvoicedPaidForStudent(student, sessionId, termId)
+            val finalTotalPaid = studentTotalPaid.add(totalInvoicedPaid)
+            
+            val allTimeFees = financialService.calculateAllTimeFees(student)
+            val outstanding = allTimeFees.subtract(finalTotalPaid)
             
             // Get payment allocations for this student (sequential distribution)
             val allocations = paymentDistributionService.getStudentPaymentAllocations(studentId, sessionId, termId)
@@ -1474,13 +1541,15 @@ class FinancialController(
                 "studentName" to "${student.user.firstName} ${student.user.lastName}",
                 "studentId" to student.studentId,
                 "className" to (student.classEnrollments.find { it.isActive }?.schoolClass?.className ?: "N/A"),
-                "totalFees" to totalFees,
-                "totalPaid" to totalPaid,
+                "totalFees" to allTimeFees,
+                "termFees" to detailedFees.total,
+                "totalPaid" to finalTotalPaid,
                 "outstanding" to outstanding,
-                "paymentPercentage" to if (totalFees > BigDecimal.ZERO) {
-                    (totalPaid.divide(totalFees, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toDouble()
+                "paymentPercentage" to if (allTimeFees > BigDecimal.ZERO) {
+                    (finalTotalPaid.divide(allTimeFees, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toDouble()
                 } else 0.0,
                 "parents" to parentDetails,
+                "feeBreakdown" to detailedFees.breakdown,
                 "allocations" to allocations.map { allocation ->
                     mapOf(
                         "id" to allocation.id,
@@ -1681,9 +1750,11 @@ class FinancialController(
             it.paystackWallet?.parent?.id ?: it.squadWallet?.parent?.id 
         }.distinct().size
         
-        // Get expected fees
+        // Get expected fees (Mandatory + Opted-In Optional)
         val feeStats = financialService.getSchoolFeeStats(schoolId, sessionId, termId)
-        val expectedTotal = feeStats["expectedTotal"] as BigDecimal
+        val mandatoryTotal = feeStats["expectedTotal"] as BigDecimal
+        val optionalTotal = feeStats["optionalTotal"] as BigDecimal
+        val expectedTotal = mandatoryTotal.add(optionalTotal)
         
         return mapOf(
             "totalParents" to totalParents,
@@ -1691,7 +1762,7 @@ class FinancialController(
             "totalPayments" to totalPayments,
             "totalAmount" to totalAmount,
             "expectedTotal" to expectedTotal,
-            "outstandingTotal" to expectedTotal.subtract(totalAmount),
+            "outstandingTotal" to (expectedTotal - totalAmount).max(BigDecimal.ZERO),
             "parentsWithPayments" to parentsWithPayments,
             "paymentPercentage" to if (totalParents > 0) (parentsWithPayments * 100 / totalParents) else 0
         )
@@ -1785,7 +1856,9 @@ class FinancialController(
             } else {
                 emptyList()
             }
-            val allSettlements = paystackSettlements + squadSettlements
+            val directSettlements = settlementRepository.findByParentId(parent.id!!)
+            
+            val allSettlements = paystackSettlements + squadSettlements + directSettlements
             
             // Filter settlements by session and term if provided
             val settlements = if (sessionId != null && termId != null) {
@@ -1932,27 +2005,7 @@ class FinancialController(
     }
 
     private fun calculateTotalFeesForStudent(student: Student, sessionId: UUID? = null, termId: UUID? = null): BigDecimal {
-        val selectedSession = sessionId?.let { academicSessionRepository.findById(it).orElse(null) }
-            ?: academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(student.schoolId!!, true, true)
-            ?: academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(student.schoolId!!, true).firstOrNull()
-            
-        val selectedTerm = termId?.let { termRepository.findById(it).orElse(null) }
-            ?: termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(student.schoolId!!, true, true).orElse(null)
-            
-        if (selectedSession == null) return BigDecimal.ZERO
-
-        val currentEnrollment = student.classEnrollments.find { it.isActive }
-        return if (currentEnrollment != null) {
-            val classFeeItems = classFeeItemRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdFilters(
-                currentEnrollment.schoolClass.id!!, 
-                selectedSession.id!!, 
-                selectedTerm?.id, 
-                true
-            )
-            classFeeItems.sumOf { it.customAmount ?: it.feeItem.amount }
-        } else {
-            BigDecimal.ZERO
-        }
+        return financialService.calculateDetailedFees(student, sessionId, termId).total
     }
 
     @GetMapping("/payments/manual/search-parents")
@@ -1965,19 +2018,10 @@ class FinancialController(
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
             ?: return ""
 
-        val allParents = parentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            .filter { it.paystackWallet != null || it.squadWallet != null }
-        
         val filteredParents = if (query.isBlank()) {
-            allParents
+            parentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
         } else {
-            val lowerQuery = query.lowercase()
-            allParents.filter { parent ->
-                val fullName = "${parent.user.firstName} ${parent.user.lastName}".lowercase()
-                val phone = parent.user.phoneNumber?.lowercase() ?: ""
-                val email = parent.user.email?.lowercase() ?: ""
-                fullName.contains(lowerQuery) || phone.contains(lowerQuery) || email.contains(lowerQuery)
-            }
+            parentRepository.findBySchoolIdAndIsActiveAndSearch(selectedSchoolId, true, query)
         }.sortedBy { it.user.fullName }
 
         model.addAttribute("parents", filteredParents)
@@ -1990,7 +2034,6 @@ class FinancialController(
             ?: return "redirect:/select-school"
         
         val parents = parentRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-            .filter { it.paystackWallet != null || it.squadWallet != null }
             .sortedBy { it.user.fullName }
             
         val academicSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)

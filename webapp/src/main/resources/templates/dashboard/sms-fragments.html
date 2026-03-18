@@ -3,6 +3,7 @@
     <div id="broadcast-modal" class="modal" onclick="closeBroadcastModal(event)">
         <div class="modal-content" style="max-width: 850px;" onclick="event.stopPropagation()">
             <form id="broadcast-form" th:action="@{/admin/dashboard/sms/broadcast}" method="POST">
+                <input type="hidden" name="addAll" id="add-all-input" value="false">
                 <!-- Modal Header -->
                 <div class="modal-header">
                     <div>
@@ -16,29 +17,6 @@
 
                 <!-- Modal Body (Scrollable) -->
                 <div class="modal-body-scroll">
-                    <!-- AI Smart Filter Section -->
-                    <div class="category-group"
-                        style="margin-bottom: 2rem; background: #fffbeb; padding: 1.5rem; border-radius: 20px; border: 1px solid #fde68a;">
-                        <div class="category-title"
-                            style="color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
-                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            AI Smart Filter
-                        </div>
-                        <div style="display: flex; gap: 0.75rem;" class="stack-mobile">
-                            <input type="text" id="ai-query-input" class="chat-input"
-                                style="flex: 1; border: 1px solid #fcd34d; border-radius: 12px; height: 44px; background: #fff;"
-                                placeholder="e.g. 'parents who are owing' or 'staff in JSS1'">
-                            <button type="button" class="broadcast-pill" onclick="applyAiFilter(event)"
-                                style="background: #f59e0b; color: white; border: none; height: 50px; padding: 0 1.5rem; font-weight: 700; border-radius: 12px;">
-                                Apply AI Magic
-                            </button>
-                        </div>
-                        <p style="font-size: 0.75rem; color: #b45309; margin: 0.5rem 0 0 0.25rem;">Type your criteria
-                            naturally and the AI will find the recipients for you.</p>
-                    </div>
 
                     <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
                         <!-- Item 1: Recipient Selection & Type -->
@@ -48,19 +26,19 @@
                                 class="grid-2-mobile">
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="ALL"
-                                        onchange="updateRecipientCount()"> All
+                                        onchange="setAddAll('false'); updateRecipientCount()"> All
                                 </label>
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="STAFF"
-                                        onchange="updateRecipientCount()"> Staff
+                                        onchange="setAddAll('false'); updateRecipientCount()"> Staff
                                 </label>
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="PARENTS"
-                                        onchange="updateRecipientCount()"> Parents
+                                        onchange="setAddAll('false'); updateRecipientCount()"> Parents
                                 </label>
                                 <label class="param-btn" style="justify-content: center;">
                                     <input type="radio" name="recipientType" value="NONE" checked
-                                        onchange="updateRecipientCount()"> None
+                                        onchange="setAddAll('false'); updateRecipientCount()"> None
                                 </label>
                             </div>
                         </div>
@@ -179,6 +157,10 @@
                                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                                 <div class="category-title" style="margin: 0;">3. Recipient Preview</div>
                                 <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <button type="button" onclick="setAddAll('true')"
+                                        style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">
+                                        Add All
+                                    </button>
                                     <button type="button" onclick="clearAllRecipients()"
                                         style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">
                                         Remove All

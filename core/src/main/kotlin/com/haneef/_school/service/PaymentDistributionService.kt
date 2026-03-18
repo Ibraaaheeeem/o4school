@@ -22,7 +22,7 @@ class PaymentDistributionService(
      * Sequential method: Pays off each child's outstanding balance completely before moving to the next child
      */
     fun distributePaymentSequentially(settlement: Settlement): List<PaymentAllocation> {
-        val parent = settlement.paystackWallet?.parent ?: settlement.squadWallet?.parent ?: throw IllegalStateException("Settlement has no wallet")
+        val parent = settlement.parent ?: settlement.paystackWallet?.parent ?: settlement.squadWallet?.parent ?: throw IllegalStateException("Settlement has no wallet")
         val paymentAmount = settlement.amount
         val sessionId = settlement.academicSession?.id
         val termId = settlement.term?.id

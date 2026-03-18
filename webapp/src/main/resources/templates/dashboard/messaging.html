@@ -7,6 +7,7 @@
     <title>4School - Messaging Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/broadcast-modal.css}">
     <link rel="stylesheet" th:href="@{/css/school-setup.css}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- CSRF Tokens -->
@@ -36,29 +37,35 @@
 
         .template-inline-preview {
             background: #fff;
-            padding: 1.25rem;
+            padding: 1rem 1.25rem;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
-            line-height: 2;
+            line-height: 1.6;
             color: #1e293b;
             font-size: 0.95rem;
             white-space: pre-wrap;
         }
 
         .inline-param-input {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
             border: none;
             border-bottom: 2px solid var(--primary-color) !important;
             background: #f1f5f9 !important;
-            padding: 0 8px !important;
-            margin: 0 4px !important;
+            padding: 2px 8px !important;
+            margin: 0 2px !important;
             border-radius: 4px 4px 0 0 !important;
-            font-size: 0.9rem;
-            width: 130px;
-            height: 28px !important;
+            font-size: 0.85rem;
+            min-width: 80px;
+            width: auto;
+            height: 24px !important;
+            line-height: 1 !important;
             color: var(--primary-dark);
             font-weight: 600;
             transition: all 0.2s;
+            text-align: center;
         }
 
         .inline-param-input:focus {
@@ -408,6 +415,255 @@
             border-top: 1px solid #f1f5f9;
             background: #fff;
             flex-shrink: 0;
+        }
+
+        /* Premium Broadcast Modal Styling */
+        :root {
+            --brand-primary: #4f46e5;
+            --brand-primary-light: #eef2ff;
+            --brand-secondary: #0ea5e9;
+            --txt-main: #1e293b;
+            --txt-muted: #64748b;
+            --border-soft: #e2e8f0;
+            --bg-soft: #f8fafc;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        .tab-nav {
+            display: flex;
+            background: var(--bg-soft);
+            border-bottom: 2px solid var(--border-soft);
+            padding: 0 1rem;
+            gap: 2rem;
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            padding: 1.25rem 0.5rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--txt-muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            letter-spacing: 0.01em;
+        }
+
+        .tab-button:hover {
+            color: var(--brand-primary);
+        }
+
+        .tab-button.active {
+            color: var(--brand-primary);
+            border-bottom-color: var(--brand-primary);
+        }
+
+        .tab-content {
+            padding: 2.5rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Recipient Pills styling */
+        .recipient-pill {
+            display: inline-flex;
+            align-items: center;
+            background: var(--brand-primary-light);
+            color: var(--brand-primary);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            margin: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            gap: 10px;
+            border: 1px solid #c7d2fe;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .recipient-pill:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+            background: #e0e7ff;
+        }
+
+        .recipient-pill i {
+            cursor: pointer;
+            opacity: 0.5;
+            font-size: 1rem;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .recipient-pill i:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            color: #ef4444;
+        }
+
+        /* Recipient Card Grid & Cards */
+        .recipient-card {
+            background: white;
+            border: 1.5px solid var(--border-soft);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: default;
+        }
+
+        .recipient-card:hover {
+            border-color: var(--brand-primary);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .card-avatar {
+            width: 44px;
+            height: 44px;
+            background: var(--brand-primary-light);
+            color: var(--brand-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-right: 1rem;
+        }
+
+        .card-info {
+            flex: 1;
+        }
+
+        .card-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--txt-main);
+            margin-bottom: 2px;
+        }
+
+        .card-meta {
+            font-size: 0.8rem;
+            color: var(--txt-muted);
+        }
+
+        .card-add-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--txt-muted);
+            transition: all 0.2s;
+            background: transparent;
+        }
+
+        .card-add-btn:hover {
+            background: var(--brand-primary);
+            color: white;
+            border-color: var(--brand-primary);
+            transform: rotate(90deg);
+        }
+
+        /* Search Section Polish */
+        .search-container-premium {
+            position: relative;
+            background: white;
+            border: 2px solid var(--border-soft);
+            border-radius: 16px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-container-premium:focus-within {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px var(--brand-primary-light);
+        }
+
+        .search-input-premium {
+            border: none;
+            flex: 1;
+            height: 54px;
+            padding: 0 1.25rem 0 3.25rem;
+            font-size: 1rem;
+            font-weight: 500;
+            outline: none;
+        }
+
+        .search-icon-premium {
+            position: absolute;
+            left: 1.25rem;
+            color: var(--txt-muted);
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        /* Category Group Polish */
+        .category-group {
+            margin-bottom: 2.5rem;
+            padding: 1.75rem;
+            background: #fff;
+            border: 1px solid var(--border-soft);
+            border-radius: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .category-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--txt-muted);
+            font-weight: 800;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .category-title i {
+            color: var(--brand-primary);
+            font-size: 0.9rem;
+        }
+
+        /* Custom Scrollbar for premium feel */
+        .modal-body-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal-body-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-body-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .modal-body-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         @keyframes slideUp {
@@ -1182,7 +1438,7 @@
 
             <!-- Include Broadcast Modal -->
             <div
-                th:replace="~{dashboard/messaging-fragments :: broadcast-modal(channel='whatsapp', actionUrl='/admin/dashboard/whatsapp/broadcast', allowFreeForm=false, unitName='WhatsApp Units')}">
+                th:replace="~{dashboard/messaging-fragments :: broadcast-modal(channel='whatsapp', actionUrl='/admin/dashboard/whatsapp/broadcast', utilityBaseUrl='/admin/dashboard/whatsapp/broadcast', allowFreeForm=false, unitName='WhatsApp Units')}">
             </div>
     </main>
 
@@ -1268,6 +1524,7 @@
         </div>
     </div>
 
+    <script th:src="@{/js/broadcast-modal.js}"></script>
     <script th:inline="javascript">
         const WHATSAPP_BALANCE = /*[[${whatsappBalance != null ? whatsappBalance : 0}]]*/ 0;
         const PAYSTACK_PUBLIC_KEY = /*[[${paystackPublicKey}]]*/ "";
@@ -1300,45 +1557,14 @@
             }
         }
 
-        function showBroadcastModal() {
-            document.getElementById('broadcast-modal').classList.add('active');
-            fetchTemplates();
-            updateRecipientCount();
-        }
 
-        function closeBroadcastModal(event) {
-            // If event provided, check if we clicked the overlay
-            if (event && event.target.id !== 'broadcast-modal') {
-                return;
-            }
-            document.getElementById('broadcast-modal').classList.remove('active');
-        }
+        let currentRecipient = null;
+        let activeTab = 'conversations';
 
         function showVariablePicker() { document.getElementById('variable-picker-modal').classList.add('active'); }
         function closeVariablePicker(event) {
             if (event && event.target.id !== 'variable-picker-modal' && event.target.tagName !== 'BUTTON') return;
             document.getElementById('variable-picker-modal').classList.remove('active');
-        }
-        let currentRecipient = null;
-        let activeTab = 'conversations';
-
-        function toggleTemplateUsage(useTemplate) {
-            const templateArea = document.getElementById('template-selection-area');
-            const freeFormArea = document.getElementById('free-form-section');
-            const templateSelector = document.getElementById('template-selector');
-            const freeFormInput = document.getElementById('free-form-message');
-
-            if (useTemplate) {
-                templateArea.style.display = 'block';
-                freeFormArea.style.display = 'none';
-                templateSelector.required = true;
-                if (freeFormInput) freeFormInput.required = false;
-            } else {
-                templateArea.style.display = 'none';
-                freeFormArea.style.display = 'block';
-                templateSelector.required = false;
-                if (freeFormInput) freeFormInput.required = true;
-            }
         }
 
         function switchTab(tab) {
@@ -1710,469 +1936,6 @@
         }
 
 
-        async function updateRecipientCount() {
-            const form = document.getElementById('broadcast-form');
-            const badge = document.getElementById('recipient-preview-badge');
-            const tbody = document.getElementById('preview-list-body');
-
-            if (!form || !badge) return;
-
-            toggleAcademicFilters();
-
-            const formData = new FormData(form);
-            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
-
-            try {
-                const response = await authenticatedFetch('/admin/dashboard/whatsapp/broadcast/recipients', {
-                    method: 'POST',
-                    headers: { [csrfHeader]: csrfToken },
-                    body: formData
-                });
-                const recipients = await response.json();
-                window.currentRecipients = recipients; // Store for validation
-
-                // Update badge
-                badge.innerText = `Recipients: ${recipients.length}`;
-                badge.style.background = recipients.length > 0 ? '#e0e7ff' : '#fee2e2';
-                badge.style.color = recipients.length > 0 ? '#4338ca' : '#ef4444';
-
-                // Balance validation Check
-                const sendBtn = document.getElementById('send-broadcast-btn');
-                const warningDiv = document.getElementById('insufficient-units-warning');
-                const balanceDisplay = document.getElementById('warning-balance-display');
-                if (sendBtn && warningDiv && typeof WHATSAPP_BALANCE !== 'undefined') {
-                    if (recipients.length > WHATSAPP_BALANCE) {
-                        warningDiv.style.display = 'flex';
-                        if (balanceDisplay) balanceDisplay.innerText = new Intl.NumberFormat().format(WHATSAPP_BALANCE);
-                        sendBtn.disabled = true;
-                        sendBtn.style.opacity = '0.5';
-                        sendBtn.style.cursor = 'not-allowed';
-                    } else {
-                        warningDiv.style.display = 'none';
-                        sendBtn.disabled = false;
-                        sendBtn.style.opacity = '1';
-                        sendBtn.style.cursor = 'pointer';
-                    }
-                }
-
-                // Update preview list
-                if (recipients.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">No recipients matching filters</td></tr>';
-                } else {
-                    tbody.innerHTML = recipients.map(r => {
-                        const isManualId = form.querySelector(`input[id="manual-id-${r.userId}"]`);
-                        const isManualPhone = form.querySelector(`input[id="manual-phone-${r.phoneNumber}"]`);
-
-                        let deleteAction = '';
-                        if (isManualId) {
-                            deleteAction = `removeManualRecipient('${r.userId}')`;
-                        } else if (isManualPhone) {
-                            deleteAction = `removeManualPhone('${r.phoneNumber}')`;
-                        } else {
-                            deleteAction = `addExclusion('${r.userId}', '${r.phoneNumber}')`;
-                        }
-
-                        return `
-                            <tr style="border-bottom: 1px solid #f1f5f9; cursor: pointer;" onclick="loadThread('${r.phoneNumber}', null); closeBroadcastModal();" class="hover-bg-slate">
-                                <td style="padding: 10px 12px;">
-                                    <div style="font-weight: 600;">${r.name}</div>
-                                    <div style="font-size: 0.7rem; color: #94a3b8;">${r.roles.join(', ')}</div>
-                                </td>
-                                <td style="padding: 10px 12px; color: #64748b;">${r.phoneNumber || 'N/A'}</td>
-                                <td style="padding: 10px 12px; text-align: right;">
-                                    <button type="button" onclick="event.stopPropagation(); ${deleteAction}" style="color: #ef4444; background: #fee2e2; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem; line-height: 1;">&times;</button>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
-                }
-            } catch (err) {
-                console.error("Failed to update recipients:", err);
-            }
-        }
-
-        async function applyAiFilter() {
-            const queryInput = document.getElementById('ai-query-input');
-            const query = queryInput.value.trim();
-            if (!query) {
-                alert("Please enter a filter criteria first.");
-                return;
-            }
-
-            const btn = event.currentTarget;
-            const originalText = btn.innerText;
-            btn.innerText = 'AI is thinking...';
-            btn.disabled = true;
-
-            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
-
-            try {
-                const response = await authenticatedFetch('/api/admin/query/parents', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        [csrfHeader]: csrfToken
-                    },
-                    body: JSON.stringify({ query: query })
-                });
-
-                if (!response.ok) throw new Error("AI search failed. Ensure your Gemini API Key is configured.");
-
-                const parents = await response.json();
-
-                // Add each AI-found parent as a manual recipient
-                parents.forEach(p => {
-                    addManualRecipient(p.id, p.name, p.phone, ['AI Found']);
-                });
-
-                queryInput.value = '';
-                alert(`AI found and added ${parents.length} recipients.`);
-
-            } catch (err) {
-                console.error("AI filter error:", err);
-                alert("AI Filter Error: " + err.message);
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        function addExclusion(userId, phone) {
-            if (userId && userId !== 'null') {
-                const container = document.getElementById('excluded-ids-container');
-                if (!container.querySelector(`input[value="${userId}"]`)) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'excludedUserIds';
-                    input.value = userId;
-                    container.appendChild(input);
-                }
-            } else if (phone && phone !== 'null') {
-                const container = document.getElementById('excluded-phones-container');
-                if (!container.querySelector(`input[value="${phone}"]`)) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'excludedPhoneNumbers';
-                    input.value = phone;
-                    container.appendChild(input);
-                }
-            }
-            updateRecipientCount();
-        }
-
-        function toggleAcademicFilters() {
-            const recipientType = document.querySelector('input[name="recipientType"]:checked')?.value;
-            const academicSection = document.getElementById('academic-filters-section');
-            const parentFilters = document.getElementById('parent-only-filters');
-            const classLabel = document.getElementById('class-selection-label');
-
-            if (academicSection) {
-                // Show academic section for Staff or Parents, hide for All or None
-                academicSection.style.display = (recipientType === 'STAFF' || recipientType === 'PARENTS') ? 'block' : 'none';
-            }
-
-            if (parentFilters) {
-                // Only show for Parents
-                parentFilters.style.display = recipientType === 'PARENTS' ? 'block' : 'none';
-            }
-
-            if (classLabel) {
-                classLabel.innerText = recipientType === 'STAFF' ? "Staff's Assigned Classes" : "Parent's Child's Classes";
-            }
-        }
-
-        let searchTimeout = null;
-        function searchManualRecipients(query) {
-            clearTimeout(searchTimeout);
-            const dropdown = document.getElementById('search-results-dropdown');
-            const typeNode = document.querySelector('input[name="recipientType"]:checked');
-            const recipientType = typeNode ? typeNode.value : '';
-
-            if (!query || query.length < 2) {
-                dropdown.style.display = 'none';
-                return;
-            }
-
-            searchTimeout = setTimeout(async () => {
-                try {
-                    const response = await authenticatedFetch(`/admin/dashboard/whatsapp/broadcast/search?query=${encodeURIComponent(query)}&recipientType=${recipientType}`);
-                    const results = await response.json();
-
-                    if (results.length === 0) {
-                        dropdown.innerHTML = '<div style="padding: 12px; color: #94a3b8; text-align: center;">No results found</div>';
-                    } else {
-                        dropdown.innerHTML = results.map(r => `
-                            <div onclick="addManualRecipient('${r.userId}', '${r.name}', '${r.phoneNumber}', '${r.roles.join(', ')}')" 
-                                style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; hover: background: #f8fafc;">
-                                <div style="font-weight: 600; font-size: 0.85rem;">${r.name}</div>
-                                <div style="font-size: 0.75rem; color: #64748b;">${r.roles.join(', ')} • ${r.phoneNumber || 'No phone'}</div>
-                            </div>
-                        `).join('');
-                    }
-                    dropdown.style.display = 'block';
-                } catch (err) {
-                    console.error("Search failed:", err);
-                }
-            }, 300);
-        }
-
-        function addManualRecipient(userId, name, phone, roles) {
-            const container = document.getElementById('manual-ids-container');
-            const dropdown = document.getElementById('search-results-dropdown');
-            const searchInput = document.getElementById('recipient-search');
-
-            // Check if already exist
-            if (container.querySelector(`input[value="${userId}"]`)) {
-                dropdown.style.display = 'none';
-                searchInput.value = '';
-                return;
-            }
-
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'manualUserIds';
-            input.value = userId;
-            input.id = `manual-id-${userId}`;
-            container.appendChild(input);
-
-            // Clear any existing exclusion
-            const exclusion = document.querySelector(`#excluded-ids-container input[value="${userId}"]`);
-            if (exclusion) exclusion.remove();
-
-            dropdown.style.display = 'none';
-            searchInput.value = '';
-            updateRecipientCount();
-        }
-
-        function removeManualRecipient(userId) {
-            const input = document.getElementById(`manual-id-${userId}`);
-            if (input) input.remove();
-            updateRecipientCount();
-        }
-
-        function addUnregisteredRecipient() {
-            const container = document.getElementById('manual-phones-container');
-            const inputField = document.getElementById('unregistered-phone');
-            const phone = inputField.value.trim();
-
-            if (!phone || phone.length < 10) {
-                alert("Please enter a valid phone number (min 10 digits)");
-                return;
-            }
-
-            // Check if already exist
-            if (container.querySelector(`input[value="${phone}"]`)) {
-                inputField.value = '';
-                return;
-            }
-
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'manualPhoneNumbers';
-            input.value = phone;
-            input.id = `manual-phone-${phone}`;
-            container.appendChild(input);
-
-            // Clear any existing exclusion
-            const exclusion = document.querySelector(`#excluded-phones-container input[value="${phone}"]`);
-            if (exclusion) exclusion.remove();
-
-            inputField.value = '';
-            updateRecipientCount();
-        }
-
-        function removeManualPhone(phone) {
-            const input = document.getElementById(`manual-phone-${phone}`);
-            if (input) input.remove();
-            updateRecipientCount();
-        }
-
-        let currentRecipients = [];
-        async function fetchTemplates() {
-            const selector = document.getElementById('template-selector');
-            const typeNode = document.querySelector('input[name="recipientType"]:checked');
-            const recipientType = typeNode ? typeNode.value : '';
-
-            console.log("Fetching broadcast templates from DB for type:", recipientType);
-            selector.innerHTML = '<option value="">-- Loading templates... --</option>';
-
-            try {
-                const response = await authenticatedFetch(`/admin/dashboard/whatsapp/broadcast/templates?recipientType=${recipientType}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-                const templates = await response.json();
-                console.log("Retrieved templates:", templates);
-
-                selector.innerHTML = '<option value="">-- Select Template --</option>';
-                if (templates.length === 0) {
-                    selector.innerHTML = '<option value="">-- No templates found --</option>';
-                }
-
-                templates.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t.name;
-                    opt.innerText = t.name;
-                    opt.dataset.components = t.components;
-                    opt.dataset.targetRole = t.target_role;
-                    opt.dataset.mapping = t.mapping;
-                    opt.dataset.language = t.language;
-                    selector.appendChild(opt);
-                });
-            } catch (err) {
-                console.error("Failed to fetch templates:", err);
-                selector.innerHTML = '<option value="">-- Error loading templates --</option>';
-            }
-        }
-
-        function loadTemplateDetails(templateName) {
-            const container = document.getElementById('template-params-container');
-            const inputsContainer = document.getElementById('template-params-inputs');
-            const messageArea = document.getElementById('broadcast-message-area');
-            const selector = document.getElementById('template-selector');
-            const selectedOpt = selector.options[selector.selectedIndex];
-
-            if (!templateName) {
-                container.style.display = 'none';
-                if (messageArea) {
-                    messageArea.disabled = false;
-                    messageArea.placeholder = "Enter your announcement here...";
-                }
-                const warningDiv = document.getElementById('template-qualification-warning');
-                if (warningDiv) warningDiv.style.display = 'none';
-                return;
-            }
-
-            // Recipient Qualification Check
-            const targetRole = selectedOpt.dataset.targetRole;
-            const recipients = window.currentRecipients || [];
-            let unqualifiedCount = 0;
-            let unqualifiedType = '';
-
-            if (targetRole === 'PARENT') {
-                unqualifiedCount = recipients.filter(r => r.type === 'STAFF').length;
-                unqualifiedType = 'Staff';
-            } else if (targetRole === 'STAFF') {
-                unqualifiedCount = recipients.filter(r => r.type === 'PARENT').length;
-                unqualifiedType = 'Parents';
-            }
-
-            let warningDiv = document.getElementById('template-qualification-warning');
-            if (!warningDiv) {
-                warningDiv = document.createElement('div');
-                warningDiv.id = 'template-qualification-warning';
-                warningDiv.style.cssText = 'background: #fff7ed; border: 1px solid #ffedd5; color: #9a3412; padding: 1rem; border-radius: 12px; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;';
-                container.parentNode.insertBefore(warningDiv, container);
-            }
-
-            if (unqualifiedCount > 0) {
-                warningDiv.innerHTML = `
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span><b>Warning:</b> ${unqualifiedCount} recipient(s) (${unqualifiedType}) are not qualified for this template and will be skipped.</span>
-                `;
-                warningDiv.style.display = 'flex';
-            } else {
-                warningDiv.style.display = 'none';
-            }
-
-            container.style.display = 'block';
-            if (messageArea) {
-                messageArea.disabled = true;
-                messageArea.placeholder = "Message is predefined by template";
-                messageArea.value = "[Template: " + templateName + " selected]";
-            }
-
-            try {
-                const components = JSON.parse(selectedOpt.dataset.components || '[]');
-                const mappingStr = selectedOpt.dataset.mapping || '';
-                const bodyComp = components.find(c => c.type === 'BODY');
-                const text = bodyComp?.text || "";
-
-                // Parse mapping: "1=student_name,2=due_date"
-                const mapping = {};
-                mappingStr.split(',').forEach(m => {
-                    if (m.includes('=')) {
-                        const [id, key] = m.split('=');
-                        mapping[id.trim()] = key.trim();
-                    } else if (m.trim()) {
-                        mapping[m.trim()] = m.trim();
-                    }
-                });
-
-                // Known system variables from TemplateParameterResolver
-                const systemVars = [
-                    'name', 'first_name', 'last_name', 'phone', 'date', 'school_name', 'school_contact',
-                    'parent_name', 'students', 'student_name', 'class_name', 'current_session', 'current_term',
-                    'academic_year', 'term_number', 'current_bill', 'current_balance', 'term_fees', 'settled_bill', 'outstanding',
-                    'total_bill', 'balance', 'amount', 'dedicated_account', 'staff_name', 'cadre', 'department'
-                ];
-
-                // Find variables like {{1}} or {{student_name}} in text
-                const varMatches = text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || [];
-                const uniqueVars = [...new Set(varMatches)];
-
-                if (uniqueVars.length === 0) {
-                    inputsContainer.innerHTML = `<div class="template-inline-preview">${text}</div>`;
-                } else {
-                    let previewHtml = text;
-                    uniqueVars.forEach((v, index) => {
-                        const key = v.replace(/\{\{|\}\}/g, '');
-                        const mappedKey = mapping[key] || key;
-                        const isAutoFilled = systemVars.includes(mappedKey);
-
-                        // ID for form submittal: use the placeholder key (e.g. "1" or "student_name")
-                        const paramId = key;
-
-                        let inputHtml = "";
-                        if (isAutoFilled) {
-                            // Disabled field for auto-filled data
-                            inputHtml = `<span class="inline-param-input" style="background: #e2e8f0 !important; cursor: not-allowed; border-bottom: none !important; opacity: 0.7; width: auto; min-width: 80px; display: inline-flex; align-items: center; justify-content: center;" title="Auto-filled: ${mappedKey}">
-                                ${mappedKey}
-                            </span>`;
-                        } else {
-                            // Enabled field for manual entry
-                            inputHtml = `<input type="text" name="manualParam_${paramId}" placeholder="${v}" class="inline-param-input" required title="Enter value for ${key}">`;
-                        }
-
-                        // Escape regex special chars in v for replacement
-                        const escapedV = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        previewHtml = previewHtml.split(v).join(inputHtml);
-                    });
-
-                    inputsContainer.innerHTML = `<div class="template-inline-preview">${previewHtml}</div>`;
-                    inputsContainer.style.display = 'block';
-                }
-            } catch (e) {
-                console.error("Error parsing template components:", e);
-                inputsContainer.innerHTML = 'Error loading params';
-            }
-        }
-
-        function toggleTrackClasses(trackCheckbox) {
-            const trackId = trackCheckbox.getAttribute('data-track-id');
-            const isChecked = trackCheckbox.checked;
-            const classCheckboxes = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
-
-            classCheckboxes.forEach(cb => {
-                cb.checked = isChecked;
-            });
-
-            updateRecipientCount();
-        }
-
-        function syncTrackCheckbox(classCheckbox) {
-            const trackId = classCheckbox.getAttribute('data-track-id');
-            const trackCheckbox = document.getElementById(`track-${trackId}`);
-
-            if (trackCheckbox) {
-                const siblingClasses = document.querySelectorAll(`.class-checkbox[data-track-id="${trackId}"]`);
-                const allChecked = Array.from(siblingClasses).every(cb => cb.checked);
-                trackCheckbox.checked = allChecked;
-            }
-        }
 
         function showSettingsModal() {
             alert("Reminder Settings: Configure automated balance alerts here.");
@@ -2188,33 +1951,10 @@
             document.getElementById('history-end-date').value = now.toISOString().split('T')[0];
         });
 
-        function clearAllRecipients() {
-            if (!confirm("Remove all selected recipients?")) return;
+        // ============================================================
+        // NEW TAB-BASED RECIPIENT UI FUNCTIONS
+        // ============================================================
 
-            // Clear manual IDs
-            document.getElementById('manual-ids-container').innerHTML = '';
-
-            // Clear manual phones
-            document.getElementById('manual-phones-container').innerHTML = '';
-
-            // Clear exclusions
-            document.getElementById('excluded-ids-container').innerHTML = '';
-            document.getElementById('excluded-phones-container').innerHTML = '';
-
-            // Reset filters
-            const noneFilter = document.querySelector('input[name="recipientType"][value="NONE"]');
-            if (noneFilter) {
-                noneFilter.checked = true;
-                toggleAcademicFilters();
-            }
-
-            // Clear search inputs
-            document.getElementById('ai-query-input').value = '';
-            document.getElementById('recipient-search').value = '';
-            document.getElementById('unregistered-phone').value = '';
-
-            updateRecipientCount();
-        }
 
         let currentPurchaseType = '';
         let currentPurchaseRate = 0;
@@ -2320,6 +2060,98 @@
                 alert("Failed to initialize payment widget. Please try again.");
             }
         }
+
+        // ============================================================
+        // BROADCAST COMPOSE TAB FEATURES
+        // ============================================================
+
+        function updateUsageEstimate() {
+            const templateSelector = document.getElementById('template-selector');
+            const freeFormMessage = document.getElementById('free-form-message');
+            const useTemplate = document.getElementById('use-template-checkbox')?.checked ?? true;
+
+            let content = "";
+            if (useTemplate && templateSelector && templateSelector.value) {
+                // Reconstruct content from template preview
+                const previewEl = document.querySelector('.template-inline-preview');
+                if (previewEl) {
+                    const inputs = previewEl.querySelectorAll('input, .inline-param-input');
+                    let tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = previewEl.innerHTML;
+
+                    // Replace inputs with their values for counting
+                    const inputsInTemp = tempDiv.querySelectorAll('input');
+                    inputsInTemp.forEach(input => {
+                        const val = input.value || input.placeholder || "";
+                        input.outerHTML = val;
+                    });
+                    const spansInTemp = tempDiv.querySelectorAll('.inline-param-input');
+                    spansInTemp.forEach(span => {
+                        span.outerHTML = span.innerText;
+                    });
+
+                    content = tempDiv.innerText.replace(/\n\n+/g, '\n').trim();
+                }
+            } else if (freeFormMessage) {
+                content = freeFormMessage.value;
+            }
+
+            const charCount = content.length;
+            const pageCount = charCount === 0 ? 0 : Math.ceil(charCount / 160);
+
+            const charCountEl = document.getElementById('char-count');
+            const pageCountEl = document.getElementById('page-count');
+
+            if (charCountEl) charCountEl.innerText = charCount;
+            if (pageCountEl) pageCountEl.innerText = pageCount;
+
+            // Highlight if empty or too long
+            if (charCountEl) charCountEl.style.color = charCount > 0 ? 'var(--txt-main)' : '#ef4444';
+        }
+
+        async function sendTestBroadcast() {
+            const testPhone = document.getElementById('test-recipient-phone').value;
+            if (!testPhone) {
+                alert("Please enter a test phone number.");
+                return;
+            }
+
+            const btn = event.currentTarget;
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            const form = document.getElementById('broadcast-modal').querySelector('form');
+            const formData = new FormData(form);
+            formData.append("testPhone", testPhone);
+
+            try {
+                const response = await fetch('/admin/dashboard/whatsapp/broadcast/test', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert("Test message sent successfully to " + testPhone);
+                } else {
+                    alert("Failed to send test: " + (result.error || "Unknown error"));
+                }
+            } catch (e) {
+                console.error("Test send error:", e);
+                alert("Error sending test message.");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Initialize listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const freeFormMsg = document.getElementById('free-form-message');
+            if (freeFormMsg) {
+                freeFormMsg.addEventListener('input', updateUsageEstimate);
+            }
+        });
     </script>
 
     <!-- Purchase Modal -->

@@ -10,7 +10,14 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface ClassFeeItemRepository : JpaRepository<ClassFeeItem, UUID> {
+interface ClassFeeItemRepository : JpaRepository<ClassFeeItem, UUID>, SecureClassFeeItemRepository {
+    
+    @Query("SELECT cfi FROM ClassFeeItem cfi WHERE cfi.schoolId = :schoolId AND cfi.termId.id = :termId")
+    fun findBySchoolIdAndTermId(schoolId: UUID, termId: UUID): List<ClassFeeItem>
+    
+    @Query("SELECT cfi FROM ClassFeeItem cfi WHERE cfi.schoolId = :schoolId AND cfi.termId.id = :termId AND cfi.isActive = :isActive")
+    fun findBySchoolIdAndTermIdAndIsActive(schoolId: UUID, termId: UUID, isActive: Boolean): List<ClassFeeItem>
+    
     
     fun findBySchoolIdAndIsActiveOrderBySchoolClassAscFeeItemAsc(schoolId: UUID, isActive: Boolean): List<ClassFeeItem>
     

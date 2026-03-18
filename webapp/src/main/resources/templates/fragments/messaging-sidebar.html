@@ -30,11 +30,13 @@
                 <span class="icon">📱</span>
                 SMS
             </a>
+            <!-- 
             <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/multimodal}"
                 class="nav-item" th:classappend="${activeSubPage == 'multimodal' ? 'active' : ''}">
                 <span class="icon">📣</span>
                 Multimodal
             </a>
+-->
         </nav>
 
         <div class="setup-progress-widget" th:if="${whatsappBalance != null or smsBalance != null}">

@@ -55,7 +55,7 @@ class AcademicController(
         val allSessions = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(selectedSchoolId, true)
         
         // Get current academic session (with fallback to latest if not set)
-        var currentSession = allSessions.find { it.isCurrentSession } ?: allSessions.first()
+        var currentSession = allSessions.find { it.isCurrentSession } ?: allSessions.firstOrNull()
         
         // Get current term - ONLY the term marked as is_current=true within the current session
         val currentTerm = if (currentSession != null) {
@@ -103,7 +103,7 @@ class AcademicController(
             
             if (defaultSession == null && allSessions.isNotEmpty()) {
                 // If no "Current" session, fallback to the latest active session (first in the list sorted by year desc)
-                defaultSession = allSessions.first()
+                defaultSession = allSessions.firstOrNull()
             }
             
             if (defaultSession != null) {

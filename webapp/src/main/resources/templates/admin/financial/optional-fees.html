@@ -96,6 +96,72 @@
                 </div>
             </div>
 
+            <!-- Available Optional Fees Section -->
+            <div class="section-container" style="margin-top: 24px;">
+                <div class="section-header"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 style="font-size: 1.1rem; font-weight: 600; color: #374151;">
+                        <i class="fas fa-list-check"></i> Available Optional Fees for <span
+                            th:text="${selectedTerm?.termName ?: 'Current Term'}">Term</span>
+                    </h2>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" th:if="${!#lists.isEmpty(availableOptionalFees)}">
+                        <thead>
+                            <tr>
+                                <th>Fee Name</th>
+                                <th>Class</th>
+                                <th>Effective Amount</th>
+                                <th style="text-align: center;">Students Opted-in</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="avail : ${availableOptionalFees}">
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${avail.item.feeItem.name}">Fee Name</div>
+                                    <div style="font-size: 0.8rem; color: #6b7280;"
+                                        th:text="${avail.item.feeItem.description}">Description</div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info"
+                                        th:text="${avail.item.schoolClass.className}">Class</span>
+                                </td>
+                                <td>
+                                    <span style="font-weight: 600;">₦<span
+                                            th:text="${#numbers.formatDecimal(avail.item.effectiveAmount, 0, 'COMMA', 2, 'POINT')}">0.00</span></span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <button class="badge"
+                                        th:classappend="${avail.optInCount > 0 ? 'badge-success' : 'badge-outline'}"
+                                        th:attr="hx-get=@{/admin/financial/optional-fees/{id}/opted-students(id=${avail.item.id})}"
+                                        hx-target="#optedStudentsModalBody" hx-trigger="click"
+                                        onclick="openOptedStudentsModal()"
+                                        style="font-family: inherit; font-size: 0.9rem; padding: 4px 12px; border-radius: 20px; cursor: pointer; border: none;">
+                                        <i class="fas fa-users" style="margin-right: 4px;"></i>
+                                        <span th:text="${avail.optInCount}">0</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="empty-state" th:if="${#lists.isEmpty(availableOptionalFees)}" style="padding: 24px;">
+                        <div class="empty-icon" style="font-size: 2rem;">📋</div>
+                        <h3>No Optional Fees Configured</h3>
+                        <p>No optional fees have been setup for the selected term.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Optional Fees Table Section Header -->
+            <div class="section-header" style="margin-top: 40px; margin-bottom: 16px;">
+                <h2 style="font-size: 1.1rem; font-weight: 600; color: #374151;">
+                    <i class="fas fa-user-check"></i> Student Optional Fee Selections
+                </h2>
+                <p style="font-size: 0.85rem; color: #6b7280; margin-top: 4px;">Detailed list of students who have
+                    opted-in or were assigned optional fees</p>
+            </div>
             <!-- Student Optional Fees Table -->
             <div class="table-container" style="margin-top: 24px;">
                 <table class="data-table" th:if="${!#lists.isEmpty(studentOptionalFees)}">
@@ -105,9 +171,6 @@
                             <th>Fee Name</th>
                             <th>Class</th>
                             <th>Amount</th>
-                            <th>Session</th>
-                            <th>Term</th>
-                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -134,26 +197,13 @@
                                 <span style="font-weight: 600;">₦<span
                                         th:text="${#numbers.formatDecimal(studentFee.classFeeItem.effectiveAmount, 0, 'COMMA', 2, 'POINT')}">0.00</span></span>
                             </td>
-                            <td th:text="${studentFee.academicSession?.sessionName ?: 'N/A'}">2023/2024</td>
-                            <td th:text="${studentFee.term?.termName ?: 'All Terms'}">First Term</td>
-                            <td>
-                                <span th:if="${studentFee.isLocked}" class="badge badge-danger"
-                                    th:id="'status-' + ${studentFee.id}">
-                                    <i class="fas fa-lock"></i> Locked
-                                </span>
-                                <span th:unless="${studentFee.isLocked}" class="badge badge-success"
-                                    th:id="'status-' + ${studentFee.id}">
-                                    <i class="fas fa-unlock"></i> Active
-                                </span>
-                            </td>
                             <td>
                                 <button th:if="${!studentFee.isLocked}" class="btn btn-sm btn-danger"
-                                    th:id="'btn-' + ${studentFee.id}"
-                                    th:attr="hx-post=@{/admin/financial/optional-fees/{id}/toggle-lock(id=${studentFee.id})},
+                                    th:id="'btn-' + ${studentFee.id}" th:attr="hx-post=@{/admin/financial/optional-fees/{id}/toggle-lock(id=${studentFee.id})},
                                                  hx-vals='js:{locked: true}',
-                                                 hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'" hx-target="body"
-                                    hx-swap="none" hx-indicator="'#loading-' + ${studentFee.id}"
-                                    hx-on:htmx:before-request="showButtonLoading(event)"
+                                                 hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}',
+                                                 hx-indicator='#loading-' + ${studentFee.id}" hx-target="body"
+                                    hx-swap="none" hx-on:htmx:before-request="showButtonLoading(event)"
                                     hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
                                     title="Lock this fee selection">
                                     <span class="btn-content">
@@ -164,12 +214,11 @@
                                     </span>
                                 </button>
                                 <button th:if="${studentFee.isLocked}" class="btn btn-sm btn-success"
-                                    th:id="'btn-' + ${studentFee.id}"
-                                    th:attr="hx-post=@{/admin/financial/optional-fees/{id}/toggle-lock(id=${studentFee.id})},
+                                    th:id="'btn-' + ${studentFee.id}" th:attr="hx-post=@{/admin/financial/optional-fees/{id}/toggle-lock(id=${studentFee.id})},
                                                  hx-vals='js:{locked: false}',
-                                                 hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'" hx-target="body"
-                                    hx-swap="none" hx-indicator="'#loading-' + ${studentFee.id}"
-                                    hx-on:htmx:before-request="showButtonLoading(event)"
+                                                 hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}',
+                                                 hx-indicator='#loading-' + ${studentFee.id}" hx-target="body"
+                                    hx-swap="none" hx-on:htmx:before-request="showButtonLoading(event)"
                                     hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
                                     title="Unlock this fee selection">
                                     <span class="btn-content">
@@ -281,11 +330,13 @@
                     const button = event.detail.elt;
                     const feeId = button.id.replace('btn-', '');
 
-                    // Update status badge
+                    // Update status badge if it exists
                     const statusElement = document.getElementById('status-' + feeId);
                     if (response.isLocked) {
-                        statusElement.innerHTML = '<i class="fas fa-lock"></i> Locked';
-                        statusElement.className = 'badge badge-danger';
+                        if (statusElement) {
+                            statusElement.innerHTML = '<i class="fas fa-lock"></i> Locked';
+                            statusElement.className = 'badge badge-danger';
+                        }
                         // Replace button with unlock button
                         const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
                         button.outerHTML = `
@@ -296,6 +347,7 @@
                                     hx-headers='{"X-CSRF-TOKEN": "${csrfToken}"}'
                                     hx-target="body" 
                                     hx-swap="none"
+                                    hx-indicator="#loading-${feeId}"
                                     hx-on:htmx:before-request="showButtonLoading(event)"
                                     hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
                                     title="Unlock this fee selection">
@@ -308,8 +360,10 @@
                             </button>
                         `;
                     } else {
-                        statusElement.innerHTML = '<i class="fas fa-unlock"></i> Active';
-                        statusElement.className = 'badge badge-success';
+                        if (statusElement) {
+                            statusElement.innerHTML = '<i class="fas fa-unlock"></i> Active';
+                            statusElement.className = 'badge badge-success';
+                        }
                         // Replace button with lock button
                         const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
                         button.outerHTML = `
@@ -320,6 +374,7 @@
                                     hx-headers='{"X-CSRF-TOKEN": "${csrfToken}"}'
                                     hx-target="body" 
                                     hx-swap="none"
+                                    hx-indicator="#loading-${feeId}"
                                     hx-on:htmx:before-request="showButtonLoading(event)"
                                     hx-on:htmx:after-request="hideButtonLoading(event); updateRowStatus(event)"
                                     title="Lock this fee selection">
@@ -402,6 +457,25 @@
         // Hide global loading when page is fully loaded
         document.addEventListener('DOMContentLoaded', function () {
             hideGlobalLoading();
+
+            // Setup modal click-outside listeners
+            const applyModal = document.getElementById('applyFeeModal');
+            if (applyModal) {
+                applyModal.addEventListener('click', function (event) {
+                    if (event.target === this) {
+                        closeApplyFeeModal();
+                    }
+                });
+            }
+
+            const optedModal = document.getElementById('optedStudentsModal');
+            if (optedModal) {
+                optedModal.addEventListener('click', function (event) {
+                    if (event.target === this) {
+                        closeOptedStudentsModal();
+                    }
+                });
+            }
         });
 
         // Show loading when navigating away
@@ -1058,13 +1132,102 @@
                 });
         }
 
-        // Close modal when clicking outside
-        document.getElementById('applyFeeModal').addEventListener('click', function (event) {
-            if (event.target === this) {
-                closeApplyFeeModal();
-            }
-        });
+
+        function openOptedStudentsModal() {
+            document.getElementById('optedStudentsModal').style.display = 'flex';
+        }
+
+        function closeOptedStudentsModal() {
+            document.getElementById('optedStudentsModal').style.display = 'none';
+        }
+
+        function lockAllOptedStudents(classFeeItemId, locked) {
+            if (!confirm(`Are you sure you want to ${locked ? 'lock' : 'unlock'} all students for this fee?`)) return;
+
+            const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+            const actionLabel = locked ? 'Locking' : 'Unlocking';
+
+            showNotification(`${actionLabel} all students...`, 'success');
+
+            fetch(`/admin/financial/optional-fees/${classFeeItemId}/toggle-lock-all?locked=${locked}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        // Refresh the modal content
+                        htmx.ajax('GET', `/admin/financial/optional-fees/${classFeeItemId}/opted-students`, '#optedStudentsModalBody');
+                        // Also refresh main list in background after a delay
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showNotification(data.message || 'Error updating status', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error updating status', 'error');
+                });
+        }
+
+        function toggleModalFeeLock(id, locked) {
+            const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+
+            fetch(`/admin/financial/optional-fees/${id}/toggle-lock?locked=${locked}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update modal status and button
+                        const statusBadge = document.getElementById('modal-status-' + id);
+                        const lockBtn = document.getElementById('modal-btn-' + id);
+
+                        if (data.isLocked) {
+                            statusBadge.textContent = 'Locked';
+                            statusBadge.className = 'badge badge-danger';
+                            lockBtn.className = 'btn btn-icon-sm btn-outline-success';
+                            lockBtn.innerHTML = '<i class="fas fa-unlock"></i>';
+                            lockBtn.onclick = () => toggleModalFeeLock(id, false);
+                            lockBtn.title = 'Unlock';
+                        } else {
+                            statusBadge.textContent = 'Active';
+                            statusBadge.className = 'badge badge-success';
+                            lockBtn.className = 'btn btn-icon-sm btn-outline-danger';
+                            lockBtn.innerHTML = '<i class="fas fa-lock"></i>';
+                            lockBtn.onclick = () => toggleModalFeeLock(id, true);
+                            lockBtn.title = 'Lock';
+                        }
+                        showNotification(data.message, 'success');
+                    } else {
+                        showNotification(data.message || 'Error updating status', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error updating status', 'error');
+                });
+        }
+
     </script>
+
+    <!-- Opted Students Modal -->
+    <div id="optedStudentsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div id="optedStudentsModalBody" class="modal-body">
+                <div style="text-align: center; padding: 20px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #3b82f6;"></i>
+                    <p style="margin-top: 12px;">Loading students...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

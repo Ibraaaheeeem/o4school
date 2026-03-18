@@ -84,12 +84,14 @@ class InternalMessagingService(
         }
     }
 
-    fun createThread(subject: String, senderId: UUID, recipientId: UUID, schoolId: UUID, content: String): InternalMessageThread {
+    fun createThread(subject: String?, senderId: UUID, recipientId: UUID, schoolId: UUID, content: String): InternalMessageThread {
+        val effectiveSubject = if (subject.isNullOrBlank()) "No Subject" else subject
+
         val sender = userRepository.findById(senderId).orElseThrow { IllegalArgumentException("Sender not found") }
         val recipient = userRepository.findById(recipientId).orElseThrow { IllegalArgumentException("Recipient not found") }
 
         // Create thread
-        var thread = InternalMessageThread(subject = subject).apply {
+        var thread = InternalMessageThread(subject = effectiveSubject).apply {
             this.schoolId = schoolId
             this.lastMessagePreview = content.take(100)
             this.createdAt = LocalDateTime.now()
@@ -151,15 +153,16 @@ class InternalMessagingService(
     fun sendInternalBroadcast(
         schoolId: UUID,
         senderId: UUID,
-        subject: String,
+        subject: String?,
         content: String?,
         templateName: String?,
         recipients: List<com.haneef._school.dto.BroadcastRecipientDTO>,
         extraParams: Map<String, String> = emptyMap()
     ): Int {
+        val effectiveSubject = if (subject.isNullOrBlank()) "No Subject" else subject
         val sender = userRepository.findById(senderId).orElseThrow { IllegalArgumentException("Sender not found") }
         val template = if (!templateName.isNullOrBlank()) {
-            templateRepository.findByTemplateNameAndSchoolId(templateName, schoolId).orElse(null)
+            templateRepository.findByTemplateName(templateName).orElse(null)
         } else null
 
         var count = 0
@@ -196,10 +199,10 @@ class InternalMessagingService(
                 // Standard internal messaging here seems to be 1-on-1. 
                 // Let's check if there's an existing 1-on-1 thread between these two.
                 
-                var thread = findExisting1on1Thread(senderId, receiver.id!!, schoolId, subject)
+                var thread = findExisting1on1Thread(senderId, receiver.id!!, schoolId, effectiveSubject)
                 
                 if (thread == null) {
-                    thread = InternalMessageThread(subject = subject).apply {
+                    thread = InternalMessageThread(subject = effectiveSubject).apply {
                         this.schoolId = schoolId
                         this.lastMessagePreview = finalContent.take(100)
                         this.createdAt = LocalDateTime.now()

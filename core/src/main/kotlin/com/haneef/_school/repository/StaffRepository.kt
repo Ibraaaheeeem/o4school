@@ -32,6 +32,16 @@ interface StaffRepository : JpaRepository<Staff, UUID>, SecureStaffRepository {
         @Param("search") search: String,
         pageable: Pageable
     ): Page<Staff>
+
+    @Query(value = "SELECT s FROM Staff s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
+           "(CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.staffId AS string) ILIKE CONCAT('%', :search, '%'))")
+    fun findBySchoolIdAndIsActiveAndSearch(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("search") search: String
+    ): List<Staff>
     
     @Query("SELECT s FROM Staff s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND s.designation = :designation")
     fun findBySchoolIdAndIsActiveAndDesignation(
@@ -69,6 +79,24 @@ interface StaffRepository : JpaRepository<Staff, UUID>, SecureStaffRepository {
         pageable: Pageable
     ): Page<Staff>
     
+    @Query("SELECT DISTINCT s FROM Staff s LEFT JOIN FETCH s.user " +
+           "LEFT JOIN s.classTeacherAssignments cta " +
+           "LEFT JOIN s.subjectTeacherAssignments sta " +
+           "WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND (" +
+           "(:hasTrackFilter = false OR cta.schoolClass.track.id IN :trackIds OR sta.schoolClass.track.id IN :trackIds) AND " +
+           "(:hasDeptFilter = false OR s.department IN :deptNames OR cta.schoolClass.department.name IN :deptNames OR sta.schoolClass.department.name IN :deptNames) AND " +
+           "(:hasClassFilter = false OR cta.schoolClass.id IN :classIds OR sta.schoolClass.id IN :classIds))")
+    fun findByFilter(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("hasTrackFilter") hasTrackFilter: Boolean,
+        @Param("trackIds") trackIds: List<UUID>?,
+        @Param("hasDeptFilter") hasDeptFilter: Boolean,
+        @Param("deptNames") deptNames: List<String>?,
+        @Param("hasClassFilter") hasClassFilter: Boolean,
+        @Param("classIds") classIds: List<UUID>?
+    ): List<Staff>
+
     @Query("SELECT DISTINCT s FROM Staff s LEFT JOIN FETCH s.user WHERE s.schoolId = :schoolId AND s.isActive = :isActive ORDER BY s.user.firstName")
     fun findBySchoolIdAndIsActiveWithTeacherAssignments(
         @Param("schoolId") schoolId: UUID,

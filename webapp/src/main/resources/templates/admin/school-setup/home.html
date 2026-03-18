@@ -97,31 +97,6 @@
                     </a>
                 </div>
 
-                <div class="status-card" th:classappend="${setupProgress.steps.landingPage} ? 'completed' : ''">
-                    <div class="status-icon">🌐</div>
-                    <div class="status-info">
-                        <h3>Landing Page</h3>
-                        <p th:if="${setupProgress.steps.landingPage}">Completed</p>
-                        <p th:unless="${setupProgress.steps.landingPage}">Pending</p>
-                    </div>
-                    <a th:href="@{/admin/school-setup/landing-page}" class="btn btn-sm btn-outline">
-                        <span th:if="${setupProgress.steps.landingPage}">Manage</span>
-                        <span th:unless="${setupProgress.steps.landingPage}">Start</span>
-                    </a>
-                </div>
-
-                <div class="status-card" th:classappend="${setupProgress.steps.customDomain} ? 'completed' : ''">
-                    <div class="status-icon">🌍</div>
-                    <div class="status-info">
-                        <h3>Custom Domain</h3>
-                        <p th:if="${setupProgress.steps.customDomain}">Connected</p>
-                        <p th:unless="${setupProgress.steps.customDomain}">Not Connected</p>
-                    </div>
-                    <a th:href="@{/admin/school-setup/custom-domain}" class="btn btn-sm btn-outline">
-                        <span th:if="${setupProgress.steps.customDomain}">Manage</span>
-                        <span th:unless="${setupProgress.steps.customDomain}">Connect</span>
-                    </a>
-                </div>
             </div>
 
             <div class="completion-section" th:if="${setupProgress.progressPercentage == 100}">

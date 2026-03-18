@@ -746,8 +746,9 @@
         </style>
 
         <div class="header-container">
-            <!-- Hamburger Menu for Mobile -->
-            <button class="hamburger-menu" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
+            <!-- Hamburger Menu for Mobile (Admin/Student only) -->
+            <button class="hamburger-menu" onclick="toggleMobileSidebar()" aria-label="Toggle Menu"
+                th:if="${isStaff != true && isParent != true}">
                 <i class="fas fa-bars"></i>
             </button>
 
@@ -856,8 +857,10 @@
                     </div>
                 </div>
 
-                <!-- Student & Parent Context Badges (Read-Only) -->
-                <div class="context-toolbar" th:if="${isParent == true || isStudent == true}" style="padding: 0;">
+                <!-- Student, Parent & Staff Context Badges (Read-Only) -->
+                <div class="context-toolbar"
+                    th:if="${(isParent == true || isStudent == true || isStaff == true) && isSchoolAdmin != true}"
+                    style="padding: 0;">
                     <!-- Session Badge -->
                     <div class="term-info-badge" th:if="${headerContextSession != null}"
                         style="border: none; box-shadow: none; background: transparent; padding: 0 0.5rem;">

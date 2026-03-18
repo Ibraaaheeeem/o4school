@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam
 class SubscriptionController(
     private val subscriptionService: SubscriptionService,
     private val usageLogRepository: ServiceUsageLogRepository,
+    private val bankService: com.haneef._school.service.BankService,
     @org.springframework.beans.factory.annotation.Value("\${paystack.public.key:}") private val paystackPublicKey: String,
     @org.springframework.beans.factory.annotation.Value("\${squad.public.key:}") private val squadPublicKey: String,
     @org.springframework.beans.factory.annotation.Value("\${WHATSAPP_SUB_RATE:500}") private val whatsappSubRate: Long,
@@ -57,8 +58,24 @@ class SubscriptionController(
         model.addAttribute("usageLogs", usageLogs)
         model.addAttribute("currentPage", page)
         model.addAttribute("totalPages", usageLogs.totalPages)
+        model.addAttribute("banks", bankService.getAllBanks())
 
         return "admin/school-setup/subscriptions"
+    }
+
+
+    @GetMapping("/banks/verify")
+    @org.springframework.web.bind.annotation.ResponseBody
+    fun verifyBank(
+        @RequestParam bankCode: String,
+        @RequestParam accountNumber: String
+    ): org.springframework.http.ResponseEntity<Map<String, Any>> {
+        val accountName = bankService.resolveAccountNumber(accountNumber, bankCode)
+        return if (accountName != null) {
+            org.springframework.http.ResponseEntity.ok(mapOf("success" to true, "accountName" to accountName))
+        } else {
+            org.springframework.http.ResponseEntity.ok(mapOf("success" to false, "message" to "Verification failed. Please check the details."))
+        }
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/fee-collection")

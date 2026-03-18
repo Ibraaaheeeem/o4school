@@ -169,6 +169,9 @@ class ParentDashboardController(
             model.addAttribute("providers", providers)
         }
         
+        val financialStatus = financialService.calculateParentFinancialStatus(parent)
+        model.addAttribute("financialStatus", financialStatus)
+        
         val financialData = financialService.getFeeBreakdown(parent)
         
         var children = parent.activeStudentRelationships.map { it.student }
@@ -191,10 +194,23 @@ class ParentDashboardController(
         }
         
         model.addAttribute("children", children)
-        model.addAttribute("totalFees", financialData["totalFees"])
-        model.addAttribute("totalSettled", financialData["totalSettled"])
-        model.addAttribute("balance", financialData["balance"])
-        model.addAttribute("feeBreakdown", financialData["feeBreakdown"])
+        model.addAttribute("totalFees", financialStatus.totalOwed)
+        model.addAttribute("totalSettled", financialStatus.totalPaid)
+        model.addAttribute("balance", financialStatus.balance)
+        
+        // Enrich feeBreakdown with specific status data for UI
+        val statusByStudent = financialStatus.students.associateBy { it.studentId }
+        val enrichedBreakdown = (financialData["feeBreakdown"] as List<Map<String, Any>>).map { item ->
+            val studentUuidStr = item["studentUuid"] as? String
+            val studentUuid = try { studentUuidStr?.let { UUID.fromString(it) } } catch (e: Exception) { null }
+            val status = if (studentUuid != null) statusByStudent[studentUuid] else null
+            item + mapOf(
+                "currentBillStatus" to (status?.currentBill ?: java.math.BigDecimal.ZERO),
+                "outstandingStatus" to (status?.outstanding ?: java.math.BigDecimal.ZERO),
+                "totalBalanceStatus" to (status?.currentBalance ?: java.math.BigDecimal.ZERO)
+            )
+        }
+        model.addAttribute("feeBreakdown", enrichedBreakdown)
         model.addAttribute("paystackPublicKey", paystackPublicKey)
         model.addAttribute("squadPublicKey", squadPublicKey)
         
@@ -416,11 +432,11 @@ class ParentDashboardController(
              return "fragments/error :: error-message"
         }
         
-        logger.info("Toggle Fee: student=$studentId, feeItem=$feeItemId, optedIn=$optedIn, classFeeItemLocked=${classFeeItem.isLocked}")
+        logger.info("Toggle Fee: student=$studentId, feeItem=$feeItemId, optedIn=$optedIn")
 
         // Get existing selection
         val selection = studentOptionalFeeRepository.findByStudentIdAndClassFeeItemId(studentId, feeItemId)
-        logger.info("Current selection: $selection, isActive=${selection?.isActive}, selectionLocked=${selection?.isLocked}")
+        logger.info("Current selection: $selection, isActive=${selection?.isActive}")
         
         // Get current academic session and term for the school
         val currentAcademicSession = academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(student.schoolId!!, true)
@@ -433,7 +449,7 @@ class ParentDashboardController(
         logger.info("Using current session: ${currentAcademicSession?.sessionName}, current term: ${currentTerm?.termName}")
 
         // Check if the fee item or selection is locked
-        val isLocked = classFeeItem.isLocked || (selection?.isLocked == true)
+        val isLocked = selection?.isLocked == true
         
         if (isLocked) {
             if (!optedIn) {

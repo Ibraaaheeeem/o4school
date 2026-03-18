@@ -22,51 +22,37 @@ class BroadcastService(
     fun getDetailedRecipients(filter: BroadcastRecipientFilter, schoolId: UUID): List<BroadcastRecipientDTO> {
         val recipients = mutableListOf<BroadcastRecipientDTO>()
 
-        // 1. Filtered Recipients
-        if (filter.recipientType == "ALL" || filter.recipientType == "STAFF") {
-            recipients.addAll(getStaffDetailed(filter, schoolId))
-        }
+        // 1. Filtered Recipients (Only added if addAll is true)
+        if (filter.addAll) {
+            if (filter.recipientType == "ALL" || filter.recipientType == "STAFF") {
+                recipients.addAll(getStaffDetailed(filter, schoolId))
+            }
 
-        if (filter.recipientType == "ALL" || filter.recipientType == "PARENTS") {
-            recipients.addAll(getParentDetailed(filter, schoolId))
-        }
-
-        if (filter.recipientType == "STUDENTS") {
-            recipients.addAll(getStudentDetailed(filter, schoolId))
+            if (filter.recipientType == "ALL" || filter.recipientType == "PARENTS") {
+                recipients.addAll(getParentDetailed(filter, schoolId))
+            }
         }
 
         // 2. Manual Recipients (if not already included)
         if (filter.manualUserIds.isNotEmpty()) {
-            val existingIds = recipients.map { it.userId }.toSet()
+            val existingIds = recipients.map { it.userId }.toMutableSet()
             val missingIds = filter.manualUserIds.filter { it !in existingIds }
             
             missingIds.forEach { userId ->
-                // Check Staff
-                staffRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { staff ->
-                    recipients.add(staff.toDTO())
+                // Check Staff - only if broadcast is for STAFF or ALL
+                if (filter.recipientType == "ALL" || filter.recipientType == "STAFF") {
+                    staffRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { staff ->
+                        recipients.add(staff.toDTO())
+                        existingIds.add(userId)
+                    }
                 }
-                // Check Parents
-                parentRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { parent ->
-                    recipients.add(parent.toDTO())
-                }
-                // Check Students
-                studentRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { student ->
-                    recipients.add(student.toDTO())
-                }
-            }
-        }
-
-        // 3. Manual Phone Numbers (Unregistered)
-        if (filter.manualPhoneNumbers.isNotEmpty()) {
-            filter.manualPhoneNumbers.forEach { phone ->
-                if (recipients.none { it.phoneNumber == phone }) {
-                    recipients.add(BroadcastRecipientDTO(
-                        userId = UUID.nameUUIDFromBytes(phone.toByteArray()), // Deterministic UUID for the phone number
-                        name = "Manual: $phone",
-                        phoneNumber = phone,
-                        roles = listOf("Manual"),
-                        type = "MANUAL"
-                    ))
+                
+                // Check Parents - only if broadcast is for PARENTS or ALL, AND not already added as staff
+                if (userId !in existingIds && (filter.recipientType == "ALL" || filter.recipientType == "PARENTS")) {
+                    parentRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { parent ->
+                        recipients.add(parent.toDTO())
+                        existingIds.add(userId)
+                    }
                 }
             }
         }
@@ -82,19 +68,13 @@ class BroadcastService(
 
         // Search Staff
         if (recipientType == null || recipientType == "ALL" || recipientType == "STAFF") {
-            staffRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
+            staffRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query)
                 .forEach { results.add(it.toDTO()) }
         }
 
         // Search Parents
         if (recipientType == null || recipientType == "ALL" || recipientType == "PARENTS") {
-            parentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
-                .forEach { results.add(it.toDTO()) }
-        }
-
-        // Search Students
-        if (recipientType == null || recipientType == "ALL" || recipientType == "STUDENTS") {
-            studentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query, org.springframework.data.domain.PageRequest.of(0, 10))
+            parentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query)
                 .forEach { results.add(it.toDTO()) }
         }
 
@@ -102,104 +82,64 @@ class BroadcastService(
     }
 
     private fun getStaffDetailed(filter: BroadcastRecipientFilter, schoolId: UUID): List<BroadcastRecipientDTO> {
-        var staffList = staffRepository.findBySchoolIdAndIsActive(schoolId, true)
-
-        if (filter.trackIds.isNotEmpty()) {
-            staffList = staffList.filter { staff ->
-                staff.classTeacherAssignments.any { it.schoolClass.track?.id in filter.trackIds } ||
-                staff.subjectTeacherAssignments.any { it.schoolClass.track?.id in filter.trackIds }
-            }
-        }
-
-        if (filter.departmentNames.isNotEmpty()) {
-            staffList = staffList.filter { staff ->
-                staff.department in filter.departmentNames ||
-                staff.classTeacherAssignments.any { it.schoolClass.department?.name in filter.departmentNames } ||
-                staff.subjectTeacherAssignments.any { it.schoolClass.department?.name in filter.departmentNames }
-            }
-        }
-
-        if (filter.classIds.isNotEmpty()) {
-            staffList = staffList.filter { staff ->
-                staff.classTeacherAssignments.any { it.schoolClass.id in filter.classIds } ||
-                staff.subjectTeacherAssignments.any { it.schoolClass.id in filter.classIds }
-            }
-        }
-
-        return staffList.map { it.toDTO() }
+        return staffRepository.findByFilter(
+            schoolId = schoolId,
+            isActive = true,
+            hasTrackFilter = filter.trackIds.isNotEmpty(),
+            trackIds = filter.trackIds.ifEmpty { null },
+            hasDeptFilter = filter.departmentNames.isNotEmpty(),
+            deptNames = filter.departmentNames.ifEmpty { null },
+            hasClassFilter = filter.classIds.isNotEmpty(),
+            classIds = filter.classIds.ifEmpty { null }
+        ).map { staff: Staff -> staff.toDTO() }
     }
 
     private fun getParentDetailed(filter: BroadcastRecipientFilter, schoolId: UUID): List<BroadcastRecipientDTO> {
-        val parents = parentRepository.findBySchoolIdAndIsActiveWithRelationships(schoolId, true)
+        val parents = parentRepository.findByFilter(
+            schoolId = schoolId,
+            isActive = true,
+            hasClassFilter = filter.classIds.isNotEmpty(),
+            classIds = filter.classIds.ifEmpty { null },
+            hasTrackFilter = filter.trackIds.isNotEmpty(),
+            trackIds = filter.trackIds.ifEmpty { null },
+            hasDeptFilter = filter.departmentNames.isNotEmpty(),
+            deptNames = filter.departmentNames.ifEmpty { null },
+            studentGender = filter.studentGender,
+            studentStatus = filter.studentStatus,
+            isNew = filter.studentStatus == "NEW"
+        )
         
         return parents.filter { parent ->
-            val children = parent.studentRelationships.map { it.student }.filter { it.isActive }
-            if (children.isEmpty()) return@filter false
-
-            val matchesClass = if (filter.classIds.isNotEmpty()) {
-                children.any { student ->
-                    student.classEnrollments.any { it.isActive && it.schoolClass.id in filter.classIds }
-                }
-            } else true
-
-            val matchesTrack = if (filter.trackIds.isNotEmpty()) {
-                children.any { student ->
-                    student.classEnrollments.any { it.isActive && it.schoolClass.track?.id in filter.trackIds }
-                }
-            } else true
-
-            val matchesDept = if (filter.departmentNames.isNotEmpty()) {
-                children.any { student ->
-                    student.classEnrollments.any { it.isActive && it.schoolClass.department?.name in filter.departmentNames }
-                }
-            } else {
-                true
-            }
-
-            val matchesGender = if (filter.studentGender != "ANY") {
-                children.any { it.user.gender == filter.studentGender }
-            } else true
-
-            val matchesStatus = if (filter.studentStatus != "ANY") {
-                val isNewTarget = filter.studentStatus == "NEW"
-                children.any { it.isNew == isNewTarget }
-            } else true
-
-            val matchesFees = when (filter.feeStatus) {
-                "OWING" -> financialService.calculateParentBalance(parent) > BigDecimal.ZERO
-                "COMPLETED" -> financialService.calculateParentBalance(parent) <= BigDecimal.ZERO
+            val status = financialService.calculateParentFinancialStatus(parent)
+            
+            // 1. Basic Fee Status Filter
+            val matchesFeeStatus = when (filter.feeStatus) {
+                "OWING" -> status.balance > BigDecimal.ZERO
+                "COMPLETED" -> status.balance <= BigDecimal.ZERO
                 else -> true
             }
-
-            matchesClass && matchesTrack && matchesDept && matchesGender && matchesStatus && matchesFees
+            if (!matchesFeeStatus) return@filter false
+            
+            // 2. Amount Owed Filter
+            filter.minAmountOwed?.let { if (status.balance < it) return@filter false }
+            filter.maxAmountOwed?.let { if (status.balance > it) return@filter false }
+            
+            // 3. Percentage Owed Filter
+            if (filter.minFeePercentage != null || filter.maxFeePercentage != null) {
+                val percentage = if (status.totalOwed > BigDecimal.ZERO) {
+                    status.balance.multiply(BigDecimal(100)).divide(status.totalOwed, 2, java.math.RoundingMode.HALF_UP).toDouble()
+                } else {
+                    0.0
+                }
+                filter.minFeePercentage?.let { if (percentage < it) return@filter false }
+                filter.maxFeePercentage?.let { if (percentage > it) return@filter false }
+            }
+            
+            true
         }.map { it.toDTO() }
     }
 
-    private fun getStudentDetailed(filter: BroadcastRecipientFilter, schoolId: UUID): List<BroadcastRecipientDTO> {
-        val students = studentRepository.findBySchoolIdAndIsActive(schoolId, true)
-        
-        return students.filter { student ->
-            val matchesClass = if (filter.classIds.isNotEmpty()) {
-                student.classEnrollments.any { it.isActive && it.schoolClass.id in filter.classIds }
-            } else true
-
-            val matchesTrack = if (filter.trackIds.isNotEmpty()) {
-                student.classEnrollments.any { it.isActive && it.schoolClass.track?.id in filter.trackIds }
-            } else true
-
-            val matchesGender = if (filter.studentGender != "ANY") {
-                student.user.gender == filter.studentGender
-            } else true
-
-            val matchesStatus = if (filter.studentStatus != "ANY") {
-                val isNewTarget = filter.studentStatus == "NEW"
-                student.isNew == isNewTarget
-            } else true
-
-            matchesClass && matchesTrack && matchesGender && matchesStatus
-        }.map { it.toDTO() }
-    }
-
+    
     private fun Staff.toDTO(): BroadcastRecipientDTO {
         val roles = mutableListOf("Staff")
         if (this.classTeacherAssignments.isNotEmpty()) roles.add("Class Teacher")
@@ -209,8 +149,8 @@ class BroadcastService(
             userId = this.user.id!!,
             name = "${this.user.firstName} ${this.user.lastName}",
             phoneNumber = this.user.phoneNumber,
-            roles = roles,
-            type = "STAFF"
+            type = "STAFF",
+            roles = roles
         )
     }
 
@@ -219,18 +159,8 @@ class BroadcastService(
             userId = this.user.id!!,
             name = "${this.user.firstName} ${this.user.lastName}",
             phoneNumber = this.user.phoneNumber,
-            roles = listOf("Parent"),
-            type = "PARENT"
-        )
-    }
-
-    private fun Student.toDTO(): BroadcastRecipientDTO {
-        return BroadcastRecipientDTO(
-            userId = this.user.id!!,
-            name = "${this.user.firstName} ${this.user.lastName}",
-            phoneNumber = this.user.phoneNumber,
-            roles = listOf("Student"),
-            type = "STUDENT"
+            type = "PARENT",
+            roles = listOf("Parent")
         )
     }
 }

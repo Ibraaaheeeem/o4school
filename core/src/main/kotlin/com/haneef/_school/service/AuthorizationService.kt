@@ -18,7 +18,9 @@ class AuthorizationService(
     private val academicSessionRepository: AcademicSessionRepository,
     private val termRepository: TermRepository,
     private val departmentRepository: DepartmentRepository,
-    private val educationTrackRepository: EducationTrackRepository
+    private val educationTrackRepository: EducationTrackRepository,
+    private val classFeeItemRepository: ClassFeeItemRepository,
+    private val studentOptionalFeeRepository: StudentOptionalFeeRepository
 ) {
 
     /**
@@ -61,16 +63,7 @@ class AuthorizationService(
             .orElseThrow { RuntimeException("Staff not found or unauthorized access") }
     }
 
-    /**
-     * Validates and retrieves a subject ensuring it belongs to the specified school
-     */
-    fun validateAndGetSubject(subjectId: UUID, schoolId: UUID): Subject {
-        // Subjects are now global, so we don't validate school ownership
-        return subjectRepository.findById(subjectId)
-            .filter { it.isActive }
-            .orElseThrow { RuntimeException("Subject not found or inactive") }
-    }
-
+    
     /**
      * Validates and retrieves a school class ensuring it belongs to the specified school
      */
@@ -128,6 +121,16 @@ class AuthorizationService(
     }
 
     /**
+     * Validates and retrieves a subject ensuring it belongs to the specified school
+     */
+    fun validateAndGetSubject(subjectId: UUID, schoolId: UUID): Subject {
+        // Subjects are currently global, so schoolId validation is minimal.
+        // If subjects become school-specific in the future, add appropriate repository call here.
+        return subjectRepository.findById(subjectId)
+            .orElseThrow { RuntimeException("Subject not found or unauthorized access") }
+    }
+
+    /**
      * Validates that a parent has access to a specific student
      */
     fun validateParentStudentAccess(parentId: UUID, studentId: UUID, schoolId: UUID): Boolean {
@@ -137,5 +140,21 @@ class AuthorizationService(
         return parent.activeStudentRelationships.any { 
             it.student.id == studentId && it.isActive 
         }
+    }
+
+    /**
+     * Validates and retrieves a class fee item ensuring it belongs to the specified school
+     */
+    fun validateAndGetClassFeeItem(cfiId: UUID, schoolId: UUID): ClassFeeItem {
+        return classFeeItemRepository.findByIdAndSchoolIdSecure(cfiId, schoolId)
+            .orElseThrow { RuntimeException("Class fee item not found or unauthorized access") }
+    }
+
+    /**
+     * Validates and retrieves a student optional fee ensuring it belongs to the specified school
+     */
+    fun validateAndGetStudentOptionalFee(sofId: UUID, schoolId: UUID): StudentOptionalFee {
+        return studentOptionalFeeRepository.findByIdAndSchoolIdSecure(sofId, schoolId)
+            .orElseThrow { RuntimeException("Student optional fee not found or unauthorized access") }
     }
 }

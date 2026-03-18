@@ -27,7 +27,8 @@ class InternalMessagingController(
     private val schoolClassRepository: SchoolClassRepository,
     private val departmentRepository: DepartmentRepository,
     private val whatsappMessageRepository: WhatsAppMessageRepository,
-    private val smsMessageRepository: SmsMessageRepository
+    private val smsMessageRepository: SmsMessageRepository,
+    private val activityLogService: ActivityLogService
 ) {
 
     @GetMapping
@@ -101,7 +102,7 @@ class InternalMessagingController(
     @PostMapping("/threads")
     @ResponseBody
     fun createThread(
-        @RequestParam subject: String,
+        @RequestParam(required = false) subject: String?,
         @RequestParam recipientId: UUID,
         @RequestParam content: String,
         session: HttpSession,
@@ -114,6 +115,15 @@ class InternalMessagingController(
         
         return try {
             val thread = messagingService.createThread(subject, user.id!!, recipientId, selectedSchoolId, content)
+            
+            // Log the activity
+            val userRole = (session.getAttribute("selectedRole") as? String) ?: "USER"
+            val recipient = userRepository.findById(recipientId).orElse(null)
+            val recipientName = recipient?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown"
+            activityLogService.logInternalMessageSent(
+                selectedSchoolId, user.id!!, userRole, recipientName, content
+            )
+
             ResponseEntity.ok(mapOf<String, Any>("success" to true, "threadId" to (thread.id ?: "")))
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(mapOf<String, Any>("success" to false, "message" to (e.message ?: "Unknown error")))
@@ -129,9 +139,18 @@ class InternalMessagingController(
         @AuthenticationPrincipal userDetails: UserDetails
     ): ResponseEntity<Map<String, Any>> {
         val user = userRepository.findByEmailIgnoreCase(userDetails.username) ?: return ResponseEntity.badRequest().build()
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return ResponseEntity.badRequest().build()
         
         return try {
             messagingService.replyToThread(threadId, user.id!!, content)
+            
+            // Log the activity
+            val userRole = (session.getAttribute("selectedRole") as? String) ?: "USER"
+            // We'll just log that a reply was sent to the thread
+            activityLogService.logInternalMessageSent(
+                selectedSchoolId, user.id!!, userRole, "Thread: $threadId", content
+            )
+
             ResponseEntity.ok(mapOf<String, Any>("success" to true))
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(mapOf<String, Any>("success" to false, "message" to (e.message ?: "Unknown error")))
@@ -200,7 +219,7 @@ class InternalMessagingController(
         session: HttpSession
     ): List<Map<String, Any>> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
-        val templates = templateService.getBroadcastTemplates(selectedSchoolId, recipientType)
+        val templates = templateService.getBroadcastTemplates(recipientType)
         
         return templates.map { template ->
             mapOf(
@@ -220,7 +239,7 @@ class InternalMessagingController(
     @ResponseBody
     fun sendBroadcast(
         @ModelAttribute filter: com.haneef._school.dto.BroadcastRecipientFilter,
-        @RequestParam(value = "subject", required = true) subject: String,
+        @RequestParam(value = "subject", required = false) subject: String?,
         @RequestParam(value = "templateName", required = false) templateName: String?,
         @RequestParam(value = "message", required = false) message: String?,
         session: HttpSession,
@@ -251,11 +270,18 @@ class InternalMessagingController(
                 schoolId = selectedSchoolId,
                 senderId = user.id!!,
                 subject = subject,
-                content = message,
+                content = message ?: "",
                 templateName = templateName,
                 recipients = recipients,
                 extraParams = extraParams
             )
+            
+            // Log the activity
+            val userRole = (session.getAttribute("selectedRole") as? String) ?: "USER"
+            activityLogService.logInternalMessageSent(
+                selectedSchoolId, user.id!!, userRole, "${recipients.size} recipients", message ?: "[Broadcast]"
+            )
+
             ResponseEntity.ok(mapOf("success" to true, "count" to sentCount))
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(mapOf("success" to false, "message" to (e.message ?: "Unknown error")))

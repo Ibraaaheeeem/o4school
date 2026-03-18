@@ -162,47 +162,7 @@
                         </div>
                     </div>
 
-                    <div class="form-section">
-                        <h3>Bank Account Details</h3>
-                        <p class="section-description">This information will be used for school reimbursements.</p>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="bankCode">Bank Name</label>
-                                <select id="bankCode" name="bankCode" class="form-input"
-                                    onchange="checkAccountDetails()">
-                                    <option value="">Select Bank</option>
-                                    <option th:each="bank : ${banks}" th:value="${bank.code}" th:text="${bank.name}"
-                                        th:selected="${bankAccount.bankCode == bank.code}">
-                                        Bank Name
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="accountNumber">Account Number</label>
-                                <input type="text" id="accountNumber" name="accountNumber"
-                                    th:value="${bankAccount.accountNumber}" class="form-input" maxlength="10"
-                                    minlength="10" pattern="\d{10}" oninput="checkAccountDetails()" />
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="accountName">Account Name</label>
-                            <div style="position: relative;">
-                                <input type="text" id="accountName" name="accountName"
-                                    th:value="${bankAccount.accountName}" class="form-input" readonly
-                                    style="background-color: #f3f4f6;" />
-                                <div id="accountLoading"
-                                    style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">
-                                    <span class="spinner"
-                                        style="width: 16px; height: 16px; border: 2px solid #ccc; border-top-color: #4f46e5; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite;"></span>
-                                </div>
-                            </div>
-                            <p id="accountError"
-                                style="color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></p>
-                        </div>
-                    </div>
 
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Save & Continue</button>
@@ -227,42 +187,7 @@
     </style>
 
     <script>
-        function checkAccountDetails() {
-            const bankCode = document.getElementById('bankCode').value;
-            const accountNumber = document.getElementById('accountNumber').value;
-            const accountNameField = document.getElementById('accountName');
-            const loadingIndicator = document.getElementById('accountLoading');
-            const errorText = document.getElementById('accountError');
 
-            if (bankCode && accountNumber.length === 10) {
-                loadingIndicator.style.display = 'block';
-                errorText.style.display = 'none';
-                accountNameField.value = 'Resolving...';
-
-                fetch(`/admin/school-setup/resolve-bank-account?accountNumber=${accountNumber}&bankCode=${bankCode}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        loadingIndicator.style.display = 'none';
-                        if (data.status) {
-                            accountNameField.value = data.accountName;
-                        } else {
-                            accountNameField.value = '';
-                            errorText.textContent = data.message || 'Could not resolve account name';
-                            errorText.style.display = 'block';
-                        }
-                    })
-                    .catch(error => {
-                        loadingIndicator.style.display = 'none';
-                        accountNameField.value = '';
-                        errorText.textContent = 'Error connecting to server';
-                        errorText.style.display = 'block';
-                        console.error('Error:', error);
-                    });
-            } else if (accountNumber.length < 10) {
-                accountNameField.value = '';
-                errorText.style.display = 'none';
-            }
-        }
 
         let slugTimeout = null;
         function verifySlugAvailability() {

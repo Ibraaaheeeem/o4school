@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository
 @Repository
 interface DepartmentRepository : JpaRepository<Department, UUID>, SecureDepartmentRepository {
     
+    
     fun findBySchoolIdAndIsActive(schoolId: UUID, isActive: Boolean): List<Department>
     
     fun countBySchoolIdAndIsActive(schoolId: UUID, isActive: Boolean): Long

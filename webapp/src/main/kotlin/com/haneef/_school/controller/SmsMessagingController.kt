@@ -34,6 +34,7 @@ class SmsMessagingController(
     private val templateParameterResolver: TemplateParameterResolver,
     private val subscriptionService: SubscriptionService,
     private val internalMessagingService: InternalMessagingService,
+    private val activityLogService: ActivityLogService,
     @org.springframework.beans.factory.annotation.Value("\${paystack.public.key:}") private val paystackPublicKey: String,
     @org.springframework.beans.factory.annotation.Value("\${squad.public.key:}") private val squadPublicKey: String,
     @org.springframework.beans.factory.annotation.Value("\${SMS_SUB_RATE:5}") private val smsSubRate: Long
@@ -153,6 +154,14 @@ class SmsMessagingController(
             userId = currentUser.id!!,
             user = currentUser
         )
+        
+        if (success) {
+            val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+            activityLogService.logSmsSent(
+                selectedSchoolId, currentUser.id!!, userRole, recipient, message
+            )
+        }
+        
         return mapOf("success" to success)
     }
 
@@ -184,7 +193,7 @@ class SmsMessagingController(
         session: HttpSession
     ): List<Map<String, Any>> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
-        return whatsappTemplateService.getBroadcastTemplates(selectedSchoolId, recipientType, "SMS").map { template ->
+        return whatsappTemplateService.getBroadcastTemplates(recipientType, "SMS").map { template ->
             mapOf(
                 "name" to template.templateName,
                 "language" to template.language,
@@ -195,6 +204,68 @@ class SmsMessagingController(
                 "components" to (template.componentsJson ?: "[]"),
                 "target_role" to template.targetRole
             )
+        }
+    }
+
+    @PostMapping("/broadcast/test")
+    @ResponseBody
+    fun sendTestBroadcast(
+        @RequestParam(value = "templateName", required = false) templateName: String?,
+        @RequestParam(value = "message", required = false) message: String?,
+        @RequestParam("testPhone") testPhone: String,
+        request: jakarta.servlet.http.HttpServletRequest,
+        session: HttpSession,
+        authentication: Authentication
+    ): Map<String, Any> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("success" to false, "error" to "No school selected")
+        val currentUser = userRepository.findByEmail(authentication.name).orElseThrow()
+        
+        val paramMap = request.parameterMap
+        val namedManualParams = mutableMapOf<String, String>()
+        paramMap.keys.filter { it.startsWith("manualParam_") }.forEach { key ->
+            namedManualParams[key.substringAfter("manualParam_")] = paramMap[key]?.firstOrNull() ?: ""
+        }
+
+        val template = if (!templateName.isNullOrBlank()) {
+            whatsappTemplateService.getBroadcastTemplates().find { it.templateName == templateName }
+        } else null
+
+        return try {
+            var content = message ?: ""
+            if (!templateName.isNullOrBlank() && template != null) {
+                val resolvedParams = templateParameterResolver.resolveAllParameters(currentUser, selectedSchoolId, template, namedManualParams)
+                val bodyText = template.componentsJson?.let { json ->
+                    val mapper = jacksonObjectMapper()
+                    val components = mapper.readValue<List<Map<String, Any>>>(json)
+                    var text = components.find { c -> c["type"] == "BODY" }?.get("text") as? String ?: ""
+                    resolvedParams.forEach { param ->
+                        val pName = param["parameter_name"] as? String ?: ""
+                        if (pName.isNotBlank()) {
+                            text = text.replace("{{$pName}}", param["text"] as? String ?: "")
+                        }
+                    }
+                    resolvedParams.forEachIndexed { index, param ->
+                        text = text.replace("{{${index + 1}}}", param["text"] as? String ?: "")
+                    }
+                    text
+                } ?: ""
+                content = bodyText
+            }
+
+            if (content.isNotBlank()) {
+                val success = smsMessagingService.sendSms(
+                    to = testPhone,
+                    content = content,
+                    schoolId = selectedSchoolId,
+                    userId = currentUser.id!!,
+                    user = currentUser
+                )
+                mapOf("success" to success)
+            } else {
+                mapOf("success" to false, "error" to "Empty message")
+            }
+        } catch (e: Exception) {
+            mapOf("success" to false, "error" to (e.message ?: "Unknown error"))
         }
     }
 
@@ -216,7 +287,7 @@ class SmsMessagingController(
         val subscription = subscriptionService.getSubscription(selectedSchoolId)
         
         val template = if (!templateName.isNullOrBlank()) {
-            whatsappTemplateService.getBroadcastTemplates(selectedSchoolId).find { it.templateName == templateName }
+            whatsappTemplateService.getBroadcastTemplates().find { it.templateName == templateName }
         } else null
 
         val namedManualParams = mutableMapOf<String, String>()
@@ -287,7 +358,14 @@ class SmsMessagingController(
                     templateName = templateName,
                     broadcastId = broadcastId
                 )
-                if (success) messagesSuccessfullySent++
+                if (success) {
+                    messagesSuccessfullySent++
+                    // Log individual SMS in broadcast
+                    val userRole = (authentication.principal as CustomUserDetails).authorities.firstOrNull()?.authority ?: "USER"
+                    activityLogService.logSmsSent(
+                        selectedSchoolId, currentUser.id!!, userRole, phoneNumber, content
+                    )
+                }
             }
         }
         

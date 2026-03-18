@@ -327,8 +327,10 @@ class AssessmentController(
         model.addAttribute("isEdit", false)
         model.addAttribute("headerContextTerm", effectiveTerm)
         model.addAttribute("isCurrentTermSelected", effectiveTerm?.isCurrentTerm == true)
+        model.addAttribute("formAction", "/admin/assessments/examinations/save-htmx")
         
         return "admin/assessments/examination-modal"
+
     }
 
     @GetMapping("/examinations/{id}/modal")

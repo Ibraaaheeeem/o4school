@@ -9,9 +9,10 @@
         </div>
 
         <div class="modal-body">
-            <form th:hx-post="@{/admin/assessments/examinations/save-htmx}" hx-target="#messageContainer"
-                hx-swap="innerHTML" id="examinationForm"
-                th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+            <form
+                th:attr="hx-post=@{/admin/assessments/examinations/save-htmx}, hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                method="POST" hx-target="#messageContainer" hx-swap="innerHTML" id="examinationForm">
+
                 <input type="hidden" name="id" th:value="${examination.id}" th:if="${isEdit}">
 
                 <!-- Basic Information -->

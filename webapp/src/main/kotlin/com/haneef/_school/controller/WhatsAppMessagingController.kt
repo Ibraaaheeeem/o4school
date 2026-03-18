@@ -30,6 +30,7 @@ class WhatsAppMessagingController(
     private val templateParameterResolver: TemplateParameterResolver,
     private val subscriptionService: SubscriptionService,
     private val internalMessagingService: InternalMessagingService,
+    private val activityLogService: ActivityLogService,
     @org.springframework.beans.factory.annotation.Value("\${paystack.public.key:}") private val paystackPublicKey: String,
     @org.springframework.beans.factory.annotation.Value("\${squad.public.key:}") private val squadPublicKey: String,
     @org.springframework.beans.factory.annotation.Value("\${WHATSAPP_SUB_RATE:500}") private val whatsappSubRate: Long
@@ -177,7 +178,8 @@ class WhatsAppMessagingController(
     fun sendReply(
         @RequestParam("recipient") recipient: String,
         @RequestParam("message") message: String,
-        session: HttpSession
+        session: HttpSession,
+        authentication: org.springframework.security.core.Authentication
     ): Map<String, Any> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf<String, Any>("success" to false, "error" to "No school selected")
         
@@ -213,6 +215,15 @@ class WhatsAppMessagingController(
         }
             
         val success = whatsappService.sendTextMessage(recipient, message, user, selectedSchoolId)
+        
+        if (success) {
+            val userRole = (session.getAttribute("selectedRole") as? String) ?: "USER"
+            val currentUser = authentication.principal as CustomUserDetails
+            activityLogService.logWhatsAppSent(
+                selectedSchoolId, currentUser.user.id!!, userRole, recipient, message
+            )
+        }
+        
         return mapOf("success" to success)
     }
 
@@ -257,7 +268,7 @@ class WhatsAppMessagingController(
         session: HttpSession
     ): List<Map<String, Any>> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return emptyList()
-        val templates = templateService.getBroadcastTemplates(selectedSchoolId, recipientType, channel ?: "WHATSAPP")
+        val templates = templateService.getBroadcastTemplates(recipientType, channel ?: "WHATSAPP")
         
         return templates.map { template ->
             mapOf(
@@ -270,6 +281,57 @@ class WhatsAppMessagingController(
                 "components" to (template.componentsJson ?: "[]"),
                 "target_role" to template.targetRole
             )
+        }
+    }
+
+    @PostMapping("/broadcast/test")
+    @ResponseBody
+    fun sendTestBroadcast(
+        @RequestParam(value = "templateName", required = false) templateName: String?,
+        @RequestParam(value = "message", required = false) message: String?,
+        @RequestParam("testPhone") testPhone: String,
+        request: jakarta.servlet.http.HttpServletRequest,
+        session: HttpSession,
+        authentication: Authentication
+    ): Map<String, Any> {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("success" to false, "error" to "No school selected")
+        val currentUserEmail = authentication.name
+        val currentUser = userRepository.findByEmail(currentUserEmail).orElseThrow()
+        
+        val paramMap = request.parameterMap
+        val namedManualParams = mutableMapOf<String, String>()
+        paramMap.keys.filter { it.startsWith("manualParam_") }.forEach { key ->
+            namedManualParams[key.substringAfter("manualParam_")] = paramMap[key]?.firstOrNull() ?: ""
+        }
+
+        val template = if (!templateName.isNullOrBlank()) {
+            templateService.getAllTemplates().find { it.templateName == templateName }
+        } else null
+
+        return try {
+            if (!templateName.isNullOrBlank()) {
+                val components = if (template != null) {
+                    val resolved = templateParameterResolver.resolveAllParameters(currentUser, selectedSchoolId, template, namedManualParams)
+                    if (resolved.isNotEmpty()) listOf(mapOf("type" to "body", "parameters" to resolved)) else emptyList()
+                } else emptyList()
+
+                val success = whatsappService.sendTemplateMessage(
+                    to = testPhone,
+                    templateName = templateName,
+                    languageCode = template?.language ?: "en_GB",
+                    components = components,
+                    user = currentUser,
+                    schoolId = selectedSchoolId
+                )
+                mapOf("success" to success)
+            } else if (!message.isNullOrBlank()) {
+                val success = whatsappService.sendTextMessage(testPhone, message, user = currentUser, schoolId = selectedSchoolId)
+                mapOf("success" to success)
+            } else {
+                mapOf("success" to false, "error" to "Empty message")
+            }
+        } catch (e: Exception) {
+            mapOf("success" to false, "error" to (e.message ?: "Unknown error"))
         }
     }
 
@@ -294,7 +356,7 @@ class WhatsAppMessagingController(
         
         // Pre-fetch template mapping if applicable
         val template = if (!templateName.isNullOrBlank()) {
-            templateService.getAllTemplates(selectedSchoolId).find { it.templateName == templateName }
+            templateService.getAllTemplates().find { it.templateName == templateName }
         } else null
 
         val manualParams = mutableListOf<Map<String, Any>>()
@@ -364,9 +426,22 @@ class WhatsAppMessagingController(
                 broadcastId = broadcastId
             )
             messagesSuccessfullySent++
+            
+            // Log individual WhatsApp in broadcast
+            val userRole = (session.getAttribute("selectedRole") as? String) ?: "USER"
+            activityLogService.logWhatsAppSent(
+                selectedSchoolId, currentUser.id!!, userRole, phoneNumber, "[Template: $templateName]"
+            )
         } else if (!message.isNullOrBlank()) {
             val success = whatsappService.sendTextMessage(phoneNumber, message, user = user, schoolId = selectedSchoolId, broadcastId = broadcastId)
-            if (success) messagesSuccessfullySent++
+            if (success) {
+                messagesSuccessfullySent++
+                // Log individual WhatsApp in broadcast
+                val userRole = (session.getAttribute("selectedRole") as? String) ?: "USER"
+                activityLogService.logWhatsAppSent(
+                    selectedSchoolId, currentUser.id!!, userRole, phoneNumber, message
+                )
+            }
         }
     }
         
@@ -424,7 +499,7 @@ class WhatsAppMessagingController(
     @GetMapping("/templates")
     fun listTemplates(model: Model, session: HttpSession): String {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return "fragments/error :: error-message"
-        val templates = templateService.getAllTemplates(selectedSchoolId).filter { it.status == "APPROVED" }
+        val templates = templateService.getAllTemplates().filter { it.status == "APPROVED" }
         model.addAttribute("templates", templates)
         return "dashboard/messaging-fragments :: template-list"
     }
@@ -433,7 +508,7 @@ class WhatsAppMessagingController(
     @ResponseBody
     fun syncTemplates(session: HttpSession): Map<String, Any> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("success" to false)
-        val success = templateService.syncTemplates(selectedSchoolId)
+        val success = templateService.syncTemplates()
         return mapOf("success" to success)
     }
 
@@ -516,7 +591,7 @@ class WhatsAppMessagingController(
             components.add(mapOf("type" to "FOOTER", "text" to footerText))
         }
 
-        val success = templateService.createMetaTemplate(selectedSchoolId, name, category, language, components, mapping)
+        val success = templateService.createMetaTemplate(name, category, language, components, mapping)
         return mapOf("success" to success)
     }
 
@@ -524,7 +599,7 @@ class WhatsAppMessagingController(
     @ResponseBody
     fun deleteTemplate(@PathVariable id: UUID, session: HttpSession): Map<String, Any> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("success" to false)
-        val success = templateService.deleteMetaTemplate(selectedSchoolId, id)
+        val success = templateService.deleteMetaTemplate(id)
         return mapOf("success" to success)
     }
 }

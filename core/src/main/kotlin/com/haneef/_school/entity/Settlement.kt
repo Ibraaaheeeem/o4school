@@ -26,6 +26,10 @@ class Settlement(
     @JoinColumn(name = "squad_wallet_id")
     var squadWallet: SquadParentWallet? = null,
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    var parent: Parent? = null,
+
     @Column(name = "amount", nullable = false)
     var amount: BigDecimal,
 
@@ -70,6 +74,7 @@ class Settlement(
     constructor() : this(
         amount = BigDecimal.ZERO,
         reference = "",
-        status = ""
+        status = "",
+        parent = null
     )
 }

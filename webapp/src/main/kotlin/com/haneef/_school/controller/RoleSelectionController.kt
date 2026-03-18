@@ -1,6 +1,7 @@
 package com.haneef._school.controller
 
 import com.haneef._school.repository.SchoolRepository
+import com.haneef._school.service.ActivityLogService
 import com.haneef._school.service.CustomUserDetails
 import com.haneef._school.service.UserSchoolRoleService
 import jakarta.servlet.http.HttpServletRequest
@@ -18,7 +19,8 @@ import java.util.UUID
 @Controller
 class RoleSelectionController(
     private val userSchoolRoleService: UserSchoolRoleService,
-    private val schoolRepository: SchoolRepository
+    private val schoolRepository: SchoolRepository,
+    private val activityLogService: ActivityLogService
 ) {
     
     private val logger = LoggerFactory.getLogger(RoleSelectionController::class.java)
@@ -59,6 +61,9 @@ class RoleSelectionController(
                 request.session.setAttribute("selectedRoleId", userSchoolRole.role?.id)
                 request.session.setAttribute("selectedRole", userSchoolRole.role?.name)
                 
+                // Log login for single-school, single-role user during school selection
+                activityLogService.logUserLogin(schoolId, customUser.user, userSchoolRole.role?.name ?: "USER", request)
+                
                 val defaultRedirectUrl = getDefaultRedirectUrl(userSchoolRole.role?.name)
                 val targetUrl = getTargetUrlAfterRoleSelection(request, response, defaultRedirectUrl)
                 
@@ -86,6 +91,9 @@ class RoleSelectionController(
             request.session.setAttribute("selectedSchoolId", schoolId)
             request.session.setAttribute("selectedRole", "SYSTEM_ADMIN")
             
+            // Log System Admin login
+            activityLogService.logUserLogin(UUID.fromString("00000000-0000-0000-0000-000000000000"), customUser.user, "SYSTEM_ADMIN", request)
+            
             val defaultRedirectUrl = "/system-admin/dashboard"
             val targetUrl = getTargetUrlAfterRoleSelection(request, response, defaultRedirectUrl)
             
@@ -111,6 +119,9 @@ class RoleSelectionController(
             val userSchoolRole = userSchoolRoles.first()
             request.session.setAttribute("selectedRoleId", userSchoolRole.role?.id)
             request.session.setAttribute("selectedRole", userSchoolRole.role?.name)
+            
+            // Log login for single-role user during school selection
+            activityLogService.logUserLogin(schoolId, customUser.user, userSchoolRole.role?.name ?: "USER", request)
             
             val defaultRedirectUrl = getDefaultRedirectUrl(userSchoolRole.role?.name)
             val targetUrl = getTargetUrlAfterRoleSelection(request, response, defaultRedirectUrl)
@@ -163,6 +174,9 @@ class RoleSelectionController(
         // Set the selected role in session
         request.session.setAttribute("selectedRoleId", roleId)
         request.session.setAttribute("selectedRole", roleName)
+        
+        // Log login after role selection
+        activityLogService.logUserLogin(schoolId, customUser.user, roleName, request)
         
         val defaultRedirectUrl = getDefaultRedirectUrl(roleName)
         val targetUrl = getTargetUrlAfterRoleSelection(request, response, defaultRedirectUrl)

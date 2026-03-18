@@ -42,7 +42,7 @@
                                 </div>
                             </div>
                             <div class="class-actions" style="display: flex; gap: 5px;">
-                                <button type="button" class="btn btn-sm"
+                                <!-- <button type="button" class="btn btn-sm"
                                     th:classappend="${classFeeItem.isLocked ? 'btn-warning' : 'btn-secondary'}"
                                     th:hx-post="@{/admin/financial/fee-items/class-assignments/{id}/toggle-lock(id=${classFeeItem.id})}"
                                     th:hx-vals="'{&quot;locked&quot;: ' + (!classFeeItem.isLocked) + '}'"
@@ -50,7 +50,7 @@
                                     th:title="${classFeeItem.isLocked ? 'Unlock Fee' : 'Lock Fee'}">
                                     <i class="fas"
                                         th:classappend="${classFeeItem.isLocked ? 'fa-lock' : 'fa-lock-open'}"></i>
-                                </button>
+                                </button> -->
 
                                 <button type="button" class="btn btn-sm btn-danger"
                                     th:hx-post="@{/admin/financial/fee-items/class-assignments/{id}/remove(id=${classFeeItem.id})}"

@@ -7,7 +7,6 @@ import com.haneef._school.entity.SchoolClass
 import com.haneef._school.entity.AcademicSession
 import com.haneef._school.entity.Term
 import com.haneef._school.repository.ClassFeeItemRepository
-import com.haneef._school.repository.InvoiceRepository
 import com.haneef._school.repository.SettlementRepository
 import com.haneef._school.repository.StudentClassRepository
 import com.haneef._school.dto.PaymentAnalyticsDto
@@ -26,7 +25,6 @@ import java.util.UUID
 @Service
 open class FinancialService(
     private val classFeeItemRepository: ClassFeeItemRepository,
-    private val invoiceRepository: InvoiceRepository,
     private val settlementRepository: SettlementRepository,
     private val academicSessionRepository: com.haneef._school.repository.AcademicSessionRepository,
     private val termRepository: com.haneef._school.repository.TermRepository,
@@ -65,6 +63,7 @@ open class FinancialService(
             reimbursed = true // Manual settlements are not considered for reimbursement
         ).apply {
             this.schoolId = schoolId
+            this.parent = parent
             this.rawPayload = notes
         }
 
@@ -77,45 +76,184 @@ open class FinancialService(
     }
 
     @Transactional(readOnly = true)
-    open fun calculateParentBalance(parent: Parent): BigDecimal {
+    open fun calculateParentFinancialStatus(parent: Parent, sessionId: UUID? = null, termId: UUID? = null): ParentFinancialStatus {
         val schoolId = parent.schoolId!!
         val children = parent.studentRelationships.map { it.student }
         
-        // 1. Calculate Total Owed (All Time)
-        // Similar to TemplateParameterResolver, we calculate the higher of invoices vs fee structure PER STUDENT and sum them up
+        // Resolve Academic Context for "Current Bill"
+        val targetSession = if (sessionId != null) {
+            academicSessionRepository.findById(sessionId).orElse(null)
+        } else {
+            academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
+                ?: academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(schoolId, true).firstOrNull()
+        }
+        
+        val targetTerm = if (termId != null) {
+            termRepository.findById(termId).orElse(null)
+        } else {
+            targetSession?.let {
+                termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(schoolId, true, true).orElse(null)
+            }
+        }
+
+        // 1. Calculate Total Owed (All Time) and Student Debt data
         var totalOwedAllTime = BigDecimal.ZERO
+        val studentStatusList = mutableListOf<MutableMap<String, Any?>>()
         
         children.forEach { student ->
-            // Invoices for this student
-            val studentInvoices = invoiceRepository.findByStudentIdAndSchoolIdAndIsActive(student.id!!, schoolId, true)
-                .filter { it.status != com.haneef._school.entity.InvoiceStatus.DRAFT && it.status != com.haneef._school.entity.InvoiceStatus.CANCELLED }
-                
-            val invoiceTotal = studentInvoices.fold(BigDecimal.ZERO) { acc, inv ->
-                acc.add(BigDecimal.valueOf(inv.totalAmount.toLong(), 2))
+            // All Time Debt
+            val allTimeResult = calculateDetailedFees(student)
+            totalOwedAllTime = totalOwedAllTime.add(allTimeResult.total)
+            
+            // Current Term Bill (based on resolved context)
+            val currentBillResult = if (targetSession != null && targetTerm != null) {
+                calculateDetailedFees(student, targetSession.id!!, targetTerm.id!!)
+            } else {
+                DetailedFeeResult(BigDecimal.ZERO, emptyMap())
             }
-            
-            // Structure for this student
-            val structureTotal = calculateAllTimeFees(student)
-            
-            // Take the higher of the two ensuring we don't miss any debt for this specific child
-            totalOwedAllTime = totalOwedAllTime.add(invoiceTotal.max(structureTotal))
+
+            studentStatusList.add(mutableMapOf(
+                "studentId" to student.id!!,
+                "studentName" to student.user.fullName,
+                "allTimeFees" to allTimeResult.total,
+                "currentBill" to currentBillResult.total,
+                "currentBillBreakdown" to currentBillResult.breakdown,
+                "walletAllocated" to BigDecimal.ZERO,
+                "studentUuid" to student.id!!.toString() // For sorting/distribution
+            ))
         }
 
         // 2. Calculate Total Paid (All Time)
-        val studentIds = children.mapNotNull { it.id }
-        val settlements = settlementRepository.findByParentContext(
-            schoolId,
-            parent.id!!,
-            studentIds,
-            parent.user.email,
-            null,
-            null
-        )
-        val totalSettledAllTime = settlements.sumOf { it.amount }
+    var totalSettledAllTime = BigDecimal.ZERO
+    
+    // Direct settlements to parent (All Time)
+    val parentSettlements = settlementRepository.findByParentId(parent.id!!)
+    totalSettledAllTime = totalSettledAllTime.add(
+        parentSettlements.filter { it.status.equals("success", ignoreCase = true) }.sumOf { it.amount }
+    )
 
-        val balance = totalOwedAllTime.subtract(totalSettledAllTime)
-        return balance.max(BigDecimal.ZERO)
+    // Settlements from parent wallets (All Time)
+    val wallets = listOfNotNull(parent.paystackWallet, parent.squadWallet)
+        wallets.forEach { wallet ->
+            val settlements = if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                settlementRepository.findByPaystackWalletId(wallet.id!!)
+            } else {
+                settlementRepository.findBySquadWalletId(wallet.id!!)
+            }
+            totalSettledAllTime = totalSettledAllTime.add(
+                settlements.filter { it.status.equals("success", ignoreCase = true) }.sumOf { it.amount }
+            )
+        }
+
+        // Manual/orphan settlements by email (All Time)
+        parent.user.email?.let { email ->
+            val manualSettlements = settlementRepository.findByPayerEmail(email)
+                .filter { s -> 
+                    s.schoolId == schoolId && 
+                    s.status.equals("success", ignoreCase = true) &&
+                    s.paystackWallet == null && s.squadWallet == null // Only add if not already counted via wallets
+                }
+            totalSettledAllTime = totalSettledAllTime.add(manualSettlements.sumOf { it.amount })
+        }
+
+        // 3. Distribute Total Settled across students
+        var remainingToDistribute = totalSettledAllTime
+        if (remainingToDistribute > BigDecimal.ZERO && studentStatusList.isNotEmpty()) {
+            if (parent.paymentDistributionType == "SEQUENTIAL") {
+                val priorityOrder = parent.paymentPriorityOrder?.split(",")?.map { UUID.fromString(it.trim()) } ?: emptyList()
+                studentStatusList.sortWith(Comparator { a, b ->
+                    val idA = a["studentId"] as UUID
+                    val idB = b["studentId"] as UUID
+                    val indexA = priorityOrder.indexOf(idA)
+                    val indexB = priorityOrder.indexOf(idB)
+                    if (indexA != -1 && indexB != -1) indexA.compareTo(indexB)
+                    else if (indexA != -1) -1
+                    else if (indexB != -1) 1
+                    else 0
+                })
+                for (status in studentStatusList) {
+                    if (remainingToDistribute <= BigDecimal.ZERO) break
+                    val debt = status["allTimeFees"] as BigDecimal
+                    val allocation = if (remainingToDistribute >= debt) debt else remainingToDistribute
+                    status["walletAllocated"] = allocation
+                    remainingToDistribute = remainingToDistribute.subtract(allocation)
+                }
+            } else { // SPREAD
+                while (remainingToDistribute > BigDecimal.ZERO) {
+                    val studentsWithDebt = studentStatusList.filter { 
+                        (it["allTimeFees"] as BigDecimal).subtract(it["walletAllocated"] as BigDecimal) > BigDecimal.ZERO 
+                    }
+                    if (studentsWithDebt.isEmpty()) break
+                    val share = remainingToDistribute.divide(BigDecimal(studentsWithDebt.size), 2, java.math.RoundingMode.DOWN)
+                    if (share <= BigDecimal.ZERO) {
+                         // Final distribution of tiny remainder
+                        for (status in studentsWithDebt) {
+                            if (remainingToDistribute <= BigDecimal.ZERO) break
+                            val debt = (status["allTimeFees"] as BigDecimal).subtract(status["walletAllocated"] as BigDecimal)
+                            val allocation = if (remainingToDistribute >= debt) debt else remainingToDistribute
+                            status["walletAllocated"] = (status["walletAllocated"] as BigDecimal).add(allocation)
+                            remainingToDistribute = remainingToDistribute.subtract(allocation)
+                        }
+                        break
+                    }
+                    var distributedInRound = BigDecimal.ZERO
+                    for (status in studentsWithDebt) {
+                        val debt = (status["allTimeFees"] as BigDecimal).subtract(status["walletAllocated"] as BigDecimal)
+                        val allocation = if (share >= debt) debt else share
+                        status["walletAllocated"] = (status["walletAllocated"] as BigDecimal).add(allocation)
+                        distributedInRound = distributedInRound.add(allocation)
+                    }
+                    remainingToDistribute = remainingToDistribute.subtract(distributedInRound)
+                    if (distributedInRound <= BigDecimal.ZERO) break
+                }
+            }
+        }
+
+        val studentResults = studentStatusList.map { status ->
+            val allTimeFees = status["allTimeFees"] as BigDecimal
+            val paid = status["walletAllocated"] as BigDecimal
+            val currentBill = status["currentBill"] as BigDecimal
+            StudentFinancialStatus(
+                studentId = status["studentId"] as UUID,
+                studentName = status["studentName"] as String,
+                allTimeFees = allTimeFees,
+                currentBill = currentBill,
+                currentBillBreakdown = status["currentBillBreakdown"] as Map<String, BigDecimal>,
+                outstanding = allTimeFees.subtract(currentBill).max(BigDecimal.ZERO), // Past Outstanding
+                currentBalance = allTimeFees.subtract(paid).max(BigDecimal.ZERO)
+            )
+        }
+
+        val balance = totalOwedAllTime.subtract(totalSettledAllTime).max(BigDecimal.ZERO)
+        return ParentFinancialStatus(totalOwedAllTime, totalSettledAllTime, balance, studentResults)
     }
+
+    @Transactional(readOnly = true)
+    open fun calculateParentBalance(parent: Parent): BigDecimal {
+        return calculateParentFinancialStatus(parent).balance
+    }
+
+    data class ParentFinancialStatus(
+        val totalOwed: BigDecimal,
+        val totalPaid: BigDecimal,
+        val balance: BigDecimal,
+        val students: List<StudentFinancialStatus> = emptyList()
+    )
+
+    data class StudentFinancialStatus(
+        val studentId: UUID,
+        val studentName: String,
+        val allTimeFees: BigDecimal, // New field
+        val currentBill: BigDecimal,
+        val currentBillBreakdown: Map<String, BigDecimal>,
+        val outstanding: BigDecimal, // Past Outstanding (Total Debt - Current Bill)
+        val currentBalance: BigDecimal // All Time Balance (Total Debt - Total Paid for this student)
+    )
+
+    data class DetailedFeeResult(
+        val total: BigDecimal,
+        val breakdown: Map<String, BigDecimal>
+    )
 
     /**
      * Calculates the total fees assigned to a student across all their historical class enrollments.
@@ -123,8 +261,20 @@ open class FinancialService(
      */
     @Transactional(readOnly = true)
     open fun calculateAllTimeFees(student: Student): BigDecimal {
-        val enrollments = studentClassRepository.findByStudentIdAndIsActive(student.id!!, true)
+        return calculateDetailedFees(student).total
+    }
+
+    /**
+     * Calculates detailed fees (total and breakdown) for a student, optionally filtered by session and term.
+     */
+    @Transactional(readOnly = true)
+    open fun calculateDetailedFees(student: Student, sessionId: UUID? = null, termId: UUID? = null): DetailedFeeResult {
+        val enrollments = studentClassRepository.findByStudentIdAndIsActive(student.id!!, true).filter {
+            (sessionId == null || it.academicSession.id == sessionId) &&
+            (termId == null || it.term.id == termId)
+        }
         var total = BigDecimal.ZERO
+        val breakdown = mutableMapOf<String, BigDecimal>()
         
         enrollments.forEach { enrollment ->
             val fees = classFeeItemRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdFilters(
@@ -135,47 +285,55 @@ open class FinancialService(
             )
             
             fees.forEach { fee ->
-                // Check if student opted in for optional fees or if it's mandatory
-                val isMandatory = fee.feeItem.isMandatory
-                val isOptedIn = if (isMandatory) true else studentOptionalFeeRepository.existsByStudentIdAndClassFeeItemIdAndIsActive(student.id!!, fee.id!!, true)
+                val feeItem = fee.feeItem
                 
-                if (isOptedIn) {
-                    var amount = fee.effectiveAmount
-                    // Apply staff discount if applicable
-                    if (fee.feeItem.staffDiscountType != com.haneef._school.entity.DiscountType.NONE && isStaffChild(student)) {
-                        if (fee.feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.FLAT_AMOUNT) {
-                            amount = amount.subtract(fee.feeItem.staffDiscountAmount)
-                        } else if (fee.feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.PERCENTAGE) {
-                            val discount = amount.multiply(fee.feeItem.staffDiscountAmount).divide(BigDecimal(100))
-                            amount = amount.subtract(discount)
+                // 1. Check Gender Eligibility
+                val genderMatch = when (feeItem.genderEligibility) {
+                    com.haneef._school.entity.GenderEligibility.ALL -> true
+                    com.haneef._school.entity.GenderEligibility.MALE -> student.gender == com.haneef._school.entity.Gender.MALE
+                    com.haneef._school.entity.GenderEligibility.FEMALE -> student.gender == com.haneef._school.entity.Gender.FEMALE
+                }
+                
+                // 2. Check Student Status Eligibility (New vs Returning)
+                val statusMatch = when (feeItem.studentStatusEligibility) {
+                    com.haneef._school.entity.StudentStatusEligibility.ALL -> true
+                    com.haneef._school.entity.StudentStatusEligibility.NEW -> student.isNew
+                    com.haneef._school.entity.StudentStatusEligibility.RETURNING -> !student.isNew
+                }
+                
+                if (genderMatch && statusMatch) {
+                    // 3. Check if student opted in for optional fees or if it's mandatory
+                    val isMandatory = feeItem.isMandatory
+                    val isOptedIn = if (isMandatory) true else studentOptionalFeeRepository.existsByStudentIdAndClassFeeItemIdAndIsActive(student.id!!, fee.id!!, true)
+                    
+                    if (isOptedIn) {
+                        var amount = fee.effectiveAmount
+                        // 4. Apply staff discount if applicable
+                        if (feeItem.staffDiscountType != com.haneef._school.entity.DiscountType.NONE && isStaffChild(student)) {
+                            if (feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.FLAT_AMOUNT) {
+                                amount = amount.subtract(feeItem.staffDiscountAmount)
+                            } else if (feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.PERCENTAGE) {
+                                val discount = amount.multiply(feeItem.staffDiscountAmount).divide(BigDecimal(100))
+                                amount = amount.subtract(discount)
+                            }
                         }
-                    }
-                    if (amount > BigDecimal.ZERO) {
-                        total = total.add(amount)
+                        if (amount > BigDecimal.ZERO) {
+                            total = total.add(amount)
+                            val feeNameWithTerm = if (sessionId == null) "${feeItem.name} (${enrollment.term.termName})" else feeItem.name
+                            breakdown[feeNameWithTerm!!] = breakdown.getOrDefault(feeNameWithTerm, BigDecimal.ZERO).add(amount)
+                        }
                     }
                 }
             }
         }
-        return total
+        return DetailedFeeResult(total, breakdown)
     }
 
     @Transactional(readOnly = true)
     open fun getSchoolFeeStats(schoolId: UUID, sessionId: UUID?, termId: UUID?): Map<String, Any> {
         val selectedSession = sessionId?.let { academicSessionRepository.findById(it).orElse(null) }
-            ?: academicSessionRepository.findBySchoolIdAndIsCurrentSessionAndIsActive(schoolId, true, true)
-            ?: academicSessionRepository.findBySchoolIdAndIsActiveOrderByYearDesc(schoolId, true).firstOrNull()
-            
         val selectedTerm = termId?.let { termRepository.findById(it).orElse(null) }
-            ?: termRepository.findBySchoolIdAndIsCurrentTermAndIsActive(schoolId, true, true).orElse(null)
             
-        if (selectedSession == null) {
-            return mapOf(
-                "expectedTotal" to BigDecimal.ZERO,
-                "optionalTotal" to BigDecimal.ZERO,
-                "breakdown" to emptyList<Map<String, Any>>()
-            )
-        }
-
         val students = studentRepository.findBySchoolIdAndIsActive(schoolId, true)
         
         var totalExpected = BigDecimal.ZERO
@@ -191,8 +349,11 @@ open class FinancialService(
             totalExpected = totalExpected.add(studentMandatoryTotal)
             totalOptional = totalOptional.add(studentOptionalTotal)
             
-            // Aggregate breakdown
-            val className = student.classEnrollments.find { it.isActive }?.schoolClass?.className ?: "Unknown"
+            // Aggregate breakdown by CURRENT class (for modal report)
+            val currentEnrollment = student.classEnrollments.find { it.isActive && (selectedSession == null || it.academicSession.id == selectedSession.id) }
+                ?: student.classEnrollments.find { it.isActive }
+            
+            val className = currentEnrollment?.schoolClass?.className ?: "Unknown"
             val classData = breakdown.computeIfAbsent(className) {
                 mutableMapOf(
                     "className" to className,
@@ -244,40 +405,64 @@ open class FinancialService(
 
     private fun calculateStudentFees(
         student: Student, 
-        session: com.haneef._school.entity.AcademicSession, 
+        session: com.haneef._school.entity.AcademicSession?, 
         term: com.haneef._school.entity.Term?
     ): List<StudentFeeItemResult> {
         val results = mutableListOf<StudentFeeItemResult>()
         
-        student.classEnrollments.filter { it.isActive }.forEach { enrollment ->
+        val enrollments = student.classEnrollments.filter { enrollment ->
+            enrollment.isActive && 
+            (session == null || enrollment.academicSession.id == session.id) &&
+            (term == null || enrollment.term.id == term.id)
+        }
+
+        enrollments.forEach { enrollment ->
             val schoolClass = enrollment.schoolClass
             val feeItems = classFeeItemRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdFilters(
                 schoolClass.id!!, 
-                session.id!!,
-                term?.id,
+                enrollment.academicSession.id!!,
+                enrollment.term.id,
                 true
             )
 
             feeItems.forEach { classFeeItem ->
-                val isMandatory = classFeeItem.feeItem.isMandatory
-                val isOptedIn = if (isMandatory) true else studentOptionalFeeRepository.existsByStudentIdAndClassFeeItemIdAndIsActive(student.id!!, classFeeItem.id!!, true)
+                val feeItem = classFeeItem.feeItem
                 
-                if (isOptedIn) {
-                    var amount = classFeeItem.effectiveAmount
+                // 1. Check Gender Eligibility
+                val genderMatch = when (feeItem.genderEligibility) {
+                    com.haneef._school.entity.GenderEligibility.ALL -> true
+                    com.haneef._school.entity.GenderEligibility.MALE -> student.gender == com.haneef._school.entity.Gender.MALE
+                    com.haneef._school.entity.GenderEligibility.FEMALE -> student.gender == com.haneef._school.entity.Gender.FEMALE
+                }
+                
+                // 2. Check Student Status Eligibility (New vs Returning)
+                val statusMatch = when (feeItem.studentStatusEligibility) {
+                    com.haneef._school.entity.StudentStatusEligibility.ALL -> true
+                    com.haneef._school.entity.StudentStatusEligibility.NEW -> student.isNew
+                    com.haneef._school.entity.StudentStatusEligibility.RETURNING -> !student.isNew
+                }
+                
+                if (genderMatch && statusMatch) {
+                    val isMandatory = feeItem.isMandatory
+                    val isOptedIn = if (isMandatory) true else studentOptionalFeeRepository.existsByStudentIdAndClassFeeItemIdAndIsActive(student.id!!, classFeeItem.id!!, true)
                     
-                    if (classFeeItem.feeItem.staffDiscountType != com.haneef._school.entity.DiscountType.NONE) {
-                        if (isStaffChild(student)) {
-                            if (classFeeItem.feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.FLAT_AMOUNT) {
-                                amount = amount.subtract(classFeeItem.feeItem.staffDiscountAmount)
-                            } else if (classFeeItem.feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.PERCENTAGE) {
-                                val discount = amount.multiply(classFeeItem.feeItem.staffDiscountAmount).divide(BigDecimal(100))
-                                amount = amount.subtract(discount)
+                    if (isOptedIn) {
+                        var amount = classFeeItem.effectiveAmount
+                        
+                        if (feeItem.staffDiscountType != com.haneef._school.entity.DiscountType.NONE) {
+                            if (isStaffChild(student)) {
+                                if (feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.FLAT_AMOUNT) {
+                                    amount = amount.subtract(feeItem.staffDiscountAmount)
+                                } else if (feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.PERCENTAGE) {
+                                    val discount = amount.multiply(feeItem.staffDiscountAmount).divide(BigDecimal(100))
+                                    amount = amount.subtract(discount)
+                                }
+                                if (amount < BigDecimal.ZERO) amount = BigDecimal.ZERO
                             }
-                            if (amount < BigDecimal.ZERO) amount = BigDecimal.ZERO
                         }
+                        
+                        results.add(StudentFeeItemResult(feeItem.name, amount, isMandatory))
                     }
-                    
-                    results.add(StudentFeeItemResult(classFeeItem.feeItem.name, amount, isMandatory))
                 }
             }
         }
@@ -307,17 +492,82 @@ open class FinancialService(
         var totalFees = BigDecimal.ZERO
         var totalSettled = BigDecimal.ZERO 
         
-        // 1. Calculate Settlements (Wallets, Email, Manual Allocations)
-        val studentIds = parent.studentRelationships.map { it.student.id!! }
-        val settlements = settlementRepository.findByParentContext(
-            parent.schoolId!!,
-            parent.id!!,
-            studentIds,
-            parent.user.email,
-            if (isAllTime) null else selectedSession?.id,
-            if (isAllTime) null else selectedTerm?.id
-        )
-        val walletSettled = settlements.sumOf { it.amount }
+        // 1. Calculate Wallet Settlements
+        var walletSettled = BigDecimal.ZERO
+        val wallets = listOfNotNull(parent.paystackWallet, parent.squadWallet)
+        
+        wallets.forEach { wallet ->
+            val settlements = if (isAllTime) {
+                if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                    settlementRepository.findByPaystackWalletId(wallet.id!!)
+                } else {
+                    settlementRepository.findBySquadWalletId(wallet.id!!)
+                }
+            } else if (selectedTerm != null) {
+                if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                    settlementRepository.findByPaystackWalletIdAndAcademicSessionIdAndTermId(
+                        wallet.id!!, selectedSession!!.id!!, selectedTerm.id!!
+                    )
+                } else {
+                    settlementRepository.findBySquadWalletIdAndAcademicSessionIdAndTermId(
+                        wallet.id!!, selectedSession!!.id!!, selectedTerm.id!!
+                    )
+                }
+            } else {
+                if (wallet is com.haneef._school.entity.PaystackParentWallet) {
+                    settlementRepository.findByPaystackWalletId(wallet.id!!).filter { 
+                        it.academicSession?.id == selectedSession!!.id 
+                    }
+                } else {
+                    settlementRepository.findBySquadWalletId(wallet.id!!).filter { 
+                        it.academicSession?.id == selectedSession!!.id 
+                    }
+                }
+            }
+            settlements.forEach { settlement ->
+                if (settlement.status.equals("success", ignoreCase = true)) {
+                    walletSettled = walletSettled.add(settlement.amount)
+                }
+            }
+        }
+
+        // Also include settlements found by email (Manual or Orphan) OR direct parent link
+        val parentEmail = parent.user.email
+        val emailSettlements = if (parentEmail != null) {
+            if (isAllTime) {
+                settlementRepository.findByPayerEmail(parentEmail).filter { it.schoolId == parent.schoolId }
+            } else {
+                settlementRepository.findByPayerEmail(parentEmail)
+                    .filter { 
+                        it.schoolId == parent.schoolId &&
+                        it.academicSession?.id == selectedSession!!.id && 
+                        (selectedTerm == null || it.term?.id == selectedTerm.id) 
+                    }
+            }
+        } else emptyList()
+
+        val directSettlements = if (isAllTime) {
+            settlementRepository.findByParentId(parent.id!!)
+        } else {
+            settlementRepository.findByParentId(parent.id!!)
+                .filter { 
+                    it.academicSession?.id == selectedSession!!.id && 
+                    (selectedTerm == null || it.term?.id == selectedTerm.id) 
+                }
+        }
+        
+        val additionalSettlements = (emailSettlements + directSettlements).distinctBy { it.id }
+        
+        additionalSettlements.forEach { settlement ->
+            // Check if this settlement is already linked to one of the parent's wallets
+            val isLinkedToPaystack = settlement.paystackWallet != null && wallets.any { it.id == settlement.paystackWallet?.id }
+            val isLinkedToSquad = settlement.squadWallet != null && wallets.any { it.id == settlement.squadWallet?.id }
+            
+            // Only add if NOT already counted (i.e., not linked to a known wallet) and status is success
+            if (!isLinkedToPaystack && !isLinkedToSquad && settlement.status.equals("success", ignoreCase = true)) {
+                walletSettled = walletSettled.add(settlement.amount)
+            }
+        }
         totalSettled = totalSettled.add(walletSettled)
 
         // 2. Prepare basic student data (Fees & Invoice Payments)
@@ -346,26 +596,44 @@ open class FinancialService(
                 )
 
                 feeItems.forEach { classFeeItem ->
-                    // Check if fee is applicable (mandatory or opted-in)
-                    val isMandatory = classFeeItem.feeItem.isMandatory
-                    val isOptedIn = if (isMandatory) true else studentOptionalFeeRepository.existsByStudentIdAndClassFeeItemIdAndIsActive(student.id!!, classFeeItem.id!!, true)
+                    val feeItem = classFeeItem.feeItem
                     
-                    if (isOptedIn) {
+                    // 1. Check Gender Eligibility
+                    val genderMatch = when (feeItem.genderEligibility) {
+                        com.haneef._school.entity.GenderEligibility.ALL -> true
+                        com.haneef._school.entity.GenderEligibility.MALE -> student.gender == com.haneef._school.entity.Gender.MALE
+                        com.haneef._school.entity.GenderEligibility.FEMALE -> student.gender == com.haneef._school.entity.Gender.FEMALE
+                    }
+                    
+                    // 2. Check Student Status Eligibility (New vs Returning)
+                    val statusMatch = when (feeItem.studentStatusEligibility) {
+                        com.haneef._school.entity.StudentStatusEligibility.ALL -> true
+                        com.haneef._school.entity.StudentStatusEligibility.NEW -> student.isNew
+                        com.haneef._school.entity.StudentStatusEligibility.RETURNING -> !student.isNew
+                    }
+                    
+                    if (genderMatch && statusMatch) {
+                        // Check if fee is applicable (mandatory or opted-in)
+                        val isMandatory = feeItem.isMandatory
+                        val isOptedIn = if (isMandatory) true else studentOptionalFeeRepository.existsByStudentIdAndClassFeeItemIdAndIsActive(student.id!!, classFeeItem.id!!, true)
+                        
                         var amount = classFeeItem.effectiveAmount
                         
                         // Apply Staff Discount
-                        if (classFeeItem.feeItem.staffDiscountType != com.haneef._school.entity.DiscountType.NONE && isStaffChild(student)) {
-                            if (classFeeItem.feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.FLAT_AMOUNT) {
-                                amount = amount.subtract(classFeeItem.feeItem.staffDiscountAmount)
-                            } else if (classFeeItem.feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.PERCENTAGE) {
-                                val discount = amount.multiply(classFeeItem.feeItem.staffDiscountAmount).divide(BigDecimal(100))
+                        if (feeItem.staffDiscountType != com.haneef._school.entity.DiscountType.NONE && isStaffChild(student)) {
+                            if (feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.FLAT_AMOUNT) {
+                                amount = amount.subtract(feeItem.staffDiscountAmount)
+                            } else if (feeItem.staffDiscountType == com.haneef._school.entity.DiscountType.PERCENTAGE) {
+                                val discount = amount.multiply(feeItem.staffDiscountAmount).divide(BigDecimal(100))
                                 amount = amount.subtract(discount)
                             }
                         }
                         if (amount < BigDecimal.ZERO) amount = BigDecimal.ZERO
                         
-                        studentTotal = studentTotal.add(amount)
-                        
+                        if (isOptedIn) {
+                            studentTotal = studentTotal.add(amount)
+                        }
+
                         // Add to fee items list if it's the current session/term or if in all-time mode
                         if (isAllTime || (enrollment.academicSession.id == selectedSession!!.id && (selectedTerm == null || enrollment.term.id == selectedTerm.id))) {
                              // Check if individual lockdown
@@ -376,11 +644,11 @@ open class FinancialService(
 
                             studentFeeItems.add(mapOf(
                                 "id" to classFeeItem.id!!,
-                                "name" to classFeeItem.feeItem.name,
+                                "name" to feeItem.name,
                                 "amount" to amount,
                                 "isMandatory" to isMandatory,
                                 "isOptedIn" to isOptedIn,
-                                "isLocked" to (classFeeItem.isLocked || isStudentFeeLocked),
+                                "isLocked" to isStudentFeeLocked,
                                 "termName" to enrollment.term.termName
                             ))
                         }
@@ -388,25 +656,11 @@ open class FinancialService(
                 }
             }
 
-            // Calculate Invoice Payments
-            val invoices = if (isAllTime) {
-                invoiceRepository.findByStudentIdAndSchoolIdAndIsActive(student.id!!, parent.schoolId!!, true)
-                    .filter { it.status != com.haneef._school.entity.InvoiceStatus.DRAFT && it.status != com.haneef._school.entity.InvoiceStatus.CANCELLED }
-            } else {
-                invoiceRepository.findByStudentIdAndAcademicSessionIdAndTermAndIsActive(
-                    student.id!!,
-                    selectedSession!!.id!!,
-                    selectedTerm?.termName,
-                    true
-                )
-            }
-
-            invoices.forEach { invoice ->
-                studentInvoicedPaid = studentInvoicedPaid.add(BigDecimal(invoice.amountPaid).divide(BigDecimal(100)))
-            }
+            // Invoices are legacy/redundant for modern payment tracking via Settlements
+            studentInvoicedPaid = BigDecimal.ZERO
             
             totalFees = totalFees.add(studentTotal)
-            totalSettled = totalSettled.add(studentInvoicedPaid)
+            // totalSettled = totalSettled.add(studentInvoicedPaid) // Removed to prevent double-counting and leaks from other parents
 
             studentDataList.add(mutableMapOf(
                 "studentUuid" to student.id!!.toString(), 

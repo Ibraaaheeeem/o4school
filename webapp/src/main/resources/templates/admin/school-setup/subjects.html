@@ -111,7 +111,6 @@
                                 <th>Subject Name</th>
                                 <th>Code</th>
                                 <th>Type</th>
-                                <th>E-Learner Mapping</th>
                                 <th>Assigned Classes</th>
                                 <th>Actions</th>
                             </tr>
@@ -125,16 +124,6 @@
                                         class="badge badge-primary">Core</span>
                                     <span th:unless="${subjectWithClasses.subject.isCoreSubject}"
                                         class="badge badge-secondary">Elective</span>
-                                </td>
-                                <td>
-                                    <span th:if="${!subjectWithClasses.subject.mappings.empty}"
-                                        class="badge badge-success">
-                                        Linked
-                                    </span>
-                                    <span th:unless="${!subjectWithClasses.subject.mappings.empty}"
-                                        class="badge badge-outline">
-                                        Not Linked
-                                    </span>
                                 </td>
                                 <td>
                                     <div class="assigned-classes">
@@ -216,10 +205,13 @@
                 <div id="basicInfoSection" class="form-section">
                     <h4 class="section-title">Basic Information</h4>
                     <div class="alert alert-info premium-alert"
-                        style="padding: 0.75rem; margin-bottom: 1rem; font-size: 0.9rem;">
-                        <i class="icon">ℹ️</i> <strong>Note:</strong> Only new, unique subject names are allowed. If the
-                        subject already exists, please find it in the list and click "Assign to classes" to manage
-                        assignments.
+                        style="padding: 0.75rem; margin-bottom: 1rem; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <i class="icon">ℹ️</i>
+                        <div>
+                            <strong>Note:</strong> Only new, unique subject names are allowed. If the
+                            subject already exists, please find it in the list and click "Assign to classes" to manage
+                            assignments.
+                        </div>
                     </div>
 
                     <div class="form-row">

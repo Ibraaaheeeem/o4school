@@ -5,8 +5,11 @@
     </div>
 
     <div class="modal-body">
-        <form th:hx-post="${formAction}" hx-target="#messageContainer" hx-swap="innerHTML" id="examinationForm"
-            th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+        <form
+            th:attr="hx-post=${formAction}, hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+            method="POST" hx-target="#messageContainer" hx-swap="innerHTML" id="examinationForm">
+
+
             <input type="hidden" name="id" th:value="${examination.id}" th:if="${isEdit}">
 
             <div class="alert alert-warning mb-4" th:if="${isCurrentTermSelected != true}"

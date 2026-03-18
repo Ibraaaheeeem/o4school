@@ -8,8 +8,7 @@ import java.util.Optional
 
 @Repository
 interface WhatsAppTemplateRepository : JpaRepository<WhatsAppTemplate, UUID> {
-    fun findBySchoolId(schoolId: UUID): List<WhatsAppTemplate>
     fun findByTemplateId(templateId: String): Optional<WhatsAppTemplate>
-    fun findByTemplateNameAndSchoolId(templateName: String, schoolId: UUID): Optional<WhatsAppTemplate>
-    fun findBySchoolIdAndIsForBroadcast(schoolId: UUID, isForBroadcast: Boolean): List<WhatsAppTemplate>
+    fun findByTemplateName(templateName: String): Optional<WhatsAppTemplate>
+    fun findByIsForBroadcast(isForBroadcast: Boolean): List<WhatsAppTemplate>
 }

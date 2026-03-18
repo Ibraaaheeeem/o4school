@@ -1,5 +1,6 @@
 package com.haneef._school.config
 
+import com.haneef._school.service.ActivityLogService
 import com.haneef._school.service.CustomUserDetails
 import com.haneef._school.service.UserSchoolRoleService
 import java.util.UUID
@@ -14,7 +15,8 @@ import org.slf4j.LoggerFactory
 
 @Component
 class CustomAuthenticationSuccessHandler(
-    private val userSchoolRoleService: UserSchoolRoleService
+    private val userSchoolRoleService: UserSchoolRoleService,
+    private val activityLogService: ActivityLogService
 ) : AuthenticationSuccessHandler {
 
     private val logger = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler::class.java)
@@ -45,6 +47,9 @@ class CustomAuthenticationSuccessHandler(
         
         if (isSystemAdmin) {
             logger.info("System admin detected, redirecting to /system-admin/dashboard")
+            // System admins don't have a school context, using a null or system school ID if available
+            // For now, logging with a null school ID if the service allows, otherwise skipping
+            activityLogService.logUserLogin(UUID.fromString("00000000-0000-0000-0000-000000000000"), customUser.user, "SYSTEM_ADMIN", request)
             handleSuccessfulLogin(request, response, "/system-admin/dashboard")
             return
         }
@@ -53,7 +58,7 @@ class CustomAuthenticationSuccessHandler(
         val forcedSchoolId = customUser.forcedSchoolId
         if (forcedSchoolId != null) {
             logger.info("Forced school context detected: $forcedSchoolId. Using this school.")
-            handleSchoolAndRoleRedirection(request, response, userId, forcedSchoolId)
+            handleSchoolAndRoleRedirection(request, response, userId, forcedSchoolId, customUser)
             return
         }
 
@@ -86,7 +91,7 @@ class CustomAuthenticationSuccessHandler(
             return
         }
         
-        handleSchoolAndRoleRedirection(request, response, userId, schoolId)
+        handleSchoolAndRoleRedirection(request, response, userId, schoolId, customUser)
         
         logger.info("=== AUTHENTICATION SUCCESS HANDLER COMPLETED ===")
     }
@@ -95,7 +100,8 @@ class CustomAuthenticationSuccessHandler(
         request: HttpServletRequest,
         response: HttpServletResponse,
         userId: UUID,
-        schoolId: UUID
+        schoolId: UUID,
+        customUser: CustomUserDetails
     ) {
         // Check if user has multiple roles in the school
         val hasMultipleRoles = userSchoolRoleService.hasMultipleRolesInSchool(userId, schoolId)
@@ -125,6 +131,9 @@ class CustomAuthenticationSuccessHandler(
             
             val defaultRedirectUrl = getRoleBasedDashboardUrl(roleName)
             logger.info("Role-based redirect URL: $defaultRedirectUrl for role: $roleName")
+            
+            // Log active login for single-role user
+            activityLogService.logUserLogin(schoolId, customUser.user, roleName ?: "USER", request)
             
             handleSuccessfulLogin(request, response, defaultRedirectUrl)
         } else {

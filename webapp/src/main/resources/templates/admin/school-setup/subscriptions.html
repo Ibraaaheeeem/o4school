@@ -148,6 +148,14 @@
             font-size: 1.05rem;
             filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
         }
+
+        .btn-primary:disabled {
+            background: #cbd5e0 !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+            color: #64748b !important;
+        }
     </style>
 </head>
 
@@ -171,68 +179,6 @@
                 </div>
             </div>
 
-            <div class="form-section" style="margin-top: 2rem;">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                    <div>
-                        <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
-                            Current Subscription Status
-                            <span class="status-badge"
-                                th:classappend="${subscription.subscriptionStatus.name() == 'ACTIVE' ? 'active-status' : 'inactive-status'}">
-                                <i class="fas fa-check-circle"
-                                    th:if="${subscription.subscriptionStatus.name() == 'ACTIVE'}"></i>
-                                <i class="fas fa-exclamation-circle"
-                                    th:if="${subscription.subscriptionStatus.name() != 'ACTIVE'}"></i>
-                                <span th:text="${subscription.subscriptionStatus}">ACTIVE</span>
-                            </span>
-                        </h3>
-                        <p style="color: var(--text-light); margin-bottom: 1rem;">
-                            Valid Until: <strong
-                                th:text="${subscription.validUntil != null ? #temporals.format(subscription.validUntil, 'dd MMM yyyy') : 'N/A'}">31
-                                Dec 2026</strong>
-                        </p>
-                        <div
-                            style="display: flex; gap: 1rem; margin-top: 1.5rem; color: var(--text-main); flex-wrap: wrap;">
-                            <div
-                                style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1.25rem; display: flex; flex-direction: column; min-width: 140px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                                <span
-                                    style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
-                                    <i class="fas fa-user-graduate" style="color: #94a3b8;"></i> Active Students
-                                    <i class="fas fa-info-circle text-muted" title="Billed at NGN 1000 per student/year"
-                                        style="margin-left: auto;"></i>
-                                </span>
-                                <strong style="font-size: 1.5rem; color: #0f172a;"
-                                    th:text="${#numbers.formatInteger(activeStudents, 0, 'COMMA')}">0</strong>
-                            </div>
-
-                            <div
-                                style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 0.75rem 1.25rem; display: flex; flex-direction: column; min-width: 140px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                                <span
-                                    style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #166534; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem;">
-                                    <i class="fas fa-wallet" style="color: #4ade80;"></i> Renewal Fee
-                                </span>
-                                <strong style="font-size: 1.5rem; color: #14532d;">
-                                    <span
-                                        style="font-size: 0.9rem; font-weight: 600; vertical-align: middle; margin-right: 0.15rem;">NGN</span>
-                                    <span th:text="${#numbers.formatInteger(renewalFee, 0, 'COMMA')}">0</span>
-                                </strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        style="background: var(--bg-color); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; min-width: 250px;">
-                        <h4 style="margin-bottom: 1rem; color: var(--text-main);">Renew Subscription</h4>
-                        <p style="font-size: 0.875rem; color: var(--text-light); margin-bottom: 1rem;">Add 1 year
-                            entirely to your school's validity.</p>
-                        <button type="button" class="btn btn-primary" style="width: 100%;" data-type="MAIN_SUB_ORDER"
-                            data-label="Years to Renew" data-default="1" th:data-rate="${renewalFee}"
-                            onclick="openPurchaseModal(this.getAttribute('data-type'), this.getAttribute('data-label'), this.getAttribute('data-default'), this.getAttribute('data-rate'))">
-                            <i class="fas fa-sync-alt" style="margin-right: 0.5rem;"></i> Renew Now
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             <!-- Dashboard Cards for Current Balances -->
             <div class="balance-grid">
@@ -370,36 +316,62 @@
                     <input type="hidden" name="active" value="true">
 
                     <div class="form-group" style="margin-bottom: 1rem;">
-                        <label for="bankName" style="display:block; margin-bottom:0.5rem; font-weight:500;">Bank
-                            Name</label>
-                        <input type="text" id="bankName" name="bankName" class="form-control" required
+                        <label for="bankCode" style="display:block; margin-bottom:0.5rem; font-weight:500;">Select
+                            Bank</label>
+                        <select id="bankCode" name="bankCode" class="form-control" required
                             style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
-                            placeholder="e.g. Guarantee Trust Bank">
+                            onchange="checkAndVerify()">
+                            <option value="">-- Select Bank --</option>
+                            <option th:each="bank : ${banks}" th:value="${bank.code}" th:text="${bank.name}"></option>
+                        </select>
+                        <input type="hidden" id="bankName" name="bankName">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label for="accountNumber" style="display:block; margin-bottom:0.5rem; font-weight:500;">Account
-                            Number</label>
-                        <input type="text" id="accountNumber" name="accountNumber" class="form-control" required
-                            style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
-                            placeholder="10 digit account number" pattern="[0-9]{10}"
-                            title="Please enter a valid 10-digit account number">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="accountNumber" name="accountNumber" class="form-control" required
+                                style="flex: 1; padding:0.75rem; border:1px solid #cbd5e1; border-radius:6px;"
+                                placeholder="10 digit account number" pattern="[0-9]{10}" oninput="checkAndVerify()">
+                        </div>
+                        <div id="accountVerificationMsg" style="margin-top: 0.5rem; font-size: 0.85rem; display: none;">
+                        </div>
                     </div>
 
                     <div class="form-group"
                         style="margin-bottom: 2rem; display:flex; gap:0.5rem; align-items:flex-start;">
                         <input type="checkbox" id="termsAccepted" name="termsAccepted" required
-                            style="margin-top:0.25rem;">
-                        <label for="termsAccepted" style="font-size:0.9rem; color:#475569;">
-                            I accept the fee collection conditions and understand that payment remittances to this
-                            account may take 1-2 working days to process.
-                        </label>
+                            style="margin-top:0.25rem;" onchange="updateSubmitButtonState()">
+                        <div style="flex:1;">
+                            <label for="termsAccepted"
+                                style="font-size:0.9rem; color:#475569; display:block; margin-bottom:0.5rem;">
+                                I accept the fee collection conditions and understand that payment remittances to this
+                                account may take 1-2 working days to process.
+                            </label>
+                            <details
+                                style="font-size: 0.85rem; color: #64748b; background: #f8fafc; padding: 0.75rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                <summary
+                                    style="cursor: pointer; color: var(--primary-color); font-weight: 600; margin-bottom: 0.5rem;">
+                                    Read Conditions</summary>
+                                <ul
+                                    style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <li><strong>Verified Bank Information:</strong> We require real-time verification of
+                                        your account name to ensure secure fund transfer.</li>
+                                    <li><strong>Automated Settlement:</strong> Funds are automatically settled within
+                                        1-2 working days (T+1/T+2).</li>
+                                    <li><strong>Processing Fees:</strong> Standard processing fees apply and are
+                                        deducted before settlement.</li>
+                                    <li><strong>Parent Experience:</strong> Parents get personalized virtual accounts
+                                        for instant automated receipts.</li>
+                                </ul>
+                            </details>
+                        </div>
                     </div>
 
                     <div style="display:flex; gap:1rem; justify-content:flex-end;">
                         <button type="button" class="btn btn-outline"
                             onclick="closeFeeCollectionModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Enable Feature</button>
+                        <button type="submit" class="btn btn-primary" id="activateFeeCollectionBtn" disabled>Enable
+                            Feature</button>
                     </div>
                 </form>
             </div>
@@ -457,6 +429,14 @@
     <script th:inline="javascript">
         let currentPurchaseType = '';
         let currentPurchaseRate = 0;
+        let isAccountVerified = false;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const termsBox = document.getElementById('termsAccepted');
+            if (termsBox) {
+                termsBox.addEventListener('change', updateSubmitButtonState);
+            }
+        });
 
         function openPurchaseModal(type, label, defaultUnits, rate) {
             currentPurchaseType = type;
@@ -561,6 +541,16 @@
             }
         }
         function openFeeCollectionModal() {
+            // Reset state
+            isAccountVerified = false;
+            const termsBox = document.getElementById('termsAccepted');
+            if (termsBox) termsBox.checked = false;
+
+            document.getElementById('bankCode').value = '';
+            document.getElementById('accountNumber').value = '';
+            document.getElementById('accountVerificationMsg').style.display = 'none';
+            updateSubmitButtonState();
+
             const modal = document.getElementById('feeCollectionModal');
             modal.classList.add('active');
         }
@@ -568,6 +558,66 @@
         function closeFeeCollectionModal() {
             const modal = document.getElementById('feeCollectionModal');
             modal.classList.remove('active');
+        }
+
+        async function verifyAccount() {
+            const bankCode = document.getElementById('bankCode').value;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const msgDiv = document.getElementById('accountVerificationMsg');
+            const submitBtn = document.getElementById('activateFeeCollectionBtn');
+            const bankNameInput = document.getElementById('bankName');
+
+            isAccountVerified = false;
+            updateSubmitButtonState();
+
+            msgDiv.style.display = 'block';
+            msgDiv.style.color = '#64748b';
+            msgDiv.innerText = 'Verifying...';
+
+            try {
+                const response = await fetch(`/admin/school-setup/subscriptions/banks/verify?bankCode=${bankCode}&accountNumber=${accountNumber}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    msgDiv.style.color = '#10b981';
+                    msgDiv.innerHTML = `<i class="fas fa-check-circle"></i> Account Verified: <strong>${data.accountName}</strong>`;
+                    bankNameInput.value = document.getElementById('bankCode').options[document.getElementById('bankCode').selectedIndex].text;
+                    isAccountVerified = true;
+                    updateSubmitButtonState();
+                } else {
+                    msgDiv.style.color = '#ef4444';
+                    msgDiv.innerText = data.message || 'Verification failed.';
+                }
+            } catch (err) {
+                console.error(err);
+                msgDiv.style.color = '#ef4444';
+                msgDiv.innerText = 'Error connecting to verification service.';
+            }
+        }
+
+        function updateSubmitButtonState() {
+            const termsBox = document.getElementById('termsAccepted');
+            const submitBtn = document.getElementById('activateFeeCollectionBtn');
+            const termsChecked = termsBox ? termsBox.checked : false;
+
+            if (submitBtn) {
+                submitBtn.disabled = !(isAccountVerified && termsChecked);
+            }
+        }
+
+        function checkAndVerify() {
+            const bankCode = document.getElementById('bankCode').value;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const msgDiv = document.getElementById('accountVerificationMsg');
+
+            isAccountVerified = false;
+            updateSubmitButtonState();
+
+            if (bankCode && accountNumber.length === 10) {
+                verifyAccount();
+            } else {
+                msgDiv.style.display = 'none';
+            }
         }
     </script>
 </body>

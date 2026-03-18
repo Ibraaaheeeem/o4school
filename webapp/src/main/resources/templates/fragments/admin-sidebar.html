@@ -40,14 +40,6 @@
                     th:classappend="${requestURI.contains('subjects') ? 'active' : ''}">
                     <span class="submenu-icon">📚</span> Subjects
                 </a>
-                <a th:href="@{/admin/school-setup/landing-page}" class="submenu-link"
-                    th:classappend="${requestURI.contains('landing-page') ? 'active' : ''}">
-                    <span class="submenu-icon">🌐</span> Landing Page
-                </a>
-                <a th:href="@{/admin/school-setup/custom-domain}" class="submenu-link"
-                    th:classappend="${requestURI.contains('custom-domain') ? 'active' : ''}">
-                    <span class="submenu-icon">🌍</span> Custom Domain
-                </a>
                 <a th:href="@{/admin/school-setup/subscriptions}" class="submenu-link"
                     th:classappend="${requestURI.contains('subscriptions') ? 'active' : ''}">
                     <span class="submenu-icon">💳</span> Subscriptions
@@ -205,12 +197,14 @@
                     <span id="nav-sms-badge" class="badge-pill bg-danger text-white ms-auto px-2 py-0"
                         style="display: none; font-size: 0.65rem; border-radius: 12px; font-weight: bold;"></span>
                 </a>
+                <!-- 
                 <a sec:authorize="hasAnyRole('SYSTEM_ADMIN', 'SCHOOL_ADMIN')" th:href="@{/admin/dashboard/multimodal}"
                     class="submenu-link" th:classappend="${activeSubPage == 'multimodal' ? 'active' : ''}">
                     <span class="submenu-icon">📣</span> Multimodal
                     <span id="nav-multimodal-badge" class="badge-pill bg-danger text-white ms-auto px-2 py-0"
                         style="display: none; font-size: 0.65rem; border-radius: 12px; font-weight: bold;"></span>
                 </a>
+-->
             </div>
         </div>
 
@@ -265,14 +259,16 @@
                             }
                         }
 
-                        if (multimodalBadge) {
-                            if (data.multimodal > 0) {
-                                multimodalBadge.innerText = data.multimodal;
-                                multimodalBadge.style.display = 'block';
-                            } else {
-                                multimodalBadge.style.display = 'none';
-                            }
-                        }
+                        /* 
+                                                if (multimodalBadge) {
+                                                    if (data.multimodal > 0) {
+                                                        multimodalBadge.innerText = data.multimodal;
+                                                        multimodalBadge.style.display = 'block';
+                                                    } else {
+                                                        multimodalBadge.style.display = 'none';
+                                                    }
+                                                }
+                        */
                     } catch (err) {
                         console.error("Failed to fetch unread count:", err);
                     }
@@ -307,6 +303,36 @@
                         }
                     }
                 });
+            });
+
+            // Collapse sidebar/submenus on click outside
+            document.addEventListener('click', function (e) {
+                const sidebar = document.getElementById('quickActionsSidebar');
+                if (!sidebar) return;
+
+                // Ignore clicks on the hamburger menu (mobile toggle)
+                if (e.target.closest('.hamburger-menu')) return;
+
+                // If click is outside the sidebar
+                if (!sidebar.contains(e.target)) {
+                    // 1. Collapse all submenus
+                    document.querySelectorAll('.sidebar-menu-item.expanded').forEach(item => {
+                        item.classList.remove('expanded');
+                    });
+
+                    // 2. If mobile sidebar is active, collapse it
+                    if (sidebar.classList.contains('mobile-active')) {
+                        // Use the existing toggle function if available, otherwise just remove class
+                        if (typeof toggleMobileSidebar === 'function') {
+                            toggleMobileSidebar();
+                        } else {
+                            sidebar.classList.remove('mobile-active');
+                            const overlay = document.getElementById('sidebarOverlay');
+                            if (overlay) overlay.classList.remove('active');
+                            document.body.style.overflow = '';
+                        }
+                    }
+                }
             });
         </script>
     </aside>

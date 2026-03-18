@@ -36,6 +36,18 @@ interface StudentRepository : JpaRepository<Student, UUID>, SecureStudentReposit
         @Param("search") search: String,
         pageable: Pageable
     ): Page<Student>
+
+    @EntityGraph(attributePaths = ["classEnrollments", "classEnrollments.schoolClass", "classEnrollments.academicSession", "classEnrollments.term"])
+    @Query("SELECT s FROM Student s WHERE s.schoolId = :schoolId AND s.isActive = :isActive AND " +
+           "(CAST(s.user.firstName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.user.lastName AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.studentId AS string) ILIKE CONCAT('%', :search, '%') OR " +
+           "CAST(s.admissionNumber AS string) ILIKE CONCAT('%', :search, '%'))")
+    fun findBySchoolIdAndIsActiveAndSearch(
+        @Param("schoolId") schoolId: UUID,
+        @Param("isActive") isActive: Boolean,
+        @Param("search") search: String
+    ): List<Student>
     
     fun findByUserIdAndSchoolId(userId: UUID, schoolId: UUID): Student?
     
