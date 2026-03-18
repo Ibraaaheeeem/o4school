@@ -157,4 +157,32 @@ class AuthorizationService(
         return studentOptionalFeeRepository.findByIdAndSchoolIdSecure(sofId, schoolId)
             .orElseThrow { RuntimeException("Student optional fee not found or unauthorized access") }
     }
+
+    /**
+     * Attempts to validate ownership for an unknown UUID by checking multiple repositories.
+     * This is used as a global safety net in the SecurityAspect.
+     */
+    fun validateAnyUuidOwnership(uuid: UUID, schoolId: UUID) {
+        val existsInSchool = studentRepository.existsByIdAndSchoolId(uuid, schoolId) ||
+                             staffRepository.existsByIdAndSchoolId(uuid, schoolId) ||
+                             parentRepository.existsByIdAndSchoolId(uuid, schoolId) ||
+                             schoolClassRepository.existsByIdAndSchoolId(uuid, schoolId) ||
+                             examinationRepository.existsByIdAndSchoolId(uuid, schoolId) ||
+                             feeItemRepository.existsByIdAndSchoolId(uuid, schoolId) ||
+                             departmentRepository.existsByIdAndSchoolId(uuid, schoolId) ||
+                             educationTrackRepository.existsByIdAndSchoolId(uuid, schoolId)
+        
+        if (!existsInSchool) {
+            val existsGlobally = studentRepository.existsById(uuid) ||
+                                 staffRepository.existsById(uuid) ||
+                                 parentRepository.existsById(uuid) ||
+                                 schoolClassRepository.existsById(uuid) ||
+                                 examinationRepository.existsById(uuid) ||
+                                 feeItemRepository.existsById(uuid)
+            
+            if (existsGlobally) {
+                throw AccessDeniedException("Cross-school illegal access attempt detected")
+            }
+        }
+    }
 }

@@ -15,7 +15,7 @@ import javax.crypto.SecretKey
 @Service
 class JwtService {
 
-    @Value("\${jwt.secret:mySecretKey}")
+    @Value("\${jwt.secret}")
     private lateinit var secret: String
 
 

@@ -44,20 +44,17 @@ class SecurityAspect(
             return joinPoint.proceed()
         }
         
-        // For now, proceed with the original method
-        // Individual controllers should handle their own validation
-        // This aspect serves as a safety net and logging mechanism
-        
-        try {
-            return joinPoint.proceed()
-        } catch (e: Exception) {
-            // Log potential security violations
-            if (e.message?.contains("not found") == true || 
-                e.message?.contains("Unauthorized") == true) {
-                println("SECURITY WARNING: Potential IDOR attempt in ${joinPoint.signature.declaringTypeName}.${methodName} with UUIDs: $uuidArgs")
+        // Enforcement: Validate every UUID in path against the selected school
+        uuidArgs.forEach { uuid ->
+            try {
+                authorizationService.validateAnyUuidOwnership(uuid, selectedSchoolId)
+            } catch (e: AccessDeniedException) {
+                println("SECURITY ALERT: Blocked IDOR attempt in ${joinPoint.signature.declaringTypeName}.${methodName} for UUID: $uuid")
+                throw e
             }
-            throw e
         }
+        
+        return joinPoint.proceed()
     }
     
     private fun isSafeMethod(methodName: String): Boolean {
