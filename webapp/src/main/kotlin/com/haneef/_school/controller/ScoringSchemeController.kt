@@ -1,5 +1,6 @@
 package com.haneef._school.controller
 
+import com.haneef._school.config.NativeDto
 import java.util.UUID
 
 import com.haneef._school.entity.*
@@ -13,18 +14,21 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 
+@NativeDto
 data class ScoringSchemeItem(
     val id: Int,
     val name: String,
     val max: Int
 )
 
+@NativeDto
 data class ScoringSchemeApplyRequest(
     val scopeType: String, // SCHOOL, TRACK, DEPARTMENT, CLASS
     val scopeId: UUID?,
     val items: List<ScoringSchemeItem>
 )
 
+@NativeDto
 data class ScoringSchemeDetail(
     val classId: UUID,
     val className: String,

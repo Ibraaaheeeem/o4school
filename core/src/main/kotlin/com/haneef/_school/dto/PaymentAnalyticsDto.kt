@@ -1,8 +1,11 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
 import java.math.BigDecimal
 import java.time.LocalDate
 
+@NativeDto
 data class PaymentAnalyticsDto(
     val totalSettlements: BigDecimal,
     val totalReimbursements: BigDecimal,

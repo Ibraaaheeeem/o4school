@@ -1,8 +1,11 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
 import java.util.UUID
 import com.haneef._school.dto.SubjectScoreInput
 
+@NativeDto
 data class StaffSaveAssessmentRequest(
     val studentId: UUID,
     val classId: UUID,

@@ -1,11 +1,15 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
+@NativeDto
 data class BulkImportDataDTO(
     val students: List<StudentImportData>,
     val parents: List<ParentImportData>,
     val staff: List<StaffImportData>
 )
 
+@NativeDto
 data class StudentImportData(
     val firstName: String,
     val lastName: String,
@@ -16,6 +20,7 @@ data class StudentImportData(
     val address: String?
 )
 
+@NativeDto
 data class ParentImportData(
     val firstName: String,
     val lastName: String,
@@ -24,6 +29,7 @@ data class ParentImportData(
     val address: String?
 )
 
+@NativeDto
 data class StaffImportData(
     val firstName: String,
     val lastName: String,
@@ -33,6 +39,7 @@ data class StaffImportData(
     val dateOfHire: String? // DD/MM/YYYY format
 )
 
+@NativeDto
 data class BulkImportPreviewDTO(
     val students: ImportCategoryPreview,
     val parents: ImportCategoryPreview,
@@ -40,6 +47,7 @@ data class BulkImportPreviewDTO(
     val hasErrors: Boolean
 )
 
+@NativeDto
 data class ImportCategoryPreview(
     val totalRows: Int,
     val validEntries: Int,
@@ -48,6 +56,7 @@ data class ImportCategoryPreview(
     val validData: List<Map<String, String>>
 )
 
+@NativeDto
 data class ImportError(
     val row: Int,
     val field: String?,
@@ -61,6 +70,7 @@ enum class ErrorSeverity {
     INFO     // Just informational
 }
 
+@NativeDto
 data class BulkImportResultDTO(
     val studentsImported: Int,
     val parentsImported: Int,

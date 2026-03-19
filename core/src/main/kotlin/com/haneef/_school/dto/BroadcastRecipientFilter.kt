@@ -1,7 +1,10 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
 import java.util.UUID
 
+@NativeDto
 data class BroadcastRecipientFilter(
     val recipientType: String? = "ALL", // ALL, STAFF, PARENTS
     val trackIds: List<UUID> = emptyList(),

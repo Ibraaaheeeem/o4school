@@ -1,7 +1,10 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
 import java.util.UUID
 
+@NativeDto
 data class SchoolDto(
     var name: String? = null,
     var email: String? = null,
@@ -20,17 +23,20 @@ data class SchoolDto(
     var admissionPrefix: String? = null
 )
 
+@NativeDto
 data class EducationTrackDto(
     var name: String? = null,
     var description: String? = null
 )
 
+@NativeDto
 data class DepartmentDto(
     var name: String? = null,
     var description: String? = null,
     var trackId: UUID? = null
 )
 
+@NativeDto
 data class SchoolClassDto(
     var className: String? = null,
     var gradeLevel: Int? = null,
@@ -38,6 +44,7 @@ data class SchoolClassDto(
     var departmentId: UUID? = null
 )
 
+@NativeDto
 data class SubjectDto(
     var subjectName: String? = null,
     var subjectCode: String? = null,
