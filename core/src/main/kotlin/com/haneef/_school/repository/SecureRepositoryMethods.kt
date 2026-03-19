@@ -15,18 +15,24 @@ import java.util.UUID
 interface SecureStudentRepository {
     @Query("SELECT s FROM Student s WHERE s.id = :id AND s.schoolId = :schoolId AND s.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<Student>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Parent Repository Extensions  
 interface SecureParentRepository {
     @Query("SELECT p FROM Parent p WHERE p.id = :id AND p.schoolId = :schoolId AND p.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<Parent>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Staff Repository Extensions
 interface SecureStaffRepository {
     @Query("SELECT s FROM Staff s WHERE s.id = :id AND s.schoolId = :schoolId AND s.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<Staff>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Subject Repository Extensions - Removed (Subjects are global)
@@ -35,18 +41,24 @@ interface SecureStaffRepository {
 interface SecureSchoolClassRepository {
     @Query("SELECT sc FROM SchoolClass sc WHERE sc.id = :id AND sc.schoolId = :schoolId AND sc.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<SchoolClass>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Examination Repository Extensions
 interface SecureExaminationRepository {
     @Query("SELECT e FROM Examination e WHERE e.id = :id AND e.schoolId = :schoolId AND e.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<Examination>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Fee Item Repository Extensions
 interface SecureFeeItemRepository {
     @Query("SELECT f FROM FeeItem f WHERE f.id = :id AND f.schoolId = :schoolId AND f.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<FeeItem>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Academic Session Repository Extensions
@@ -65,12 +77,16 @@ interface SecureTermRepository {
 interface SecureDepartmentRepository {
     @Query("SELECT d FROM Department d WHERE d.id = :id AND d.schoolId = :schoolId AND d.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<Department>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Education Track Repository Extensions
 interface SecureEducationTrackRepository {
     @Query("SELECT e FROM EducationTrack e WHERE e.id = :id AND e.schoolId = :schoolId AND e.isActive = true")
     fun findByIdAndSchoolIdSecure(@Param("id") id: UUID, @Param("schoolId") schoolId: UUID): Optional<EducationTrack>
+
+    fun existsByIdAndSchoolId(id: UUID, schoolId: UUID): Boolean
 }
 
 // Class Fee Item Repository Extensions
