@@ -60,4 +60,3 @@ Thumbs.db
 # Secrets
 .env
 secrets.properties
-application-dev.properties
