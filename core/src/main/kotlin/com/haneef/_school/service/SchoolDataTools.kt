@@ -1,5 +1,6 @@
 package com.haneef._school.service
 
+import com.haneef._school.config.NativeDto
 import com.haneef._school.repository.*
 import com.haneef._school.entity.*
 import org.springframework.ai.tool.annotation.Tool
@@ -444,5 +445,6 @@ class SchoolDataTools(
         }
     }
 
+    @NativeDto
     data class RecipientInfo(val id: UUID, val name: String, val phone: String, val balance: BigDecimal)
 }

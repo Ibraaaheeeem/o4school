@@ -1,5 +1,6 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
 import java.time.LocalDateTime
 import java.util.UUID
 import jakarta.validation.constraints.NotBlank
@@ -7,17 +8,20 @@ import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Size
 
+@NativeDto
 data class EmailRequest(
     val email: String,
     val type: String // "ACTIVATE" or "RESET"
 )
 
+@NativeDto
 data class VerifyOtpRequest(
     val email: String,
     val otp: String,
     val type: String
 )
 
+@NativeDto
 data class ResetPasswordRequest(
     val email: String,
     val otp: String,
@@ -25,6 +29,7 @@ data class ResetPasswordRequest(
     val confirmPassword: String
 )
 
+@NativeDto
 data class RegistrationDto(
     @field:NotBlank(message = "First name is required")
     val firstName: String = "",
@@ -52,6 +57,7 @@ data class RegistrationDto(
     val schoolCode: String? = null
 )
 
+@NativeDto
 data class LoginRequest(
     @field:NotNull(message = "Login method is required")
     val loginMethod: LoginMethod,
@@ -71,6 +77,7 @@ enum class LoginMethod {
     STUDENT
 }
 
+@NativeDto
 data class LoginResponse(
     val token: String,
     val user: AuthenticatedUserDto?,
@@ -79,6 +86,7 @@ data class LoginResponse(
     val message: String? = null
 )
 
+@NativeDto
 data class AuthenticatedUserDto(
     val id: UUID,
     val firstName: String?,
@@ -88,6 +96,7 @@ data class AuthenticatedUserDto(
     val status: String
 )
 
+@NativeDto
 data class UserSchoolRoleDto(
     val schoolId: UUID?,
     val schoolName: String?,

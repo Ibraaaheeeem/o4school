@@ -2,6 +2,7 @@ package com.haneef._school.service
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.haneef._school.config.NativeDto
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.*
@@ -260,12 +261,14 @@ class PaystackService(
 }
 
 // Response DTOs
+@NativeDto
 data class PaystackCustomerResponse(
     val status: Boolean,
     val message: String,
     val data: CustomerData?
 )
 
+@NativeDto
 data class CustomerData(
     val id: Long,
     @JsonProperty("first_name") val firstName: String,
@@ -277,12 +280,14 @@ data class CustomerData(
     @JsonProperty("risk_action") val riskAction: String?
 )
 
+@NativeDto
 data class PaystackAccountResponse(
     val status: Boolean,
     val message: String,
     val data: AccountData?
 )
 
+@NativeDto
 data class AccountData(
     val bank: BankData,
     @JsonProperty("account_name") val accountName: String,
@@ -297,12 +302,14 @@ data class AccountData(
     val customer: CustomerData?
 )
 
+@NativeDto
 data class BankData(
     val name: String,
     val id: Int,
     val slug: String
 )
 
+@NativeDto
 data class AssignmentData(
     val integration: Long,
     @JsonProperty("assignee_id") val assigneeId: Long,
@@ -312,12 +319,14 @@ data class AssignmentData(
     @JsonProperty("assigned_at") val assignedAt: String
 )
 
+@NativeDto
 data class PaystackProvidersResponse(
     val status: Boolean,
     val message: String,
     val data: List<ProviderData>?
 )
 
+@NativeDto
 data class ProviderData(
     @JsonProperty("provider_slug") val providerSlug: String,
     @JsonProperty("bank_id") val bankId: Int,

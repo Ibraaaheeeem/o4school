@@ -1,12 +1,16 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
 import java.util.UUID
 
+@NativeDto
 data class TopicRequest(
     val topic: String,
     val questionCount: Int
 )
 
+@NativeDto
 data class AiQuestionRequest(
     val topics: List<TopicRequest>,
     val optionsCount: Int,
@@ -15,10 +19,12 @@ data class AiQuestionRequest(
     val gradeLevel: String? = null
 )
 
+@NativeDto
 data class AiQuestionResponse(
     val questions: List<GeneratedQuestionDto>
 )
 
+@NativeDto
 data class GeneratedQuestionDto(
     val instruction: String? = null,
     val questionText: String,

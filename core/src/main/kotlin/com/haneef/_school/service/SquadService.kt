@@ -2,6 +2,7 @@ package com.haneef._school.service
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.haneef._school.config.NativeDto
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.*
@@ -149,12 +150,14 @@ class SquadService(
 }
 
 // Response DTOs
+@NativeDto
 data class SquadAccountResponse(
     val success: Boolean,
     val message: String,
     val data: SquadAccountData?
 )
 
+@NativeDto
 data class SquadAccountData(
     @JsonProperty("first_name") val firstName: String?,
     @JsonProperty("last_name") val lastName: String?,

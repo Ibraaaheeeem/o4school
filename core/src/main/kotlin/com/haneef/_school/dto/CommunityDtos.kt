@@ -1,8 +1,11 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
 import java.time.LocalDate
 import java.util.UUID
 
+@NativeDto
 data class UserDto(
     var firstName: String? = null,
     var lastName: String? = null,
@@ -18,6 +21,7 @@ data class UserDto(
     var phoneNumber: String? = null
 )
 
+@NativeDto
 data class StaffDto(
     var designation: String = "Teacher",
     var employmentType: String = "full_time",
@@ -29,6 +33,7 @@ data class StaffDto(
     var departmentId: UUID? = null
 )
 
+@NativeDto
 data class StudentDto(
     var admissionNumber: String? = null,
     var currentGradeLevel: String? = null,
@@ -43,6 +48,7 @@ data class StudentDto(
     var classId: UUID? = null
 )
 
+@NativeDto
 data class ParentDto(
     var profession: String? = null,
     var relationship: String? = null,

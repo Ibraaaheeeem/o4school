@@ -1,14 +1,17 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
 import java.util.UUID
 import java.time.LocalDateTime
 
+@NativeDto
 data class StudentReportInfo(
     val id: UUID,
     val admissionNumber: String,
     val fullName: String
 )
 
+@NativeDto
 data class SubjectAssessmentData(
     val subjectId: UUID,
     val subjectName: String,
@@ -22,6 +25,7 @@ data class SubjectAssessmentData(
     val scores: Map<String, Int?> = HashMap()
 )
 
+@NativeDto
 data class AssessmentReportData(
     val studentId: UUID,
     val studentName: String,
@@ -44,6 +48,7 @@ data class AssessmentReportData(
     val headTeacherComment: String? = null
 )
 
+@NativeDto
 data class SaveAssessmentRequest(
     val studentId: UUID,
     val sessionId: UUID? = null,
@@ -66,6 +71,7 @@ data class SaveAssessmentRequest(
     val headTeacherComment: String? = null
 )
 
+@NativeDto
 data class SubjectScoreInput(
     val subjectId: UUID,
     val ca1: Int? = null,
@@ -74,6 +80,7 @@ data class SubjectScoreInput(
     val scores: Map<String, Int?> = HashMap()
 )
 
+@NativeDto
 data class ImportAssessmentRequest(
     val classId: UUID,
     val session: String,
@@ -84,11 +91,13 @@ data class ImportAssessmentRequest(
     val studentId: UUID? = null
 )
 
+@NativeDto
 data class ImportSourceConfig(
     val examType: String,
     val factor: Double = 1.0
 )
 
+@NativeDto
 data class ExaminationDto(
     val id: UUID? = null,
     val title: String,
@@ -105,6 +114,7 @@ data class ExaminationDto(
     val isPublished: Boolean = false
 )
 
+@NativeDto
 data class QuestionDto(
     val id: UUID? = null,
     val instruction: String? = null,
@@ -120,10 +130,12 @@ data class QuestionDto(
     val marks: Double = 1.0
 )
 
+@NativeDto
 data class QuestionListDto(
     val questions: List<QuestionDto> = emptyList()
 )
 
+@NativeDto
 data class BulkCreateRequest(
     val examType: String,
     val term: String? = null,
@@ -137,12 +149,14 @@ data class BulkCreateRequest(
     val isOnline: Boolean = false
 )
 
+@NativeDto
 data class BulkCreateResponse(
     val created: Int,
     val skipped: Int,
     val message: String
 )
 
+@NativeDto
 data class SubjectWithClass(
     val id: UUID,
     val name: String,

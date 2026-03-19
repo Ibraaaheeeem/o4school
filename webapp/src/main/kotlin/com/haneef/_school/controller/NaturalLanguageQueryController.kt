@@ -1,5 +1,6 @@
 package com.haneef._school.controller
 
+import com.haneef._school.config.NativeDto
 import com.haneef._school.service.SchoolDataTools
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.security.access.prepost.PreAuthorize
@@ -41,6 +42,8 @@ class NaturalLanguageQueryController(
         return response?.recipients ?: emptyList()
     }
 
+    @NativeDto
     data class QueryRequest(val query: String)
+    @NativeDto
     data class RecipientListResponse(val recipients: List<SchoolDataTools.RecipientInfo>)
 }

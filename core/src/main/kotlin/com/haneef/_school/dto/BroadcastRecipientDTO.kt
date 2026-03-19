@@ -1,7 +1,10 @@
 package com.haneef._school.dto
 
+import com.haneef._school.config.NativeDto
+
 import java.util.UUID
 
+@NativeDto
 data class BroadcastRecipientDTO(
     val userId: UUID,
     val name: String,
