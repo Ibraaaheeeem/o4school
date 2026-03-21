@@ -8,6 +8,9 @@ import com.haneef._school.repository.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.dao.DataIntegrityViolationException
+import com.haneef._school.exception.NotFoundException
+import java.time.Clock
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -21,14 +24,30 @@ class SubscriptionService(
     @Value("\${fourschool.subscription.rate:1000}") private val subscriptionRate: Long
 ) {
 
+    // Clock is injectable for deterministic tests; default to system clock
+    private var clock: Clock = Clock.systemDefaultZone()
+
+    constructor(
+        subscriptionRepository: SchoolSubscriptionRepository,
+        usageLogRepository: ServiceUsageLogRepository,
+        schoolRepository: SchoolRepository,
+        userRepository: UserRepository,
+        studentRepository: StudentRepository,
+        subscriptionRate: Long,
+        clock: Clock
+    ) : this(subscriptionRepository, usageLogRepository, schoolRepository, userRepository, studentRepository, subscriptionRate) {
+        this.clock = clock
+    }
+
     fun getSubscription(schoolId: UUID): SchoolSubscription {
         return subscriptionRepository.findBySchoolId(schoolId) ?: createDefaultSubscription(schoolId)
     }
 
     private fun createDefaultSubscription(schoolId: UUID): SchoolSubscription {
+        // Create inside a transaction and handle possible concurrent inserts via unique constraint
         val school = schoolRepository.findById(schoolId)
-            .orElseThrow { IllegalArgumentException("School not found") }
-        
+            .orElseThrow { NotFoundException("School not found: $schoolId") }
+
         val sub = SchoolSubscription(
             school = school,
             feeCollectionActive = false,
@@ -37,9 +56,16 @@ class SubscriptionService(
             aiTokenBalance = 0
         )
         // 4 months free trial initially
-        sub.validUntil = LocalDateTime.now().plusMonths(4)
+        sub.validUntil = LocalDateTime.now(clock).plusMonths(4)
         sub.subscriptionStatus = SubscriptionStatus.ACTIVE
-        return subscriptionRepository.save(sub)
+
+        return try {
+            subscriptionRepository.save(sub)
+        } catch (e: DataIntegrityViolationException) {
+            // Another transaction created the subscription concurrently; fetch and return it
+            subscriptionRepository.findBySchoolId(schoolId)
+                ?: throw e
+        }
     }
 
     @Transactional
@@ -47,7 +73,7 @@ class SubscriptionService(
         if (amount < 0) throw IllegalArgumentException("Deduction amount must be positive")
         
         val sub = getSubscription(schoolId)
-        
+
         // Ensure there are enough funds (unless allowNegative is true)
         when (feature) {
             ServiceFeature.AI_TOKENS -> {
@@ -74,20 +100,20 @@ class SubscriptionService(
             }
         }
 
-        sub.lastUpdated = LocalDateTime.now()
+        sub.lastUpdated = LocalDateTime.now(clock)
         subscriptionRepository.save(sub)
 
-        // Create the usage log
-        val school = schoolRepository.findById(schoolId).orElseThrow()
-        val user = userRepository.findById(userId).orElseThrow()
-        
+        // Create the usage log (use existing sub.school to avoid refetch)
+        val school = sub.school
+        val user = userRepository.findById(userId).orElseThrow { NotFoundException("User not found: $userId") }
+
         val log = ServiceUsageLog(
             school = school,
             user = user,
             serviceType = feature,
             amount = amount,
             description = description,
-            timestamp = LocalDateTime.now()
+            timestamp = LocalDateTime.now(clock)
         )
         usageLogRepository.save(log)
     }
@@ -104,7 +130,7 @@ class SubscriptionService(
             ServiceFeature.FEE_COLLECTION -> sub.feeCollectionActive = true
         }
         
-        sub.lastUpdated = LocalDateTime.now()
+        sub.lastUpdated = LocalDateTime.now(clock)
         subscriptionRepository.save(sub)
     }
 
@@ -122,7 +148,7 @@ class SubscriptionService(
             // For now, let's keep the data in case they opt back in but just change the flag
         }
         
-        sub.lastUpdated = LocalDateTime.now()
+        sub.lastUpdated = LocalDateTime.now(clock)
         subscriptionRepository.save(sub)
     }
 
@@ -148,16 +174,13 @@ class SubscriptionService(
     fun renewSubscription(schoolId: UUID, years: Int = 1) {
         val sub = getSubscription(schoolId)
         
-        // If renewing early, add a year to current validity. If already expired, add a year from today.
-        val baseDate = if (sub.validUntil != null && sub.validUntil!!.isAfter(LocalDateTime.now())) {
-            sub.validUntil!!
-        } else {
-            LocalDateTime.now()
-        }
-        
+        // If renewing early, add years to current validity. If already expired, add years from today.
+        val now = LocalDateTime.now(clock)
+        val baseDate = sub.validUntil?.takeIf { it.isAfter(now) } ?: now
+
         sub.validUntil = baseDate.plusYears(years.toLong())
         sub.subscriptionStatus = SubscriptionStatus.ACTIVE
-        sub.lastUpdated = LocalDateTime.now()
+        sub.lastUpdated = LocalDateTime.now(clock)
         
         subscriptionRepository.save(sub)
         

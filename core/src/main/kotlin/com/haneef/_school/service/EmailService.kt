@@ -15,7 +15,7 @@ class EmailService(
     @Value("\${SENDER_NAME:4School Admin}")
     private lateinit var senderName: String
 
-    fun sendApprovalEmail(to: String, name: String, role: String = "User") {
+    fun sendApprovalEmail(to: String, name: String, role: String = "User", school: String = "School"): Pair<Boolean, Any> {
         val message = SimpleMailMessage()
         message.from = "$senderName <$fromEmail>"
         message.setTo(to)
@@ -31,13 +31,13 @@ class EmailService(
         val actionText = if (role == "SCHOOL_ADMIN") {
             "You can now log in to your account and proceed to set up your school."
         } else {
-            "You can now log in to your account and access your school's dashboard."
+            "You can now log in to your account and access your dashboard."
         }
 
         message.text = """
             Dear $name,
             
-            We are pleased to inform you that your registration as a $roleDisplay on the 4School platform has been approved.
+            We are pleased to inform you that your registration as a $role in $school on the 4School platform has been approved.
             
             $actionText
             
@@ -47,14 +47,15 @@ class EmailService(
             The 4School Team
         """.trimIndent()
         
-        try {
+        return try {
             mailSender.send(message)
+            Pair(true, Unit)
         } catch (e: Exception) {
-            println("Failed to send email to $to: ${e.message}")
+            Pair(false, (e.message ?: "Failed to send email"))
         }
     }
 
-    fun sendOtpEmail(to: String, otp: String) {
+    fun sendOtpEmail(to: String, otp: String): Pair<Boolean, Any> {
         val message = SimpleMailMessage()
         message.from = "$senderName <$fromEmail>"
         message.setTo(to)
@@ -72,10 +73,11 @@ class EmailService(
             The 4School Team
         """.trimIndent()
         
-        try {
+        return try {
             mailSender.send(message)
+            Pair(true, Unit)
         } catch (e: Exception) {
-            println("Failed to send OTP email to $to: ${e.message}")
+            Pair(false, (e.message ?: "Failed to send OTP email"))
         }
     }
 
@@ -88,7 +90,7 @@ class EmailService(
         settledBill: java.math.BigDecimal,
         outstandingBill: java.math.BigDecimal,
         invoiceImage: ByteArray?
-    ) {
+    ): Pair<Boolean, Any> {
         try {
             val mimeMessage = mailSender.createMimeMessage()
             val helper = org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, true)
@@ -132,9 +134,9 @@ class EmailService(
             }
             
             mailSender.send(mimeMessage)
+            return Pair(true, Unit)
         } catch (e: Exception) {
-            println("Failed to send settlement email to $to: ${e.message}")
-            e.printStackTrace()
+            return Pair(false, (e.message ?: "Failed to send settlement email")).also { _ -> e.printStackTrace() }
         }
     }
 }

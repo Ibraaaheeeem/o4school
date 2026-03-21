@@ -22,15 +22,19 @@ class UserSchoolRoleService(
 
     @Transactional(readOnly = true)
     fun getActiveRolesByUserIdAndSchoolId(userId: UUID, schoolId: UUID): List<UserSchoolRole> {
-        return userSchoolRoleRepository.findActiveRolesByUserId(userId)
+        return getActiveRolesByUserId(userId)
+            .asSequence()
             .filter { it.schoolId == schoolId }
+            .toList()
     }
 
     @Transactional(readOnly = true)
-    fun getUserSchools(userId: UUID): List<UUID?> {
+    fun getUserSchools(userId: UUID): List<UUID> {
         return getActiveRolesByUserId(userId)
-            .map { it.schoolId }
+            .asSequence()
+            .mapNotNull { it.schoolId }
             .distinct()
+            .toList()
     }
     
     @Transactional(readOnly = true)
@@ -41,12 +45,25 @@ class UserSchoolRoleService(
 
     @Transactional(readOnly = true)
     fun hasMultipleSchools(userId: UUID): Boolean {
-        return getUserSchools(userId).size > 1
+        val seen = HashSet<UUID>()
+        for (role in getActiveRolesByUserId(userId)) {
+            val sid = role.schoolId ?: continue
+            seen.add(sid)
+            if (seen.size > 1) return true
+        }
+        return false
     }
 
     @Transactional(readOnly = true)
     fun hasMultipleRolesInSchool(userId: UUID, schoolId: UUID): Boolean {
-        return getActiveRolesByUserIdAndSchoolId(userId, schoolId).size > 1
+        var found = 0
+        for (role in getActiveRolesByUserId(userId)) {
+            if (role.schoolId == schoolId) {
+                found++
+                if (found > 1) return true
+            }
+        }
+        return false
     }
 
     @Transactional(readOnly = true)

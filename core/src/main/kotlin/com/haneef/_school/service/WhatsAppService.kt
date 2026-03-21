@@ -11,6 +11,7 @@ import com.haneef._school.repository.WhatsAppTemplateRepository
 import com.haneef._school.entity.UserSchoolRole
 import com.haneef._school.repository.UserSchoolRoleRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.core.type.TypeReference
 import org.springframework.stereotype.Service
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.beans.factory.ObjectProvider
@@ -23,6 +24,9 @@ import org.springframework.http.MediaType
 import org.springframework.context.ApplicationEventPublisher
 import com.haneef._school.event.MessageFailureEvent
 import com.haneef._school.service.MultimodalChannel
+import org.springframework.beans.factory.annotation.Value
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.*
 
 @Service
@@ -38,14 +42,23 @@ open class WhatsAppService(
     private val schoolDataToolsProvider: ObjectProvider<SchoolDataTools>,
     private val userSchoolRoleRepository: UserSchoolRoleRepository,
     private val subscriptionService: SubscriptionService,
-    private val eventPublisher: ApplicationEventPublisher
+    private val eventPublisher: ApplicationEventPublisher,
+    @Value("\${whatsapp.meta.messages-endpoint-url}") private val messagesEndpointUrl: String,
+    @Value("\${whatsapp.meta.templates-endpoint-url}") private val templatesEndpointUrl: String
+    , private val restTemplate: RestTemplate = RestTemplate()
 ) {
-    private val restTemplate = RestTemplate()
+    private val logger: Logger = LoggerFactory.getLogger(javaClass)
+
+    companion object {
+        private const val MAX_CONVERSATION_HISTORY = 8
+        private const val SESSION_WINDOW_HOURS = 24L
+        private const val LAST_PHONE_DIGITS = 10
+    }
 
     open fun sendTextMessage(to: String, text: String, user: User? = null, schoolId: UUID? = null, triggerFallback: Boolean = false, isFallback: Boolean = false, templateName: String? = null, paramsJson: String? = null, fallbackChannel: String? = null, broadcastId: UUID? = null): Boolean {
         val formattedNumber = phoneNumberService.cleanPhoneNumber(to).removePrefix("+")
         
-        val url = "https://graph.facebook.com/${properties.apiVersion.trim()}/${(properties.phoneNumberId ?: "").trim()}/messages"
+        val url = messagesEndpointUrl
         
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_JSON
@@ -71,24 +84,24 @@ open class WhatsAppService(
             true
         } catch (e: HttpStatusCodeException) {
             val errorMsg = extractErrorMessage(e.responseBodyAsString)
-            println("Failed to send WhatsApp message to $to: ${e.statusCode} - $errorMsg")
+            logger.error("Failed to send WhatsApp message to $to: ${e.statusCode} - $errorMsg")
             logMessage(to, text + " (Error: $errorMsg)", MessageDirection.OUTGOING, "FAILED", null, user, schoolId, triggerFallback, isFallback, templateName, paramsJson, fallbackChannel, broadcastId)
             false
         } catch (e: Exception) {
-            println("Failed to send WhatsApp message to $to: ${e.message}")
+            logger.error("Failed to send WhatsApp message to $to", e)
             logMessage(to, text, MessageDirection.OUTGOING, "FAILED", null, user, schoolId, triggerFallback, isFallback, templateName, paramsJson, fallbackChannel, broadcastId)
             false
         }
     }
 
     open fun getTemplates(): List<Map<String, Any>> {
-        val url = "https://graph.facebook.com/${properties.apiVersion.trim()}/${(properties.businessAccountId ?: "").trim()}/message_templates"
-        println("Fetching WhatsApp templates from Meta: $url")
+        val url = templatesEndpointUrl
+        logger.info("Fetching WhatsApp templates from Meta")
         
         val headers = HttpHeaders()
         val token = properties.accessToken?.trim()
         headers.setBearerAuth(token ?: run {
-            println("WhatsApp access token is missing")
+            logger.warn("WhatsApp access token is missing")
             return emptyList()
         })
 
@@ -102,20 +115,18 @@ open class WhatsAppService(
             val responseBody = response.body as? Map<*, *>
             val data = responseBody?.get("data") as? List<Map<String, Any>>
             
-            if (data == null) {
-                println("Meta response body missing 'data' field: $responseBody")
-            } else if (data.isEmpty()) {
-                println("Meta returned 0 templates for Business Account ID: ${properties.businessAccountId}")
-            } else {
-                println("Successfully fetched ${data.size} templates from Meta")
+            when {
+                data == null -> logger.warn("Meta response body missing 'data' field")
+                data.isEmpty() -> logger.info("Meta returned 0 templates")
+                else -> logger.info("Successfully fetched ${data.size} templates from Meta")
             }
             
             data ?: emptyList()
         } catch (e: org.springframework.web.client.HttpStatusCodeException) {
-            println("Meta API Error (${e.statusCode}): ${e.responseBodyAsString}")
+            logger.error("Meta API Error (${e.statusCode})", e)
             emptyList()
         } catch (e: Exception) {
-            println("Unexpected error fetching WhatsApp templates: ${e.message}")
+            logger.error("Unexpected error fetching WhatsApp templates", e)
             emptyList()
         }
     }
@@ -123,13 +134,12 @@ open class WhatsAppService(
     open fun sendTemplateMessage(to: String, templateName: String, languageCode: String = "en_US", components: List<Map<String, Any>>, user: User? = null, schoolId: UUID? = null, triggerFallback: Boolean = false, isFallback: Boolean = false, paramsJson: String? = null, fallbackChannel: String? = null, broadcastId: UUID? = null): Boolean {
         val formattedNumber = phoneNumberService.cleanPhoneNumber(to).removePrefix("+")
         
-        val url = "https://graph.facebook.com/${properties.apiVersion.trim()}/${(properties.phoneNumberId ?: "").trim()}/messages"
+        val url = messagesEndpointUrl
         
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_JSON
         val token = properties.accessToken?.trim() ?: return false
-        val tokenPrefix = if (token.length > 10) token.substring(0, 10) else "***"
-        println("Sending WhatsApp template message using token: $tokenPrefix... (length: ${token.length})")
+        logger.info("Sending WhatsApp template message: $templateName")
         headers.setBearerAuth(token)
 
         val body = mapOf(
@@ -155,14 +165,12 @@ open class WhatsAppService(
             logMessage(to, displayedContent, MessageDirection.OUTGOING, "SENT", metaId, user, schoolId, triggerFallback, isFallback, templateName, paramsJson, fallbackChannel, broadcastId)
             true
         } catch (e: HttpStatusCodeException) {
-            val errorBody = e.responseBodyAsString
-            val errorMsg = extractErrorMessage(errorBody)
-            println("Failed to send WhatsApp template $templateName to $to: ${e.statusCode} - $errorBody")
-            println("Request Body was: ${objectMapper.writeValueAsString(body)}")
+            val errorMsg = extractErrorMessage(e.responseBodyAsString)
+            logger.error("Failed to send WhatsApp template $templateName to $to: ${e.statusCode} - $errorMsg", e)
             logMessage(to, "[Template: $templateName] $errorMsg", MessageDirection.OUTGOING, "FAILED", null, user, schoolId, triggerFallback, isFallback, templateName, paramsJson, fallbackChannel, broadcastId)
             false
         } catch (e: Exception) {
-            println("Unexpected error sending WhatsApp template $templateName to $to: ${e.message}")
+            logger.error("Unexpected error sending WhatsApp template $templateName to $to", e)
             logMessage(to, "[Template: $templateName] Error: ${e.message}", MessageDirection.OUTGOING, "FAILED", null, user, schoolId, triggerFallback, isFallback, templateName, paramsJson, fallbackChannel, broadcastId)
             false
         }
@@ -190,7 +198,7 @@ open class WhatsAppService(
                     if (metaId != null) {
                         val existingMessage = messageRepository.findByMetaMessageId(metaId)
                         if (existingMessage != null) {
-                            println("WhatsApp webhook duplicate message received (ID: $metaId). Skipping to ensure idempotency.")
+                            logger.info("WhatsApp webhook duplicate message received (ID: $metaId). Skipping to ensure idempotency.")
                             return@forEach // Skip processing this duplicate message
                         }
                     }
@@ -210,9 +218,12 @@ open class WhatsAppService(
                     messageRepository.save(incoming)
 
                     // 1.5 Handle AI Query if it's a text message (Async to prevent webhook timeout)
-                    if (text.isNotBlank()) {
+                    if (text.isNotBlank() && user != null) {
                         java.util.concurrent.CompletableFuture.runAsync {
                             handleAiQuery(from, text)
+                        }.exceptionally { e ->
+                            logger.error("Error handling AI query for $from", e)
+                            null
                         }
                     }
                 }
@@ -252,30 +263,9 @@ open class WhatsAppService(
                         if (existing.status == "DELIVERED" && currentStatus != "DELIVERED") {
                             existing.school?.let { school ->
                                 try {
-                                    // Use the system admin user or a relevant user for the deduction log
-                                    // EXEMPTION: Free-form messages sent within 24h window are not deducted
-                                    val isFreeForm = existing.templateName == null
-                                    val lastIncoming = messageRepository.findTopByRecipientPhoneAndDirectionOrderByCreatedAtDesc(existing.recipientPhone, MessageDirection.INCOMING)
-                                    val isWithin24hSession = lastIncoming != null && 
-                                        java.time.Duration.between(lastIncoming.createdAt, existing.createdAt).toHours() < 24
-
-                                    if (isFreeForm && isWithin24hSession) {
-                                        println("WhatsApp Session Exemption (Webhook): Skipping delivery deduction for free-form message to ${existing.recipientPhone}")
-                                    } else {
-                                        val deductUser = existing.user ?: userRepository.findAll().firstOrNull()
-                                        if(deductUser != null) {
-                                          subscriptionService.deductTokens(
-                                              schoolId = school.id!!,
-                                              userId = deductUser.id!!,
-                                              feature = com.haneef._school.entity.ServiceFeature.WHATSAPP_MESSAGING,
-                                              amount = 1,
-                                              description = if (isFreeForm) "WhatsApp Message Delivered to ${existing.recipientPhone}" else "WhatsApp Template (${existing.templateName}) Delivered to ${existing.recipientPhone}",
-                                              allowNegative = existing.isFallback
-                                          )
-                                        }
-                                    }
+                                    deductWhatsAppBalance(existing, school)
                                 } catch (e: Exception) {
-                                    println("Warning: Failed to deduct WhatsApp balance for school ${school.id}: ${e.message}")
+                                    logger.error("Failed to deduct WhatsApp balance for school ${school.id}", e)
                                 }
                             }
                         }
@@ -293,7 +283,7 @@ open class WhatsAppService(
             
         if (directMatch != null) return directMatch
         
-        // Next, try to find an exact match where the database simply stores the cleaned numeric format
+        // If database queries fail, fall back to in-memory matching (expensive but rare)
         val allUsers = userRepository.findAll()
         val exactDbMatch = allUsers.firstOrNull { 
             val dbCleaned = it.phoneNumber?.let { p -> phoneNumberService.cleanPhoneNumber(p) } ?: ""
@@ -301,10 +291,9 @@ open class WhatsAppService(
         }
         if (exactDbMatch != null) return exactDbMatch
         
-        // If not found, try matching the last 10 digits against all users (local format 080... vs +23480...)
-        // This is a naive fallback, but effective for matching international to local
-        val last10 = if (cleaned.length >= 10) cleaned.substring(cleaned.length - 10) else cleaned
-        if (last10.length >= 10) {
+        // Try matching the last N digits (local format 080... vs +23480...)
+        val last10 = if (cleaned.length >= LAST_PHONE_DIGITS) cleaned.substring(cleaned.length - LAST_PHONE_DIGITS) else cleaned
+        if (last10.length >= LAST_PHONE_DIGITS) {
             val fuzzyMatch = allUsers.firstOrNull { user ->
                 val userPhone = user.phoneNumber?.let { phoneNumberService.cleanPhoneNumber(it) } ?: ""
                 userPhone.endsWith(last10)
@@ -323,7 +312,12 @@ open class WhatsAppService(
                 ?: return "[Template: $templateName]"
             
             val componentsJson = template.componentsJson ?: return "[Template: $templateName]"
-            val metaComponents = objectMapper.readValue(componentsJson, List::class.java) as? List<Map<String, Any>> ?: return "[Template: $templateName]"
+            val metaComponents: List<Map<String, Any>> = try {
+                objectMapper.readValue(componentsJson, object : TypeReference<List<Map<String, Any>>>() {})
+            } catch (e: Exception) {
+                logger.warn("Failed to parse stored template components for $templateName", e)
+                return "[Template: $templateName]"
+            }
             
             val bodyComponent = metaComponents.find { it["type"] == "BODY" } ?: return "[Template: $templateName]"
             var text = bodyComponent["text"] as? String ?: return "[Template: $templateName]"
@@ -352,14 +346,24 @@ open class WhatsAppService(
             
             text
         } catch (e: Exception) {
-            println("Failed to reconstruct template message: ${e.message}")
+            logger.warn("Failed to reconstruct template message: $templateName", e)
             "[Template: $templateName]"
         }
     }
 
     private fun logMessage(to: String, content: String, direction: MessageDirection, status: String, metaId: String?, user: User?, schoolId: UUID? = null, triggerFallback: Boolean = false, isFallback: Boolean = false, templateName: String? = null, paramsJson: String? = null, fallbackChannel: String? = null, broadcastId: UUID? = null) {
-        val effectiveSchoolId = schoolId ?: user?.getSchools()?.firstOrNull() ?: user?.schoolRoles?.firstOrNull()?.schoolId
-        val school = effectiveSchoolId?.let { schoolRepository.findById(it).orElse(null) }
+        val rawSchoolCandidate: Any? = schoolId ?: user?.getSchools()?.firstOrNull() ?: user?.schoolRoles?.firstOrNull()?.schoolId
+        val effectiveSchoolId: java.util.UUID? = when (rawSchoolCandidate) {
+            is java.util.UUID -> rawSchoolCandidate
+            is com.haneef._school.entity.School -> rawSchoolCandidate.id
+            else -> null
+        }
+        val school = try {
+            effectiveSchoolId?.let { schoolRepository.findById(it).orElse(null) }
+        } catch (e: Exception) {
+            logger.warn("Failed to fetch school for logging: $effectiveSchoolId", e)
+            null
+        }
 
         val message = WhatsAppMessage(
             recipientPhone = to,
@@ -378,28 +382,12 @@ open class WhatsAppService(
         )
         messageRepository.save(message)
 
-        if (direction == MessageDirection.OUTGOING && metaId != null && effectiveSchoolId != null) {
+        if (direction == MessageDirection.OUTGOING && metaId != null && effectiveSchoolId != null && user != null) {
             try {
-                // EXEMPTION: Free-form messages sent within the 24h customer service window (since last INCOMING) are NOT deducted.
-                val isFreeForm = templateName == null
-                val lastIncoming = messageRepository.findTopByRecipientPhoneAndDirectionOrderByCreatedAtDesc(to, MessageDirection.INCOMING)
-                val isWithin24hSession = lastIncoming != null && 
-                    java.time.Duration.between(lastIncoming.createdAt, java.time.LocalDateTime.now()).toHours() < 24
-
-                if (isFreeForm && isWithin24hSession) {
-                    println("WhatsApp Session Exemption: Skipping deduction for free-form message to $to (last incoming was at ${lastIncoming?.createdAt})")
-                } else {
-                    subscriptionService.deductTokens(
-                        schoolId = effectiveSchoolId,
-                        userId = user?.id ?: java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"), // System user fallback
-                        feature = ServiceFeature.WHATSAPP_MESSAGING,
-                        amount = 1,
-                        description = if (isFreeForm) "WhatsApp sent to $to" else "WhatsApp Template ($templateName) sent to $to",
-                        allowNegative = isFallback
-                    )
-                }
+                val school = schoolRepository.findById(effectiveSchoolId).orElse(null) ?: return
+                deductWhatsAppBalance(message, school)
             } catch (e: Exception) {
-                println("Failed to deduct WhatsApp token for school $effectiveSchoolId: ${e.message}")
+                logger.error("Failed to deduct WhatsApp token for school $effectiveSchoolId", e)
             }
         }
     }
@@ -412,7 +400,7 @@ open class WhatsAppService(
         
         val roles = userSchoolRoleRepository.findByUserAndIsActive(user, true)
         if (roles.isEmpty()) {
-            sendTextMessage(from, "Sorry, you don't have permission to query school data. Please contact your school administrator.")
+            sendTextMessage(from, "Sorry, you don't have permission to access this service. Please contact your school administrator.")
             return
         }
 
@@ -449,9 +437,8 @@ open class WhatsAppService(
 
         // Fetch Conversation History for stateless memory tracking
         val cleanedPhone = from.removePrefix("+")
-        // We include messages sent to/from "+<phone>"
         val recentMessages = messageRepository.findByRecipientPhoneOrderByCreatedAtDesc("+$cleanedPhone")
-            .take(8)
+            .take(MAX_CONVERSATION_HISTORY)
             .reversed()
             
         val historyStr = if (recentMessages.isNotEmpty()) {
@@ -485,9 +472,41 @@ open class WhatsAppService(
 
             sendTextMessage(from, response ?: "I'm sorry, I couldn't find any information for that query.")
         } catch (e: Exception) {
-            println("AI Query Error for user $from: ${e.message}")
+            logger.error("AI Query Error for user $from", e)
             // Silently drop the message instead of responding with an error per user request
         }
+    }
+
+    private fun deductWhatsAppBalance(message: WhatsAppMessage, school: com.haneef._school.entity.School) {
+        val isFreeForm = message.templateName == null
+        val lastIncoming = messageRepository.findTopByRecipientPhoneAndDirectionOrderByCreatedAtDesc(
+            message.recipientPhone,
+            MessageDirection.INCOMING
+        )
+        val isWithin24hSession = lastIncoming != null && 
+            java.time.Duration.between(lastIncoming.createdAt, message.createdAt).toHours() < SESSION_WINDOW_HOURS
+
+        if (isFreeForm && isWithin24hSession) {
+            logger.info(
+                "WhatsApp Session Exemption: Skipping deduction for free-form message to ${message.recipientPhone} " +
+                "(last incoming was at ${lastIncoming?.createdAt})"
+            )
+        } else {
+            message.user?.let { deductUser ->
+                subscriptionService.deductTokens(
+                    schoolId = school.id!!,
+                    userId = deductUser.id!!,
+                    feature = ServiceFeature.WHATSAPP_MESSAGING,
+                    amount = 1,
+                    description = if (isFreeForm)
+                        "WhatsApp sent to ${message.recipientPhone}"
+                    else
+                        "WhatsApp Template (${message.templateName}) sent to ${message.recipientPhone}",
+                    allowNegative = message.isFallback
+                )
+            }
+        }
+
     }
 
     private fun extractErrorMessage(errorBody: String?): String {

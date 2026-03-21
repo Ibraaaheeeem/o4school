@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import java.time.LocalDateTime
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 @Controller
 class RegistrationController(
@@ -27,6 +28,8 @@ class RegistrationController(
     private val emailService: EmailService,
     private val rateLimitingService: com.haneef._school.service.RateLimitingService
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @GetMapping("/auth/register")
     fun showRegistrationForm(model: Model): String {
@@ -138,7 +141,8 @@ class RegistrationController(
         }
 
         // Send OTP
-        emailService.sendOtpEmail(email, otp)
+        val (sentOk, info) = emailService.sendOtpEmail(email, otp)
+        if (!sentOk) logger.warn("Failed to send registration OTP to $email: $info")
 
         redirectAttributes.addFlashAttribute("message", "Registration successful! A 6-digit activation code has been sent to your email. Please enter it below to verify your account.")
         return "redirect:/activate-account?email=$email&type=VERIFY"

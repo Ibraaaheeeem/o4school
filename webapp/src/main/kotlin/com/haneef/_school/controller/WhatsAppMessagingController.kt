@@ -508,8 +508,8 @@ class WhatsAppMessagingController(
     @ResponseBody
     fun syncTemplates(session: HttpSession): Map<String, Any> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("success" to false)
-        val success = templateService.syncTemplates()
-        return mapOf("success" to success)
+        // Sync with Meta has been disabled in the service layer.
+        return mapOf("success" to false, "message" to "Template sync disabled")
     }
 
     @PostMapping("/templates/{templateId}/mapping")
@@ -599,7 +599,7 @@ class WhatsAppMessagingController(
     @ResponseBody
     fun deleteTemplate(@PathVariable id: UUID, session: HttpSession): Map<String, Any> {
         val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID ?: return mapOf("success" to false)
-        val success = templateService.deleteMetaTemplate(id)
-        return mapOf("success" to success)
+        // Deletion of templates has been disabled in the service layer.
+        return mapOf("success" to false, "message" to "Template deletion disabled")
     }
 }

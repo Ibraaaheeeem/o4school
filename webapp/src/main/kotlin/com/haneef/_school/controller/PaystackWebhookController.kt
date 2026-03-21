@@ -169,7 +169,7 @@ class PaystackWebhookController(
                     //     logger.error("Failed to generate invoice image (likely AWT missing): ${e.message}. Proceeding without attachment.", e)
                     // }
 
-                    emailService.sendSettlementEmail(
+                    val (sentOk, info) = emailService.sendSettlementEmail(
                         to = customerEmail,
                         settlement = settlement,
                         schoolName = school.name ?: "School Name",
@@ -179,7 +179,11 @@ class PaystackWebhookController(
                         outstandingBill = outstandingBill,
                         invoiceImage = invoiceImage
                     )
-                    logger.info("Settlement email sent to $customerEmail")
+                    if (sentOk) {
+                        logger.info("Settlement email sent to $customerEmail")
+                    } else {
+                        logger.warn("Failed to send settlement email to $customerEmail: $info")
+                    }
                 } else {
                     logger.warn("School not found for wallet ${wallet.id}, skipping email")
                 }

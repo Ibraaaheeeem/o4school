@@ -1,6 +1,7 @@
 package com.haneef._school.service
 
 import com.haneef._school.repository.PaystackParentWalletRepository
+import com.haneef._school.repository.SquadParentWalletRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
@@ -11,10 +12,10 @@ import java.util.UUID
 
 @Service
 
-class WalletAsyncService(
+open class WalletAsyncService(
     private val paystackParentWalletRepository: PaystackParentWalletRepository,
     private val paystackService: PaystackService,
-    private val squadParentWalletRepository: com.haneef._school.repository.SquadParentWalletRepository,
+    private val squadParentWalletRepository: SquadParentWalletRepository,
     private val squadService: SquadService
 ) {
     private val logger = LoggerFactory.getLogger(WalletAsyncService::class.java)
@@ -72,17 +73,35 @@ class WalletAsyncService(
             logger.info("Asynchronously generating Squad virtual account for wallet: $walletId")
             
             val parent = wallet.parent
-            
-            // Sanitize phone number: remove leading '+' if present
-            var phone = parent.user.phoneNumber!!
-            if (phone.startsWith("+")) {
-                phone = phone.substring(1)
+
+            if (parent == null || parent.user == null) {
+                logger.error("Parent or parent.user is null for walletId={}", walletId)
+                // preserve existing behavior: delete so the user can try again
+                try {
+                    squadParentWalletRepository.delete(wallet)
+                } catch (ex: Exception) {
+                    logger.error("Failed to delete wallet {} after missing parent", walletId, ex)
+                }
+                return
+            }
+
+            // Normalize phone number: remove non-digit characters
+            val rawPhone = parent.user.phoneNumber ?: ""
+            val phone = rawPhone.replace(Regex("\\D"), "").trim()
+            if (phone.isBlank()) {
+                logger.error("Parent phone is blank or invalid for walletId={}", walletId)
+                try {
+                    squadParentWalletRepository.delete(wallet)
+                } catch (ex: Exception) {
+                    logger.error("Failed to delete wallet {} after invalid phone", walletId, ex)
+                }
+                return
             }
 
             val accountResponse = squadService.createVirtualAccount(
                 firstName = parent.user.firstName ?: "",
                 lastName = parent.user.lastName ?: "",
-                email = parent.user.email!!,
+                email = parent.user.email ?: "",
                 phone = phone,
                 middleName = null,
                 bvn = bvn,
@@ -92,7 +111,7 @@ class WalletAsyncService(
             )
 
             if (accountResponse == null || !accountResponse.success || accountResponse.data == null) {
-                logger.error("Failed to generate Squad virtual account for wallet: $walletId. Response: ${accountResponse?.message}")
+                logger.error("Failed to generate Squad virtual account for walletId={}. Response: {}", walletId, accountResponse?.message)
                 // Delete the wallet so the user can try again
                 squadParentWalletRepository.delete(wallet)
                 return
@@ -101,7 +120,7 @@ class WalletAsyncService(
             val accountData = accountResponse.data!!
             
             if (accountData.accountNumber == null) {
-                logger.error("Squad account number is missing in successful response for wallet: $walletId")
+                logger.error("Squad account number is missing in successful response for walletId={}", walletId)
                 squadParentWalletRepository.delete(wallet)
                 return
             }
@@ -109,7 +128,7 @@ class WalletAsyncService(
             wallet.accountNumber = accountData.accountNumber
             wallet.accountName = "${accountData.firstName ?: ""} ${accountData.lastName ?: ""}".trim()
             wallet.bankName = accountData.bankName ?: "Squad"
-            wallet.customerIdentifier = accountData.customerIdentifier ?: parent.user.email!!
+            wallet.customerIdentifier = accountData.customerIdentifier ?: (parent.user.email ?: "")
             wallet.currency = accountData.currency ?: "NGN"
             wallet.assignedAt = LocalDateTime.now()
             wallet.isActive = true
@@ -127,7 +146,7 @@ class WalletAsyncService(
                     squadParentWalletRepository.delete(wallet)
                 }
             } catch (ex: Exception) {
-                logger.error("Failed to cleanup wallet after error", ex)
+                logger.error("Failed to cleanup wallet after error for walletId={}", walletId, ex)
             }
         }
     }

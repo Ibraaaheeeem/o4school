@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import java.util.*
+import org.slf4j.LoggerFactory
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -28,6 +29,7 @@ class AuthController(
     private val passwordEncoder: PasswordEncoder,
     private val emailService: EmailService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/login")
     fun login(@Valid @RequestBody request: LoginRequest): ResponseEntity<LoginResponse> {
@@ -130,7 +132,8 @@ class AuthController(
             )
         }
 
-        emailService.sendOtpEmail(user.email!!, otp)
+        val (sentOk, info) = emailService.sendOtpEmail(user.email!!, otp)
+        if (!sentOk) logger.warn("Failed to send registration OTP to ${user.email}: $info")
 
         return ResponseEntity.ok(mapOf(
             "message" to "Registration successful. OTP sent to email.",

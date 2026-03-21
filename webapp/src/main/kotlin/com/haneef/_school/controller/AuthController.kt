@@ -6,6 +6,8 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 
+import org.slf4j.LoggerFactory
+
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding
 
 @Controller
@@ -17,6 +19,7 @@ class AuthController(
     private val passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder,
     private val rateLimitingService: com.haneef._school.service.RateLimitingService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
     
     @GetMapping("/login")
     fun showLoginForm(
@@ -89,7 +92,8 @@ class AuthController(
         user.otpExpires = java.time.LocalDateTime.now().plusMinutes(15)
         userRepository.save(user)
         
-        emailService.sendOtpEmail(email, otp)
+        val (sentOk, info) = emailService.sendOtpEmail(email, otp)
+        if (!sentOk) logger.warn("Failed to send OTP to $email: $info")
         
         model.addAttribute("email", email)
         model.addAttribute("type", type)

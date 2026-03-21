@@ -102,10 +102,23 @@ class SystemAdminDashboardController(
             }
         }
         
-        // Send email
-        emailService.sendApprovalEmail(user.email ?: "", user.fullName ?: "User", "SCHOOL_ADMIN")
-        
-        redirectAttributes.addFlashAttribute("success", "User ${user.fullName ?: "User"} has been approved and notified.")
+        // Send email and handle result
+        val adminSchoolName = user.schoolRoles.firstOrNull { it.role?.name == "SCHOOL_ADMIN" }?.schoolId
+            ?.let { sid -> schoolRepository.findById(sid).map { it.name }.orElse("School") } ?: "School"
+
+        val (sentOk, info) = emailService.sendApprovalEmail(
+            user.email ?: "",
+            user.fullName ?: "User",
+            "SCHOOL_ADMIN",
+            adminSchoolName
+        )
+
+        if (!sentOk) {
+            redirectAttributes.addFlashAttribute("success", "User ${user.fullName ?: "User"} has been approved.")
+            redirectAttributes.addFlashAttribute("warning", "Failed to send approval email: $info")
+        } else {
+            redirectAttributes.addFlashAttribute("success", "User ${user.fullName ?: "User"} has been approved and notified.")
+        }
         return "redirect:/system-admin/users"
     }
 }
