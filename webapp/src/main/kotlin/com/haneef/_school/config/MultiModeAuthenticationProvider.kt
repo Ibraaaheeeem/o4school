@@ -3,6 +3,7 @@ package com.haneef._school.config
 import com.haneef._school.dto.LoginMethod
 import com.haneef._school.dto.LoginRequest
 import com.haneef._school.service.MultiModeAuthenticationService
+import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -16,6 +17,8 @@ class MultiModeAuthenticationProvider(
     private val multiModeAuthenticationService: MultiModeAuthenticationService,
     private val passwordEncoder: PasswordEncoder
 ) : AuthenticationProvider {
+
+    private val logger = LoggerFactory.getLogger(MultiModeAuthenticationProvider::class.java)
 
     override fun authenticate(authentication: Authentication): Authentication {
         val username = authentication.name
@@ -43,7 +46,8 @@ class MultiModeAuthenticationProvider(
                 userDetails.authorities
             )
         } catch (e: Exception) {
-            throw BadCredentialsException("Authentication failed: ${e.message}")
+            logger.debug("Authentication failed", e)
+            throw BadCredentialsException("Authentication failed")
         }
     }
 

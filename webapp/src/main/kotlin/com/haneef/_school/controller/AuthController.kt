@@ -68,7 +68,8 @@ class AuthController(
         model: Model,
         request: jakarta.servlet.http.HttpServletRequest
     ): String {
-        val bucket = rateLimitingService.resolveLoginBucket(request.remoteAddr)
+        val clientKey = rateLimitingService.resolveClientKey(request)
+        val bucket = rateLimitingService.resolveLoginBucket(clientKey)
         if (!bucket.tryConsume(1)) {
             val waitTime = rateLimitingService.getFormattedWaitTime(bucket)
             model.addAttribute("error", "Too many requests. Please try again in $waitTime.")
@@ -108,8 +109,8 @@ class AuthController(
         model: Model,
         request: jakarta.servlet.http.HttpServletRequest
     ): String {
-        // Rate limit OTP verification to prevent brute force
-        val bucket = rateLimitingService.resolveLoginBucket(request.remoteAddr)
+        val clientKey = rateLimitingService.resolveClientKey(request)
+        val bucket = rateLimitingService.resolveLoginBucket(clientKey)
         if (!bucket.tryConsume(1)) {
             val waitTime = rateLimitingService.getFormattedWaitTime(bucket)
             model.addAttribute("error", "Too many attempts. Please try again in $waitTime.")

@@ -45,37 +45,34 @@ class SquadParentWalletService(
         gender: String,
         address: String
     ): Result<SquadParentWallet> {
-        try {
-            // Check if wallet already exists
-            if (hasWallet(parent.id!!)) {
-                return Result.failure(Exception("Squad wallet already exists for this parent"))
-            }
+        // Validate parent and user
+        val parentId = parent.id ?: return Result.failure(IllegalArgumentException("Parent id is required"))
+        if (hasWallet(parentId)) {
+            return Result.failure(IllegalStateException("Squad wallet already exists for this parent"))
+        }
 
-            // Validate parent data
-            if (parent.user.email.isNullOrBlank()) {
-                return Result.failure(Exception("Parent email is required"))
-            }
-            if (parent.user.phoneNumber.isNullOrBlank()) {
-                return Result.failure(Exception("Parent phone number is required"))
-            }
+        val user = parent.user
+        if (user == null) {
+            return Result.failure(IllegalArgumentException("Parent.user is required"))
+        }
 
-            logger.info("Creating initial Squad wallet record for parent: ${parent.id}")
+        val email = user.email?.takeIf { it.isNotBlank() }
+            ?: return Result.failure(IllegalArgumentException("Parent email is required"))
+        val rawPhone = user.phoneNumber?.takeIf { it.isNotBlank() }
+            ?: return Result.failure(IllegalArgumentException("Parent phone number is required"))
 
-            // Create initial wallet record
-            // Note: Squad uses email as customer identifier usually, or we can generate one.
-            val customerIdentifier = parent.user.email!!
+        logger.info("Creating initial Squad wallet record for parent: $parentId")
 
-            // Call Squad API synchronously to ensure success
-            // Sanitize phone number: remove leading '+' if present
-            var phone = parent.user.phoneNumber!!
-            if (phone.startsWith("+")) {
-                phone = phone.substring(1)
-            }
+        // Sanitize phone number: keep digits only
+        val phone = rawPhone.replace(Regex("\\D"), "").let { if (it.startsWith("0")) it.dropWhile { ch -> ch == '0' } else it }
 
+        val customerIdentifier = email
+
+        return try {
             val accountResponse = squadService.createVirtualAccount(
-                firstName = parent.user.firstName ?: "",
-                lastName = parent.user.lastName ?: "",
-                email = parent.user.email!!,
+                firstName = user.firstName ?: "",
+                lastName = user.lastName ?: "",
+                email = email,
                 phone = phone,
                 middleName = null,
                 bvn = bvn,
@@ -86,20 +83,20 @@ class SquadParentWalletService(
 
             if (accountResponse == null || !accountResponse.success || accountResponse.data == null) {
                 val errorMsg = accountResponse?.message ?: "Unknown error from Squad API"
-                logger.error("Failed to generate Squad virtual account for parent: ${parent.id}. Response: $errorMsg")
-                return Result.failure(Exception(errorMsg))
+                logger.error("Failed to generate Squad virtual account for parent: $parentId. Response: $errorMsg")
+                return Result.failure(IllegalStateException(errorMsg))
             }
 
-            val accountData = accountResponse.data!!
-            if (accountData.accountNumber == null) {
-                logger.error("Squad account number is missing in successful response for parent: ${parent.id}")
-                return Result.failure(Exception("Squad account number missing in response"))
+            val accountData = accountResponse.data
+            if (accountData?.accountNumber.isNullOrBlank()) {
+                logger.error("Squad account number is missing in response for parent: $parentId")
+                return Result.failure(IllegalStateException("Squad account number missing in response"))
             }
 
             val wallet = SquadParentWallet(
                 parent = parent,
                 customerIdentifier = accountData.customerIdentifier ?: customerIdentifier,
-                accountNumber = accountData.accountNumber,
+                accountNumber = accountData.accountNumber!!,
                 accountName = "${accountData.firstName ?: ""} ${accountData.lastName ?: ""}".trim(),
                 bankName = accountData.bankName ?: "Squad"
             ).apply {
@@ -110,13 +107,12 @@ class SquadParentWalletService(
             }
 
             val savedWallet = squadParentWalletRepository.save(wallet)
-            logger.info("Squad wallet created successfully for parent: ${parent.id} with account: ${wallet.accountNumber}")
-
-            return Result.success(savedWallet)
+            logger.info("Squad wallet created successfully for parent: $parentId with account: ${savedWallet.accountNumber}")
+            Result.success(savedWallet)
 
         } catch (e: Exception) {
-            logger.error("Error creating Squad wallet for parent ${parent.id}: ${e.message}", e)
-            return Result.failure(e)
+            logger.error("Error creating Squad wallet for parent $${parent.id}: ${e.message}", e)
+            Result.failure(e)
         }
     }
 

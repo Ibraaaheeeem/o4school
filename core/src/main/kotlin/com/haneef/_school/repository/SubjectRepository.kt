@@ -24,4 +24,6 @@ interface SubjectRepository : JpaRepository<Subject, UUID> {
 
     // Check for duplicate subject names globally
     fun findBySubjectNameIgnoreCaseAndIsActive(subjectName: String, isActive: Boolean): Subject?
+
+    fun findBySubjectNameIgnoreCase(subjectName: String): Subject?
 }

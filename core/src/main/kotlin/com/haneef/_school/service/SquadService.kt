@@ -40,6 +40,11 @@ class SquadService(
         gender: String, // "1" for Male, "2" for Female
         address: String
     ): SquadAccountResponse? {
+        if (secretKey.isBlank()) {
+            logger.error("Squad secret key is not configured; aborting virtual account creation")
+            return SquadAccountResponse(false, "Missing Squad API secret key", null)
+        }
+
         try {
             val url = "$apiUrl/virtual-account"
             val headers = createHeaders()
@@ -64,30 +69,42 @@ class SquadService(
             
             logger.info("Creating Squad virtual account for email: $email")
             val response = restTemplate.postForEntity(url, request, String::class.java)
-            
-            if (response.statusCode == HttpStatus.OK || response.statusCode == HttpStatus.CREATED) {
+
+            if (response.statusCode.is2xxSuccessful) {
                 logger.info("Squad API Response: ${response.body}")
-                val responseBody = objectMapper.readValue(response.body, SquadAccountResponse::class.java)
-                if (responseBody.success) {
-                    logger.info("Successfully created Squad account: ${responseBody.data?.accountNumber}")
-                    return responseBody
-                } else {
-                    logger.error("Squad API returned success=false: ${responseBody.message}")
-                    return null
+                val bodyText = response.body ?: ""
+                try {
+                    val responseBody = if (bodyText.isNotBlank()) objectMapper.readValue(bodyText, SquadAccountResponse::class.java) else null
+                    if (responseBody != null && responseBody.success) {
+                        logger.info("Successfully created Squad account: ${responseBody.data?.accountNumber}")
+                        return responseBody
+                    } else {
+                        logger.error("Squad API returned success=false or empty body: ${responseBody?.message}")
+                        return responseBody ?: SquadAccountResponse(false, "Empty response body from Squad API", null)
+                    }
+                } catch (ex: Exception) {
+                    logger.error("Failed to parse Squad response body", ex)
+                    return SquadAccountResponse(false, "Invalid response from Squad API", null)
                 }
             }
-            
+
             logger.error("Failed to create Squad account. Status: ${response.statusCode}")
-            return null
+            return SquadAccountResponse(false, "Unexpected status ${response.statusCode}", null)
             
         } catch (e: HttpClientErrorException) {
             logger.error("Client error creating Squad account: ${e.message}", e)
-            logger.error("Response body: ${e.responseBodyAsString}")
-            try {
-                return objectMapper.readValue(e.responseBodyAsString, SquadAccountResponse::class.java)
+            val body = e.responseBodyAsString
+            logger.error("Response body: $body")
+            return try {
+                if (body.isNullOrBlank()) SquadAccountResponse(false, e.message ?: "Unknown client error", null)
+                else objectMapper.readValue(body, SquadAccountResponse::class.java)
             } catch (ex: Exception) {
-                return SquadAccountResponse(false, e.message ?: "Unknown client error", null)
+                SquadAccountResponse(false, e.message ?: "Unknown client error", null)
             }
+        } catch (e: HttpServerErrorException) {
+            logger.error("Server error creating Squad account: ${e.message}", e)
+            val body = e.responseBodyAsString
+            return SquadAccountResponse(false, body ?: e.message ?: "Server error", null)
         } catch (e: Exception) {
             logger.error("Error creating Squad account: ${e.message}", e)
             return SquadAccountResponse(false, e.message ?: "Unknown error", null)
@@ -102,42 +119,72 @@ class SquadService(
         amount: java.math.BigDecimal,
         email: String
     ): SquadAccountResponse? {
+        if (secretKey.isBlank()) {
+            logger.error("Squad secret key is not configured; aborting dynamic virtual account creation")
+            return SquadAccountResponse(false, "Missing Squad API secret key", null)
+        }
+
         try {
             val url = "$apiUrl/virtual-account/business"
             val headers = createHeaders()
-            
-            // Amount in kobo
-            val amountInKobo = amount.multiply(java.math.BigDecimal(100)).toLong()
-            
+
+            // Amount in kobo - exact conversion, fail if fractional kobo
+            val amountInKobo: Long = try {
+                amount.movePointRight(2).longValueExact()
+            } catch (ex: ArithmeticException) {
+                logger.error("Invalid amount for kobo conversion: $amount", ex)
+                return SquadAccountResponse(false, "Invalid amount", null)
+            }
+
             val requestBody = mapOf(
                 "transaction_ref" to transactionRef,
                 "amount" to amountInKobo,
                 "email" to email,
                 "currency" to "NGN"
             )
-            
+
             val request = HttpEntity(requestBody, headers)
-            
+
             logger.info("Creating Squad dynamic virtual account for ref: $transactionRef")
             val response = restTemplate.postForEntity(url, request, String::class.java)
-            
-            if (response.statusCode == HttpStatus.OK || response.statusCode == HttpStatus.CREATED) {
-                val responseBody = objectMapper.readValue(response.body, SquadAccountResponse::class.java)
-                if (responseBody.success) {
-                    logger.info("Successfully created dynamic account: ${responseBody.data?.accountNumber}")
-                    return responseBody
-                } else {
-                    logger.error("Squad API returned success=false: ${responseBody.message}")
-                    return null
+
+            if (response.statusCode.is2xxSuccessful) {
+                val bodyText = response.body ?: ""
+                try {
+                    val responseBody = if (bodyText.isNotBlank()) objectMapper.readValue(bodyText, SquadAccountResponse::class.java) else null
+                    if (responseBody != null && responseBody.success) {
+                        logger.info("Successfully created dynamic account: ${responseBody.data?.accountNumber}")
+                        return responseBody
+                    } else {
+                        logger.error("Squad API returned success=false or empty body: ${responseBody?.message}")
+                        return responseBody ?: SquadAccountResponse(false, "Empty response body from Squad API", null)
+                    }
+                } catch (ex: Exception) {
+                    logger.error("Failed to parse Squad response body", ex)
+                    return SquadAccountResponse(false, "Invalid response from Squad API", null)
                 }
             }
-            
+
             logger.error("Failed to create dynamic account. Status: ${response.statusCode}")
-            return null
-            
+            return SquadAccountResponse(false, "Unexpected status ${response.statusCode}", null)
+
+        } catch (e: HttpClientErrorException) {
+            logger.error("Client error creating dynamic account: ${e.message}", e)
+            val body = e.responseBodyAsString
+            logger.error("Response body: $body")
+            return try {
+                if (body.isNullOrBlank()) SquadAccountResponse(false, e.message ?: "Unknown client error", null)
+                else objectMapper.readValue(body, SquadAccountResponse::class.java)
+            } catch (ex: Exception) {
+                SquadAccountResponse(false, e.message ?: "Unknown client error", null)
+            }
+        } catch (e: HttpServerErrorException) {
+            logger.error("Server error creating dynamic account: ${e.message}", e)
+            val body = e.responseBodyAsString
+            return SquadAccountResponse(false, body ?: e.message ?: "Server error", null)
         } catch (e: Exception) {
             logger.error("Error creating dynamic account: ${e.message}", e)
-            return null
+            return SquadAccountResponse(false, e.message ?: "Unknown error", null)
         }
     }
 

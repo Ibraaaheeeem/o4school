@@ -4,6 +4,7 @@ import com.haneef._school.entity.School
 import com.haneef._school.entity.SchoolWallet
 import com.haneef._school.repository.SchoolWalletRepository
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -37,26 +38,36 @@ class SchoolWalletService(
      */
     fun createWalletForSchool(school: School, preferredBank: String = "wema-bank"): Result<SchoolWallet> {
         try {
+            // Require persisted school id
+            val schoolId = school.id
+            if (schoolId == null) {
+                return Result.failure(IllegalArgumentException("School must have an id before creating a wallet"))
+            }
+
             // Check if wallet already exists
-            if (hasWallet(school.id!!)) {
-                return Result.failure(Exception("Wallet already exists for this school"))
+            if (hasWallet(schoolId)) {
+                return Result.failure(IllegalStateException("Wallet already exists for this school"))
             }
 
             // Validate school data
             if (school.email.isNullOrBlank()) {
-                return Result.failure(Exception("School email is required"))
+                return Result.failure(IllegalArgumentException("School email is required"))
             }
             if (school.phone.isNullOrBlank()) {
-                return Result.failure(Exception("School phone number is required"))
+                return Result.failure(IllegalArgumentException("School phone number is required"))
             }
 
-            logger.info("Creating wallet for school: ${school.id}")
+            logger.info("Creating wallet for school: ${schoolId}")
 
             // Step 1: Create Paystack customer (using school details)
+            val name = school.name?.trim()
+            val firstName = name?.substringBefore(" ") ?: "Account"
+            val lastName = name?.substringAfter(" ") ?: "School"
+
             val customerResponse = paystackService.createCustomer(
                 email = school.email!!,
-                lastName = school.name?.trim()?.substringBefore(" ") ?: "School",
-                firstName = school.name?.trim()?.substringAfter(" ") ?: "Account",
+                firstName = firstName,
+                lastName = lastName,
                 phone = school.phone!!
             )
 
@@ -98,8 +109,19 @@ class SchoolWalletService(
                 isActive = accountData.active
             }
 
-            val savedWallet = schoolWalletRepository.save(wallet)
-            logger.info("Wallet created successfully for school: ${school.id}")
+            val savedWallet = try {
+                schoolWalletRepository.save(wallet)
+            } catch (e: DataIntegrityViolationException) {
+                // Possible race: another process created the wallet concurrently. Try to return the existing wallet.
+                logger.warn("DataIntegrityViolation when saving wallet for school $schoolId, attempting to fetch existing wallet", e)
+                val existing = schoolWalletRepository.findBySchoolId(schoolId)
+                if (existing != null) {
+                    existing
+                } else {
+                    throw e
+                }
+            }
+            logger.info("Wallet created successfully for school: ${schoolId}")
 
             return Result.success(savedWallet)
 
@@ -115,7 +137,12 @@ class SchoolWalletService(
     private fun parsePaystackDateTime(dateTimeString: String?): LocalDateTime? {
         if (dateTimeString.isNullOrBlank()) return null
         return try {
-            LocalDateTime.parse(dateTimeString, DateTimeFormatter.ISO_DATE_TIME)
+            // Try ISO_OFFSET_DATE_TIME first (e.g. 2024-01-01T12:00:00+01:00), then fallback to ISO_DATE_TIME
+            try {
+                java.time.OffsetDateTime.parse(dateTimeString, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDateTime()
+            } catch (_: Exception) {
+                LocalDateTime.parse(dateTimeString, DateTimeFormatter.ISO_DATE_TIME)
+            }
         } catch (e: Exception) {
             logger.warn("Failed to parse datetime: $dateTimeString", e)
             null

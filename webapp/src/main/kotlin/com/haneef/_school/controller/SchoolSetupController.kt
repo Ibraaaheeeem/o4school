@@ -922,7 +922,7 @@ class SchoolSetupController(
         
         try {
             val result = schoolStructureService.generateDefaultSubjects(selectedSchoolId)
-            model.addAttribute("success", result["message"])
+            model.addAttribute("success", result.message)
         } catch (e: Exception) {
             model.addAttribute("error", e.message)
         }

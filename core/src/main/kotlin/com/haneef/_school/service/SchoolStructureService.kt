@@ -15,6 +15,8 @@ import com.haneef._school.repository.SchoolClassRepository
 import com.haneef._school.repository.SubjectRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.dao.DataIntegrityViolationException
+import org.slf4j.LoggerFactory
 
 @Service
 class SchoolStructureService(
@@ -26,12 +28,14 @@ class SchoolStructureService(
     private val globalSubjectRepository: GlobalSubjectRepository
 ) {
 
+    private val logger = LoggerFactory.getLogger(SchoolStructureService::class.java)
+
     @Transactional
     fun generateDefaultStructure(schoolId: UUID): Map<String, Any> {
-        // Check if school already has active tracks
+        // Check existing tracks for observability; generation remains idempotent
         val existingTracksCount = educationTrackRepository.countBySchoolIdAndIsActive(schoolId, true)
         if (existingTracksCount > 0L) {
-            throw IllegalStateException("School already has education tracks configured")
+            logger.info("School {} already has {} active track(s); proceeding with idempotent default structure generation", schoolId, existingTracksCount)
         }
 
         // 1. Create or Reactivate Conventional Track
@@ -61,9 +65,10 @@ class SchoolStructureService(
 
         val departments = mutableListOf<Department>()
         
+        val trackId = conventionalTrack.id ?: throw IllegalStateException("Conventional track id is missing")
         for (deptData in departmentsData) {
             var department = departmentRepository.findBySchoolIdAndNameAndTrackId(
-                schoolId, deptData.name, conventionalTrack.id!!
+                schoolId, deptData.name, trackId
             )
 
             if (department != null) {
@@ -116,8 +121,9 @@ class SchoolStructureService(
             val deptClasses = classesData[department.name] ?: continue
             
             for (classData in deptClasses) {
+                val deptId = department.id ?: continue
                 var schoolClass = schoolClassRepository.findBySchoolIdAndClassNameAndDepartmentId(
-                    schoolId, classData.name, department.id!!
+                    schoolId, classData.name, deptId
                 )
 
                 if (schoolClass != null) {
@@ -125,9 +131,8 @@ class SchoolStructureService(
                     schoolClass.classCode = classData.name.replace(" ", "").uppercase()
                     schoolClass.gradeLevel = SchoolClass.GradeLevel.fromClassName(classData.name)
                     schoolClass.track = conventionalTrack
-                    schoolClass.track = conventionalTrack
                     schoolClass.maxCapacity = classData.capacity
-                    schoolClass.currentEnrollment = 0
+                    // do not reset currentEnrollment for existing classes
                 } else {
                     schoolClass = SchoolClass(
                         className = classData.name
@@ -147,110 +152,22 @@ class SchoolStructureService(
         }
 
         // 4. Generate default subjects and assign them to classes
-        val subjectsResult = generateDefaultSubjectsForStructure(schoolId)
-        
+        val subjectsResult = generateDefaultSubjects(schoolId)
+
         return mapOf(
             "track" to conventionalTrack,
             "departmentsCount" to departments.size,
             "classesCount" to createdClasses.size,
-            "subjectsCount" to (subjectsResult["subjectsCount"] ?: 0),
-            "assignmentsCount" to (subjectsResult["assignmentsCount"] ?: 0),
-            "message" to "Default school structure created successfully with ${subjectsResult["subjectsCount"] ?: 0} subjects and ${subjectsResult["assignmentsCount"] ?: 0} class assignments"
+            "subjectsCount" to subjectsResult.subjectsCount,
+            "assignmentsCount" to subjectsResult.assignmentsCount,
+            "message" to "Default school structure created successfully with ${subjectsResult.subjectsCount} subjects and ${subjectsResult.assignmentsCount} class assignments"
         )
     }
 
-    @Transactional
-    fun generateDefaultSubjects(schoolId: UUID): Map<String, Any> {
-        val createdSubjects = mutableListOf<Subject>()
-        var assignedCount = 0
-
-        // 1. Ensure we have classes to assign to
-        val classes = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
-        if (classes.isEmpty()) {
-            return mapOf(
-                "subjectsCount" to 0,
-                "assignmentsCount" to 0,
-                "message" to "No active classes found. Please generate or create classes first."
-            )
-        }
-
-        // 2. Get all core subjects from the global catalog
-        val coreGlobalSubjects = globalSubjectRepository.findByIsCoreTrueAndIsActiveTrue()
-        
-        for (globalSub in coreGlobalSubjects) {
-            // Find or create local subject
-            var localSubject = subjectRepository.findBySubjectNameIgnoreCaseAndIsActive(globalSub.name, true)
-            
-            if (localSubject == null) {
-                localSubject = Subject(
-                    subjectName = globalSub.name,
-                    subjectCode = globalSub.code,
-                    isCoreSubject = true,
-                    description = "Category: ${globalSub.category}"
-                ).apply {
-                    this.isActive = true
-                }
-                localSubject = subjectRepository.save(localSubject)
-                createdSubjects.add(localSubject)
-            } else {
-                // Ensure properties are synced locally too
-                var updated = false
-                if (localSubject.isCoreSubject != true) {
-                    localSubject.isCoreSubject = true
-                    updated = true
-                }
-                if (localSubject.subjectCode.isNullOrBlank() && !globalSub.code.isNullOrBlank()) {
-                    localSubject.subjectCode = globalSub.code
-                    updated = true
-                }
-                if (localSubject.description.isNullOrBlank()) {
-                    localSubject.description = "Category: ${globalSub.category}"
-                    updated = true
-                }
-                if (updated) {
-                    subjectRepository.save(localSubject)
-                }
-            }
-
-            // Assign to relevant classes based on grade level range
-            for (schoolClass in classes) {
-                val grade = schoolClass.gradeLevel ?: continue
-                
-                if (grade >= globalSub.minGradeLevel && grade <= globalSub.maxGradeLevel) {
-                    val existingAssignment = classSubjectRepository.findBySchoolClassIdAndSubjectIdAndIsActive(
-                        schoolClass.id!!, localSubject.id!!, true
-                    )
-
-                    if (existingAssignment == null) {
-                        val assignment = ClassSubject(
-                            schoolClass = schoolClass,
-                            subject = localSubject
-                        ).apply {
-                            this.schoolId = schoolId
-                            this.isActive = true
-                        }
-                        classSubjectRepository.save(assignment)
-                        assignedCount++
-                    }
-                }
-            }
-        }
-
-        val message = if (createdSubjects.isEmpty() && assignedCount == 0) {
-            "No new subjects or assignments were created. Structure might already exist."
-        } else {
-            "Generated ${createdSubjects.size} new subjects and $assignedCount class assignments."
-        }
-
-        return mapOf(
-            "subjectsCount" to createdSubjects.size,
-            "assignmentsCount" to assignedCount,
-            "message" to message
-        )
-    }
+    data class SubjectGenerationResult(val subjectsCount: Int, val assignmentsCount: Int, val message: String)
 
     @Transactional
-    private fun generateDefaultSubjectsForStructure(schoolId: UUID): Map<String, Any> {
+    fun generateDefaultSubjects(schoolId: UUID): SubjectGenerationResult {
         val createdSubjects = mutableListOf<Subject>()
         var assignedCount = 0
 
@@ -260,9 +177,17 @@ class SchoolStructureService(
         // Get all classes for this school
         val classes = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
 
+        if (classes.isEmpty()) {
+            return SubjectGenerationResult(
+                subjectsCount = 0,
+                assignmentsCount = 0,
+                message = "No active classes found. Please generate or create classes first."
+            )
+        }
+
         for (globalSub in coreGlobalSubjects) {
             // Find or create local subject
-            var localSubject = subjectRepository.findBySubjectNameIgnoreCaseAndIsActive(globalSub.name, true)
+            var localSubject = subjectRepository.findBySubjectNameIgnoreCase(globalSub.name)
             
             if (localSubject == null) {
                 localSubject = Subject(
@@ -273,13 +198,29 @@ class SchoolStructureService(
                 ).apply {
                     this.isActive = true
                 }
-                localSubject = subjectRepository.save(localSubject)
-                createdSubjects.add(localSubject)
+                try {
+                    localSubject = subjectRepository.save(localSubject)
+                    createdSubjects.add(localSubject)
+                } catch (e: DataIntegrityViolationException) {
+                    // possible race: another thread created the subject concurrently
+                    logger.warn("Subject create race for ${globalSub.name}, refetching", e)
+                    val existing = subjectRepository.findBySubjectNameIgnoreCase(globalSub.name)
+                    if (existing != null) {
+                        localSubject = existing
+                    } else {
+                        // rethrow if we cannot recover
+                        throw e
+                    }
+                }
             } else {
                 // Sync properties for existing subjects
                 var updated = false
                 if (localSubject.isCoreSubject != true) {
                     localSubject.isCoreSubject = true
+                    updated = true
+                }
+                if (localSubject.isActive != true) {
+                    localSubject.isActive = true
                     updated = true
                 }
                 if (localSubject.subjectCode.isNullOrBlank() && !globalSub.code.isNullOrBlank()) {
@@ -301,9 +242,10 @@ class SchoolStructureService(
                 
                 // Check if grade is within global subject's range
                 if (grade >= globalSub.minGradeLevel && grade <= globalSub.maxGradeLevel) {
-                    val existingAssignment = classSubjectRepository.findBySchoolClassIdAndSubjectIdAndIsActive(
-                        schoolClass.id!!, localSubject.id!!, true
-                    )
+                    val classId = schoolClass.id ?: continue
+                    val subjectId = localSubject.id ?: continue
+
+                    val existingAssignment = classSubjectRepository.findBySchoolClassIdAndSubjectId(classId, subjectId)
 
                     if (existingAssignment == null) {
                         val assignment = ClassSubject(
@@ -313,16 +255,44 @@ class SchoolStructureService(
                             this.schoolId = schoolId
                             this.isActive = true
                         }
-                        classSubjectRepository.save(assignment)
+                        try {
+                            classSubjectRepository.save(assignment)
+                            assignedCount++
+                        } catch (e: DataIntegrityViolationException) {
+                            // possible race / unique constraint - another thread created it first
+                            val concurrent = classSubjectRepository.findBySchoolClassIdAndSubjectId(classId, subjectId)
+                            if (concurrent != null && concurrent.isActive != true) {
+                                concurrent.isActive = true
+                                if (concurrent.schoolId == null) {
+                                    concurrent.schoolId = schoolId
+                                }
+                                classSubjectRepository.save(concurrent)
+                                assignedCount++
+                            }
+                            continue
+                        }
+                    } else if (existingAssignment.isActive != true) {
+                        existingAssignment.isActive = true
+                        if (existingAssignment.schoolId == null) {
+                            existingAssignment.schoolId = schoolId
+                        }
+                        classSubjectRepository.save(existingAssignment)
                         assignedCount++
                     }
                 }
             }
         }
 
-        return mapOf(
-            "subjectsCount" to createdSubjects.size,
-            "assignmentsCount" to assignedCount
+        val message = if (createdSubjects.isEmpty() && assignedCount == 0) {
+            "No new subjects or assignments were created. Structure might already exist."
+        } else {
+            "Generated ${createdSubjects.size} new subjects and $assignedCount class assignments."
+        }
+
+        return SubjectGenerationResult(
+            subjectsCount = createdSubjects.size,
+            assignmentsCount = assignedCount,
+            message = message
         )
     }
 

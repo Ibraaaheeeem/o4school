@@ -33,10 +33,29 @@ class PromotionService(
         targetTermId: UUID,
         schoolId: UUID
     ): List<PromotionCandidate> {
-        val currentClass = schoolClassRepository.findById(sourceClassId).orElseThrow { RuntimeException("Class not found") }
+        val currentClass = schoolClassRepository.findByIdAndSchoolIdSecure(sourceClassId, schoolId)
+            .orElseThrow { RuntimeException("Class not found for this school") }
+
+        val sourceSession = academicSessionRepository.findByIdAndSchoolIdSecure(sourceSessionId, schoolId)
+            .orElseThrow { RuntimeException("Source session not found for this school") }
+        val sourceTerm = termRepository.findByIdAndSchoolIdSecure(sourceTermId, schoolId)
+            .orElseThrow { RuntimeException("Source term not found for this school") }
+        val targetSession = academicSessionRepository.findByIdAndSchoolIdSecure(targetSessionId, schoolId)
+            .orElseThrow { RuntimeException("Target session not found for this school") }
+        val targetTerm = termRepository.findByIdAndSchoolIdSecure(targetTermId, schoolId)
+            .orElseThrow { RuntimeException("Target term not found for this school") }
+
+        if (sourceTerm.academicSession.id != sourceSession.id) {
+            throw RuntimeException("Source term does not belong to source session")
+        }
+        if (targetTerm.academicSession.id != targetSession.id) {
+            throw RuntimeException("Target term does not belong to target session")
+        }
+
         val students = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
             sourceClassId, sourceSessionId, sourceTermId, true
         ).map { it.student }
+            .filter { it.schoolId == schoolId }
 
         val targetGradeLevel = (currentClass.gradeLevel ?: 0) + 1
         
@@ -52,7 +71,7 @@ class PromotionService(
                 student = student,
                 currentClass = currentClass,
                 recommendedClass = recommendedClass,
-                availableClasses = allClassesInSchool.sortedBy { it.gradeLevel }
+                availableClasses = allClassesInSchool.sortedWith(compareBy(nullsLast()) { it.gradeLevel })
             )
         }
     }
@@ -64,21 +83,21 @@ class PromotionService(
         promotions: Map<UUID, UUID?>, // StudentID -> TargetClassID
         schoolId: UUID
     ) {
-        val targetSession = academicSessionRepository.findById(targetSessionId).orElseThrow { RuntimeException("Target session not found") }
-        val targetTerm = termRepository.findById(targetTermId).orElseThrow { RuntimeException("Target term not found") }
+        val targetSession = academicSessionRepository.findByIdAndSchoolIdSecure(targetSessionId, schoolId)
+            .orElseThrow { RuntimeException("Target session not found for this school") }
+        val targetTerm = termRepository.findByIdAndSchoolIdSecure(targetTermId, schoolId)
+            .orElseThrow { RuntimeException("Target term not found for this school") }
 
-        if (targetSession.schoolId != schoolId || targetTerm.schoolId != schoolId) {
-            throw RuntimeException("Unauthorized access to session or term")
+        if (targetTerm.academicSession.id != targetSession.id) {
+            throw RuntimeException("Target term does not belong to target session")
         }
 
         promotions.forEach { (studentId, targetClassId) ->
             if (targetClassId != null) {
-                val student = studentRepository.findById(studentId).orElseThrow { RuntimeException("Student not found") }
-                val targetClass = schoolClassRepository.findById(targetClassId).orElseThrow { RuntimeException("Target class not found") }
-
-                if (targetClass.schoolId != schoolId) {
-                    throw RuntimeException("Unauthorized access to target class")
-                }
+                val student = studentRepository.findByIdAndSchoolIdSecure(studentId, schoolId)
+                    .orElseThrow { RuntimeException("Student not found for this school") }
+                val targetClass = schoolClassRepository.findByIdAndSchoolIdSecure(targetClassId, schoolId)
+                    .orElseThrow { RuntimeException("Target class not found for this school") }
 
                 // Check for existing enrollment to avoid duplicates
                 val existing = studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
@@ -98,10 +117,21 @@ class PromotionService(
                     }
                     studentClassRepository.save(newEnrollment)
                 } else {
-                    // Update existing if it's different? 
-                    // Usually we don't want to overwrite unless explicitly asked.
-                    // For now, we skip if already enrolled in something.
-                    logger.warn("Student {} already enrolled in session {} term {}", studentId, targetSessionId, targetTermId)
+                    val alreadyInTargetClass = existing.any { it.schoolClass.id == targetClass.id }
+                    if (alreadyInTargetClass) {
+                        logger.info(
+                            "Skipping promotion for student {} - already enrolled in target class {} for session {} term {}",
+                            studentId,
+                            targetClassId,
+                            targetSessionId,
+                            targetTermId
+                        )
+                    } else {
+                        val enrolledClassIds = existing.mapNotNull { it.schoolClass.id }.joinToString(",")
+                        throw RuntimeException(
+                            "Student $studentId already has enrollment(s) in target session/term in class(es): $enrolledClassIds"
+                        )
+                    }
                 }
             }
         }

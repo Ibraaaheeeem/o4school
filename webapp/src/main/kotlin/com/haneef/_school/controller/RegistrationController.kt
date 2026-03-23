@@ -45,8 +45,8 @@ class RegistrationController(
         request: jakarta.servlet.http.HttpServletRequest,
         model: Model
     ): String {
-        // Rate Limiting
-        val bucket = rateLimitingService.resolveRegistrationBucket(request.remoteAddr)
+        val clientKey = rateLimitingService.resolveClientKey(request)
+        val bucket = rateLimitingService.resolveRegistrationBucket(clientKey)
         if (!bucket.tryConsume(1)) {
             val waitTime = rateLimitingService.getFormattedWaitTime(bucket)
             model.addAttribute("error", "Too many registration attempts. Please try again in $waitTime.")

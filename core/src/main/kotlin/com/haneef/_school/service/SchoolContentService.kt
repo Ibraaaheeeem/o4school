@@ -15,7 +15,6 @@ class SchoolContentService(
 ) {
 
     private val contentBasePath = "school"
-
     /**
      * Get custom content for a school section, fallback to default if not found
      */

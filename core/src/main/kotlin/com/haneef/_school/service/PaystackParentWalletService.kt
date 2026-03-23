@@ -4,10 +4,11 @@ import com.haneef._school.entity.Parent
 import com.haneef._school.entity.PaystackParentWallet
 import com.haneef._school.repository.PaystackParentWalletRepository
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 import org.springframework.transaction.support.TransactionSynchronization
@@ -18,7 +19,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 class PaystackParentWalletService(
     private val paystackParentWalletRepository: PaystackParentWalletRepository,
     private val paystackService: PaystackService,
-    private val walletAsyncService: WalletAsyncService
+    private val walletAsyncService: WalletAsyncService,
+    private val clock: Clock = Clock.systemDefaultZone()
 ) {
 
     private val logger = LoggerFactory.getLogger(PaystackParentWalletService::class.java)
@@ -42,33 +44,36 @@ class PaystackParentWalletService(
      */
     fun createWalletForParent(parent: Parent, preferredBank: String = "wema-bank"): Result<PaystackParentWallet> {
         try {
+            val parentId = parent.id
+                ?: return Result.failure(IllegalArgumentException("Parent id is required"))
+            val user = parent.user
+                ?: return Result.failure(IllegalArgumentException("Parent user is required"))
+
             // Check if wallet already exists
-            if (hasWallet(parent.id!!)) {
-                return Result.failure(Exception("Wallet already exists for this parent"))
+            if (hasWallet(parentId)) {
+                return Result.failure(IllegalStateException("Wallet already exists for this parent"))
             }
 
             // Validate parent data
-            if (parent.user.email.isNullOrBlank()) {
-                return Result.failure(Exception("Parent email is required"))
-            }
-            if (parent.user.phoneNumber.isNullOrBlank()) {
-                return Result.failure(Exception("Parent phone number is required"))
-            }
+            val email = user.email?.takeIf { it.isNotBlank() }
+                ?: return Result.failure(IllegalArgumentException("Parent email is required"))
+            val phoneNumber = user.phoneNumber?.takeIf { it.isNotBlank() }
+                ?: return Result.failure(IllegalArgumentException("Parent phone number is required"))
 
-            logger.info("Creating initial wallet record for parent: ${parent.id}")
+            logger.info("Creating initial wallet record for parent: {}", parentId)
 
             // Step 1: Create Paystack customer
             val customerResponse = paystackService.createCustomer(
-                email = parent.user.email!!,
-                firstName = parent.user.firstName ?: "",
-                lastName = parent.user.lastName ?: "",
-                phone = parent.user.phoneNumber!!
+                email = email,
+                firstName = user.firstName ?: "",
+                lastName = user.lastName ?: "",
+                phone = phoneNumber
             )
 
             if (customerResponse == null || !customerResponse.status || customerResponse.data == null) {
                 logger.error("Failed to create Paystack customer")
-                logger.error(customerResponse.toString())
-                return Result.failure(Exception("Failed to create customer account: ${customerResponse?.message ?: "Unknown error"}"))
+                logger.error("Paystack customer creation failed: {}", customerResponse?.message ?: "Unknown error")
+                return Result.failure(IllegalStateException("Failed to create customer account: ${customerResponse?.message ?: "Unknown error"}"))
             }
 
             val customerCode = customerResponse.data.customerCode
@@ -85,16 +90,26 @@ class PaystackParentWalletService(
                 schoolId = parent.schoolId
             }
 
-            val savedWallet = paystackParentWalletRepository.save(wallet)
-            logger.info("Initial wallet record created for parent: ${parent.id}")
+            val savedWallet = try {
+                paystackParentWalletRepository.save(wallet)
+            } catch (e: DataIntegrityViolationException) {
+                logger.warn("Wallet creation race detected for parent {}, attempting to fetch existing wallet", parentId, e)
+                paystackParentWalletRepository.findByParentId(parentId) ?: throw e
+            }
+            logger.info("Initial wallet record created for parent: {}", parentId)
 
             // Step 3: Trigger asynchronous account generation AFTER transaction commits
             val walletId = savedWallet.id!!
-            TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
-                override fun afterCommit() {
-                    walletAsyncService.generatePaystackAccount(walletId, preferredBank)
-                }
-            })
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
+                    override fun afterCommit() {
+                        walletAsyncService.generatePaystackAccount(walletId, preferredBank)
+                    }
+                })
+            } else {
+                logger.warn("Transaction synchronization is not active; triggering Paystack account generation immediately for wallet {}", walletId)
+                walletAsyncService.generatePaystackAccount(walletId, preferredBank)
+            }
 
             return Result.success(savedWallet)
 
@@ -110,7 +125,7 @@ class PaystackParentWalletService(
     fun updateWalletBalance(walletId: UUID, newBalance: java.math.BigDecimal): PaystackParentWallet? {
         val wallet = paystackParentWalletRepository.findById(walletId).orElse(null) ?: return null
         wallet.balance = newBalance
-        wallet.updatedAt = LocalDateTime.now()
+        wallet.updatedAt = LocalDateTime.now(clock)
         return paystackParentWalletRepository.save(wallet)
     }
 
@@ -120,21 +135,8 @@ class PaystackParentWalletService(
     fun deactivateWallet(walletId: UUID): Boolean {
         val wallet = paystackParentWalletRepository.findById(walletId).orElse(null) ?: return false
         wallet.isActive = false
-        wallet.updatedAt = LocalDateTime.now()
+        wallet.updatedAt = LocalDateTime.now(clock)
         paystackParentWalletRepository.save(wallet)
         return true
-    }
-
-    /**
-     * Parse Paystack datetime string to LocalDateTime
-     */
-    private fun parsePaystackDateTime(dateTimeString: String?): LocalDateTime? {
-        if (dateTimeString.isNullOrBlank()) return null
-        return try {
-            LocalDateTime.parse(dateTimeString, DateTimeFormatter.ISO_DATE_TIME)
-        } catch (e: Exception) {
-            logger.warn("Failed to parse datetime: $dateTimeString", e)
-            null
-        }
     }
 }

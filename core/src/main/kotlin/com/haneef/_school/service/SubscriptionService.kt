@@ -8,6 +8,7 @@ import com.haneef._school.repository.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import com.haneef._school.exception.NotFoundException
 import java.time.Clock
@@ -15,29 +16,15 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
-class SubscriptionService(
+class SubscriptionService @Autowired constructor(
     private val subscriptionRepository: SchoolSubscriptionRepository,
     private val usageLogRepository: ServiceUsageLogRepository,
     private val schoolRepository: SchoolRepository,
     private val userRepository: UserRepository,
     private val studentRepository: StudentRepository,
-    @Value("\${fourschool.subscription.rate:1000}") private val subscriptionRate: Long
+    @Value("\${fourschool.subscription.rate:1000}") private val subscriptionRate: Long,
+    private val clock: Clock = Clock.systemDefaultZone()
 ) {
-
-    // Clock is injectable for deterministic tests; default to system clock
-    private var clock: Clock = Clock.systemDefaultZone()
-
-    constructor(
-        subscriptionRepository: SchoolSubscriptionRepository,
-        usageLogRepository: ServiceUsageLogRepository,
-        schoolRepository: SchoolRepository,
-        userRepository: UserRepository,
-        studentRepository: StudentRepository,
-        subscriptionRate: Long,
-        clock: Clock
-    ) : this(subscriptionRepository, usageLogRepository, schoolRepository, userRepository, studentRepository, subscriptionRate) {
-        this.clock = clock
-    }
 
     fun getSubscription(schoolId: UUID): SchoolSubscription {
         return subscriptionRepository.findBySchoolId(schoolId) ?: createDefaultSubscription(schoolId)

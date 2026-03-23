@@ -10,6 +10,9 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface ClassSubjectRepository : JpaRepository<ClassSubject, UUID> {
+
+    @Query("SELECT cs FROM ClassSubject cs WHERE cs.schoolClass.id = :classId AND cs.subject.id = :subjectId")
+    fun findBySchoolClassIdAndSubjectId(@Param("classId") classId: UUID, @Param("subjectId") subjectId: UUID): ClassSubject?
     
     @Query("SELECT cs FROM ClassSubject cs WHERE cs.schoolClass.id = :classId AND cs.subject.id = :subjectId AND cs.isActive = :isActive")
     fun findBySchoolClassIdAndSubjectIdAndIsActive(@Param("classId") classId: UUID, @Param("subjectId") subjectId: UUID, @Param("isActive") isActive: Boolean): ClassSubject?
