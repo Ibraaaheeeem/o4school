@@ -213,12 +213,20 @@ open class FinancialService(
             val allTimeFees = status["allTimeFees"] as BigDecimal
             val paid = status["walletAllocated"] as BigDecimal
             val currentBill = status["currentBill"] as BigDecimal
+            val currentBillBreakdown = (status["currentBillBreakdown"] as? Map<*, *>)
+                ?.mapNotNull { (key, value) ->
+                    val name = key as? String
+                    val amount = value as? BigDecimal
+                    if (name != null && amount != null) name to amount else null
+                }
+                ?.toMap()
+                ?: emptyMap()
             StudentFinancialStatus(
                 studentId = status["studentId"] as UUID,
                 studentName = status["studentName"] as String,
                 allTimeFees = allTimeFees,
                 currentBill = currentBill,
-                currentBillBreakdown = status["currentBillBreakdown"] as Map<String, BigDecimal>,
+                currentBillBreakdown = currentBillBreakdown,
                 outstanding = allTimeFees.subtract(currentBill).max(BigDecimal.ZERO), // Past Outstanding
                 currentBalance = allTimeFees.subtract(paid).max(BigDecimal.ZERO)
             )

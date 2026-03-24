@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>4School - Custom Domain</title>
     <!-- CSRF Meta Tags -->
-    <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
+    <th:block th:replace="~{fragments/csrf :: csrf-meta}"></th:block>
     <link rel="stylesheet" th:href="@{/css/common.css}" />
     <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
     <link rel="stylesheet" th:href="@{/css/school-setup.css}" />
     <!-- Include CSRF JavaScript -->
-    <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+    <th:block th:replace="~{fragments/csrf :: csrf-js}"></th:block>
 </head>
 
 <body>
@@ -99,14 +99,21 @@
 
     <script>
         function checkDomain() {
-            const domain = document.getElementById('domainSearch').value;
+            const domainInputField = document.getElementById('domainSearch');
+            const domain = domainInputField.value.trim();
             const statusP = document.getElementById('domainStatus');
             const connectForm = document.getElementById('connectForm');
             const domainInput = document.getElementById('domainInput');
 
-            if (!domain) return;
+            if (!domain) {
+                statusP.textContent = 'Please enter a domain name.';
+                statusP.style.color = '#dc2626';
+                connectForm.style.display = 'none';
+                return;
+            }
 
-            statusP.innerHTML = 'Checking...';
+            domainInputField.value = domain;
+            statusP.textContent = 'Checking...';
             statusP.className = '';
             statusP.style.color = '#6b7280';
             connectForm.style.display = 'none';
@@ -115,19 +122,19 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.available) {
-                        statusP.innerHTML = `✓ '${domain}' is available!`;
+                        statusP.textContent = `✓ '${domain}' is available!`;
                         statusP.style.color = '#059669';
 
                         domainInput.value = domain;
                         connectForm.style.display = 'block';
                     } else {
-                        statusP.innerHTML = `✗ '${domain}' is not available or taken.`;
+                        statusP.textContent = `✗ '${domain}' is not available or taken.`;
                         statusP.style.color = '#dc2626';
                         connectForm.style.display = 'none';
                     }
                 })
                 .catch(err => {
-                    statusP.innerHTML = 'Error checking domain availability.';
+                    statusP.textContent = 'Error checking domain availability.';
                     statusP.style.color = '#dc2626';
                     console.error(err);
                 });

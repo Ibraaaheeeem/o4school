@@ -2,6 +2,7 @@ package com.haneef._school.service
 
 import com.haneef._school.entity.*
 import com.haneef._school.repository.*
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -24,7 +25,13 @@ class InternalMessagingService(
     private val templateParameterResolver: TemplateParameterResolver,
     private val templateRepository: WhatsAppTemplateRepository
 ) {
+    companion object {
+        private val logger = LoggerFactory.getLogger(InternalMessagingService::class.java)
+    }
 
+    private val objectMapper = jacksonObjectMapper()
+
+    @Transactional(readOnly = true)
     fun getUserThreads(userId: UUID, schoolId: UUID): List<ThreadDTO> {
         val participations = participantRepository.findByUserIdAndThreadSchoolIdOrderByThreadUpdatedAtDesc(userId, schoolId)
         
@@ -239,12 +246,19 @@ class InternalMessagingService(
                 messageRepository.save(message)
                 count++
             } catch (e: Exception) {
-                // Log and continue
+                logger.warn(
+                    "Failed to send internal broadcast to recipientId={} for schoolId={} subject={}",
+                    recipient.userId,
+                    schoolId,
+                    effectiveSubject,
+                    e
+                )
             }
         }
         return count
     }
 
+    @Transactional(readOnly = true)
     private fun findExisting1on1Thread(user1Id: UUID, user2Id: UUID, schoolId: UUID, subject: String): InternalMessageThread? {
         val user1Threads = participantRepository.findByUserIdAndThreadSchoolIdOrderByThreadUpdatedAtDesc(user1Id, schoolId)
             .map { it.thread }
@@ -259,15 +273,16 @@ class InternalMessagingService(
     private fun extractTemplateText(componentsJson: String?): String {
         if (componentsJson.isNullOrBlank()) return ""
         return try {
-            val mapper = jacksonObjectMapper()
-            val components = mapper.readValue<List<Map<String, Any>>>(componentsJson)
+            val components = objectMapper.readValue<List<Map<String, Any>>>(componentsJson)
             val body = components.find { it["type"] == "BODY" || it["type"] == "body" }
             body?.get("text")?.toString() ?: ""
         } catch (e: Exception) {
+            logger.warn("Failed to parse template components JSON", e)
             ""
         }
     }
 
+    @Transactional(readOnly = true)
     fun getEligibleContacts(user: User, schoolId: UUID): List<ContactDTO> {
         val roles: List<RoleType> = user.schoolRoles
             .filter { it.schoolId == schoolId && it.isActive }
@@ -328,9 +343,10 @@ class InternalMessagingService(
         return contacts.map { 
             val roleLabel = it.schoolRoles.firstOrNull { sr -> sr.schoolId == schoolId && sr.isActive }?.role?.name ?: "User"
             ContactDTO(it.id!!, it.fullName ?: it.email ?: "Unknown", roleLabel) 
-        }.sortedBy { it.name }
+        }.distinctBy { it.id }.sortedBy { it.name }
     }
 
+    @Transactional(readOnly = true)
     private fun getUsersByRole(schoolId: UUID, roleType: RoleType): List<User> {
         // Find users who have the specific role for the specific school
         val allUsers = userRepository.findAll() 

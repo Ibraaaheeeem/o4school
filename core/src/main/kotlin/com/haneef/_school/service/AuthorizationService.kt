@@ -4,9 +4,11 @@ import com.haneef._school.entity.*
 import com.haneef._school.repository.*
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 @Service
+@Transactional(readOnly = true)
 class AuthorizationService(
     private val studentRepository: StudentRepository,
     private val parentRepository: ParentRepository,
@@ -135,7 +137,7 @@ class AuthorizationService(
      */
     fun validateParentStudentAccess(parentId: UUID, studentId: UUID, schoolId: UUID): Boolean {
         val parent = validateAndGetParent(parentId, schoolId)
-        val student = validateAndGetStudent(studentId, schoolId)
+        validateAndGetStudent(studentId, schoolId)
         
         return parent.activeStudentRelationships.any { 
             it.student.id == studentId && it.isActive 
@@ -178,7 +180,9 @@ class AuthorizationService(
                                  parentRepository.existsById(uuid) ||
                                  schoolClassRepository.existsById(uuid) ||
                                  examinationRepository.existsById(uuid) ||
-                                 feeItemRepository.existsById(uuid)
+                                 feeItemRepository.existsById(uuid) ||
+                                 departmentRepository.existsById(uuid) ||
+                                 educationTrackRepository.existsById(uuid)
             
             if (existsGlobally) {
                 throw AccessDeniedException("Cross-school illegal access attempt detected")

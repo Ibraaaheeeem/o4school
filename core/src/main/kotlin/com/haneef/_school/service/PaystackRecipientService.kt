@@ -156,7 +156,7 @@ class PaystackRecipientService(
 
             val request = HttpEntity<Any>(headers)
             val url = UriComponentsBuilder
-                .fromHttpUrl("$paystackBaseUrl/bank/resolve")
+                .fromUriString("$paystackBaseUrl/bank/resolve")
                 .queryParam("account_number", accountNumber)
                 .queryParam("bank_code", bankCode)
                 .toUriString()

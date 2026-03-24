@@ -326,7 +326,7 @@ class SystemAdminFinancialController(
             reference = reference
         )
 
-        if (result != null && result["status"] == true) {
+        if (result != null && result.status == true) {
             // Record the payout in our database
             val academicSession = dto.academicSessionId?.let { academicSessionRepository.findById(it).orElse(null) }
             val term = dto.termId?.let { termRepository.findById(it).orElse(null) }
@@ -346,7 +346,7 @@ class SystemAdminFinancialController(
 
             redirectAttributes.addFlashAttribute("success", "Payout initiated successfully via Paystack. Reference: $reference")
         } else {
-            val message = result?.get("message") as? String ?: "Unknown error from Paystack"
+            val message = result?.message as? String ?: "Unknown error from Paystack"
             redirectAttributes.addFlashAttribute("error", "Failed to initiate payout: $message")
         }
 

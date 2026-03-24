@@ -1,9 +1,9 @@
 package com.haneef._school.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
-import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -13,6 +13,10 @@ import java.util.*
 
 @Service
 class FileUploadService {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(FileUploadService::class.java)
+    }
 
     @Value("\${app.upload.dir:uploads}")
     private lateinit var uploadDir: String
@@ -28,7 +32,7 @@ class FileUploadService {
         
         val uploadPath = createUploadDirectory("passport-photos")
         val fileName = generateUniqueFileName(file.originalFilename ?: "photo", studentId)
-        val filePath = uploadPath.resolve(fileName)
+        val filePath = uploadPath.resolve(fileName).normalize()
         
         try {
             Files.copy(file.inputStream, filePath, StandardCopyOption.REPLACE_EXISTING)
@@ -51,7 +55,7 @@ class FileUploadService {
             }
         } catch (e: Exception) {
             // Log error but don't throw - file deletion failure shouldn't break the application
-            println("Warning: Failed to delete passport photo file: ${e.message}")
+            logger.warn("Failed to delete passport photo file for url={}", photoUrl, e)
         }
     }
 
@@ -86,7 +90,7 @@ class FileUploadService {
     }
 
     private fun createUploadDirectory(subDir: String): Path {
-        val uploadPath = Paths.get(uploadDir, subDir)
+        val uploadPath = Paths.get(uploadDir, subDir).normalize()
         
         if (!Files.exists(uploadPath)) {
             try {
@@ -101,9 +105,10 @@ class FileUploadService {
 
     private fun generateUniqueFileName(originalFileName: String, studentId: String): String {
         val extension = getFileExtension(originalFileName)
+        val safeStudentId = studentId.replace(Regex("[^A-Za-z0-9_-]"), "_")
         val timestamp = System.currentTimeMillis()
         val uuid = UUID.randomUUID().toString().substring(0, 8)
-        return "passport_${studentId}_${timestamp}_${uuid}.$extension"
+        return "passport_${safeStudentId}_${timestamp}_${uuid}.$extension"
     }
 
     private fun getFileExtension(fileName: String): String {

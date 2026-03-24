@@ -16,25 +16,45 @@ import org.hibernate.collection.spi.PersistentList
 
 class GlobalRuntimeHints : RuntimeHintsRegistrar {
 
-    private val logger = LoggerFactory.getLogger(GlobalRuntimeHints::class.java)
+    companion object {
+        private val logger = LoggerFactory.getLogger(GlobalRuntimeHints::class.java)
+        private val COMMON_REFLECTION_CATEGORIES = arrayOf(
+            MemberCategory.INVOKE_PUBLIC_METHODS,
+            MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
+            MemberCategory.DECLARED_FIELDS,
+            MemberCategory.INTROSPECT_PUBLIC_METHODS,
+            MemberCategory.INTROSPECT_PUBLIC_CONSTRUCTORS
+        )
+    }
 
     override fun registerHints(hints: RuntimeHints, classLoader: ClassLoader?) {
         val cl = classLoader ?: javaClass.classLoader
 
-        // 1. Register JPA model classes (@Entity, @Embeddable, @MappedSuperclass) and DTOs (@NativeDto)
+        registerJpaAndNativeDtos(hints, cl)
+        registerJavaCollectionsAndMath(hints)
+        registerThymeleafUtilities(hints, cl)
+        registerKotlinCollections(hints, cl)
+        registerSpringDataTypes(hints, cl)
+        registerUnmodifiableRandomAccessList(hints, cl)
+        registerHibernateCollections(hints)
+        registerHibernateProxyHints(hints, cl)
+        registerAwtAndImageIo(hints)
+        registerHibernateAndDialectInternals(hints, cl)
+        registerSerializableTypes(hints)
+        registerFlywayInternals(hints, cl)
+        registerAiDtoSafetyNet(hints, cl)
+        registerGoogleGenAiTypes(hints, cl)
+    }
+
+    private fun registerJpaAndNativeDtos(hints: RuntimeHints, cl: ClassLoader) {
         val scanner = ClassPathScanningCandidateComponentProvider(false)
 
-        // Include JPA entity types
         scanner.addIncludeFilter(AnnotationTypeFilter(Entity::class.java))
         tryAddAnnotationFilter(scanner, "jakarta.persistence.Embeddable")
         tryAddAnnotationFilter(scanner, "jakarta.persistence.MappedSuperclass")
-
-        // Include classes marked for native reflection
         scanner.addIncludeFilter(AnnotationTypeFilter(NativeDto::class.java))
 
-        val candidates = scanner.findCandidateComponents("com.haneef._school")
-
-        candidates.forEach { beanDefinition ->
+        scanner.findCandidateComponents("com.haneef._school").forEach { beanDefinition ->
             val name = beanDefinition.beanClassName ?: return@forEach
             try {
                 val clazz = Class.forName(name, false, cl)
@@ -46,25 +66,29 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
                     MemberCategory.INTROSPECT_PUBLIC_METHODS,
                     MemberCategory.INTROSPECT_PUBLIC_CONSTRUCTORS
                 )
-            } catch (e: Exception) {
+            } catch (e: ClassNotFoundException) {
                 logger.debug("Skipping reflection hint for '{}': {}", name, e.message)
+            } catch (e: LinkageError) {
+                logger.debug("Skipping reflection hint for '{}' due to linkage error: {}", name, e.message)
             }
         }
+    }
 
-        // 2. Register standard Java Collections & Math
+    private fun registerJavaCollectionsAndMath(hints: RuntimeHints) {
         val javaUtils = listOf(
             ArrayList::class.java, LinkedList::class.java,
             HashMap::class.java, LinkedHashMap::class.java,
             HashSet::class.java, LinkedHashSet::class.java,
-            List::class.java, Set::class.java, Map::class.java,
             java.lang.Math::class.java
         )
-        javaUtils.forEach { 
-            hints.reflection().registerType(it, MemberCategory.INVOKE_PUBLIC_METHODS) 
-        }
+        javaUtils.forEach { registerReflectionType(hints, it, MemberCategory.INVOKE_PUBLIC_METHODS) }
+    }
 
-        // 3. Register Thymeleaf Utilities
-        listOf(
+    private fun registerThymeleafUtilities(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf(
             "org.thymeleaf.expression.Lists",
             "org.thymeleaf.expression.Strings",
             "org.thymeleaf.expression.Numbers",
@@ -77,48 +101,48 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
             "org.thymeleaf.expression.Messages",
             "org.thymeleaf.expression.Ids",
             "org.thymeleaf.expression.Temporals"
-        ).forEach { name ->
-            try {
-                hints.reflection().registerType(Class.forName(name, false, cl), MemberCategory.INVOKE_PUBLIC_METHODS)
-            } catch (e: Exception) {
-                logger.debug("Skipping Thymeleaf hint for '{}': {}", name, e.message)
-            }
-        }
+            ),
+            context = "Thymeleaf",
+            categories = arrayOf(MemberCategory.INVOKE_PUBLIC_METHODS)
+        )
+    }
 
-        // 4. Fix for Kotlin Collections
-        listOf("kotlin.collections.EmptyList", "kotlin.collections.EmptyMap").forEach { name ->
-            try {
-                hints.reflection().registerType(Class.forName(name, false, cl), MemberCategory.INVOKE_PUBLIC_METHODS)
-            } catch (e: Exception) {
-                logger.debug("Skipping Kotlin collection hint for '{}': {}", name, e.message)
-            }
-        }
+    private fun registerKotlinCollections(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf("kotlin.collections.EmptyList", "kotlin.collections.EmptyMap"),
+            context = "Kotlin collection",
+            categories = arrayOf(MemberCategory.INVOKE_PUBLIC_METHODS)
+        )
+    }
 
-        // 5. Register Spring Data Page/Slice/PageImpl
-        listOf(
+    private fun registerSpringDataTypes(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf(
             "org.springframework.data.domain.PageImpl",
             "org.springframework.data.domain.Page",
             "org.springframework.data.domain.Slice",
             "org.springframework.data.domain.Chunk"
-        ).forEach { name ->
-            try {
-                hints.reflection().registerType(Class.forName(name, false, cl), MemberCategory.INVOKE_PUBLIC_METHODS)
-            } catch (e: Exception) {
-                logger.debug("Skipping Spring Data hint for '{}': {}", name, e.message)
-            }
-        }
+            ),
+            context = "Spring Data",
+            categories = arrayOf(MemberCategory.INVOKE_PUBLIC_METHODS)
+        )
+    }
 
-        // 6. Register java.util.Collections$UnmodifiableRandomAccessList
-        try {
-            hints.reflection().registerType(
-                Class.forName("java.util.Collections\$UnmodifiableRandomAccessList", false, cl),
-                MemberCategory.INVOKE_PUBLIC_METHODS
-            )
-        } catch (e: ClassNotFoundException) {
-            logger.debug("Skipping UnmodifiableRandomAccessList hint: {}", e.message)
-        }
+    private fun registerUnmodifiableRandomAccessList(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypeByName(
+            hints = hints,
+            cl = cl,
+            name = "java.util.Collections\$UnmodifiableRandomAccessList",
+            context = "UnmodifiableRandomAccessList",
+            categories = arrayOf(MemberCategory.INVOKE_PUBLIC_METHODS)
+        )
+    }
 
-        // 7. Register Hibernate Collections (PersistentBag, etc.)
+    private fun registerHibernateCollections(hints: RuntimeHints) {
         val hibernateCollections = listOf(
             PersistentBag::class.java,
             PersistentSet::class.java,
@@ -126,22 +150,34 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
             PersistentList::class.java
         )
 
-        hibernateCollections.forEach { 
-            hints.reflection().registerType(it, MemberCategory.INVOKE_PUBLIC_METHODS) 
-        }
+        hibernateCollections.forEach { registerReflectionType(hints, it, MemberCategory.INVOKE_PUBLIC_METHODS) }
+    }
 
-        // 8. Catch-All Strategy for Proxies
-        listOf(
+    private fun registerHibernateProxyHints(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf(
             "org.hibernate.proxy.HibernateProxy",
             "org.hibernate.proxy.pojo.bytebuddy.ByteBuddyInterceptor"
-        ).forEach { name ->
-            try {
-                hints.reflection().registerType(Class.forName(name, false, cl), MemberCategory.INVOKE_PUBLIC_METHODS)
-            } catch (e: Exception) {
-                logger.debug("Skipping Hibernate proxy hint for '{}': {}", name, e.message)
+            ),
+            context = "Hibernate proxy",
+            categories = arrayOf(MemberCategory.INVOKE_PUBLIC_METHODS)
+        )
+
+        try {
+            val hibernateProxy = Class.forName("org.hibernate.proxy.HibernateProxy", false, cl)
+            if (hibernateProxy.isInterface) {
+                hints.proxies().registerJdkProxy(hibernateProxy, java.io.Serializable::class.java)
             }
+        } catch (e: ClassNotFoundException) {
+            logger.debug("Skipping Hibernate proxy JDK-proxy hint: {}", e.message)
+        } catch (e: LinkageError) {
+            logger.debug("Skipping Hibernate proxy JDK-proxy hint due to linkage error: {}", e.message)
         }
-        // 9. Register AWT and ImageIO for Invoice Generation
+    }
+
+    private fun registerAwtAndImageIo(hints: RuntimeHints) {
         val awtClasses = listOf(
             java.awt.Color::class.java,
             java.awt.Font::class.java,
@@ -152,33 +188,30 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
         
         awtClasses.forEach {
             try {
-                hints.reflection().registerType(it, 
+                hints.reflection().registerType(it,
                     MemberCategory.INVOKE_PUBLIC_METHODS, 
                     MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                     MemberCategory.DECLARED_FIELDS)
-            } catch (e: Exception) {}
-        }
-
-        // 10. Register PostgreSQL Dialect and Hibernate internals for Native
-        listOf(
-            "org.hibernate.dialect.PostgreSQLDialect",
-            "org.hibernate.dialect.DatabaseVersion",
-            "com.haneef._school.config.GlobalRuntimeHints"
-        ).forEach { name ->
-            try {
-                hints.reflection().registerType(
-                    Class.forName(name, false, cl),
-                    MemberCategory.INVOKE_PUBLIC_METHODS,
-                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
-                    MemberCategory.DECLARED_FIELDS
-                )
             } catch (e: Exception) {
-                logger.debug("Skipping Hibernate internals hint for '{}': {}", name, e.message)
+                logger.debug("Skipping AWT/ImageIO hint for '{}': {}", it.name, e.message)
             }
         }
+    }
 
-        // 11. Register types for Serialization (Native fix)
-        // This is necessary because Hibernate serializes certain query parameters/caching data
+    private fun registerHibernateAndDialectInternals(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf(
+            "org.hibernate.dialect.PostgreSQLDialect",
+            "org.hibernate.dialect.DatabaseVersion"
+            ),
+            context = "Hibernate internals",
+            categories = COMMON_REFLECTION_CATEGORIES
+        )
+    }
+
+    private fun registerSerializableTypes(hints: RuntimeHints) {
         val serializableTypes = listOf(
             UUID::class.java,
             ArrayList::class.java,
@@ -198,48 +231,44 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
         serializableTypes.forEach {
             hints.serialization().registerType(it)
         }
+    }
 
-        // 12. Register Flyway Internals for Native Image
-        listOf(
+    private fun registerFlywayInternals(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf(
             "org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType",
             "org.flywaydb.core.internal.database.postgresql.PostgreSQLConnection",
             "org.flywaydb.core.api.configuration.FluentConfiguration",
             "org.flywaydb.core.Flyway",
             "org.flywaydb.database.postgresql.PostgreSQLDatabaseType",
             "org.flywaydb.core.internal.configuration.extensions.DeployScriptFilenameConfigurationExtension"
-        ).forEach { name ->
-            try {
-                hints.reflection().registerType(
-                    Class.forName(name, false, cl),
-                    MemberCategory.INVOKE_PUBLIC_METHODS,
-                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
-                    MemberCategory.DECLARED_FIELDS
-                )
-            } catch (e: Exception) {
-                logger.debug("Skipping Flyway hint for '{}': {}", name, e.message)
-            }
-        }
-        // 13. Register AI DTOs explicitly (nested classes picked up via @NativeDto at class-scan time;
-        //     listed here as a safety net for inner-class JVM names using '$')
-        listOf(
+            ),
+            context = "Flyway",
+            categories = COMMON_REFLECTION_CATEGORIES
+        )
+    }
+
+    private fun registerAiDtoSafetyNet(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf(
             "com.haneef._school.service.SchoolDataTools\$RecipientInfo",
             "com.haneef._school.controller.NaturalLanguageQueryController\$RecipientListResponse",
             "com.haneef._school.controller.NaturalLanguageQueryController\$QueryRequest"
-        ).forEach { name ->
-            try {
-                hints.reflection().registerType(
-                    Class.forName(name, false, cl),
-                    MemberCategory.INVOKE_PUBLIC_METHODS,
-                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
-                    MemberCategory.DECLARED_FIELDS
-                )
-            } catch (e: Exception) {
-                logger.debug("Skipping AI DTO hint for '{}': {}", name, e.message)
-            }
-        }
+            ),
+            context = "AI DTO",
+            categories = COMMON_REFLECTION_CATEGORIES
+        )
+    }
 
-        // 14. Register Google GenAI library types (Fix for Native Image deserialization)
-        listOf(
+    private fun registerGoogleGenAiTypes(hints: RuntimeHints, cl: ClassLoader) {
+        registerReflectionTypesByName(
+            hints = hints,
+            cl = cl,
+            names = listOf(
             "com.google.genai.types.PartMediaResolution",
             "com.google.genai.types.PartMediaResolution\$Builder",
             "com.google.genai.types.GenerateContentConfig",
@@ -250,19 +279,45 @@ class GlobalRuntimeHints : RuntimeHintsRegistrar {
             "com.google.genai.types.Content\$Builder",
             "com.google.genai.types.Part",
             "com.google.genai.types.Part\$Builder"
-        ).forEach { name ->
-            try {
-                hints.reflection().registerType(
-                    Class.forName(name, false, cl),
-                    MemberCategory.INVOKE_PUBLIC_METHODS,
-                    MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
-                    MemberCategory.DECLARED_FIELDS,
-                    MemberCategory.INTROSPECT_PUBLIC_METHODS,
-                    MemberCategory.INTROSPECT_PUBLIC_CONSTRUCTORS
-                )
-            } catch (e: Exception) {
-                logger.debug("Skipping Google GenAI hint for '{}': {}", name, e.message)
-            }
+            ),
+            context = "Google GenAI",
+            categories = COMMON_REFLECTION_CATEGORIES
+        )
+    }
+
+    private fun registerReflectionType(
+        hints: RuntimeHints,
+        type: Class<*>,
+        vararg categories: MemberCategory
+    ) {
+        hints.reflection().registerType(type, *categories)
+    }
+
+    private fun registerReflectionTypesByName(
+        hints: RuntimeHints,
+        cl: ClassLoader,
+        names: List<String>,
+        context: String,
+        categories: Array<MemberCategory>
+    ) {
+        names.forEach { name ->
+            registerReflectionTypeByName(hints, cl, name, context, categories)
+        }
+    }
+
+    private fun registerReflectionTypeByName(
+        hints: RuntimeHints,
+        cl: ClassLoader,
+        name: String,
+        context: String,
+        categories: Array<MemberCategory>
+    ) {
+        try {
+            hints.reflection().registerType(Class.forName(name, false, cl), *categories)
+        } catch (e: ClassNotFoundException) {
+            logger.debug("Skipping {} hint for '{}': {}", context, name, e.message)
+        } catch (e: LinkageError) {
+            logger.debug("Skipping {} hint for '{}' due to linkage error: {}", context, name, e.message)
         }
     }
 

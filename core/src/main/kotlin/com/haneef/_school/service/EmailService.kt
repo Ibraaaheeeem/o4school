@@ -1,5 +1,7 @@
 package com.haneef._school.service
 
+import jakarta.annotation.PostConstruct
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
@@ -9,11 +11,20 @@ import org.springframework.stereotype.Service
 class EmailService(
     private val mailSender: JavaMailSender
 ) {
+    companion object {
+        private val logger = LoggerFactory.getLogger(EmailService::class.java)
+    }
+
     @Value("\${spring.mail.from}")
     private lateinit var fromEmail: String
 
     @Value("\${SENDER_NAME:4School Admin}")
     private lateinit var senderName: String
+
+    @PostConstruct
+    fun validateConfiguration() {
+        require(fromEmail.isNotBlank()) { "spring.mail.from must not be blank" }
+    }
 
     fun sendApprovalEmail(to: String, name: String, role: String = "User", school: String = "School"): Pair<Boolean, Any> {
         val message = SimpleMailMessage()
@@ -37,7 +48,7 @@ class EmailService(
         message.text = """
             Dear $name,
             
-            We are pleased to inform you that your registration as a $role in $school on the 4School platform has been approved.
+            We are pleased to inform you that your registration as a $roleDisplay in $school on the 4School platform has been approved.
             
             $actionText
             
@@ -51,6 +62,7 @@ class EmailService(
             mailSender.send(message)
             Pair(true, Unit)
         } catch (e: Exception) {
+            logger.error("Failed to send approval email to {}", to, e)
             Pair(false, (e.message ?: "Failed to send email"))
         }
     }
@@ -77,6 +89,7 @@ class EmailService(
             mailSender.send(message)
             Pair(true, Unit)
         } catch (e: Exception) {
+            logger.error("Failed to send OTP email to {}", to, e)
             Pair(false, (e.message ?: "Failed to send OTP email"))
         }
     }
@@ -101,8 +114,6 @@ class EmailService(
             helper.setTo(to)
             helper.setSubject("Payment Receipt - $formattedSchoolName")
             
-            val attachmentText = if (invoiceImage != null) "Please find the receipt attached." else "Receipt generation is currently unavailable."
-            
             val text = """
                 Dear Parent,
                 
@@ -119,6 +130,7 @@ class EmailService(
                 Total Bill: ${settlement.currency} $totalBill
                 Settled Bill: ${settlement.currency} $settledBill
                 Outstanding Bill: ${settlement.currency} $outstandingBill
+                Current Balance: ${settlement.currency} $balance
                 
                 
                 For more details, please visit your profile on 4School.
@@ -136,7 +148,8 @@ class EmailService(
             mailSender.send(mimeMessage)
             return Pair(true, Unit)
         } catch (e: Exception) {
-            return Pair(false, (e.message ?: "Failed to send settlement email")).also { _ -> e.printStackTrace() }
+            logger.error("Failed to send settlement email to {}", to, e)
+            return Pair(false, (e.message ?: "Failed to send settlement email"))
         }
     }
 }

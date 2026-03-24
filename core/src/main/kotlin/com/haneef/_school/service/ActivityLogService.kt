@@ -7,6 +7,7 @@ import com.haneef._school.repository.ActivityLogRepository
 import com.haneef._school.repository.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -23,6 +24,9 @@ class ActivityLogService(
     private val userRepository: UserRepository,
     private val objectMapper: ObjectMapper
 ) {
+    companion object {
+        private val logger = LoggerFactory.getLogger(ActivityLogService::class.java)
+    }
     
     /**
      * Log an activity with minimal information
@@ -49,15 +53,15 @@ class ActivityLogService(
                 title = title,
                 description = description,
                 userId = userId,
-                userName = user?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown User",
+                userName = user?.fullName ?: "Unknown User",
                 userRole = userRole,
                 targetUserId = targetUserId,
-                targetUserName = targetUser?.let { "${it.firstName} ${it.lastName}" },
+                targetUserName = targetUser?.fullName,
                 entityType = entityType,
                 entityId = entityId,
-                metadata = metadata?.let { objectMapper.writeValueAsString(it) },
+                metadata = serializeMetadata(metadata),
                 ipAddress = request?.let { getClientIpAddress(it) },
-                userAgent = request?.getHeader("User-Agent")
+                userAgent = request?.getHeader("User-Agent")?.take(512)
             ).apply {
                 this.schoolId = schoolId
             }
@@ -65,7 +69,7 @@ class ActivityLogService(
             activityLogRepository.save(activity)
         } catch (e: Exception) {
             // Log the error but don't fail the main operation
-            println("Failed to log activity: ${e.message}")
+            logger.warn("Failed to log activity type={} title={} schoolId={}", activityType, title, schoolId, e)
         }
     }
     
@@ -357,8 +361,10 @@ class ActivityLogService(
     /**
      * Get recent activities for dashboard
      */
+    @Transactional(readOnly = true)
     fun getRecentActivities(schoolId: UUID, limit: Int = 10): List<ActivityLog> {
-        val pageable = PageRequest.of(0, limit)
+        val safeLimit = limit.coerceAtLeast(1)
+        val pageable = PageRequest.of(0, safeLimit)
         val since = LocalDateTime.now().minusDays(7) // Last 7 days
         return activityLogRepository.findRecentActivities(schoolId, since, pageable).content
     }
@@ -366,6 +372,7 @@ class ActivityLogService(
     /**
      * Get activities for a specific user (for their personal dashboard)
      */
+    @Transactional(readOnly = true)
     fun getUserActivities(schoolId: UUID, userId: UUID, pageable: Pageable): Page<ActivityLog> {
         return activityLogRepository.findActivitiesRelatedToUser(schoolId, userId, pageable)
     }
@@ -373,6 +380,7 @@ class ActivityLogService(
     /**
      * Get all activities for admin dashboard
      */
+    @Transactional(readOnly = true)
     fun getAllActivities(schoolId: UUID, pageable: Pageable): Page<ActivityLog> {
         return activityLogRepository.findBySchoolIdOrderByCreatedAtDesc(schoolId, pageable)
     }
@@ -380,6 +388,7 @@ class ActivityLogService(
     /**
      * Get activities by type
      */
+    @Transactional(readOnly = true)
     fun getActivitiesByType(schoolId: UUID, activityType: ActivityType, pageable: Pageable): Page<ActivityLog> {
         return activityLogRepository.findBySchoolIdAndActivityTypeOrderByCreatedAtDesc(schoolId, activityType, pageable)
     }
@@ -387,6 +396,7 @@ class ActivityLogService(
     /**
      * Get activities by user role
      */
+    @Transactional(readOnly = true)
     fun getActivitiesByRole(schoolId: UUID, userRole: String, pageable: Pageable): Page<ActivityLog> {
         return activityLogRepository.findBySchoolIdAndUserRoleOrderByCreatedAtDesc(schoolId, userRole, pageable)
     }
@@ -394,6 +404,7 @@ class ActivityLogService(
     /**
      * Get activity statistics for analytics
      */
+    @Transactional(readOnly = true)
     fun getActivityStats(schoolId: UUID, days: Long = 30): Map<ActivityType, Long> {
         val since = LocalDateTime.now().minusDays(days)
         val results = activityLogRepository.countActivitiesByType(schoolId, since)
@@ -418,7 +429,10 @@ class ActivityLogService(
         request: HttpServletRequest? = null
     ) {
         val customUser = authentication.principal as? CustomUserDetails ?: return
-        val userRole = customUser.authorities.firstOrNull()?.authority ?: "USER"
+        val userRole = customUser.authorities
+            .map { it.authority }
+            .firstOrNull { it != "ROLE_USER" }
+            ?: "ROLE_USER"
         
         logActivity(
             schoolId = schoolId,
@@ -434,6 +448,11 @@ class ActivityLogService(
             request = request
         )
     }
+
+    private fun serializeMetadata(metadata: Map<String, Any>?): String? {
+        return metadata?.let { objectMapper.writeValueAsString(it) }
+    }
+
     private fun getClientIpAddress(request: HttpServletRequest): String {
         val xForwardedFor = request.getHeader("X-Forwarded-For")
         if (!xForwardedFor.isNullOrBlank()) {

@@ -4,6 +4,7 @@ import com.haneef._school.dto.BroadcastRecipientFilter
 import com.haneef._school.dto.BroadcastRecipientDTO
 import com.haneef._school.entity.*
 import com.haneef._school.repository.*
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.util.*
@@ -18,17 +19,24 @@ class BroadcastService(
     private val subjectTeacherRepository: SubjectTeacherRepository,
     private val userRepository: UserRepository
 ) {
+    companion object {
+        private val logger = LoggerFactory.getLogger(BroadcastService::class.java)
+        private const val RECIPIENT_ALL = "ALL"
+        private const val RECIPIENT_STAFF = "STAFF"
+        private const val RECIPIENT_PARENTS = "PARENTS"
+    }
 
     fun getDetailedRecipients(filter: BroadcastRecipientFilter, schoolId: UUID): List<BroadcastRecipientDTO> {
         val recipients = mutableListOf<BroadcastRecipientDTO>()
+        val recipientType = normalizeRecipientType(filter.recipientType)
 
         // 1. Filtered Recipients (Only added if addAll is true)
         if (filter.addAll) {
-            if (filter.recipientType == "ALL" || filter.recipientType == "STAFF") {
+            if (recipientType == RECIPIENT_ALL || recipientType == RECIPIENT_STAFF) {
                 recipients.addAll(getStaffDetailed(filter, schoolId))
             }
 
-            if (filter.recipientType == "ALL" || filter.recipientType == "PARENTS") {
+            if (recipientType == RECIPIENT_ALL || recipientType == RECIPIENT_PARENTS) {
                 recipients.addAll(getParentDetailed(filter, schoolId))
             }
         }
@@ -40,7 +48,7 @@ class BroadcastService(
             
             missingIds.forEach { userId ->
                 // Check Staff - only if broadcast is for STAFF or ALL
-                if (filter.recipientType == "ALL" || filter.recipientType == "STAFF") {
+                if (recipientType == RECIPIENT_ALL || recipientType == RECIPIENT_STAFF) {
                     staffRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { staff ->
                         recipients.add(staff.toDTO())
                         existingIds.add(userId)
@@ -48,7 +56,7 @@ class BroadcastService(
                 }
                 
                 // Check Parents - only if broadcast is for PARENTS or ALL, AND not already added as staff
-                if (userId !in existingIds && (filter.recipientType == "ALL" || filter.recipientType == "PARENTS")) {
+                if (userId !in existingIds && (recipientType == RECIPIENT_ALL || recipientType == RECIPIENT_PARENTS)) {
                     parentRepository.findByUserIdAndSchoolId(userId, schoolId)?.let { parent ->
                         recipients.add(parent.toDTO())
                         existingIds.add(userId)
@@ -60,21 +68,24 @@ class BroadcastService(
         return recipients.distinctBy { it.userId }
             .filter { it.userId !in filter.excludedUserIds }
             .filter { it.phoneNumber == null || it.phoneNumber !in filter.excludedPhoneNumbers }
+            .also { logger.debug("Resolved {} broadcast recipients for schoolId={}", it.size, schoolId) }
     }
 
     fun searchDetailedRecipients(query: String, schoolId: UUID, recipientType: String? = null): List<BroadcastRecipientDTO> {
-        if (query.length < 2) return emptyList()
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.length < 2) return emptyList()
         val results = mutableListOf<BroadcastRecipientDTO>()
+        val normalizedRecipientType = normalizeRecipientType(recipientType)
 
         // Search Staff
-        if (recipientType == null || recipientType == "ALL" || recipientType == "STAFF") {
-            staffRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query)
+        if (normalizedRecipientType == null || normalizedRecipientType == RECIPIENT_ALL || normalizedRecipientType == RECIPIENT_STAFF) {
+            staffRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, normalizedQuery)
                 .forEach { results.add(it.toDTO()) }
         }
 
         // Search Parents
-        if (recipientType == null || recipientType == "ALL" || recipientType == "PARENTS") {
-            parentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, query)
+        if (normalizedRecipientType == null || normalizedRecipientType == RECIPIENT_ALL || normalizedRecipientType == RECIPIENT_PARENTS) {
+            parentRepository.findBySchoolIdAndIsActiveAndSearch(schoolId, true, normalizedQuery)
                 .forEach { results.add(it.toDTO()) }
         }
 
@@ -141,26 +152,30 @@ class BroadcastService(
 
     
     private fun Staff.toDTO(): BroadcastRecipientDTO {
+        val userId = requireNotNull(this.user.id) { "Staff user ID must not be null" }
         val roles = mutableListOf("Staff")
         if (this.classTeacherAssignments.isNotEmpty()) roles.add("Class Teacher")
         if (this.subjectTeacherAssignments.isNotEmpty()) roles.add("Subject Teacher")
         
         return BroadcastRecipientDTO(
-            userId = this.user.id!!,
-            name = "${this.user.firstName} ${this.user.lastName}",
+            userId = userId,
+            name = this.user.fullName ?: "Unknown Staff",
             phoneNumber = this.user.phoneNumber,
             type = "STAFF",
-            roles = roles
+            roles = roles.distinct()
         )
     }
 
     private fun Parent.toDTO(): BroadcastRecipientDTO {
+        val userId = requireNotNull(this.user.id) { "Parent user ID must not be null" }
         return BroadcastRecipientDTO(
-            userId = this.user.id!!,
-            name = "${this.user.firstName} ${this.user.lastName}",
+            userId = userId,
+            name = this.user.fullName ?: "Unknown Parent",
             phoneNumber = this.user.phoneNumber,
             type = "PARENT",
             roles = listOf("Parent")
         )
     }
+
+    private fun normalizeRecipientType(recipientType: String?): String? = recipientType?.trim()?.uppercase()
 }

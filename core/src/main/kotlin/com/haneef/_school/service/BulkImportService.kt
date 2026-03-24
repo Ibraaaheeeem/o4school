@@ -24,8 +24,6 @@ class BulkImportService(
     private val schoolRepository: SchoolRepository
 ) {
 
-    private val dateFormatter = DateTimeFormatter.ofPattern(DATE_PATTERN)
-
     companion object {
         private const val ROLE_PARENT = "PARENT"
         private const val ROLE_STAFF = "STAFF"

@@ -6,22 +6,30 @@ import jakarta.persistence.*
 
 @Entity
 @Table(name = "permissions")
-data class Permission(
+class Permission(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    val id: UUID? = null,
+    var id: UUID? = null,
     
     @Column(nullable = false, unique = true)
-    val name: String,
+    var name: String = "",
     
-    val description: String? = null,
+    var description: String? = null,
     
     @Column(nullable = false)
-    val module: String, // e.g., "STUDENT_MANAGEMENT", "ACADEMIC", "FINANCE", etc.
+    var module: String = "", // e.g., "STUDENT_MANAGEMENT", "ACADEMIC", "FINANCE", etc.
     
     @Column(name = "is_active")
-    val isActive: Boolean = true
-)
+    var isActive: Boolean = true
+) {
+    constructor() : this(
+        id = null,
+        name = "",
+        description = null,
+        module = "",
+        isActive = true
+    )
+}
 
 // Common permissions enum for reference
 enum class SystemPermission(val permissionName: String, val module: String, val description: String) {
