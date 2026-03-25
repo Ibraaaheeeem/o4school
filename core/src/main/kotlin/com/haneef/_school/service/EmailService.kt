@@ -1,5 +1,6 @@
 package com.haneef._school.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
@@ -9,18 +10,31 @@ import org.springframework.stereotype.Service
 class EmailService(
     private val mailSender: JavaMailSender
 ) {
-    @Value("\${spring.mail.from}")
+    private val logger = LoggerFactory.getLogger(EmailService::class.java)
+
+    @Value("\${spring.mail.from:}")
     private lateinit var fromEmail: String
 
     @Value("\${SENDER_NAME:4School Admin}")
     private lateinit var senderName: String
 
+    private fun buildFromHeader(): String? {
+        val trimmedFrom = fromEmail.trim()
+        val trimmedName = senderName.trim()
+        if (trimmedFrom.isBlank()) {
+            logger.warn("SMTP 'from' email (spring.mail.from) is not configured or is blank — email will not be sent")
+            return null
+        }
+        if (trimmedName.isBlank()) {
+            logger.warn("SMTP sender name (SENDER_NAME) is not configured or is blank")
+        }
+        return "$trimmedName <$trimmedFrom>"
+    }
+
     fun sendApprovalEmail(to: String, name: String, role: String = "User") {
-        val message = SimpleMailMessage()
-        message.from = "$senderName <$fromEmail>"
-        message.setTo(to)
-        message.subject = "Your 4School Account has been Approved!"
-        
+        val from = buildFromHeader() ?: return
+        val subject = "Your 4School Account has been Approved!"
+
         val roleDisplay = when(role) {
             "SCHOOL_ADMIN" -> "School Administrator"
             "TEACHER", "STAFF" -> "Staff Member"
@@ -34,7 +48,7 @@ class EmailService(
             "You can now log in to your account and access your school's dashboard."
         }
 
-        message.text = """
+        val text = """
             Dear $name,
             
             We are pleased to inform you that your registration as a $roleDisplay on the 4School platform has been approved.
@@ -46,20 +60,26 @@ class EmailService(
             Best regards,
             The 4School Team
         """.trimIndent()
-        
+
+        logger.debug("Sending approval email: from='{}', to='{}', subject='{}'", from, to, subject)
+
+        val message = SimpleMailMessage()
+        message.from = from
+        message.setTo(to)
+        message.subject = subject
+        message.text = text
+
         try {
             mailSender.send(message)
         } catch (e: Exception) {
-            println("Failed to send email to $to: ${e.message}")
+            logger.error("Failed to send email to {}: {}", to, e.message, e)
         }
     }
 
     fun sendOtpEmail(to: String, otp: String) {
-        val message = SimpleMailMessage()
-        message.from = "$senderName <$fromEmail>"
-        message.setTo(to)
-        message.subject = "Your 4School Activation Code"
-        message.text = """
+        val from = buildFromHeader() ?: return
+        val subject = "Your 4School Activation Code"
+        val text = """
             Hello,
             
             Thank you for registering on 4School. Your activation code is:
@@ -71,11 +91,20 @@ class EmailService(
             Best regards,
             The 4School Team
         """.trimIndent()
-        
+
+        logger.debug("Sending OTP email: from='{}', to='{}', subject='{}'", from, to, subject)
+        logger.debug("OTP email text length: {} chars", text.length)
+
+        val message = SimpleMailMessage()
+        message.from = from
+        message.setTo(to)
+        message.subject = subject
+        message.text = text
+
         try {
             mailSender.send(message)
         } catch (e: Exception) {
-            println("Failed to send OTP email to $to: ${e.message}")
+            logger.error("Failed to send OTP email to {}: {}", to, e.message, e)
         }
     }
 
@@ -94,8 +123,11 @@ class EmailService(
             val helper = org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, true)
             
             val formattedSchoolName = "4School/$schoolName"
-            
-            helper.setFrom("$senderName <$fromEmail>")
+            val from = buildFromHeader() ?: return
+
+            logger.debug("Sending settlement email: from='{}', to='{}', subject='Payment Receipt - {}'", from, to, formattedSchoolName)
+
+            helper.setFrom(from)
             helper.setTo(to)
             helper.setSubject("Payment Receipt - $formattedSchoolName")
             
@@ -133,8 +165,7 @@ class EmailService(
             
             mailSender.send(mimeMessage)
         } catch (e: Exception) {
-            println("Failed to send settlement email to $to: ${e.message}")
-            e.printStackTrace()
+            logger.error("Failed to send settlement email to {}: {}", to, e.message, e)
         }
     }
 }
