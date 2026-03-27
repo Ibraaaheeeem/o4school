@@ -5,26 +5,40 @@
         <input type="hidden" name="targetSessionId" th:value="${targetSessionId}">
         <input type="hidden" name="targetTermId" th:value="${targetTermId}">
 
-        <div class="px-4 py-3 bg-light border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                Students from <span class="badge bg-primary"
-                    th:text="${candidates[0].currentClass.className}">Class</span>
-            </h5>
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted small">Targeting: <strong
-                        th:text="${targetSession.sessionName + ' - ' + targetTerm.termName}">2025/2026 Term
-                        1</strong></span>
-                <button type="submit" class="btn btn-success btn-sm px-4">
-                    <i class="fas fa-check-circle me-1"></i> Execute Promotion
-                </button>
+        <div class="px-4 px-lg-5 py-4 bg-light border-bottom">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <p class="text-uppercase small fw-semibold text-primary mb-2">Promotion Candidates</p>
+                    <h5 class="mb-1 fw-bold text-dark">
+                        Students from <span class="badge bg-primary"
+                            th:text="${#lists.isEmpty(candidates) ? 'Selected Class' : candidates[0].currentClass.className}">Class</span>
+                    </h5>
+                    <p class="mb-0 text-muted small">
+                        <span th:text="${#lists.size(candidates)}">0</span> student(s) ready for review.
+                    </p>
+                </div>
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3">
+                    <span class="text-muted small">Targeting: <strong
+                            th:text="${targetSession.sessionName + ' - ' + targetTerm.termName}">2025/2026 Term
+                            1</strong></span>
+                    <button type="submit" class="btn btn-success px-4 fw-semibold">
+                        <i class="fas fa-check-circle me-1"></i> Execute Promotion
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
+        <div th:if="${#lists.isEmpty(candidates)}" class="text-center py-5 px-4 text-muted">
+            <i class="fas fa-users-slash fa-3x mb-3 opacity-50"></i>
+            <p class="mb-1 fw-semibold text-dark">No students available</p>
+            <p class="mb-0">There are no promotion candidates for the selected source filters.</p>
+        </div>
+
+        <div th:unless="${#lists.isEmpty(candidates)}" class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 40px;">
+                        <th class="ps-4" style="width: 40px;">
                             <input type="checkbox" class="form-check-input" checked onchange="toggleAllStudents(this)">
                         </th>
                         <th>Student Name</th>
@@ -35,7 +49,7 @@
                 </thead>
                 <tbody>
                     <tr th:each="candidate, iterStat : ${candidates}">
-                        <td>
+                        <td class="ps-4">
                             <input type="checkbox" name="studentIds" th:value="${candidate.student.id}"
                                 class="form-check-input" checked>
                         </td>
@@ -43,13 +57,18 @@
                             <div class="d-flex align-items-center gap-2">
                                 <img th:if="${candidate.student.passportPhotoUrl}"
                                     th:src="${candidate.student.passportPhotoUrl}"
-                                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                                    style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;">
                                 <i th:unless="${candidate.student.passportPhotoUrl}"
-                                    class="fas fa-user-circle text-muted" style="font-size: 32px;"></i>
-                                <span th:text="${candidate.student.user.fullName}">John Doe</span>
+                                    class="fas fa-user-circle text-muted" style="font-size: 40px;"></i>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-semibold text-dark" th:text="${candidate.student.user.fullName}">John Doe</span>
+                                    <span class="text-muted small" th:text="${candidate.student.user.email}">student@email.com</span>
+                                </div>
                             </div>
                         </td>
-                        <td th:text="${candidate.student.admissionNumber}">ADM-001</td>
+                        <td>
+                            <span class="fw-medium text-dark" th:text="${candidate.student.admissionNumber}">ADM-001</span>
+                        </td>
                         <td>
                             <span class="badge bg-secondary-subtle text-secondary"
                                 th:text="${candidate.currentClass.className}">Current Class</span>

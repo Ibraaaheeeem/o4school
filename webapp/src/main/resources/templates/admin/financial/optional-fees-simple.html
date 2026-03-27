@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -7,28 +8,67 @@
     <title>4School - Optional Fees</title>
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <style>
+        .simple-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .simple-header,
+        .simple-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .simple-header {
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .simple-card {
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .simple-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .simple-table th,
+        .simple-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+    </style>
 </head>
 
 <body>
     <div th:replace="~{fragments/header :: school-header}"></div>
 
     <main class="main-content">
-        <div style="padding: 20px;">
-            <h1>Optional Fees Management</h1>
+        <div class="simple-content">
+            <div class="simple-header">
+                <h1>Optional Fees Management</h1>
+            </div>
 
-            <div style="margin: 20px 0;">
+            <div class="simple-card">
                 <p>User: <span th:text="${user?.fullName}">Unknown</span></p>
                 <p>School: <span th:text="${school?.name}">Unknown</span></p>
             </div>
 
-            <div style="margin: 20px 0;">
+            <div class="simple-card">
                 <h3>Statistics</h3>
                 <p>Total: <span th:text="${stats?.total}">0</span></p>
                 <p>Locked: <span th:text="${stats?.locked}">0</span></p>
                 <p>Unlocked: <span th:text="${stats?.unlocked}">0</span></p>
             </div>
 
-            <div style="margin: 20px 0;">
+            <div class="simple-card">
                 <h3>Academic Sessions</h3>
                 <p>Count: <span th:text="${#lists.size(academicSessions)}">0</span></p>
                 <ul>
@@ -37,7 +77,7 @@
                 </ul>
             </div>
 
-            <div style="margin: 20px 0;">
+            <div class="simple-card">
                 <h3>Terms</h3>
                 <p>Count: <span th:text="${#lists.size(terms)}">0</span></p>
                 <ul>
@@ -45,7 +85,7 @@
                 </ul>
             </div>
 
-            <div style="margin: 20px 0;">
+            <div class="simple-card">
                 <h3>Optional Fee Assignments</h3>
                 <p>Count: <span th:text="${#lists.size(optionalFeeAssignments)}">0</span></p>
 
@@ -54,7 +94,7 @@
                 </div>
 
                 <div th:unless="${#lists.isEmpty(optionalFeeAssignments)}">
-                    <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <table class="simple-table">
                         <thead>
                             <tr>
                                 <th>Fee Name</th>
@@ -75,7 +115,7 @@
                 </div>
             </div>
 
-            <div style="margin: 20px 0;">
+            <div class="simple-card">
                 <a href="/admin/financial">Back to Financial</a>
             </div>
         </div>

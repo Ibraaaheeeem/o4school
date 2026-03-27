@@ -18,6 +18,10 @@ class MultiModeAuthenticationProvider(
     private val passwordEncoder: PasswordEncoder
 ) : AuthenticationProvider {
 
+    companion object {
+        private val PHONE_REGEX = Regex("^\\+?\\d+$")
+    }
+
     private val logger = LoggerFactory.getLogger(MultiModeAuthenticationProvider::class.java)
 
     override fun authenticate(authentication: Authentication): Authentication {
@@ -58,7 +62,7 @@ class MultiModeAuthenticationProvider(
     private fun determineLoginMethod(username: String): LoginMethod {
         return when {
             username.contains("@") -> LoginMethod.EMAIL
-            username.matches(Regex("^\\+?\\d+$")) -> LoginMethod.PHONE
+            username.matches(PHONE_REGEX) -> LoginMethod.PHONE
             else -> LoginMethod.STUDENT
         }
     }

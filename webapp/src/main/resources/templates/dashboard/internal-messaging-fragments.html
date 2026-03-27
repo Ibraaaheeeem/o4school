@@ -1,5 +1,11 @@
 <!-- THREAD LIST FRAGMENT -->
 <div th:fragment="thread-list">
+    <style>
+        .conversation-item {
+            border-radius: 14px;
+            margin: 0.35rem;
+        }
+    </style>
     <div th:each="thread : ${threads}" class="conversation-item"
         th:classappend="${thread.unreadCount > 0 ? 'unread' : ''}" th:attr="data-thread-id=${thread.id}"
         onclick="loadThread(this.getAttribute('data-thread-id'), this)">
@@ -86,6 +92,12 @@
 <div th:fragment="new-message-modal">
     <div id="new-message-modal" class="modal-overlay" onclick="closeNewMessageModal(event)">
         <div class="modal-content" style="max-width: 600px;" onclick="event.stopPropagation()">
+            <style>
+                #new-message-modal .modal-content {
+                    border-radius: 24px;
+                    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.18);
+                }
+            </style>
             <form id="new-message-form" onsubmit="createNewThread(event)">
                 <!-- Modal Header -->
                 <div class="modal-header"

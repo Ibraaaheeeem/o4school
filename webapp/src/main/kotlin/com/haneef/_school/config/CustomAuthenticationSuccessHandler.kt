@@ -19,7 +19,15 @@ class CustomAuthenticationSuccessHandler(
     private val activityLogService: ActivityLogService
 ) : AuthenticationSuccessHandler {
 
-    private val logger = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler::class.java)
+    companion object {
+        private val logger = LoggerFactory.getLogger(CustomAuthenticationSuccessHandler::class.java)
+        private val ZERO_UUID: UUID = UUID(0L, 0L)
+        private val ADMIN_ROLES = setOf("SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF", "TEACHER")
+        private val STAFF_ROLES = setOf("STAFF", "TEACHER", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL")
+        private val PARENT_ROLES = setOf("PARENT", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF")
+        private val STUDENT_ROLES = setOf("STUDENT", "PARENT", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF")
+    }
+
     private val requestCache = HttpSessionRequestCache()
 
     override fun onAuthenticationSuccess(
@@ -27,13 +35,12 @@ class CustomAuthenticationSuccessHandler(
         response: HttpServletResponse,
         authentication: Authentication
     ) {
-        logger.info("=== AUTHENTICATION SUCCESS HANDLER STARTED ===")
+        logger.debug("Authentication success handler started")
         
         val customUser = authentication.principal as CustomUserDetails
         val userId = customUser.getUserId()
         
-        logger.info("User authenticated: ${customUser.username} (ID: $userId)")
-        logger.info("User authorities: ${customUser.authorities.map { it.authority }}")
+        logger.debug("User authenticated: {} (ID: {})", customUser.username, userId)
         
         if (userId == null) {
             logger.error("User ID is null, redirecting to login with error")
@@ -43,13 +50,11 @@ class CustomAuthenticationSuccessHandler(
 
         // Check if user is system admin
         val isSystemAdmin = customUser.authorities.any { it.authority == "ROLE_SYSTEM_ADMIN" }
-        logger.info("Is system admin: $isSystemAdmin")
+        logger.debug("Is system admin: {}", isSystemAdmin)
         
         if (isSystemAdmin) {
-            logger.info("System admin detected, redirecting to /system-admin/dashboard")
-            // System admins don't have a school context, using a null or system school ID if available
-            // For now, logging with a null school ID if the service allows, otherwise skipping
-            activityLogService.logUserLogin(UUID.fromString("00000000-0000-0000-0000-000000000000"), customUser.user, "SYSTEM_ADMIN", request)
+            logger.debug("System admin detected, redirecting to /system-admin/dashboard")
+            activityLogService.logUserLogin(ZERO_UUID, customUser.user, "SYSTEM_ADMIN", request)
             handleSuccessfulLogin(request, response, "/system-admin/dashboard")
             return
         }
@@ -64,7 +69,7 @@ class CustomAuthenticationSuccessHandler(
 
         // Check if user has multiple schools
         val hasMultipleSchools = userSchoolRoleService.hasMultipleSchools(userId)
-        logger.info("Has multiple schools: $hasMultipleSchools")
+        logger.debug("Has multiple schools: {}", hasMultipleSchools)
         
         if (hasMultipleSchools) {
             logger.info("Multiple schools detected, redirecting to school selection")
@@ -74,7 +79,7 @@ class CustomAuthenticationSuccessHandler(
         
         // Get user's schools and roles
         val userSchools = userSchoolRoleService.getUserSchools(userId)
-        logger.info("User schools: $userSchools (count: ${userSchools.size})")
+        logger.debug("User schools count: {}", userSchools.size)
         
         if (userSchools.isEmpty()) {
             logger.warn("No schools found for user, using fallback redirect")
@@ -83,17 +88,11 @@ class CustomAuthenticationSuccessHandler(
         }
         
         val schoolId = userSchools.first()
-        logger.info("Selected school ID: $schoolId")
-        
-        if (schoolId == null) {
-            logger.error("School ID is null, using fallback redirect")
-            handleSuccessfulLogin(request, response, "/admin/dashboard") // Fallback
-            return
-        }
+        logger.debug("Selected school ID: {}", schoolId)
         
         handleSchoolAndRoleRedirection(request, response, userId, schoolId, customUser)
         
-        logger.info("=== AUTHENTICATION SUCCESS HANDLER COMPLETED ===")
+        logger.debug("Authentication success handler completed")
     }
     
     private fun handleSchoolAndRoleRedirection(
@@ -105,7 +104,7 @@ class CustomAuthenticationSuccessHandler(
     ) {
         // Check if user has multiple roles in the school
         val hasMultipleRoles = userSchoolRoleService.hasMultipleRolesInSchool(userId, schoolId)
-        logger.info("Has multiple roles in school: $hasMultipleRoles")
+        logger.debug("Has multiple roles in school: {}", hasMultipleRoles)
         
         if (hasMultipleRoles) {
             logger.info("Multiple roles detected, redirecting to role selection")
@@ -117,20 +116,20 @@ class CustomAuthenticationSuccessHandler(
         
         // User has single role - redirect directly
         val userSchoolRoles = userSchoolRoleService.getActiveRolesByUserIdAndSchoolId(userId, schoolId)
-        logger.info("User school roles: ${userSchoolRoles.map { "${it.role?.name} (active: ${it.isActive})" }}")
+        logger.debug("Active user school roles count: {}", userSchoolRoles.size)
         
         if (userSchoolRoles.isNotEmpty()) {
             val userSchoolRole = userSchoolRoles.first()
             val roleName = userSchoolRole.role?.name
             
-            logger.info("Setting session attributes for school: $schoolId")
+            logger.debug("Setting session attributes for school: {}", schoolId)
             
             request.session.setAttribute("selectedSchoolId", schoolId)
             request.session.setAttribute("selectedRoleId", userSchoolRole.role?.id)
             request.session.setAttribute("selectedRole", roleName)
             
             val defaultRedirectUrl = getRoleBasedDashboardUrl(roleName)
-            logger.info("Role-based redirect URL: $defaultRedirectUrl for role: $roleName")
+            logger.debug("Role-based redirect URL: {} for role: {}", defaultRedirectUrl, roleName)
             
             // Log active login for single-role user
             activityLogService.logUserLogin(schoolId, customUser.user, roleName ?: "USER", request)
@@ -157,25 +156,20 @@ class CustomAuthenticationSuccessHandler(
         response: HttpServletResponse,
         defaultRedirectUrl: String
     ) {
-        logger.info("=== HANDLING SUCCESSFUL LOGIN ===")
-        logger.info("Default redirect URL: $defaultRedirectUrl")
+        logger.debug("Handling successful login. Default redirect URL: {}", defaultRedirectUrl)
         
         // Try to get the original requested URL
         val savedRequest = requestCache.getRequest(request, response)
         val targetUrl = getTargetUrl(savedRequest, defaultRedirectUrl, request)
         
-        logger.info("Final target URL: $targetUrl")
-        logger.info("Session attributes:")
-        logger.info("  - selectedSchoolId: ${request.session.getAttribute("selectedSchoolId")}")
-        logger.info("  - selectedRoleId: ${request.session.getAttribute("selectedRoleId")}")
-        logger.info("  - selectedRole: ${request.session.getAttribute("selectedRole")}")
+        logger.debug("Final target URL: {}", targetUrl)
         
         // Clear the saved request
         requestCache.removeRequest(request, response)
         
-        logger.info("Sending redirect to: $targetUrl")
+        logger.debug("Sending redirect to: {}", targetUrl)
         response.sendRedirect(targetUrl)
-        logger.info("=== SUCCESSFUL LOGIN HANDLING COMPLETED ===")
+        logger.debug("Successful login handling completed")
     }
     
     private fun getTargetUrl(
@@ -263,28 +257,16 @@ class CustomAuthenticationSuccessHandler(
             url.startsWith("/system-admin/") -> isSystemAdmin
             
             // Admin URLs - accessible to admin roles
-            url.startsWith("/admin/") -> {
-                val adminRoles = listOf("SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF", "TEACHER")
-                adminRoles.any { userRoles?.contains(it) == true }
-            }
+            url.startsWith("/admin/") -> ADMIN_ROLES.any { userRoles?.contains(it) == true }
             
             // Staff URLs
-            url.startsWith("/staff/") -> {
-                val staffRoles = listOf("STAFF", "TEACHER", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL")
-                staffRoles.any { userRoles?.contains(it) == true }
-            }
+            url.startsWith("/staff/") -> STAFF_ROLES.any { userRoles?.contains(it) == true }
             
             // Parent URLs
-            url.startsWith("/parent/") -> {
-                val parentRoles = listOf("PARENT", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF")
-                parentRoles.any { userRoles?.contains(it) == true }
-            }
+            url.startsWith("/parent/") -> PARENT_ROLES.any { userRoles?.contains(it) == true }
             
             // Student URLs
-            url.startsWith("/student/") -> {
-                val studentRoles = listOf("STUDENT", "PARENT", "SCHOOL_ADMIN", "ADMIN", "PRINCIPAL", "STAFF")
-                studentRoles.any { userRoles?.contains(it) == true }
-            }
+            url.startsWith("/student/") -> STUDENT_ROLES.any { userRoles?.contains(it) == true }
             
             // Default: allow access to other URLs
             else -> true

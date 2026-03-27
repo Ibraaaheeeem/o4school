@@ -5,6 +5,7 @@ import com.haneef._school.service.PhoneNumberService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.AuthenticationServiceException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
@@ -14,16 +15,26 @@ class MultiModeAuthenticationFilter(
 ) : UsernamePasswordAuthenticationFilter() {
 
     override fun attemptAuthentication(request: HttpServletRequest, response: HttpServletResponse): Authentication {
-        val loginMethod = request.getParameter("loginMethod")
-        val identifier = request.getParameter("identifier")
+        val loginMethodRaw = request.getParameter("loginMethod")?.trim()
+        val identifier = request.getParameter("identifier")?.trim()
         val countryCode = request.getParameter("countryCode")
-        val password = request.getParameter("password")
+        val password = request.getParameter("password") ?: ""
 
-        val normalizedUsername = when (LoginMethod.valueOf(loginMethod)) {
+        if (loginMethodRaw.isNullOrBlank() || identifier.isNullOrBlank()) {
+            throw AuthenticationServiceException("Login method and identifier are required")
+        }
+
+        val loginMethod = try {
+            LoginMethod.valueOf(loginMethodRaw.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw AuthenticationServiceException("Unsupported login method")
+        }
+
+        val normalizedUsername = when (loginMethod) {
             LoginMethod.EMAIL -> identifier.lowercase().trim()
             LoginMethod.PHONE -> {
                 phoneNumberService.parseAndFormatPhoneNumber(identifier, countryCode)
-                    ?: throw IllegalArgumentException("Invalid phone number")
+                    ?: throw AuthenticationServiceException("Invalid phone number")
             }
             LoginMethod.STUDENT -> identifier.uppercase().trim()
         }

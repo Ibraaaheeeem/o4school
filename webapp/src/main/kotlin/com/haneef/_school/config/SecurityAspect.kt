@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpSession
 import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
+import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -18,6 +19,14 @@ import java.util.UUID
 class SecurityAspect(
     private val authorizationService: AuthorizationService
 ) {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(SecurityAspect::class.java)
+        private val SAFE_METHOD_KEYWORDS = setOf(
+            "home", "dashboard", "index", "list", "filter",
+            "getNewModal", "getNewForm", "create", "new"
+        )
+    }
 
     /**
      * Intercepts controller methods with @PathVariable UUID parameters
@@ -49,7 +58,13 @@ class SecurityAspect(
             try {
                 authorizationService.validateAnyUuidOwnership(uuid, selectedSchoolId)
             } catch (e: AccessDeniedException) {
-                println("SECURITY ALERT: Blocked IDOR attempt in ${joinPoint.signature.declaringTypeName}.${methodName} for UUID: $uuid")
+                logger.warn(
+                    "Blocked potential IDOR attempt in {}.{} for UUID={} schoolId={}",
+                    joinPoint.signature.declaringTypeName,
+                    methodName,
+                    uuid,
+                    selectedSchoolId
+                )
                 throw e
             }
         }
@@ -58,10 +73,6 @@ class SecurityAspect(
     }
     
     private fun isSafeMethod(methodName: String): Boolean {
-        val safeMethods = setOf(
-            "home", "dashboard", "index", "list", "filter",
-            "getNewModal", "getNewForm", "create", "new"
-        )
-        return safeMethods.any { methodName.contains(it, ignoreCase = true) }
+        return SAFE_METHOD_KEYWORDS.any { methodName.contains(it, ignoreCase = true) }
     }
 }

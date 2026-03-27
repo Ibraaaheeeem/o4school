@@ -1,4 +1,5 @@
 <div th:replace="~{admin/community/staff/staff-cards :: staff-cards-content}" hx-swap-oob="true"></div>
+
 <div id="global-toast-container" hx-swap-oob="beforeend">
     <div class="toast success show">
         <i class="fas fa-check-circle"></i>
@@ -17,3 +18,9 @@
     }, 3000);
     /*]]>*/
 </script>
+
+<style>
+    .alert,
+    .success-toast,
+    .staff-card { border-radius: 12px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+</style>

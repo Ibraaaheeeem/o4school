@@ -1,4 +1,5 @@
 <!-- Staff Cards Fragment -->
+
 <div th:fragment="staff-cards-content" id="staff-cards-content">
     <div class="alert alert-success" th:if="${success}">
         <span th:text="${success}"></span>
@@ -53,3 +54,9 @@
         </div>
     </div>
 </div>
+
+<style>
+    .staff-card,
+    .empty-state,
+    .pagination-container { border-radius: 16px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+</style>

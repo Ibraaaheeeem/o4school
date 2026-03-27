@@ -1,4 +1,5 @@
 <!-- Assignment Response Fragment - includes both OOB card update and modal message -->
+
 <div th:fragment="assignment-response">
     <!-- Success/Error Message for Modal -->
     <div th:if="${success}" class="alert"
@@ -13,6 +14,12 @@
         <span th:text="${error}">Error occurred</span>
     </div>
 </div>
+
+<style>
+    .assignment-response,
+    .alert,
+    .staff-card { border-radius: 12px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+</style>
 
 <!-- Staff Card with OOB Swap (separate, not nested) -->
 <div th:if="${staff != null}" th:fragment="staff-card-oob" th:attr="id=${'staff-card-' + staff.id}" class="staff-card"

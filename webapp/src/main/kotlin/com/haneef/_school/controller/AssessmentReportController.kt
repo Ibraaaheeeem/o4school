@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION") // Legacy ca1Score/ca2Score/examScore fields accessed intentionally for backward compat
 package com.haneef._school.controller
 
 import java.util.UUID

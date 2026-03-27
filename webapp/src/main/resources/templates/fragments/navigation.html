@@ -51,6 +51,10 @@
                         }
                     });
                 });
+
+                document.querySelectorAll('.pagination-link, .nav-link').forEach(link => {
+                    link.classList.add('transition-ready');
+                });
             });
         </script>
     </div>
@@ -75,6 +79,43 @@
 
     <!-- Pagination Fragment -->
     <div th:fragment="pagination(page, totalPages, baseUrl)" class="pagination-container">
+        <style>
+            .pagination-container {
+                margin-top: 1.25rem;
+            }
+
+            .pagination {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                align-items: center;
+            }
+
+            .pagination-link,
+            .pagination-current {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 42px;
+                min-height: 42px;
+                padding: 0.55rem 0.9rem;
+                border-radius: 12px;
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+            .pagination-link {
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                color: #334155;
+            }
+
+            .pagination-current {
+                background: #4f46e5;
+                color: #fff;
+                box-shadow: 0 10px 24px rgba(79, 70, 229, 0.22);
+            }
+        </style>
         <div class="pagination" th:if="${totalPages > 1}">
             <!-- Previous button -->
             <a th:if="${page > 0}" 
@@ -120,6 +161,34 @@
 
     <!-- Search Form Fragment -->
     <div th:fragment="search-form(placeholder)" class="search-container">
+        <style>
+            .search-input-container {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+                padding: 0.35rem;
+            }
+
+            .search-input {
+                flex: 1;
+                border: 0;
+                outline: 0;
+                padding: 0.7rem 0.85rem;
+                border-radius: 12px;
+            }
+
+            .search-button {
+                border: 0;
+                background: #4f46e5;
+                color: #fff;
+                min-width: 42px;
+                min-height: 42px;
+                border-radius: 12px;
+            }
+        </style>
         <div class="search-input-container">
             <input type="text" 
                    id="searchInput" 
@@ -139,7 +208,7 @@
        th:href="${href}"
        th:text="${text}"
        th:onclick="${isNewPage ? 'markAsNewPage()' : 'markAsContentReplacement()'}"
-       class="nav-link">
+         class="nav-link transition-ready">
     </a>
 
 </body>

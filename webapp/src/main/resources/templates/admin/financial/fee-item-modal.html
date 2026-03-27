@@ -1,4 +1,5 @@
 <!-- Fee Item Modal -->
+
 <div class="modal-content">
     <div class="modal-header">
         <h3 th:text="${isEdit ? 'Edit Fee Item' : 'New Fee Item'}">New Fee Item</h3>
@@ -161,3 +162,30 @@
         toggleDiscountAmount();
     });
 </script>
+
+<style>
+    .modal-content {
+        border-radius: 16px;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .form-section {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+</style>

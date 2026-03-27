@@ -1,4 +1,5 @@
 <div class="modal-dialog modal-content compact">
+
     <div class="modal-header">
         <h2 th:text="${isEdit ? 'Edit Examination' : 'Create New Examination'}">Create New Examination</h2>
         <button type="button" class="modal-close" onclick="closeModal('examinationModal')">&times;</button>
@@ -343,3 +344,17 @@
         }
     });
 </script>
+
+<style>
+    #examinationModal .modal-dialog.modal-content.compact {
+        border-radius: 16px;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+    }
+
+    #examinationModal .form-input,
+    #examinationModal .form-select,
+    #examinationModal .btn {
+        border-radius: 10px;
+    }
+</style>

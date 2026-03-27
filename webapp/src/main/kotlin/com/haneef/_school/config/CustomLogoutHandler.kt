@@ -15,7 +15,10 @@ class CustomLogoutHandler(
     private val activityLogService: ActivityLogService
 ) : LogoutHandler {
 
-    private val logger = LoggerFactory.getLogger(CustomLogoutHandler::class.java)
+    companion object {
+        private val logger = LoggerFactory.getLogger(CustomLogoutHandler::class.java)
+        private val ZERO_UUID: UUID = UUID(0L, 0L)
+    }
 
     override fun logout(
         request: HttpServletRequest,
@@ -39,7 +42,7 @@ class CustomLogoutHandler(
             activityLogService.logUserLogout(selectedSchoolId, customUser.user, selectedRole, request)
         } else {
             // For system admins or users without a school context
-            activityLogService.logUserLogout(UUID.fromString("00000000-0000-0000-0000-000000000000"), customUser.user, selectedRole, request)
+            activityLogService.logUserLogout(ZERO_UUID, customUser.user, selectedRole, request)
         }
     }
 }

@@ -6,6 +6,15 @@
     <!-- Email Form Fragment -->
     <div th:fragment="email-form" id="auth-step-container">
         <div th:fragment="email-form-content" id="email-form-content">
+            <style>
+                #auth-step-container .alert {
+                    border-radius: 16px;
+                }
+
+                #auth-step-container .card-header p {
+                    margin-bottom: 0;
+                }
+            </style>
             <div class="card-header">
                 <h2 th:text="${type == 'ACTIVATE' ? 'Activate Account' : 'Reset Password'}">Auth Action</h2>
                 <p>Enter your email address to receive an OTP</p>

@@ -1,5 +1,5 @@
 <div id="global-toast-container" hx-swap-oob="beforeend">
-    <div class="toast error show">
+    <div class="toast error show rounded-4 shadow-lg border-0">
         <i class="fas fa-exclamation-circle"></i>
         <span th:text="${error}">An error occurred!</span>
     </div>
@@ -12,7 +12,7 @@
         window.closeModal(modalId);
     }
     setTimeout(() => {
-        const toasts = document.querySelectorAll('.toast');
+        const toasts = document.querySelectorAll('#global-toast-container .toast');
         toasts.forEach(t => t.classList.remove('show'));
     }, 5000);
     /*]]>*/

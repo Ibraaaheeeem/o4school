@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -18,6 +19,19 @@
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
 
     <style>
+        .setup-content .setup-header,
+        .filter-section,
+        .analytics-card,
+        .chart-container {
+            border-radius: 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .setup-content .setup-header {
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
         .analytics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -106,6 +120,11 @@
 
         .btn-filter:hover {
             background-color: #4338ca;
+        }
+
+        .form-control,
+        .btn-filter {
+            border-radius: 10px;
         }
     </style>
 </head>

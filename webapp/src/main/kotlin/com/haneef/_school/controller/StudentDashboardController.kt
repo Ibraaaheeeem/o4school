@@ -82,7 +82,9 @@ class StudentDashboardController(
                     // Populate classes
                     enrolledClasses.forEach { schoolClass ->
                         val group = getGroup(schoolClass.track)
-                        (group["classes"] as MutableList<com.haneef._school.entity.SchoolClass>).add(schoolClass)
+                        @Suppress("UNCHECKED_CAST")
+                        val classList = group["classes"] as MutableList<com.haneef._school.entity.SchoolClass>
+                        classList.add(schoolClass)
                     }
 
                     // Populate assessments
@@ -93,7 +95,9 @@ class StudentDashboardController(
                             exam.endTime != null && now.isAfter(exam.endTime) -> "past"
                             else -> "upcoming"
                         }
-                        (group[category] as MutableList<com.haneef._school.entity.Examination>).add(exam)
+                        @Suppress("UNCHECKED_CAST")
+                        val examList = group[category] as MutableList<com.haneef._school.entity.Examination>
+                        examList.add(exam)
                     }
                     
                     // Fetch submissions for these exams

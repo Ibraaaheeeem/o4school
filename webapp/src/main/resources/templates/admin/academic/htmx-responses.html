@@ -3,6 +3,12 @@
 
 <body>
 
+    <style>
+        .academic-oob-inline-close {
+            display: none;
+        }
+    </style>
+
     <!-- Calendar Responses -->
     <div th:fragment="calendar-save-success">
         <div th:replace="~{fragments/success :: oob-success-message}"></div>
@@ -35,7 +41,7 @@
     <div th:fragment="term-save-success">
         <div th:replace="~{fragments/success :: oob-success-message}"></div>
         <div th:replace="~{admin/academic/terms :: terms-list (swapOob='true')}"></div>
-        <script>
+        <script class="academic-oob-inline-close">
             closeModal('termModal');
         </script>
     </div>

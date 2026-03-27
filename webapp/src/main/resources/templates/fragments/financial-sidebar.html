@@ -3,6 +3,18 @@
 
 <body>
     <aside th:fragment="financial-sidebar" class="setup-sidebar">
+        <style>
+            .setup-sidebar .nav-item {
+                border-radius: 14px;
+            }
+
+            .setup-sidebar .setup-progress-widget {
+                border-radius: 18px;
+                border: 1px solid #e2e8f0;
+                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+            }
+        </style>
         <div class="sidebar-header">
             <h3>Financial Management</h3>
         </div>

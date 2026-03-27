@@ -9,6 +9,14 @@
         th:content="'Welcome to ' + ${school.name} + '. ' + ${school.schoolMotto ?: 'Excellence in Education'}">
     <link rel="stylesheet" th:href="@{/css/public.css}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-section,
+        .features-section,
+        .about-section,
+        .contact-section {
+            border-radius: 24px;
+        }
+    </style>
     <style th:if="${school.primaryColor}">
         :root {
             --primary-color: [[$ {

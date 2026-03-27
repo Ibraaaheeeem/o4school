@@ -3,6 +3,24 @@
 
 <body>
     <aside th:fragment="admin-sidebar(activePage)" class="quick-actions-sidebar" id="quickActionsSidebar">
+        <style>
+            #quickActionsSidebar .quick-action-link,
+            #quickActionsSidebar .submenu-link {
+                border-radius: 14px;
+                transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            #quickActionsSidebar .quick-action-link:hover,
+            #quickActionsSidebar .submenu-link:hover {
+                transform: translateX(2px);
+            }
+
+            #quickActionsSidebar .sidebar-brand {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                padding-bottom: 1rem;
+                margin-bottom: 0.75rem;
+            }
+        </style>
         <div class="sidebar-brand">
             <img src="/images/school-logo.svg" alt="Icon" class="brand-icon">
             <img src="/images/home_logo_white.svg" alt="4School" class="brand-logo">

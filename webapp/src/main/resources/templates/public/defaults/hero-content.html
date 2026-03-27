@@ -1,4 +1,9 @@
 <div class="hero-content">
+    <style>
+        .hero-content .hero-buttons .btn {
+            border-radius: 14px;
+        }
+    </style>
     <h1 class="hero-title" th:text="'Welcome to ' + ${school.name}">Welcome to School Name</h1>
     <p class="hero-subtitle">Excellence in Education, Innovation in Learning</p>
     <p th:if="${school.schoolMotto}" class="hero-motto" th:text="'&quot;' + ${school.schoolMotto} + '&quot;'">"School Motto"</p>

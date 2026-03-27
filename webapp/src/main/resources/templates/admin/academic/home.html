@@ -15,6 +15,42 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Include CSRF JavaScript -->
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+    <style>
+        .academic-home-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .academic-home-shell .setup-header,
+        .academic-home-shell .timetable-timeline-card,
+        .academic-home-shell .status-card,
+        .academic-home-shell .card {
+            border-radius: 22px;
+        }
+
+        .academic-home-shell .timetable-timeline-card,
+        .academic-home-shell .card {
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+        }
+
+        .academic-home-shell .quick-action-card {
+            border-radius: 18px;
+        }
+
+        .academic-home-shell .date-badge {
+            min-width: 64px;
+        }
+
+        .academic-home-shell .badge.badge-light {
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 0.6rem 0.9rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -29,55 +65,57 @@
 
         <!-- Main Content Area -->
         <div class="setup-content">
-            <div class="setup-header">
-                <div>
-                    <h1>Academic Administration</h1>
-                    <p class="text-muted">Overview of <span th:text="${school?.name}">School</span>'s academic
-                        activities.</p>
+            <div class="academic-home-shell">
+                <div class="setup-header">
+                    <div>
+                        <h1>Academic Administration</h1>
+                        <p class="text-muted mb-0">Overview of <span th:text="${school?.name}">School</span>'s academic
+                            activities.</p>
+                    </div>
+                    <div class="header-date">
+                        <span class="badge badge-light" th:text="${#temporals.format(todayDate, 'EEEE, d MMMM')}">Monday, 12
+                            October</span>
+                    </div>
                 </div>
-                <div class="header-date">
-                    <span class="badge badge-light" th:text="${#temporals.format(todayDate, 'EEEE, d MMMM')}">Monday, 12
-                        October</span>
-                </div>
-            </div>
 
-            <!-- Current Status Hero Section -->
+                <!-- Current Status Hero Section -->
 
-            <!-- Today's Timetable Timeline -->
-            <div class="row mb-4" th:if="${!#lists.isEmpty(todayTimetable)}">
-                <div class="col-12">
-                    <div class="timetable-timeline-card">
-                        <h5 class="mb-3 d-flex align-items-center gap-2">
-                            <i class="fas fa-calendar-day text-primary"></i>
-                            <span>Today's Schedule</span>
-                            <small class="text-muted ms-auto"
-                                th:text="${#temporals.format(todayDate, 'EEEE, MMM dd')}">Monday, Feb 04</small>
-                        </h5>
-                        <div class="timeline-container">
-                            <div th:each="period, iterStat : ${todayTimetable}" class="timeline-item"
-                                th:classappend="${currentPeriod != null && period.id == currentPeriod.id ? 'active' : ''}">
-                                <div class="timeline-marker">
-                                    <i class="fas"
-                                        th:classappend="${period.isBreak ? 'fa-coffee' : 'fa-book-open'}"></i>
-                                </div>
-                                <div class="timeline-content">
-                                    <div class="d-flex align-items-start justify-content-between gap-3">
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-1 font-weight-bold" th:text="${period.activityName}">
-                                                Mathematics</h6>
-                                            <p class="mb-0 text-sm text-muted" th:if="${period.description}"
-                                                th:text="${period.description}">Description</p>
-                                        </div>
-                                        <div class="text-end flex-shrink-0">
-                                            <div class="timeline-time">
-                                                <span
-                                                    th:text="${#temporals.format(period.startTime, 'HH:mm')}">08:00</span>
-                                                <span class="mx-1">-</span>
-                                                <span
-                                                    th:text="${#temporals.format(period.endTime, 'HH:mm')}">09:00</span>
+                <!-- Today's Timetable Timeline -->
+                <div class="row mb-0" th:if="${!#lists.isEmpty(todayTimetable)}">
+                    <div class="col-12">
+                        <div class="timetable-timeline-card">
+                            <h5 class="mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-calendar-day text-primary"></i>
+                                <span>Today's Schedule</span>
+                                <small class="text-muted ms-auto"
+                                    th:text="${#temporals.format(todayDate, 'EEEE, MMM dd')}">Monday, Feb 04</small>
+                            </h5>
+                            <div class="timeline-container">
+                                <div th:each="period, iterStat : ${todayTimetable}" class="timeline-item"
+                                    th:classappend="${currentPeriod != null && period.id == currentPeriod.id ? 'active' : ''}">
+                                    <div class="timeline-marker">
+                                        <i class="fas"
+                                            th:classappend="${period.isBreak ? 'fa-coffee' : 'fa-book-open'}"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="d-flex align-items-start justify-content-between gap-3">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 font-weight-bold" th:text="${period.activityName}">
+                                                    Mathematics</h6>
+                                                <p class="mb-0 text-sm text-muted" th:if="${period.description}"
+                                                    th:text="${period.description}">Description</p>
                                             </div>
-                                            <span class="badge badge-sm mt-1" th:if="${period.isBreak}"
-                                                th:classappend="${currentPeriod != null && period.id == currentPeriod.id ? 'bg-success' : 'bg-secondary'}">Break</span>
+                                            <div class="text-end flex-shrink-0">
+                                                <div class="timeline-time">
+                                                    <span
+                                                        th:text="${#temporals.format(period.startTime, 'HH:mm')}">08:00</span>
+                                                    <span class="mx-1">-</span>
+                                                    <span
+                                                        th:text="${#temporals.format(period.endTime, 'HH:mm')}">09:00</span>
+                                                </div>
+                                                <span class="badge badge-sm mt-1" th:if="${period.isBreak}"
+                                                    th:classappend="${currentPeriod != null && period.id == currentPeriod.id ? 'bg-success' : 'bg-secondary'}">Break</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -87,8 +125,8 @@
                 </div>
             </div>
 
-            <!-- Current Status Hero Section -->
-            <div class="row mb-4">
+                <!-- Current Status Hero Section -->
+                <div class="row mb-0">
                 <div class="col-12">
                     <div class="status-card h-100"
                         th:classappend="${currentPeriod != null ? 'active-period' : 'free-period'}">
@@ -168,10 +206,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
 
-            <!-- Quick Actions Grid -->
-            <div class="row mb-4">
+                <!-- Quick Actions Grid -->
+                <div class="row mb-0">
                 <div class="col-12">
                     <h4 class="section-title mb-3 text-start">Quick Actions</h4>
                     <div class="quick-actions-grid">
@@ -230,10 +268,10 @@
                         </a>
                     </div>
                 </div>
-            </div>
+                </div>
 
-            <!-- Overview Section -->
-            <div class="row mb-4">
+                <!-- Overview Section -->
+                <div class="row mb-0">
                 <!-- Upcoming Events -->
                 <div class="col-12">
                     <div class="card border-1 shadow-sm h-100">
@@ -277,8 +315,7 @@
                     </div>
                 </div>
             </div>
-
-
+            </div>
         </div>
     </main>
 

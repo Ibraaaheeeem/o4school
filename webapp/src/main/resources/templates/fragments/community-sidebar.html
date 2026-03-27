@@ -4,6 +4,17 @@
 <body>
     <aside th:fragment="community-sidebar" class="setup-sidebar">
         <style>
+            .setup-sidebar .setup-progress-widget {
+                border-radius: 18px;
+                border: 1px solid #e2e8f0;
+                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+            }
+
+            .setup-sidebar .nav-item {
+                border-radius: 14px;
+            }
+
             @media (max-width: 768px) {
                 .setup-layout {
                     flex-direction: column;

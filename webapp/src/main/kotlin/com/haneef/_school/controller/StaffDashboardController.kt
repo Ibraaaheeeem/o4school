@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION") // Legacy ca1Score/ca2Score/examScore fields written intentionally for backward compat
 package com.haneef._school.controller
 
 import java.util.UUID
@@ -678,31 +679,26 @@ class StaffDashboardController(
                 val sessionEntity = examination.academicSession
                 val termEntity = examination.term
                 
-                val isClassTeacher = if (sessionEntity != null && termEntity != null) {
-                    classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
-                        staff.id!!, classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
-                    )
-                } else {
-                    false
+                if (sessionEntity == null || termEntity == null) {
+                    return "fragments/error :: error-message"
                 }
+                val isClassTeacher = classTeacherRepository.existsByStaffIdAndSchoolClassIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                    staff.id!!, classId, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
+                )
                 
-                val canManageExamination = if (true) {
-                    if (isClassTeacher) {
-                        // Class teacher can manage all examinations for their class
-                        examination.schoolClass.id == classId
-                    } else {
-                        // Subject teacher can only manage examinations for subjects they teach
-                        val subjectsTaught = subjectTeacherRepository
-                            .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
-                                staff.id!!, sessionEntity.id!!, termEntity.id!!, true
-                            )
-                            .filter { it.schoolClass.id == classId }
-                            .map { it.subject.id }
-                        
-                        examination.schoolClass.id == classId && subjectsTaught.contains(examination.subject.id)
-                    }
+                val canManageExamination = if (isClassTeacher) {
+                    // Class teacher can manage all examinations for their class
+                    examination.schoolClass.id == classId
                 } else {
-                    false
+                    // Subject teacher can only manage examinations for subjects they teach
+                    val subjectsTaught = subjectTeacherRepository
+                        .findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                            staff.id!!, sessionEntity.id!!, termEntity.id!!, true
+                        )
+                        .filter { it.schoolClass.id == classId }
+                        .map { it.subject.id }
+                    
+                    examination.schoolClass.id == classId && subjectsTaught.contains(examination.subject.id)
                 }
                 
                 if (canManageExamination) {
@@ -2315,7 +2311,7 @@ class StaffDashboardController(
         model.addAttribute("educationTracks", educationTracks)
         model.addAttribute("examTypes", listOf("Assignment", "Continuous Assessment", "Mid-Term Test", "End-of-Term Examination"))
         val termNames = listOf("First Term", "Second Term", "Third Term")
-        model.addAttribute("terms", if (effectiveTerm != null && termNames.contains(effectiveTerm.termName)) listOf(effectiveTerm.termName) else termNames)
+        model.addAttribute("terms", if (termNames.contains(effectiveTerm.termName)) listOf(effectiveTerm.termName) else termNames)
         model.addAttribute("isEdit", false)
         
         // Staff-specific context variables

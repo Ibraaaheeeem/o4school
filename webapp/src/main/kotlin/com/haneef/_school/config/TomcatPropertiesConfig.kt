@@ -1,6 +1,7 @@
 package com.haneef._school.config
 
 import jakarta.annotation.PostConstruct
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Configuration
 
 /**
@@ -10,14 +11,16 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class TomcatPropertiesConfig {
 
+    companion object {
+        private val logger = LoggerFactory.getLogger(TomcatPropertiesConfig::class.java)
+    }
+
     @PostConstruct
     fun configureTomcatProperties() {
         // Set Tomcat properties for multipart handling
         System.setProperty("org.apache.tomcat.util.http.fileupload.impl.FileCountMax", "100")
         System.setProperty("org.apache.catalina.connector.MAX_PARAMETER_COUNT", "10000")
         
-        println("✓ Tomcat multipart properties configured")
-        println("  - FileCountMax: 100")
-        println("  - MaxParameterCount: 10000")
+        logger.info("Tomcat multipart properties configured: FileCountMax=100, MaxParameterCount=10000")
     }
 }

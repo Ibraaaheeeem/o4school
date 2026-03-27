@@ -189,7 +189,7 @@ class ParentDashboardController(
                 children = orderedChildren
             } catch (e: Exception) {
                 // Fallback to default order if parsing fails
-                e.printStackTrace()
+                logger.warn("Failed to parse paymentPriorityOrder for parentId={}", parent.id, e)
             }
         }
         
@@ -200,7 +200,11 @@ class ParentDashboardController(
         
         // Enrich feeBreakdown with specific status data for UI
         val statusByStudent = financialStatus.students.associateBy { it.studentId }
-        val enrichedBreakdown = (financialData["feeBreakdown"] as List<Map<String, Any>>).map { item ->
+        val feeBreakdown = (financialData["feeBreakdown"] as? List<*>)
+            ?.mapNotNull { it as? Map<String, Any> }
+            ?: emptyList()
+
+        val enrichedBreakdown = feeBreakdown.map { item ->
             val studentUuidStr = item["studentUuid"] as? String
             val studentUuid = try { studentUuidStr?.let { UUID.fromString(it) } } catch (e: Exception) { null }
             val status = if (studentUuid != null) statusByStudent[studentUuid] else null

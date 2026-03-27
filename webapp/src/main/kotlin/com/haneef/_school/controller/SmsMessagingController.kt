@@ -121,7 +121,7 @@ class SmsMessagingController(
                       smsMessageRepository.findByRecipientPhoneOrderByCreatedAtDesc("+" + cleanedRecipient)
                       
         val messages = rawMessages.distinctBy { it.id }
-            .filter { it is SmsMessage && it.school?.id == selectedSchoolId }
+            .filter { it.school?.id == selectedSchoolId }
             .sortedBy { it.createdAt }
 
         // Mark incoming messages as READ

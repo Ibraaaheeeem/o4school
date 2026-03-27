@@ -3,6 +3,28 @@
 
 <body>
     <div th:fragment="success-message" class="success-response">
+        <style>
+            .success-response .modal-header,
+            .success-response .modal-footer {
+                background: #fff;
+                padding: 1.25rem 1.5rem;
+            }
+
+            .success-response .modal-header {
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .success-response .modal-body {
+                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            }
+
+            .success-response .alert {
+                border: 0;
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+                padding: 1rem 1.25rem;
+            }
+        </style>
         <div class="modal-header">
             <h3>Success</h3>
             <button class="close-modal" onclick="closeAllModals()">&times;</button>
@@ -29,7 +51,7 @@
 
     <!-- OOB Success Message (No Reload) -->
     <div th:fragment="oob-success-message" class="success-response">
-        <div class="alert alert-success">
+        <div class="alert alert-success d-flex align-items-center gap-2">
             <i class="fas fa-check-circle me-2"></i>
             <span th:text="${message}">Success!</span>
         </div>

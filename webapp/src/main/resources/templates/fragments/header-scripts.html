@@ -5,12 +5,18 @@
             if (d.id !== id) d.classList.remove('open');
         });
         const dropdown = document.getElementById(id);
-        dropdown.classList.toggle('open');
+        if (dropdown) {
+            dropdown.classList.toggle('open');
+        }
     }
 
     function submitContext(formId, inputId, value) {
-        document.getElementById(inputId).value = value;
-        document.getElementById(formId).submit();
+        const input = document.getElementById(inputId);
+        const form = document.getElementById(formId);
+        if (input && form) {
+            input.value = value;
+            form.submit();
+        }
     }
 
     // Close dropdowns when clicking outside

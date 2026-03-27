@@ -1,31 +1,34 @@
 package com.haneef._school.config
 
 import jakarta.servlet.http.HttpServletRequest
+import com.haneef._school.repository.AcademicSessionRepository
+import com.haneef._school.repository.SchoolRepository
+import com.haneef._school.repository.TermRepository
+import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ModelAttribute
-import org.springframework.beans.factory.annotation.Autowired
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
+import java.util.UUID
 
 @ControllerAdvice
-class GlobalControllerAdvice {
-
-    @Autowired
-    private lateinit var academicSessionRepository: com.haneef._school.repository.AcademicSessionRepository
-
-    @Autowired
-    private lateinit var termRepository: com.haneef._school.repository.TermRepository
-
-    @Autowired
-    private lateinit var schoolRepository: com.haneef._school.repository.SchoolRepository
+class GlobalControllerAdvice(
+    private val academicSessionRepository: AcademicSessionRepository,
+    private val termRepository: TermRepository,
+    private val schoolRepository: SchoolRepository
+) {
 
     @ModelAttribute
     fun populateHeaderContext(
-        model: org.springframework.ui.Model,
+        model: Model,
         authentication: org.springframework.security.core.Authentication?,
         session: jakarta.servlet.http.HttpSession
     ) {
         if (authentication != null && authentication.isAuthenticated) {
             val customUser = authentication.principal as? com.haneef._school.service.CustomUserDetails
-            val selectedSchoolId = (session.getAttribute("selectedSchoolId") as? java.util.UUID)
+            val selectedSchoolId = (session.getAttribute("selectedSchoolId") as? UUID)
                 ?: customUser?.forcedSchoolId
                 
             if (selectedSchoolId != null) {
@@ -39,7 +42,7 @@ class GlobalControllerAdvice {
                 model.addAttribute("headerSessions", sessions)
 
                 // Determine selected session
-                var selectedSessionId = session.getAttribute("selectedSessionId") as? java.util.UUID
+                val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
                 var contextSession = if (selectedSessionId != null) {
                     sessions.find { it.id == selectedSessionId }
                 } else {
@@ -59,7 +62,7 @@ class GlobalControllerAdvice {
                     model.addAttribute("headerTerms", terms)
                     
                     // Determine selected term
-                    var selectedTermId = session.getAttribute("selectedTermId") as? java.util.UUID
+                    val selectedTermId = session.getAttribute("selectedTermId") as? UUID
                     var contextTerm = if (selectedTermId != null) {
                         terms.find { it.id == selectedTermId }
                     } else {
@@ -75,19 +78,19 @@ class GlobalControllerAdvice {
                         model.addAttribute("headerContextTerm", contextTerm)
                         
                         // Current Term & Week Logic
-                        val now = java.time.LocalDate.now()
+                        val now = LocalDate.now()
                         val startDate = contextTerm.startDate
                         
                         // Determine the start of Week 1
                         var week1Start = startDate
-                        if (startDate.dayOfWeek != java.time.DayOfWeek.SUNDAY) {
-                            week1Start = startDate.with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY))
+                        if (startDate.dayOfWeek != DayOfWeek.SUNDAY) {
+                            week1Start = startDate.with(TemporalAdjusters.next(DayOfWeek.SUNDAY))
                         }
                         
                         val weekNum = if (now.isBefore(startDate) || now.isBefore(week1Start)) {
                             0
                         } else {
-                            val days = java.time.temporal.ChronoUnit.DAYS.between(week1Start, now)
+                            val days = ChronoUnit.DAYS.between(week1Start, now)
                             (days / 7) + 1
                         }
                         model.addAttribute("currentWeekNumber", weekNum)

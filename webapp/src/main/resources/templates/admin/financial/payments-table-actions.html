@@ -1,10 +1,17 @@
 <!-- Add this to the parent view table row -->
+
 <td th:fragment="parent-actions">
     <button class="btn btn-sm btn-primary" 
             th:onclick="'showPaymentDetails(\'' + ${data.id} + '\')'">
         View Details
     </button>
 </td>
+
+<style>
+    .btn.btn-sm.btn-primary,
+    .btn.btn-sm.btn-outline,
+    .btn.btn-sm.btn-danger { border-radius: 10px; }
+</style>
 
 <!-- Add this to the student view table row -->
 <td th:fragment="student-actions">

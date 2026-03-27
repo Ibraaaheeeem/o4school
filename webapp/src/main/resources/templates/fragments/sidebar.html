@@ -3,6 +3,29 @@
 
 <body>
     <aside th:fragment="sidebar" class="setup-sidebar">
+        <style>
+            .setup-sidebar {
+                border-right: 1px solid #e2e8f0;
+            }
+
+            .setup-sidebar .nav-item {
+                border-radius: 14px;
+                transition: transform 0.2s ease, background-color 0.2s ease;
+            }
+
+            .setup-sidebar .nav-item:hover {
+                transform: translateX(2px);
+            }
+
+            .setup-progress-widget {
+                margin-top: 1.5rem;
+                padding: 1rem;
+                border-radius: 18px;
+                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+            }
+        </style>
         <div class="sidebar-header">
             <h3>Setup Menu</h3>
         </div>

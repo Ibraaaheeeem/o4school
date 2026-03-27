@@ -95,6 +95,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             window.CSRFManager.init();
         });
+
+        document.addEventListener('htmx:afterSwap', function() {
+            if (window.CSRFManager) {
+                window.CSRFManager.init();
+            }
+        });
     </script>
 
     <!-- CSRF Form Helper Fragment -->

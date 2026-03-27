@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -18,6 +19,39 @@
 
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <style>
+        .setup-content .setup-header,
+        .filter-chips-wrapper,
+        .examinations-container,
+        #examinationModal {
+            border-radius: 16px;
+        }
+
+        .setup-content .setup-header,
+        .filter-chips-wrapper,
+        .examinations-container {
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .setup-content .setup-header {
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .filter-chips-wrapper,
+        .examinations-container {
+            background: #fff;
+        }
+
+        .filter-chips-wrapper {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .examinations-container {
+            overflow: hidden;
+        }
+    </style>
 </head>
 
 <body>

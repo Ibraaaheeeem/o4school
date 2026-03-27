@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -22,6 +23,40 @@
     <link rel="stylesheet" th:href="@{/css/bulk-import.css}">
     <!-- Include CSRF JavaScript -->
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+    <style>
+        #community-content .setup-header {
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            margin-bottom: 1.5rem;
+        }
+
+        .community-dashboard .dashboard-grid {
+            gap: 1rem;
+        }
+
+        .community-dashboard .dashboard-card {
+            border-radius: 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .community-dashboard .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+        }
+
+        .bulk-import-section {
+            border-radius: 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .import-tab,
+        .card-link,
+        .bulk-import-section .btn {
+            border-radius: 10px;
+        }
+    </style>
 </head>
 
 <body>

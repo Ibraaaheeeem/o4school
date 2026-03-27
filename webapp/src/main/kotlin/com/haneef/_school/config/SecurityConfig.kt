@@ -1,8 +1,6 @@
 package com.haneef._school.config
 
 import com.haneef._school.service.CustomUserDetailsService
-import com.haneef._school.service.UserSchoolRoleService
-import com.haneef._school.service.ActivityLogService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
@@ -27,22 +25,38 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(prePostEnabled = true)
 class SecurityConfig(
     private val customUserDetailsService: CustomUserDetailsService,
-    private val userSchoolRoleService: UserSchoolRoleService,
+    private val customAuthenticationSuccessHandler: CustomAuthenticationSuccessHandler,
     private val customAuthenticationFailureHandler: CustomAuthenticationFailureHandler,
     private val customAuthenticationEntryPoint: CustomAuthenticationEntryPoint,
-    private val customLogoutHandler: CustomLogoutHandler,
-    private val activityLogService: ActivityLogService
+    private val customLogoutHandler: CustomLogoutHandler
 ) {
+
+    companion object {
+        private val CSRF_IGNORED_PATHS = arrayOf(
+            "/paystack/webhooks", "/paystack/webhooks/**",
+            "/squad/webhooks", "/squad/webhooks/**",
+            "/webhook/whatsapp", "/webhook/whatsapp/**",
+            "/h2-console/**", "/auth/logout"
+        )
+
+        private val PUBLIC_PATHS = arrayOf(
+            "/", "/login", "/register", "/activate-account", "/forgot-password",
+            "/auth/**", "/error", "/css/**", "/js/**", "/images/**",
+            "/paystack/webhooks", "/paystack/webhooks/**",
+            "/squad/webhooks", "/squad/webhooks/**",
+            "/webhook/whatsapp", "/webhook/whatsapp/**", "/favicon.ico"
+        )
+    }
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { csrf ->
-                csrf.ignoringRequestMatchers("/paystack/webhooks", "/paystack/webhooks/**", "/squad/webhooks", "/squad/webhooks/**", "/webhook/whatsapp", "/webhook/whatsapp/**", "/h2-console/**", "/auth/logout")
+                csrf.ignoringRequestMatchers(*CSRF_IGNORED_PATHS)
             }
             .authorizeHttpRequests { requests ->
                 requests
-                    .requestMatchers("/", "/login", "/register", "/activate-account", "/forgot-password", "/auth/**", "/error", "/css/**", "/js/**", "/images/**", "/paystack/webhooks", "/paystack/webhooks/**", "/squad/webhooks", "/squad/webhooks/**", "/webhook/whatsapp", "/webhook/whatsapp/**", "/favicon.ico").permitAll()
+                    .requestMatchers(*PUBLIC_PATHS).permitAll()
                     .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                     .requestMatchers("/actuator/**").hasRole("SYSTEM_ADMIN")
                     .requestMatchers("/h2-console/**").hasRole("SYSTEM_ADMIN")
@@ -73,7 +87,7 @@ class SecurityConfig(
                     .loginProcessingUrl("/auth/login")
                     .usernameParameter("combinedUsername")
                     .passwordParameter("password")
-                    .successHandler(CustomAuthenticationSuccessHandler(userSchoolRoleService, activityLogService))
+                    .successHandler(customAuthenticationSuccessHandler)
                     .failureHandler(customAuthenticationFailureHandler)
                     .permitAll()
             }

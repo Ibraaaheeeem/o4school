@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -149,7 +150,7 @@
                                                         th:text="${assignment.academicYear}"></span></small>
                                             </div>
                                             <button type="button" class="btn btn-outline-danger btn-sm"
-                                                onclick="confirmRemoveAssignment('class', [[${assignment.id}]])"
+                                                th:onclick="'confirmRemoveAssignment(\'class\', ' + ${assignment.id} + ')'"
                                                 title="Remove Assignment">
                                                 <i class="fas fa-times"></i>
                                             </button>
@@ -189,6 +190,13 @@
             }
         }
     </script>
+    <style>
+        .setup-content .setup-header,
+        .assignment-card,
+        .filters-section,
+        .table-container,
+        .modal-content { border-radius: 16px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+    </style>
 </body>
 
 </html>

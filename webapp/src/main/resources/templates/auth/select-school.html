@@ -12,6 +12,12 @@
     <link rel="stylesheet" th:href="@{/css/common.css}">
     <!-- Include CSRF JavaScript -->
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+    <style>
+        .auth-card {
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+        }
+    </style>
 </head>
 
 <body class="auth-body">
@@ -67,11 +73,12 @@
                     padding: 1.25rem;
                     background: white;
                     border: 1px solid #e2e8f0;
-                    border-radius: 12px;
+                    border-radius: 18px;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     position: relative;
                     overflow: hidden;
+                    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
                 }
 
                 .school-card:hover {
@@ -85,7 +92,7 @@
                     width: 48px;
                     height: 48px;
                     background: #e0e7ff;
-                    border-radius: 10px;
+                    border-radius: 14px;
                     display: flex;
                     align-items: center;
                     justify-content: center;

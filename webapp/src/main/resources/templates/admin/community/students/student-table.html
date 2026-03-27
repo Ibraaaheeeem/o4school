@@ -1,4 +1,5 @@
 <!-- Student Table Fragment -->
+
 <div th:fragment="student-table-content" id="student-table-content">
     <div class="alert alert-success" th:if="${success}">
         <span th:text="${success}"></span>
@@ -94,3 +95,9 @@
         </button>
     </div>
 </div>
+
+<style>
+    .table-container,
+    .data-table,
+    .pagination-container { border-radius: 12px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+</style>

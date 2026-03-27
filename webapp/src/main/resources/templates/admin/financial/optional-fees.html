@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -15,6 +16,37 @@
     <div th:replace="~{fragments/csrf :: csrf-meta}"></div>
     <!-- Include CSRF JavaScript -->
     <div th:replace="~{fragments/csrf :: csrf-js}"></div>
+    <style>
+        .setup-content .setup-header,
+        .stats-grid .stat-card,
+        .filters-section,
+        .section-container,
+        .table-container,
+        .empty-state,
+        .setup-content > div[style*='background: #eff6ff'] {
+            border-radius: 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .setup-content .setup-header {
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filters-section {
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .table-container {
+            overflow: hidden;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.85rem 0.9rem;
+        }
+    </style>
 </head>
 
 <body>
