@@ -1,6 +1,5 @@
 package com.haneef._school.service
 
-import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.SimpleMailMessage
@@ -15,23 +14,32 @@ class EmailService(
         private val logger = LoggerFactory.getLogger(EmailService::class.java)
     }
 
-    @Value("\${spring.mail.from}")
+    @Value("\${spring.mail.from:}")
     private lateinit var fromEmail: String
 
     @Value("\${SENDER_NAME:4School Admin}")
     private lateinit var senderName: String
 
-    @PostConstruct
     fun validateConfiguration() {
         require(fromEmail.isNotBlank()) { "spring.mail.from must not be blank" }
     }
 
+    private fun buildFromHeader(): String? {
+        val trimmedFrom = fromEmail.trim()
+        val trimmedName = senderName.trim()
+        if (trimmedFrom.isBlank()) {
+            logger.warn("SMTP 'from' email (spring.mail.from) is not configured or is blank — email will not be sent")
+            return null
+        }
+        if (trimmedName.isBlank()) {
+            logger.warn("SMTP sender name (SENDER_NAME) is not configured or is blank")
+        }
+        return "$trimmedName <$trimmedFrom>"
+    }
+
     fun sendApprovalEmail(to: String, name: String, role: String = "User", school: String = "School"): Pair<Boolean, Any> {
-        val message = SimpleMailMessage()
-        message.from = "$senderName <$fromEmail>"
-        message.setTo(to)
-        message.subject = "Your 4School Account has been Approved!"
-        
+        val from = buildFromHeader() ?: return Pair(false, "spring.mail.from is not configured")
+        val subject = "Your 4School Account has been Approved!"
         val roleDisplay = when(role) {
             "SCHOOL_ADMIN" -> "School Administrator"
             "TEACHER", "STAFF" -> "Staff Member"
@@ -45,7 +53,7 @@ class EmailService(
             "You can now log in to your account and access your dashboard."
         }
 
-        message.text = """
+        val text = """
             Dear $name,
             
             We are pleased to inform you that your registration as a $roleDisplay in $school on the 4School platform has been approved.
@@ -57,7 +65,15 @@ class EmailService(
             Best regards,
             The 4School Team
         """.trimIndent()
-        
+
+        logger.debug("Sending approval email: from='{}', to='{}', subject='{}'", from, to, subject)
+
+        val message = SimpleMailMessage()
+        message.from = from
+        message.setTo(to)
+        message.subject = subject
+        message.text = text
+
         return try {
             mailSender.send(message)
             Pair(true, Unit)
@@ -68,11 +84,9 @@ class EmailService(
     }
 
     fun sendOtpEmail(to: String, otp: String): Pair<Boolean, Any> {
-        val message = SimpleMailMessage()
-        message.from = "$senderName <$fromEmail>"
-        message.setTo(to)
-        message.subject = "Your 4School Activation Code"
-        message.text = """
+        val from = buildFromHeader() ?: return Pair(false, "spring.mail.from is not configured")
+        val subject = "Your 4School Activation Code"
+        val text = """
             Hello,
             
             Thank you for registering on 4School. Your activation code is:
@@ -84,7 +98,16 @@ class EmailService(
             Best regards,
             The 4School Team
         """.trimIndent()
-        
+
+        logger.debug("Sending OTP email: from='{}', to='{}', subject='{}'", from, to, subject)
+        logger.debug("OTP email text length: {} chars", text.length)
+
+        val message = SimpleMailMessage()
+        message.from = from
+        message.setTo(to)
+        message.subject = subject
+        message.text = text
+
         return try {
             mailSender.send(message)
             Pair(true, Unit)
@@ -109,8 +132,11 @@ class EmailService(
             val helper = org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, true)
             
             val formattedSchoolName = "4School/$schoolName"
-            
-            helper.setFrom("$senderName <$fromEmail>")
+            val from = buildFromHeader() ?: return Pair(false, "spring.mail.from is not configured")
+
+            logger.debug("Sending settlement email: from='{}', to='{}', subject='Payment Receipt - {}'", from, to, formattedSchoolName)
+
+            helper.setFrom(from)
             helper.setTo(to)
             helper.setSubject("Payment Receipt - $formattedSchoolName")
             
