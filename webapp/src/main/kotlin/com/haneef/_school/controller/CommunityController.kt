@@ -2095,8 +2095,18 @@ class CommunityController(
             return "fragments/error :: error-message"
         }
         
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
+
         val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-        val currentAssignments = studentClassRepository.findByStudentIdWithClassAndTrack(studentId)
+        val currentAssignments = if (effectiveSession != null && effectiveTerm != null) {
+            studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdWithClassAndTrack(
+                studentId,
+                effectiveSession.id!!,
+                effectiveTerm.id!!
+            )
+        } else {
+            emptyList()
+        }
 
         model.addAttribute("user", customUser.user)
         model.addAttribute("student", student)
@@ -2453,8 +2463,17 @@ class CommunityController(
             ?: return "redirect:/select-school"
 
         val student = studentRepository.findById(studentId).orElseThrow { RuntimeException("Student not found") }
+        val (effectiveSession, effectiveTerm) = getEffectiveSessionAndTerm(session, selectedSchoolId)
         val tracks = educationTrackRepository.findBySchoolIdAndIsActive(selectedSchoolId, true)
-        val currentAssignments = studentClassRepository.findByStudentIdWithClassAndTrack(studentId)
+        val currentAssignments = if (effectiveSession != null && effectiveTerm != null) {
+            studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdWithClassAndTrack(
+                studentId,
+                effectiveSession.id!!,
+                effectiveTerm.id!!
+            )
+        } else {
+            emptyList()
+        }
         val communityStats = getCommunityStats(selectedSchoolId)
 
         model.addAttribute("user", customUser.user)

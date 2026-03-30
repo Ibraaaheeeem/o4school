@@ -33,11 +33,21 @@
         }
 
         .fee-items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
             gap: 1rem;
+            align-items: stretch;
         }
 
         .fee-item-card {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            padding: 1.1rem 1.15rem;
+            height: 100%;
+            overflow: hidden;
         }
 
         .fee-item-card:hover {
@@ -45,8 +55,146 @@
             box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
         }
 
+        .fee-item-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .fee-item-info {
+            flex: 1;
+        }
+
+        .fee-item-info h3 {
+            margin: 0 0 0.35rem;
+            color: #0f172a;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .fee-item-actions {
+            display: flex;
+            gap: 0.45rem;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .fee-item-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-top: auto;
+            padding-top: 0.85rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .fee-amount {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .amount-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .amount-value {
+            color: #0f172a;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .fee-description p {
+            margin: 0;
+            color: #475569;
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        .assigned-classes-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.75rem;
+        }
+
+        .assigned-classes-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.65rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .assigned-classes-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            max-height: 7.25rem;
+            overflow-y: auto;
+            padding-right: 0.2rem;
+        }
+
+        .assigned-classes-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .assigned-classes-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+
+        .class-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-radius: 999px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1e3a8a;
+            font-size: 0.76rem;
+            font-weight: 600;
+            padding: 0.2rem 0.55rem;
+            line-height: 1.2;
+        }
+
+        .custom-amount {
+            color: #0369a1;
+            font-weight: 600;
+            font-size: 0.72rem;
+        }
+
         .modal-dialog {
             max-width: 880px;
+        }
+
+        @media (max-width: 767.98px) {
+            .fee-items-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .fee-item-header {
+                flex-wrap: wrap;
+            }
+
+            .fee-item-actions {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .fee-item-actions .btn {
+                flex: 1;
+            }
+
+            .assigned-classes-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>

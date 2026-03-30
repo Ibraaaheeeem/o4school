@@ -45,22 +45,24 @@
                     <div th:if="${student.classEnrollments.empty}" class="no-assignments">
                         <p class="text-muted">No class assignments</p>
                     </div>
-                    <div th:unless="${student.classEnrollments.empty}" class="assignments-grid">
-                        <div th:each="enrollment : ${student.classEnrollments}"
-                            th:if="${enrollment.isActive and (headerContextSession == null or enrollment.academicSession.id == headerContextSession.id) and (headerContextTerm == null or enrollment.term.id == headerContextTerm.id)}"
-                            class="assignment-card">
-                            <div class="assignment-details">
-                                <div class="track-name"
-                                    th:text="${enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : 'No Track'}">
-                                    Track Name</div>
-                                <div class="class-name" th:text="${enrollment.schoolClass.className}">Class Name</div>
+                    <div th:unless="${student.classEnrollments.empty}" class="assignments-scroll">
+                        <div class="assignments-grid">
+                            <div th:each="enrollment : ${student.classEnrollments}"
+                                th:if="${enrollment.isActive and (headerContextSession == null or enrollment.academicSession.id == headerContextSession.id) and (headerContextTerm == null or enrollment.term.id == headerContextTerm.id)}"
+                                class="assignment-card">
+                                <div class="assignment-details">
+                                    <div class="track-name"
+                                        th:text="${enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : 'No Track'}">
+                                        Track Name</div>
+                                    <div class="class-name" th:text="${enrollment.schoolClass.className}">Class Name</div>
+                                </div>
+                                <button class="remove-assignment-btn" th:data-assignment-id="${enrollment.id}"
+                                    th:data-assignment-info="${(enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : '') + ' - ' + enrollment.schoolClass.className}"
+                                    onclick="confirmDeleteAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
+                                    title="Remove assignment">
+                                    ×
+                                </button>
                             </div>
-                            <button class="remove-assignment-btn" th:data-assignment-id="${enrollment.id}"
-                                th:data-assignment-info="${(enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : '') + ' - ' + enrollment.schoolClass.className}"
-                                onclick="confirmDeleteAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)"
-                                title="Remove assignment">
-                                ×
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -68,25 +70,25 @@
 
             <div class="student-card-footer">
                 <div class="card-actions">
-                    <button class="btn btn-sm btn-info"
+                    <button class="btn btn-sm card-action-btn card-action-assign"
                         th:hx-get="@{/admin/community/students/{id}/assign-class/modal(id=${student.id})}"
                         hx-target="#studentClassModal .modal-dialog" hx-swap="innerHTML"
                         th:onclick="'setTimeout(() => openModal(\'studentClassModal\'), 100)'">
                         <i class="fas fa-plus"></i> Assign Class
                     </button>
-                    <a class="btn btn-sm" style="background: #f59e0b; color: white; border: none;"
+                    <a class="btn btn-sm card-action-btn card-action-dashboard"
                         th:href="@{/student/view-as/{id}(id=${student.id})}" target="_blank" title="View Profile">
                         <i class="fas fa-external-link-alt"></i>Profile
                     </a>
 
-                    <button class="btn btn-sm btn-outline"
+                    <button class="btn btn-sm card-action-btn card-action-edit"
                         th:hx-get="@{/admin/community/students/{id}/modal(id=${student.id})}"
                         hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
                         th:onclick="'setTimeout(() => openModal(\'studentModal\'), 100)'">
                         <i class="fas fa-edit"></i>
                     </button>
 
-                    <button class="btn btn-sm btn-danger" th:data-student-id="${student.id}"
+                    <button class="btn btn-sm card-action-btn card-action-delete" th:data-student-id="${student.id}"
                         th:data-student-name="${student.user.fullName}"
                         onclick="confirmDelete(this.dataset.studentId, this.dataset.studentName)">
                         <i class="fas fa-trash-alt"></i>
@@ -142,4 +144,95 @@
     .student-card,
     .empty-state,
     .pagination-container { border-radius: 16px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+
+    .student-card {
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .student-card-header {
+        padding: 1rem 1.1rem 0.9rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .student-card-body {
+        padding: 0.95rem 1.1rem;
+    }
+
+    .student-card-footer {
+        padding: 0.85rem 1.1rem 1rem;
+        border-top: 1px solid #f1f5f9;
+        background: #fcfdff;
+    }
+
+    .assignments-scroll {
+        max-height: 14.5rem;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+    }
+
+    .assignments-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .assignments-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .assignment-card {
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 4px 14px rgba(30, 64, 175, 0.08);
+    }
+
+    .card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .card-action-btn {
+        border: 1px solid transparent;
+        border-radius: 10px;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.1);
+        font-weight: 600;
+        line-height: 1;
+        padding: 0.45rem 0.75rem;
+    }
+
+    .card-action-assign {
+        background: #0ea5e9;
+        color: #fff;
+    }
+
+    .card-action-dashboard {
+        background: #f59e0b;
+        color: #fff;
+    }
+
+    .card-action-edit {
+        background: #fff;
+        color: #475569;
+        border-color: #dbe3ef;
+    }
+
+    .card-action-delete {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .assignments-scroll {
+            max-height: 12.5rem;
+        }
+
+        .card-actions .card-action-btn {
+            flex: 1 1 calc(50% - 0.5rem);
+            justify-content: center;
+        }
+    }
 </style>

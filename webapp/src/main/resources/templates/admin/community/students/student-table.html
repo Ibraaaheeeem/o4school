@@ -40,40 +40,42 @@
                         <div th:if="${student.classEnrollments.empty}" class="no-assignments">
                             <span class="text-muted">No class assignments</span>
                         </div>
-                        <div th:unless="${student.classEnrollments.empty}" class="assignments-list">
-                            <div th:each="enrollment : ${student.classEnrollments}" th:if="${enrollment.isActive}"
-                                class="assignment-item">
-                                <div class="assignment-info">
-                                    <strong
-                                        th:text="${enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : 'No Track'}">Track
-                                        Name</strong>
-                                    <span th:text="${enrollment.schoolClass.className}">Class Name</span>
-                                    <small th:text="${enrollment.academicSession.sessionYear}">2024-2025</small>
+                        <div th:unless="${student.classEnrollments.empty}" class="assignments-scroll-table">
+                            <div class="assignments-list">
+                                <div th:each="enrollment : ${student.classEnrollments}" th:if="${enrollment.isActive}"
+                                    class="assignment-item">
+                                    <div class="assignment-info">
+                                        <strong
+                                            th:text="${enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : 'No Track'}">Track
+                                            Name</strong>
+                                        <span th:text="${enrollment.schoolClass.className}">Class Name</span>
+                                        <small th:text="${enrollment.academicSession.sessionYear}">2024-2025</small>
+                                    </div>
+                                    <button class="btn btn-xs btn-danger" th:data-assignment-id="${enrollment.id}"
+                                        th:data-assignment-info="${(enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : '') + ' - ' + enrollment.schoolClass.className}"
+                                        onclick="confirmDeleteAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)">
+                                        ×
+                                    </button>
                                 </div>
-                                <button class="btn btn-xs btn-danger" th:data-assignment-id="${enrollment.id}"
-                                    th:data-assignment-info="${(enrollment.schoolClass.track != null ? enrollment.schoolClass.track.name : '') + ' - ' + enrollment.schoolClass.className}"
-                                    onclick="confirmDeleteAssignment(this.dataset.assignmentId, this.dataset.assignmentInfo)">
-                                    ×
-                                </button>
                             </div>
                         </div>
                     </div>
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline"
+                        <button class="btn btn-sm table-action-btn table-action-edit"
                             th:hx-get="@{/admin/community/students/{id}/modal(id=${student.id})}"
                             hx-target="#studentModal .modal-dialog" hx-swap="innerHTML"
                             th:onclick="'setTimeout(() => openModal(\'studentModal\'), 100)'">
                             Edit
                         </button>
-                        <button class="btn btn-sm btn-info"
+                        <button class="btn btn-sm table-action-btn table-action-assign"
                             th:hx-get="@{/admin/community/students/{id}/assign-class/modal(id=${student.id})}"
                             hx-target="#studentClassModal .modal-dialog" hx-swap="innerHTML"
                             th:onclick="'setTimeout(() => openModal(\'studentClassModal\'), 100)'">
                             Assign Class
                         </button>
-                        <button class="btn btn-sm btn-danger" th:data-student-id="${student.id}"
+                        <button class="btn btn-sm table-action-btn table-action-delete" th:data-student-id="${student.id}"
                             th:data-student-name="${student.user.fullName}"
                             onclick="confirmDelete(this.dataset.studentId, this.dataset.studentName)">
                             Delete
@@ -100,4 +102,86 @@
     .table-container,
     .data-table,
     .pagination-container { border-radius: 12px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+
+    .data-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+
+    .data-table thead th {
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.78rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    .data-table tbody tr:hover {
+        background: #fbfdff;
+    }
+
+    .user-info strong {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    .assignments-scroll-table {
+        max-height: 10.5rem;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+    }
+
+    .assignments-scroll-table::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .assignments-scroll-table::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .assignment-item {
+        border: 1px solid #dbeafe;
+        background: #f8fbff;
+        border-radius: 10px;
+        padding: 0.4rem 0.5rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .assignment-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .table-action-btn {
+        border-radius: 8px;
+        border: 1px solid transparent;
+        font-weight: 600;
+        line-height: 1;
+        padding: 0.42rem 0.72rem;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .table-action-edit {
+        background: #fff;
+        color: #475569;
+        border-color: #dbe3ef;
+    }
+
+    .table-action-assign {
+        background: #0ea5e9;
+        color: #fff;
+    }
+
+    .table-action-delete {
+        background: #ef4444;
+        color: #fff;
+    }
 </style>

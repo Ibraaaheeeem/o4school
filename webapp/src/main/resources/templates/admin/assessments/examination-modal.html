@@ -332,17 +332,33 @@
         }
     }
 
-    // Handle form submission success
-    document.addEventListener('htmx:afterRequest', function (event) {
-        if (event.detail.successful && event.target.id === 'examinationForm') {
-            // Close modal after successful submission
-            setTimeout(() => {
-                if (typeof window.closeModal === 'function') {
-                    window.closeModal('examinationModal');
+</script>
+
+<script th:inline="javascript">
+    (function () {
+        const form = document.getElementById('examinationForm');
+        if (!form) return;
+
+        form.addEventListener('htmx:beforeRequest', function () {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.dataset.orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+            }
+        });
+
+        form.addEventListener('htmx:afterRequest', function () {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = false;
+                if (btn.dataset && btn.dataset.orig) {
+                    btn.innerHTML = btn.dataset.orig;
+                    delete btn.dataset.orig;
                 }
-            }, 2000);
-        }
-    });
+            }
+        });
+    })();
 </script>
 
 <style>

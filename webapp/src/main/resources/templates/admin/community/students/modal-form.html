@@ -187,6 +187,7 @@
                     </div>
                     <div class="form-group checkbox-group">
                         <label>
+                            <input type="hidden" name="isNew" value="false">
                             <input type="checkbox" name="isNew"
                                 th:checked="${studentDto != null ? studentDto.isNew : true}">
                             Is New Student

@@ -23,7 +23,7 @@
 
     <div class="staff-card-body">
         <!-- Teacher Assignments Section -->
-        <div class="teacher-assignments-section"
+        <div class="teacher-assignments-section relation-scroll"
             th:if="${!staff.classTeacherAssignments.empty || !staff.subjectTeacherAssignments.empty}">
 
             <!-- Class Teacher Assignments -->
@@ -89,24 +89,24 @@
 
     <div class="staff-card-footer">
         <div class="card-actions">
-            <button class="btn btn-sm" style="background: #0ea5e9; color: white; border: none;"
+            <button class="btn btn-sm card-action-btn card-action-assign"
                 th:hx-get="@{/admin/community/staff/{id}/assignments/modal(id=${staff.id})}"
                 hx-target="#staffAssignmentModal .modal-dialog" hx-swap="innerHTML"
                 th:onclick="'setTimeout(() => openModal(\'staffAssignmentModal\'), 100)'" title="Manage Assignments">
                 <i class="fas fa-chalkboard-teacher me-1"></i> Assignments
             </button>
-            <a class="btn btn-sm" style="background: #f59e0b; color: white; border: none;"
+            <a class="btn btn-sm card-action-btn card-action-dashboard"
                 th:href="@{/staff/view-as/{id}(id=${staff.id})}" target="_blank" title="View Dashboard">
                 <i class="fas fa-external-link-alt"></i>Dashboard
             </a>
-            <button class="btn btn-sm" style="background: white; border: 1px solid #e2e8f0; color: #475569;"
+            <button class="btn btn-sm card-action-btn card-action-edit"
                 th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}" hx-target="#staffModal .modal-dialog"
                 hx-swap="innerHTML" th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'"
                 title="Edit Details">
                 <i class="fas fa-edit"></i>
             </button>
 
-            <button class="btn btn-sm" style="background: #ef4444; color: white; border: none;"
+            <button class="btn btn-sm card-action-btn card-action-delete"
                 th:data-staff-id="${staff.id}" th:data-staff-name="${staff.user.fullName}"
                 onclick="confirmDeleteStaff(this.dataset.staffId, this.dataset.staffName)" title="Delete Staff">
                 <i class="fas fa-trash-alt"></i>
@@ -116,7 +116,102 @@
 </div>
 
 <style>
-    .staff-card,
-    .assignment-card,
-    .card-actions .btn { border-radius: 12px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+    .staff-card {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .staff-card-header {
+        padding: 1rem 1.1rem 0.9rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .staff-card-body {
+        padding: 0.95rem 1.1rem;
+    }
+
+    .staff-card-footer {
+        padding: 0.85rem 1.1rem 1rem;
+        border-top: 1px solid #f1f5f9;
+        background: #fcfdff;
+    }
+
+    .relation-scroll {
+        max-height: 15.5rem;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+    }
+
+    .relation-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .relation-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .assignment-group h5 {
+        font-size: 0.8rem;
+        letter-spacing: 0.02em;
+        color: #475569;
+        margin-bottom: 0.55rem;
+    }
+
+    .assignment-card {
+        border-radius: 12px;
+        border: 1px solid #dbeafe;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 4px 14px rgba(30, 64, 175, 0.08);
+    }
+
+    .card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .card-action-btn {
+        border-radius: 10px;
+        border: 1px solid transparent;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.1);
+        font-weight: 600;
+        line-height: 1;
+        padding: 0.45rem 0.75rem;
+    }
+
+    .card-action-assign {
+        background: #0ea5e9;
+        color: #fff;
+    }
+
+    .card-action-dashboard {
+        background: #f59e0b;
+        color: #fff;
+    }
+
+    .card-action-edit {
+        background: #fff;
+        color: #475569;
+        border-color: #dbe3ef;
+    }
+
+    .card-action-delete {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .relation-scroll {
+            max-height: 13.5rem;
+        }
+
+        .card-actions .card-action-btn {
+            flex: 1 1 calc(50% - 0.5rem);
+            justify-content: center;
+        }
+    }
 </style>

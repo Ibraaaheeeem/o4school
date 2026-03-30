@@ -1,10 +1,9 @@
 <!-- Student Class Assignment Modal -->
 
-<div class="modal-content">
-    <div class="modal-header">
-        <h3>Assign Student to Class</h3>
-        <button class="close-modal" onclick="closeModal('studentClassModal')">&times;</button>
-    </div>
+<div class="modal-header">
+    <h3>Assign Student to Class</h3>
+    <button class="close-modal" onclick="closeModal('studentClassModal')">&times;</button>
+</div>
 
     <form hx-post="/admin/community/students/{studentId}/assign-class/modal"
         th:hx-post="@{/admin/community/students/{studentId}/assign-class/modal(studentId=${student.id})}"
@@ -26,7 +25,6 @@
 
             <div class="student-info">
                 <h4>Student: <span th:text="${student.user.fullName}">Student Name</span></h4>
-                <p>Student ID: <span th:text="${student.studentId}">STU001</span></p>
             </div>
 
             <!-- Current Assignments -->
@@ -76,8 +74,6 @@
                 Class</button>
         </div>
     </form>
-</div>
-
 <style>
     #studentClassModal .modal-content {
         border-radius: 16px;

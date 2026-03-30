@@ -38,14 +38,278 @@
             margin-bottom: 1.25rem;
         }
 
+        .setup-content .setup-header h1 {
+            margin: 0 0 0.2rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.25;
+        }
+
+        .setup-content .setup-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .setup-content .setup-header .header-actions {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .setup-content .setup-header .header-actions .btn {
+            min-height: 40px;
+            border-radius: 10px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            padding: 0.52rem 0.95rem;
+            gap: 0.45rem;
+        }
+
         .filter-chips-wrapper,
         .examinations-container {
             background: #fff;
         }
 
         .filter-chips-wrapper {
-            padding: 1rem;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .setup-content .filter-chip {
+            padding: 0.5rem 0.9rem !important;
+            font-size: 0.84rem !important;
+            border-radius: 10px !important;
+            box-shadow: none !important;
+            gap: 0.45rem;
+            min-height: 38px;
+            color: #334155 !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        .setup-content .filter-chip i {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .setup-content .filter-chip:hover,
+        .setup-content .filter-chip.show {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08) !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        .setup-content .chip-dropdown .dropdown-menu {
+            margin-top: 0.45rem;
+        }
+
+        .examinations-results-row {
             margin-bottom: 1rem;
+            border: none;
+            padding: 0 0.1rem;
+            background: none;
+            box-shadow: none;
+            justify-content: flex-end;
+        }
+
+        .examinations-results-row .results-count {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .examinations-results-row .results-count span {
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .setup-content .examinations-container .empty-state {
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            padding: 1.6rem 1.25rem;
+            margin-top: 0.2rem;
+            text-align: center;
+        }
+
+        .setup-content .examinations-container .empty-state .empty-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 0.75rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+            font-size: 1.05rem;
+        }
+
+        .setup-content .examinations-container .empty-state h3 {
+            margin: 0 0 0.35rem;
+            font-size: 1.02rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .setup-content .examinations-container .empty-state p {
+            margin: 0 0 0.95rem;
+            color: #64748b;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .setup-content .examinations-container .empty-state .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            min-height: 38px;
+            border-radius: 9px;
+            font-size: 0.84rem;
+            padding: 0.5rem 0.85rem;
+        }
+
+        .setup-content .examinations-container .pagination-container {
+            margin-top: 1rem;
+            padding: 1rem 1.1rem;
+            border-top: 1px solid #e2e8f0;
+            border-radius: 0;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .setup-content .examinations-container .pagination-info {
+            font-size: 0.84rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .setup-content .examinations-container .pagination-info span {
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .setup-content .examinations-container .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .setup-content .examinations-container .pagination-btn,
+        .setup-content .examinations-container .pagination-page {
+            height: 34px;
+            min-width: 34px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            transition: all 0.2s ease;
+        }
+
+        .setup-content .examinations-container .pagination-btn {
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #475569;
+        }
+
+        .setup-content .examinations-container .pagination-btn:hover:not(:disabled) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+
+        .setup-content .examinations-container .pagination-btn:disabled {
+            opacity: 0.45;
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .setup-content .examinations-container .pagination-page {
+            border: 1px solid transparent;
+            color: #475569;
+            font-weight: 600;
+            background: transparent;
+            padding: 0 0.45rem;
+        }
+
+        .setup-content .examinations-container .pagination-page:hover {
+            background: #f8fafc;
+            color: #1e293b;
+            border-color: #e2e8f0;
+        }
+
+        .setup-content .examinations-container .pagination-page.active {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        @media (max-width: 768px) {
+            .setup-content .setup-header {
+                padding: 1rem 1.1rem;
+                margin-bottom: 1rem;
+            }
+
+            .setup-content .setup-header h1 {
+                font-size: 1.3rem;
+            }
+
+            .setup-content .setup-header p {
+                font-size: 0.86rem;
+            }
+
+            .setup-content .setup-header .header-actions {
+                width: 100%;
+                margin-top: 0.85rem;
+            }
+
+            .setup-content .setup-header .header-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .filter-chips-wrapper {
+                padding: 0.9rem 1rem;
+                gap: 0.6rem;
+            }
+
+            .setup-content .filter-chip {
+                min-height: 36px;
+                padding: 0.45rem 0.8rem !important;
+            }
+
+            .examinations-results-row {
+                justify-content: flex-start;
+                margin-bottom: 0.85rem;
+            }
+
+            .setup-content .examinations-container .empty-state {
+                padding: 1.25rem 1rem;
+            }
+
+            .setup-content .examinations-container .pagination-container {
+                padding: 0.9rem 1rem;
+            }
+
+            .setup-content .examinations-container .pagination-info {
+                width: 100%;
+            }
+
+            .setup-content .examinations-container .pagination-controls {
+                width: 100%;
+                justify-content: flex-start;
+            }
         }
 
         .examinations-container {
@@ -158,8 +422,7 @@
             <div class="examinations-container" id="examinationsContainer">
                 <div th:fragment="examinations-list">
                     <!-- Results Count (Inside fragment to update automatically) -->
-                    <div class="filter-chips-wrapper"
-                        style="margin-bottom: 1rem; border: none; padding: 0; background: none; box-shadow: none; justify-content: flex-end;">
+                    <div class="filter-chips-wrapper examinations-results-row">
                         <div class="results-count">
                             <span th:text="${totalElements ?: 0}">0</span> examinations found
                         </div>
@@ -549,11 +812,10 @@
         });
 
         document.addEventListener('htmx:afterSwap', (event) => {
-            // If the swap target is inside a modal, open that modal
+            // Open modal only when the modal container itself is the HTMX swap target
             const target = event.target;
-            const modal = target.closest('.modal');
-            if (modal) {
-                setTimeout(() => window.openModal(modal.id), 50);
+            if (target && target.classList && target.classList.contains('modal') && target.id) {
+                setTimeout(() => window.openModal(target.id), 50);
             }
         });
 
@@ -573,77 +835,78 @@
         <div th:fragment="examination-card(examination, swapOob)" class="examination-card dashboard-card"
             th:id="'examination-card-' + ${examination.id}" th:attr="hx-swap-oob=${swapOob}">
 
-            <!-- Left Icon -->
-            <div class="card-icon-wrapper">
-                <div class="card-icon-large">
-                    <i class="fas fa-file-alt"></i>
+            <div class="card-header-top">
+                <div class="card-title-wrap">
+                    <div class="card-icon-wrapper">
+                        <div class="card-icon-large">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                    </div>
+
+                    <div class="card-info-central">
+                        <div class="title-badge-row">
+                            <h3 class="card-title-text" th:text="${examination.title}">First Term CA 1</h3>
+                            <span class="card-meta-item exam-type-full-row">
+                                <i class="fas fa-tag"></i>
+                                <span th:text="${examination.examType}">Assignment</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="badge-group">
+                    <button class="card-badge clickable"
+                        th:classappend="${examination.isPublished ? 'published' : 'draft'}"
+                        th:hx-post="@{/admin/assessments/examinations/{id}/{action}(id=${examination.id}, action=${examination.isPublished ? 'unpublish' : 'publish'})}"
+                        hx-target="closest .examination-card" hx-swap="outerHTML"
+                        th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
+                        th:title="${examination.isPublished ? 'Click to unpublish' : 'Click to publish'}"
+                        th:text="${examination.isPublished ? 'PUBLISHED' : 'DRAFT'}">
+                        PUBLISHED
+                    </button>
+                    <span class="card-badge mode" th:classappend="${examination.isOnline ? 'online' : 'offline'}"
+                        th:text="${examination.isOnline ? 'ONLINE (CBT)' : 'PAPER / OFFLINE'}">
+                        ONLINE (CBT)
+                    </span>
                 </div>
             </div>
 
-            <!-- Central Info -->
-            <div class="card-info-central">
-                <div class="title-badge-row">
-                    <h3 class="card-title-text" th:text="${examination.title}">First Term CA 1</h3>
-                    <div class="badge-group">
-                        <button class="card-badge clickable"
-                            th:classappend="${examination.isPublished ? 'published' : 'draft'}"
-                            th:hx-post="@{/admin/assessments/examinations/{id}/{action}(id=${examination.id}, action=${examination.isPublished ? 'unpublish' : 'publish'})}"
-                            hx-target="closest .examination-card" hx-swap="outerHTML"
-                            th:attr="hx-headers='{&quot;X-CSRF-TOKEN&quot;: &quot;' + ${_csrf.token} + '&quot;}'"
-                            th:title="${examination.isPublished ? 'Click to unpublish' : 'Click to publish'}"
-                            th:text="${examination.isPublished ? 'PUBLISHED' : 'DRAFT'}">
-                            PUBLISHED
-                        </button>
-                        <span class="card-badge mode" th:classappend="${examination.isOnline ? 'online' : 'offline'}"
-                            th:text="${examination.isOnline ? 'ONLINE (CBT)' : 'PAPER / OFFLINE'}">
-                            ONLINE (CBT)
-                        </span>
-                    </div>
+            <div class="card-meta-rows">
+                <div class="card-meta-row">
+                    <span class="card-meta-item">
+                        <i class="fas fa-book"></i>
+                        <span th:text="${examination.subject.subjectName}">Mathematics</span>
+                    </span>
+                    <span class="card-meta-item">
+                        <i class="fas fa-users"></i>
+                        <span th:text="${examination.schoolClass.className}">JSS 1</span>
+                    </span>
                 </div>
 
-                <div class="card-meta-rows">
-                    <!-- Subject & Class Row -->
-                    <div class="card-meta-row">
-                        <span class="card-meta-item">
-                            <i class="fas fa-book"></i>
-                            <span th:text="${examination.subject.subjectName}">Mathematics</span>
-                        </span>
-                        <span class="card-meta-separator">•</span>
-                        <span class="card-meta-item">
-                            <i class="fas fa-users"></i>
-                            <span th:text="${examination.schoolClass.className}">JSS 1</span>
-                        </span>
-                    </div>
+                <div class="card-meta-row">
+                    <span class="card-meta-item">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span th:text="${examination.durationMinutes + ' mins'}">60 mins</span>
+                    </span>
+                    <span class="card-meta-item">
+                        <i class="fas fa-star"></i>
+                        <span th:text="${examination.totalMarks + ' marks'}">45 marks</span>
+                    </span>
+                </div>
 
-                    <!-- Type & Duration Row -->
-                    <div class="card-meta-row">
-                        <span class="card-meta-item">
-                            <i class="fas fa-tag"></i>
-                            <span th:text="${examination.examType}">Assignment</span>
-                        </span>
-                        <span class="card-meta-item">
-                            <i class="fas fa-hourglass-half"></i>
-                            <span th:text="${examination.durationMinutes + ' mins'}">60 mins</span>
-                        </span>
-                    </div>
-
-                    <!-- Marks & Questions Row -->
-                    <div class="card-meta-row">
-                        <span class="card-meta-item">
-                            <i class="fas fa-star"></i>
-                            <span th:text="${examination.totalMarks + ' marks'}">45 marks</span>
-                        </span>
-                        <span class="card-meta-item">
-                            <i class="fas fa-list-ol"></i>
-                            <span
-                                th:text="${(examination.questions != null ? #lists.size(examination.questions) : 0) + ' questions'}">5
-                                questions</span>
-                        </span>
-                    </div>
+                <div class="card-meta-row">
+                    <span class="card-meta-item">
+                        <i class="fas fa-list-ol"></i>
+                        <span
+                            th:text="${(examination.questions != null ? #lists.size(examination.questions) : 0) + ' questions'}">5 questions</span>
+                    </span>
+                    <span class="card-meta-item">
+                        <i class="fas fa-file-signature"></i>
+                        <span th:text="${(examination.submissionCount ?: 0) + ' submissions'}">0 submissions</span>
+                    </span>
                 </div>
             </div>
 
-            <!-- Right Actions -->
             <div class="card-actions-right">
                 <a th:href="@{/admin/assessments/examinations/{id}/questions(id=${examination.id})}"
                     class="btn-row-action primary" title="Manage Questions">
@@ -660,14 +923,16 @@
 
                 <div class="util-actions">
                     <button class="btn-util-icon edit" title="Edit Settings"
-                        th:hx-get="@{/admin/assessments/examinations/{id}/edit(id=${examination.id})}"
+                        th:hx-get="@{/admin/assessments/examinations/{id}/modal(id=${examination.id})}"
                         hx-target="#examinationModal" data-bs-toggle="modal" data-bs-target="#examinationModal">
                         <i class="fas fa-edit"></i>
+                        <span>Edit</span>
                     </button>
 
                     <button class="btn-util-icon danger" title="Delete" th:data-id="${examination.id}"
                         onclick="deleteExamination(this.getAttribute('data-id'))">
                         <i class="fas fa-trash"></i>
+                        <span>Delete</span>
                     </button>
                 </div>
             </div>

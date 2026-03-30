@@ -42,13 +42,13 @@
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline"
+                        <button class="btn btn-sm table-action-btn table-action-edit"
                             th:hx-get="@{/admin/community/staff/{id}/modal(id=${staff.id})}"
                             hx-target="#staffModal .modal-dialog" hx-swap="innerHTML"
                             th:onclick="'setTimeout(() => openModal(\'staffModal\'), 100)'">
                             Edit
                         </button>
-                        <button class="btn btn-sm btn-danger" th:data-staff-id="${staff.id}"
+                        <button class="btn btn-sm table-action-btn table-action-delete" th:data-staff-id="${staff.id}"
                             th:data-staff-name="${staff.user.fullName}"
                             onclick="confirmDeleteStaff(this.dataset.staffId, this.dataset.staffName)">
                             Delete
@@ -74,4 +74,54 @@
     .table-container,
     .data-table,
     .pagination-container { border-radius: 12px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+
+    .data-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+
+    .data-table thead th {
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.78rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    .data-table tbody tr:hover {
+        background: #fbfdff;
+    }
+
+    .user-info strong {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .table-action-btn {
+        border-radius: 8px;
+        border: 1px solid transparent;
+        font-weight: 600;
+        line-height: 1;
+        padding: 0.42rem 0.72rem;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .table-action-edit {
+        background: #fff;
+        color: #475569;
+        border-color: #dbe3ef;
+    }
+
+    .table-action-delete {
+        background: #ef4444;
+        color: #fff;
+    }
 </style>

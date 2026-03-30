@@ -43,28 +43,30 @@
                 </td>
                 <td>
                     <span th:if="${parent.studentRelationships.empty}" class="text-muted">No children linked</span>
-                    <div th:unless="${parent.studentRelationships.empty}" class="children-list">
-                        <span th:each="relationship : ${parent.studentRelationships}" class="child-tag"
-                            th:text="${relationship.student.user.fullName}">
-                            Child Name
-                        </span>
+                    <div th:unless="${parent.studentRelationships.empty}" class="children-scroll-table">
+                        <div class="children-list">
+                            <span th:each="relationship : ${parent.studentRelationships}" class="child-tag"
+                                th:text="${relationship.student.user.fullName}">
+                                Child Name
+                            </span>
+                        </div>
                     </div>
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline"
+                        <button class="btn btn-sm table-action-btn table-action-edit"
                             th:hx-get="@{/admin/community/parents/{id}/modal(id=${parent.id})}"
                             hx-target="#parentModal .modal-dialog" hx-swap="innerHTML"
                             th:onclick="'setTimeout(() => openModal(\'parentModal\'), 100)'">
                             Edit
                         </button>
-                        <button class="btn btn-sm btn-info"
+                        <button class="btn btn-sm table-action-btn table-action-assign"
                             th:hx-get="@{/admin/community/parents/{id}/assign-students/modal(id=${parent.id})}"
                             hx-target="#parentStudentModal .modal-dialog" hx-swap="innerHTML"
                             th:onclick="'setTimeout(() => openModal(\'parentStudentModal\'), 100)'">
                             Assign Students
                         </button>
-                        <button class="btn btn-sm btn-danger" th:data-parent-id="${parent.id}"
+                        <button class="btn btn-sm table-action-btn table-action-delete" th:data-parent-id="${parent.id}"
                             th:data-parent-name="${parent.user.fullName}"
                             onclick="confirmDeleteParent(this.dataset.parentId, this.dataset.parentName)">
                             Delete
@@ -90,4 +92,87 @@
     .table-container,
     .data-table,
     .pagination-container { border-radius: 12px; box-shadow: 0 10px 24px rgba(15,23,42,0.08); }
+
+    .data-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+
+    .data-table thead th {
+        background: #f8fafc;
+        color: #334155;
+        font-size: 0.78rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    .data-table tbody tr:hover {
+        background: #fbfdff;
+    }
+
+    .children-scroll-table {
+        max-height: 8.5rem;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+    }
+
+    .children-scroll-table::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .children-scroll-table::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .children-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .child-tag {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid #c7d2fe;
+        background: #e0e7ff;
+        color: #3730a3;
+        font-size: 0.74rem;
+        font-weight: 600;
+        padding: 0.2rem 0.55rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .table-action-btn {
+        border-radius: 8px;
+        border: 1px solid transparent;
+        font-weight: 600;
+        line-height: 1;
+        padding: 0.42rem 0.72rem;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .table-action-edit {
+        background: #fff;
+        color: #475569;
+        border-color: #dbe3ef;
+    }
+
+    .table-action-assign {
+        background: #0ea5e9;
+        color: #fff;
+    }
+
+    .table-action-delete {
+        background: #ef4444;
+        color: #fff;
+    }
 </style>
