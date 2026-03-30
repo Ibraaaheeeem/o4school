@@ -1,5 +1,6 @@
 package com.haneef._school.service
 
+import jakarta.mail.internet.InternetAddress
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.SimpleMailMessage
@@ -24,21 +25,36 @@ class EmailService(
         require(fromEmail.isNotBlank()) { "spring.mail.from must not be blank" }
     }
 
-    private fun buildFromHeader(): String? {
+    private fun buildFromAddress(): String? {
         val trimmedFrom = fromEmail.trim()
-        val trimmedName = senderName.trim()
         if (trimmedFrom.isBlank()) {
             logger.warn("SMTP 'from' email (spring.mail.from) is not configured or is blank — email will not be sent")
             return null
         }
-        if (trimmedName.isBlank()) {
-            logger.warn("SMTP sender name (SENDER_NAME) is not configured or is blank")
+
+        return try {
+            InternetAddress(trimmedFrom, true).address
+        } catch (ex: Exception) {
+            logger.error("SMTP 'from' email is invalid: {}", trimmedFrom, ex)
+            null
         }
-        return "$trimmedName <$trimmedFrom>"
+    }
+
+    private fun isValidRecipient(address: String): Boolean {
+        return try {
+            InternetAddress(address.trim(), true)
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun sendApprovalEmail(to: String, name: String, role: String = "User", school: String = "School"): Pair<Boolean, Any> {
-        val from = buildFromHeader() ?: return Pair(false, "spring.mail.from is not configured")
+        val from = buildFromAddress() ?: return Pair(false, "spring.mail.from is invalid or not configured")
+        if (!isValidRecipient(to)) {
+            return Pair(false, "Recipient email is invalid")
+        }
+
         val subject = "Your 4School Account has been Approved!"
         val roleDisplay = when(role) {
             "SCHOOL_ADMIN" -> "School Administrator"
@@ -84,7 +100,11 @@ class EmailService(
     }
 
     fun sendOtpEmail(to: String, otp: String): Pair<Boolean, Any> {
-        val from = buildFromHeader() ?: return Pair(false, "spring.mail.from is not configured")
+        val from = buildFromAddress() ?: return Pair(false, "spring.mail.from is invalid or not configured")
+        if (!isValidRecipient(to)) {
+            return Pair(false, "Recipient email is invalid")
+        }
+
         val subject = "Your 4School Activation Code"
         val text = """
             Hello,
@@ -132,7 +152,10 @@ class EmailService(
             val helper = org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, true)
             
             val formattedSchoolName = "4School/$schoolName"
-            val from = buildFromHeader() ?: return Pair(false, "spring.mail.from is not configured")
+            val from = buildFromAddress() ?: return Pair(false, "spring.mail.from is invalid or not configured")
+            if (!isValidRecipient(to)) {
+                return Pair(false, "Recipient email is invalid")
+            }
 
             logger.debug("Sending settlement email: from='{}', to='{}', subject='Payment Receipt - {}'", from, to, formattedSchoolName)
 
