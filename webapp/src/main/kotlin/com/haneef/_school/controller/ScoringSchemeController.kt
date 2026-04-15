@@ -18,7 +18,8 @@ import org.springframework.web.bind.annotation.*
 data class ScoringSchemeItem(
     val id: Int,
     val name: String,
-    val max: Int
+    val alias: String,
+    val max: Int,
 )
 
 @NativeDto

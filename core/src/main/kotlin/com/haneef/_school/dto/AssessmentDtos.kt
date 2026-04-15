@@ -22,7 +22,11 @@ data class SubjectAssessmentData(
     val grade: String? = null,
     val remark: String? = null,
     val scoringScheme: String? = null,
-    val scores: Map<String, Int?> = HashMap()
+    val scores: Map<String, Int?> = HashMap(),
+    val highestScore: Int? = null,
+    val lowestScore: Int? = null,
+    val averageScore: Double? = null,
+    val classPosition: String? = null
 )
 
 @NativeDto
@@ -45,7 +49,11 @@ data class AssessmentReportData(
     val selfDiscipline: Int = 0,
     val politeness: Int = 0,
     val classTeacherComment: String? = null,
-    val headTeacherComment: String? = null
+    val headTeacherComment: String? = null,
+    val schoolName: String? = null,
+    val schoolLogoUrl: String? = null,
+    val schoolAddress: String? = null,
+    val studentPassportPhotoUrl: String? = null
 )
 
 @NativeDto

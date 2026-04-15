@@ -14,4 +14,10 @@ interface SubjectScoreRepository : JpaRepository<SubjectScore, UUID> {
         schoolId: UUID,
         isActive: Boolean
     ): List<SubjectScore>
+    
+    fun findByAssessmentIdAndSchoolIdAndIsActive(
+        assessmentId: UUID,
+        schoolId: UUID,
+        isActive: Boolean
+    ): List<SubjectScore>
 }

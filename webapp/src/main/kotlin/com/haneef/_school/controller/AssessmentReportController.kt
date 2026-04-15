@@ -7,14 +7,17 @@ import com.haneef._school.entity.*
 import com.haneef._school.repository.*
 import com.haneef._school.dto.*
 import com.haneef._school.service.CustomUserDetails
+import com.haneef._school.service.ReportPdfGenerator
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
+import java.io.ByteArrayOutputStream
 import org.slf4j.LoggerFactory
 
 
@@ -38,7 +41,8 @@ class AssessmentReportController(
     private val authorizationService: com.haneef._school.service.AuthorizationService,
     private val staffRepository: StaffRepository,
     private val classTeacherRepository: ClassTeacherRepository,
-    private val subjectTeacherRepository: SubjectTeacherRepository
+    private val subjectTeacherRepository: SubjectTeacherRepository,
+    private val reportPdfGenerator: ReportPdfGenerator
 ) {
     private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
     private val logger = LoggerFactory.getLogger(AssessmentReportController::class.java)
@@ -525,13 +529,11 @@ class AssessmentReportController(
                 )
                 if (subjectScores.isNotEmpty()) {
                     val ss = subjectScores[0]
-                    ca1 = ss.ca1Score
-                    ca2 = ss.ca2Score
-                    exam = ss.examScore
-                    total = ss.totalScore
+                    total = ss.getTotalScore()
                     grade = ss.grade
                     remark = ss.remark
                     
+                    // Extract CA1/CA2/Exam scores from scoresJson (source of truth)
                     if (!ss.scoresJson.isNullOrBlank()) {
                         try {
                             scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})
@@ -778,8 +780,14 @@ class AssessmentReportController(
         assessmentRepository.save(assessment)
 
         request.scores.forEach { scoreInput ->
+            println("\n========== PROCESSING SUBJECT SCORE ==========")
+            println("DEBUG: Processing score for subject ID: ${scoreInput.subjectId}")
+            println("DEBUG: Incoming scores map: ${scoreInput.scores}")
+            println("DEBUG: Legacy scores - CA1: ${scoreInput.ca1}, CA2: ${scoreInput.ca2}, Exam: ${scoreInput.exam}")
+            
             // Validate subject belongs to school
             val subject = authorizationService.validateAndGetSubject(scoreInput.subjectId, selectedSchoolId)
+            println("DEBUG: Subject found: ${subject.subjectName} (ID: ${subject.id})")
             
             // Check permission for this subject (Check both contexts)
             if (!isAdmin && !isClassTeacher) {
@@ -820,40 +828,48 @@ class AssessmentReportController(
                 subjectScore.classSubject = classSubject
             }
 
-            // Only update scores that were actually provided (not null)
-            // Source of Truth: JSON Map
-            if (scoreInput.scores.isNotEmpty()) {
-                subjectScore.scoresJson = objectMapper.writeValueAsString(scoreInput.scores)
-                subjectScore.totalScore = scoreInput.scores.values.filterNotNull().sumOf { it }
-            } else {
-                // Fallback for legacy inputs if JSON map is empty
-                val legacyScores = mutableMapOf<String, Int?>()
-                if (scoreInput.ca1 != null) legacyScores["1st CA"] = scoreInput.ca1
-                if (scoreInput.ca2 != null) legacyScores["2nd CA"] = scoreInput.ca2
-                if (scoreInput.exam != null) legacyScores["Exam"] = scoreInput.exam
-                
-                if (legacyScores.isNotEmpty()) {
-                    subjectScore.scoresJson = objectMapper.writeValueAsString(legacyScores)
-                    subjectScore.totalScore = legacyScores.values.filterNotNull().sumOf { it }
-                } else {
-                    subjectScore.totalScore = null
-                    subjectScore.scoresJson = null
-                }
+            // Parse scoring scheme to get alias mappings
+            val aliasMappings = parseScoringSchemeAliases(studentEnrollment.schoolClass.scoringScheme)
+
+            // Start with the main scores map
+            val workingScores = scoreInput.scores.toMutableMap()
+            
+            // Merge in any legacy fields that have values and aren't already in the map
+            if (scoreInput.ca1 != null && scoreInput.ca1!! > 0 && !workingScores.any { it.key.lowercase().contains("ca 1") || it.key.lowercase().contains("ca i") }) {
+                workingScores["CA I"] = scoreInput.ca1
+                println("DEBUG: Added legacy CA1 to scores map: ${scoreInput.ca1}")
+            }
+            if (scoreInput.ca2 != null && scoreInput.ca2!! > 0 && !workingScores.any { it.key.lowercase().contains("ca 2") || it.key.lowercase().contains("ca ii") }) {
+                workingScores["CA II"] = scoreInput.ca2
+                println("DEBUG: Added legacy CA2 to scores map: ${scoreInput.ca2}")
+            }
+            if (scoreInput.exam != null && scoreInput.exam!! > 0 && !workingScores.any { it.key.lowercase().contains("exam") }) {
+                workingScores["Exam"] = scoreInput.exam
+                println("DEBUG: Added legacy Exam to scores map: ${scoreInput.exam}")
             }
 
-            // Sync legacy columns for backward compatibility
-            scoreInput.scores.forEach { (key, value) ->
-                if (value != null) {
-                    when (key.lowercase()) {
-                        "ca 1", "ca1", "1st ca", "1st continuous assessment", "ca" -> subjectScore.ca1Score = value
-                        "ca 2", "ca2", "2nd ca", "2nd continuous assessment" -> subjectScore.ca2Score = value
-                        "exam", "examination", "exam score" -> subjectScore.examScore = value
-                    }
-                }
+            // Normalize score keys using aliases from scoring scheme
+            val normalizedScores = if (workingScores.isNotEmpty()) {
+                println("DEBUG: Normalizing working scores: $workingScores")
+                normalizeScoreKeys(workingScores, aliasMappings)
+            } else {
+                println("DEBUG: No scores found for normalization")
+                emptyMap()
+            }
+            
+            println("DEBUG: After normalization, scores = $normalizedScores")
+            println("DEBUG: Total score = ${normalizedScores.values.filterNotNull().sumOf { it }}")
+
+            // Only update scores that were actually provided (not null)
+            // Source of Truth: JSON Map with aliases
+            if (normalizedScores.isNotEmpty()) {
+                subjectScore.scoresJson = objectMapper.writeValueAsString(normalizedScores)
+            } else {
+                subjectScore.scoresJson = null
             }
             
             // Calculate grade only if there are entered scores
-            val total = subjectScore.totalScore
+            val total = subjectScore.getTotalScore()
             if (total != null) {
                 subjectScore.grade = when {
                     total >= 70 -> "A"
@@ -877,6 +893,17 @@ class AssessmentReportController(
                 subjectScore.grade = null
                 subjectScore.remark = null
             }
+
+            println("DEBUG: SAVING TO DATABASE:")
+            println("  - SubjectScore ID: ${subjectScore.id}")
+            println("  - Student ID: ${subjectScore.assessment.student?.id}")
+            println("  - Subject: ${subjectScore.subject.subjectName} (ID: ${subjectScore.subject.id})")
+            println("  - Assessment ID: ${subjectScore.assessment.id}")
+            println("  - scoresJson: ${subjectScore.scoresJson}")
+            println("  - totalScore (computed): ${subjectScore.getTotalScore()}")
+            println("  - Grade: ${subjectScore.grade}")
+            println("  - Remark: ${subjectScore.remark}")
+            println("========== END SUBJECT SCORE ==========\n")
 
             subjectScoreRepository.save(subjectScore)
         }
@@ -1076,24 +1103,12 @@ class AssessmentReportController(
                             mutableMapOf<String, Int?>()
                         }
                     } else {
-                        mutableMapOf<String, Int?>().apply {
-                            if ((subjectScore.ca1Score ?: 0) > 0) put("1st CA", subjectScore.ca1Score)
-                            if ((subjectScore.ca2Score ?: 0) > 0) put("2nd CA", subjectScore.ca2Score)
-                            if ((subjectScore.examScore ?: 0) > 0) put("Exam", subjectScore.examScore)
-                        }
+                        mutableMapOf<String, Int?>()
                     }
 
                     scoresMap[request.componentName] = finalScore
-
-                    // Update legacy fields
-                    when (request.componentName.lowercase()) {
-                        "ca 1", "ca1", "continuous assessment 1" -> subjectScore.ca1Score = finalScore
-                        "ca 2", "ca2", "continuous assessment 2" -> subjectScore.ca2Score = finalScore
-                        "exam", "examination" -> subjectScore.examScore = finalScore
-                    }
                     
                     subjectScore.scoresJson = objectMapper.writeValueAsString(scoresMap)
-                    subjectScore.totalScore = scoresMap.values.filterNotNull().sumOf { it }
                     subjectScoreRepository.save(subjectScore)
                     importedCount++
                 }
@@ -1102,4 +1117,514 @@ class AssessmentReportController(
 
         return mapOf("success" to true, "message" to "Successfully imported scores for $importedCount students.")
     }
+
+    @GetMapping("/download")
+    fun downloadReport(
+        @RequestParam type: String,
+        @RequestParam id: UUID,
+        @RequestParam(required = false) classId: UUID?,
+        @RequestParam(required = false, defaultValue = "csv") format: String,
+        authentication: Authentication,
+        session: HttpSession,
+        response: HttpServletResponse
+    ) {
+        val selectedSchoolId = session.getAttribute("selectedSchoolId") as? UUID
+            ?: throw RuntimeException("School not found")
+
+        val school = schoolRepository.findById(selectedSchoolId).orElseThrow { RuntimeException("School not found") }
+        
+        val sessionId = session.getAttribute("selectedSessionId") as? UUID
+        val termId = session.getAttribute("selectedTermId") as? UUID
+        
+        // Generate content based on format
+        when (format.lowercase()) {
+            "pdf" -> {
+                // Generate PDF report
+                val pdfContent = when (type.lowercase()) {
+                    "student" -> generateStudentReportPDF(id, selectedSchoolId, classId, sessionId, termId)
+                    "class" -> generateClassReportPDF(id, selectedSchoolId, sessionId, termId)
+                    "track" -> generateTrackReportPDF(id, selectedSchoolId, sessionId, termId)
+                    else -> throw IllegalArgumentException("Invalid report type: $type")
+                }
+                
+                val filename = when (type.lowercase()) {
+                    "student" -> {
+                        val student = studentRepository.findById(id).orElseThrow { RuntimeException("Student not found") }
+                        "student_report_${student.user.fullName?.replace(" ", "_") ?: "student"}.pdf"
+                    }
+                    "class" -> {
+                        val clazz = schoolClassRepository.findById(id).orElseThrow { RuntimeException("Class not found") }
+                        "class_report_${clazz.className.replace(" ", "_")}.pdf"
+                    }
+                    "track" -> {
+                        val track = educationTrackRepository.findById(id).orElseThrow { RuntimeException("Track not found") }
+                        "track_report_${track.name.replace(" ", "_")}.pdf"
+                    }
+                    else -> "report.pdf"
+                }
+                
+                response.contentType = "application/pdf"
+                response.setHeader("Content-Disposition", """attachment; filename="$filename"""")
+                response.outputStream.write(pdfContent)
+                response.outputStream.flush()
+            }
+            else -> {
+                // Generate CSV report (default)
+                val filename = when (type.lowercase()) {
+                    "student" -> {
+                        val student = studentRepository.findById(id).orElseThrow { RuntimeException("Student not found") }
+                        "student_report_${student.user.fullName?.replace(" ", "_") ?: "student"}.csv"
+                    }
+                    "class" -> {
+                        val clazz = schoolClassRepository.findById(id).orElseThrow { RuntimeException("Class not found") }
+                        "class_report_${clazz.className.replace(" ", "_")}.csv"
+                    }
+                    "track" -> {
+                        val track = educationTrackRepository.findById(id).orElseThrow { RuntimeException("Track not found") }
+                        "track_report_${track.name.replace(" ", "_")}.csv"
+                    }
+                    else -> throw IllegalArgumentException("Invalid report type: $type")
+                }
+                val csvContent = when (type.lowercase()) {
+                    "student" -> generateStudentReportCSV(id, selectedSchoolId, classId, sessionId, termId)
+                    "class" -> generateClassReportCSV(id, selectedSchoolId, sessionId, termId)
+                    "track" -> generateTrackReportCSV(id, selectedSchoolId, sessionId, termId)
+                    else -> ""
+                }
+
+                response.contentType = "text/csv;charset=UTF-8"
+                response.setHeader("Content-Disposition", """attachment; filename="$filename"""")
+                response.writer.write(csvContent)
+                response.writer.flush()
+            }
+        }
+    }
+    
+    private fun generateStudentReportPDF(studentId: UUID, schoolId: UUID, classId: UUID?, sessionId: UUID?, termId: UUID?): ByteArray {
+        val student = studentRepository.findById(studentId).orElseThrow { RuntimeException("Student not found") }
+        
+        val studentClass = when {
+            classId != null && sessionId != null && termId != null -> {
+                studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    studentId, sessionId, termId, true
+                ).filter { it.schoolClass.id == classId }.firstOrNull()
+            }
+            classId != null -> {
+                studentClassRepository.findByStudentIdAndIsActive(studentId, true)
+                    .filter { it.schoolClass.id == classId }.firstOrNull()
+            }
+            sessionId != null && termId != null -> {
+                studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    studentId, sessionId, termId, true
+                ).firstOrNull()
+            }
+            else -> {
+                studentClassRepository.findByStudentIdAndIsActive(studentId, true)
+                    .maxByOrNull { it.createdAt ?: LocalDateTime.MIN }
+            }
+        }
+        
+        val assessment = if (sessionId != null && termId != null) {
+            assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                studentId, sessionId, termId, schoolId, true
+            ).orElse(null)
+        } else {
+            assessmentRepository.findByStudentIdAndSchoolIdAndIsActive(studentId, schoolId, true)
+                .maxByOrNull { it.createdAt ?: LocalDateTime.MIN }
+        }
+        
+        val scores = if (assessment != null) {
+            subjectScoreRepository.findByAssessmentIdAndSchoolIdAndIsActive(assessment.id!!, schoolId, true)
+        } else {
+            emptyList()
+        }
+        
+        val aliasMappings = if (studentClass != null) parseScoringSchemeAliases(studentClass.schoolClass.scoringScheme) else emptyMap()
+        val components = getScoreComponents(aliasMappings)
+        
+        return reportPdfGenerator.generateStudentReportPdf(
+            student = student,
+            assessment = assessment,
+            scores = scores,
+            schoolId = schoolId,
+            components = components,
+            aliasMappings = aliasMappings,
+            extractScoreFn = { score, alias -> extractScoreFromJson(score, alias) },
+            calculateTotalFn = { score -> calculateTotalScore(score) }
+        )
+    }
+    
+    private fun generateClassReportPDF(classId: UUID, schoolId: UUID, sessionId: UUID?, termId: UUID?): ByteArray {
+        // For class report, we'll generate a simple PDF with summary
+        // This is a simplified version - you can expand it similarly to class CSV
+        val pdfStream = ByteArrayOutputStream()
+        val writer = com.itextpdf.kernel.pdf.PdfWriter(pdfStream)
+        val pdfDoc = com.itextpdf.kernel.pdf.PdfDocument(writer)
+        val document = com.itextpdf.layout.Document(pdfDoc)
+        
+        val schoolClass = schoolClassRepository.findById(classId).orElseThrow { RuntimeException("Class not found") }
+        document.add(com.itextpdf.layout.element.Paragraph("CLASS REPORT - ${schoolClass.className}").setFont(com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD)))
+        document.add(com.itextpdf.layout.element.Paragraph("PDF class reports are currently simplified. Use CSV for detailed data."))
+        document.close()
+        
+        return pdfStream.toByteArray()
+    }
+    
+    private fun generateTrackReportPDF(trackId: UUID, schoolId: UUID, sessionId: UUID?, termId: UUID?): ByteArray {
+        // For track report, similar to class
+        val pdfStream = ByteArrayOutputStream()
+        val writer = com.itextpdf.kernel.pdf.PdfWriter(pdfStream)
+        val pdfDoc = com.itextpdf.kernel.pdf.PdfDocument(writer)
+        val document = com.itextpdf.layout.Document(pdfDoc)
+        
+        val track = educationTrackRepository.findById(trackId).orElseThrow { RuntimeException("Track not found") }
+        document.add(com.itextpdf.layout.element.Paragraph("TRACK REPORT - ${track.name}").setFont(com.itextpdf.kernel.font.PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD)))
+        document.add(com.itextpdf.layout.element.Paragraph("PDF track reports are currently simplified. Use CSV for detailed data."))
+        document.close()
+        
+        return pdfStream.toByteArray()
+    }
+
+    private fun generateStudentReportCSV(studentId: UUID, schoolId: UUID, classId: UUID?, sessionId: UUID?, termId: UUID?): String {
+        val sb = StringBuilder()
+        
+        val student = studentRepository.findById(studentId).orElseThrow { RuntimeException("Student not found") }
+        
+        // Get the student's class for the specified session/term
+        // When classId is provided, verify the student is in that class for the session/term
+        val studentClass = when {
+            classId != null && sessionId != null && termId != null -> {
+                // Get all student classes for this student in the session/term and filter by classId
+                studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    studentId, sessionId, termId, true
+                ).filter { it.schoolClass.id == classId }.firstOrNull()
+            }
+            classId != null -> {
+                // Get all student classes for this student and filter by classId
+                studentClassRepository.findByStudentIdAndIsActive(studentId, true)
+                    .filter { it.schoolClass.id == classId }.firstOrNull()
+            }
+            sessionId != null && termId != null -> {
+                // Get student's class for the session/term
+                studentClassRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    studentId, sessionId, termId, true
+                ).firstOrNull()
+            }
+            else -> {
+                // Get the most recent class
+                studentClassRepository.findByStudentIdAndIsActive(studentId, true)
+                    .maxByOrNull { it.createdAt ?: LocalDateTime.MIN }
+            }
+        }
+        
+        // Get the assessment for the specified session/term
+        val assessment = if (sessionId != null && termId != null) {
+            assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                studentId, sessionId, termId, schoolId, true
+            ).orElse(null)
+        } else {
+            assessmentRepository.findByStudentIdAndSchoolIdAndIsActive(studentId, schoolId, true)
+                .maxByOrNull { it.createdAt ?: LocalDateTime.MIN }
+        }
+        
+        println("DEBUG generateStudentReportCSV: classId=$classId, sessionId=$sessionId, termId=$termId, studentClass=${studentClass?.schoolClass?.className}, assessment found: ${assessment != null}")
+
+        sb.append("STUDENT REPORT SHEET\n\n")
+        sb.append("Student Name,${student.user.fullName ?: "N/A"}\n")
+        sb.append("Admission No,${student.admissionNumber ?: ""}\n")
+        if (studentClass != null) {
+            sb.append("Class,${studentClass.schoolClass.className}\n")
+        }
+        if (assessment != null) {
+            sb.append("Attendance,${assessment.attendance ?: 0}\n")
+        }
+
+        if (assessment != null) {
+            val scores = subjectScoreRepository.findByAssessmentIdAndSchoolIdAndIsActive(assessment.id!!, schoolId, true)
+            val aliasMappings = if (studentClass != null) parseScoringSchemeAliases(studentClass.schoolClass.scoringScheme) else emptyMap()
+            val components = getScoreComponents(aliasMappings)
+            
+            println("DEBUG: Found ${scores.size} subject scores for assessment ${assessment.id}")
+            println("DEBUG: Components: $components")
+            
+            // Build dynamic headers
+            val headers = mutableListOf("Subject")
+            headers.addAll(components.map { it.second }) // Add component aliases
+            headers.add("Total")
+            sb.append(headers.joinToString(",") + "\n")
+            
+            scores.forEach { score ->
+                println("DEBUG: Processing score for subject ${score.subject.subjectName}, scoresJson: ${score.scoresJson}")
+                val extractedScores = mutableListOf(score.subject.subjectName)
+                
+                // Extract score for each component dynamically
+                components.forEach { (_, alias) ->
+                    val componentScore = extractScoreFromJson(score, alias) ?: 0
+                    extractedScores.add(componentScore.toString())
+                    println("DEBUG: Component '$alias' = $componentScore")
+                }
+                
+                // Calculate total from all components
+                val total = calculateTotalScore(score)
+                extractedScores.add(total.toString())
+                println("DEBUG: Total = $total")
+                sb.append(extractedScores.joinToString(",") + "\n")
+            }
+        } else {
+            // No assessment, add headers with components anyway if available
+            val aliasMappings = if (studentClass != null) parseScoringSchemeAliases(studentClass.schoolClass.scoringScheme) else emptyMap()
+            val components = getScoreComponents(aliasMappings)
+            val headers = mutableListOf("Subject")
+            headers.addAll(components.map { it.second })
+            headers.add("Total")
+            sb.append(headers.joinToString(",") + "\n")
+        }
+
+        return sb.toString()
+    }
+
+    private fun generateClassReportCSV(classId: UUID, schoolId: UUID, sessionId: UUID?, termId: UUID?): String {
+        val sb = StringBuilder()
+        
+        val schoolClass = schoolClassRepository.findById(classId).orElseThrow { RuntimeException("Class not found") }
+        
+        // Filter students by session/term if specified
+        val studentClasses = if (sessionId != null && termId != null) {
+            studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(classId, sessionId, termId, true)
+        } else {
+            studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
+        }
+        val aliasMappings = parseScoringSchemeAliases(schoolClass.scoringScheme)
+
+        // Add session and term info to report if available
+        sb.append("CLASS REPORT SHEET - ${schoolClass.className}\n")
+        if (sessionId != null) {
+            val session = academicSessionRepository.findById(sessionId).orElse(null)
+            if (session != null) sb.append("Session: ${session.sessionYear}\n")
+        }
+        if (termId != null) {
+            val term = termRepository.findById(termId).orElse(null)
+            if (term != null) sb.append("Term: ${term.termName}\n")
+        }
+        sb.append("\n")
+        sb.append("Student Name,Admission No,Attendance,Avg Score,Status\n")
+        
+        println("DEBUG generateClassReportCSV: Found ${studentClasses.size} students, sessionId=$sessionId, termId=$termId")
+        
+        studentClasses.forEach { sc ->
+            val student = sc.student
+            val assessment = if (sessionId != null && termId != null) {
+                assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                    student.id!!, sessionId, termId, schoolId, true
+                ).orElse(null)
+            } else {
+                assessmentRepository.findByStudentIdAndSchoolIdAndIsActive(student.id!!, schoolId, true)
+                    .maxByOrNull { it.createdAt ?: LocalDateTime.MIN }
+            }
+            
+            var avgScore = 0
+            if (assessment != null) {
+                val scores = subjectScoreRepository.findByAssessmentIdAndSchoolIdAndIsActive(assessment.id!!, schoolId, true)
+                avgScore = if (scores.isNotEmpty()) {
+                    val totalScores = scores.map { calculateTotalScore(it) }
+                    totalScores.average().toInt()
+                } else {
+                    0
+                }
+            }
+
+            val status = if (avgScore >= 40) "Pass" else "Fail"
+            sb.append("${student.user.fullName ?: "N/A"},${student.admissionNumber ?: ""},${assessment?.attendance ?: ""},$avgScore,$status\n")
+        }
+
+        return sb.toString()
+    }
+
+    private fun extractScoreFromJson(score: SubjectScore, componentAlias: String): Int? {
+        if (score.scoresJson.isNullOrBlank()) {
+            return null
+        }
+        
+        try {
+            val scoresMap = objectMapper.readValue(score.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})
+            println("DEBUG extractScoreFromJson: Looking for alias '$componentAlias' in scoresMap: ${scoresMap.keys.joinToString(", ")}")
+            val value = scoresMap[componentAlias]
+            if (value != null) {
+                println("DEBUG extractScoreFromJson: Found score for '$componentAlias': $value")
+            } else {
+                println("DEBUG extractScoreFromJson: No score found for '$componentAlias'")
+            }
+            return value
+        } catch (e: Exception) {
+            println("DEBUG extractScoreFromJson: Error extracting score: ${e.message}")
+            return null
+        }
+    }
+
+    private fun calculateTotalScore(score: SubjectScore): Int {
+        if (score.scoresJson.isNullOrBlank()) {
+            return 0
+        }
+        
+        try {
+            val scoresMap = objectMapper.readValue(score.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})
+            val total = scoresMap.values.filterNotNull().sumOf { it }
+            println("DEBUG calculateTotalScore: Calculated total from all components: $total")
+            return total
+        } catch (e: Exception) {
+            println("DEBUG calculateTotalScore: Error calculating total: ${e.message}")
+            return 0
+        }
+    }
+
+    private fun getScoreComponents(aliasMappings: Map<String, String>): List<Pair<String, String>> {
+        // Returns list of (componentName, alias) pairs from the scoring scheme
+        // This makes components dynamically available for report generation
+        val components = aliasMappings.map { (name, alias) -> name to alias }
+        println("DEBUG getScoreComponents: Found ${components.size} components: $components")
+        return components
+    }
+
+    private fun generateTrackReportCSV(trackId: UUID, schoolId: UUID, sessionId: UUID?, termId: UUID?): String {
+        val sb = StringBuilder()
+        
+        val track = educationTrackRepository.findById(trackId).orElseThrow { RuntimeException("Track not found") }
+        val classes = schoolClassRepository.findBySchoolIdAndIsActive(schoolId, true)
+            .filter { it.track?.id == trackId }
+
+        sb.append("TRACK REPORT SHEET - ${track.name}\n")
+        if (sessionId != null) {
+            val session = academicSessionRepository.findById(sessionId).orElse(null)
+            if (session != null) sb.append("Session: ${session.sessionYear}\n")
+        }
+        if (termId != null) {
+            val term = termRepository.findById(termId).orElse(null)
+            if (term != null) sb.append("Term: ${term.termName}\n")
+        }
+        sb.append("\n")
+        sb.append("Class,Total Students,Avg Performance,Pass Rate\n")
+        
+        println("DEBUG generateTrackReportCSV: Found ${classes.size} classes, sessionId=$sessionId, termId=$termId")
+        
+        classes.forEach { schoolClass ->
+            val studentClasses = if (sessionId != null && termId != null) {
+                studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(schoolClass.id!!, sessionId, termId, true)
+            } else {
+                studentClassRepository.findBySchoolClassIdAndIsActive(schoolClass.id!!, true)
+            }
+            val aliasMappings = parseScoringSchemeAliases(schoolClass.scoringScheme)
+            
+            var totalAvg = 0
+            var passCount = 0
+            
+            studentClasses.forEach { sc ->
+                val assessment = if (sessionId != null && termId != null) {
+                    assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                        sc.student.id!!, sessionId, termId, schoolId, true
+                    ).orElse(null)
+                } else {
+                    assessmentRepository.findByStudentIdAndSchoolIdAndIsActive(sc.student.id!!, schoolId, true)
+                        .maxByOrNull { it.createdAt ?: LocalDateTime.MIN }
+                }
+                
+                if (assessment != null) {
+                    val scores = subjectScoreRepository.findByAssessmentIdAndSchoolIdAndIsActive(assessment.id!!, schoolId, true)
+                    val avgScore = if (scores.isNotEmpty()) {
+                        val totalScores = scores.map { calculateTotalScore(it) }
+                        totalScores.average().toInt()
+                    } else {
+                        0
+                    }
+                    totalAvg += avgScore
+                    if (avgScore >= 40) passCount++
+                }
+            }
+            
+            val classAvg = if (studentClasses.isNotEmpty()) totalAvg / studentClasses.size else 0
+            val passRate = if (studentClasses.isNotEmpty()) (passCount * 100) / studentClasses.size else 0
+
+            sb.append("${schoolClass.className},${studentClasses.size},$classAvg,$passRate%\n")
+        }
+
+        return sb.toString()
+    }
+
+    private fun parseScoringSchemeAliases(scoringSchemeJson: String?): Map<String, String> {
+        if (scoringSchemeJson.isNullOrBlank()) {
+            println("DEBUG parseScoringSchemeAliases: Scheme is null or blank, returning empty map")
+            return emptyMap()
+        }
+        
+        try {
+            println("DEBUG parseScoringSchemeAliases: Parsing scheme: $scoringSchemeJson")
+            val scheme = objectMapper.readValue(scoringSchemeJson, object : com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Any>>>() {})
+            val aliases = mutableMapOf<String, String>()
+            scheme.forEach { item ->
+                val name = (item["name"] as? String) ?: return@forEach
+                val alias = (item["alias"] as? String) ?: name
+                aliases[name.lowercase()] = alias
+                println("DEBUG parseScoringSchemeAliases: Added mapping '${name.lowercase()}' -> '$alias'")
+            }
+            
+            // Ensure we have mappings for standard components even if not explicitly in scheme
+            // if (!aliases.containsKey("ca 1") && !aliases.containsKey("ca1")) {
+            //     aliases["ca 1"] = "CA 1"
+            //     println("DEBUG parseScoringSchemeAliases: Added default mapping 'ca 1' -> 'CA 1'")
+            // }
+            // if (!aliases.containsKey("ca 2") && !aliases.containsKey("ca2")) {
+            //     aliases["ca 2"] = "CA 2"
+            //     println("DEBUG parseScoringSchemeAliases: Added default mapping 'ca 2' -> 'CA 2'")
+            // }
+            // if (!aliases.containsKey("exam")) {
+            //     aliases["exam"] = "Exam"
+            //     println("DEBUG parseScoringSchemeAliases: Added default mapping 'exam' -> 'Exam'")
+            // }
+            
+            println("DEBUG parseScoringSchemeAliases: Final mappings = $aliases")
+            return aliases
+        } catch (e: Exception) {
+            println("DEBUG ERROR parseScoringSchemeAliases: Error parsing scoring scheme: ${e.message}")
+            e.printStackTrace()
+            return emptyMap()
+        }
+    }
+
+    private fun normalizeScoreKeys(scores: Map<String, Int?>, aliasMappings: Map<String, String>): Map<String, Int?> {
+        val normalized = mutableMapOf<String, Int?>()
+        
+        println("DEBUG normalizeScoreKeys: Input scores = $scores")
+        println("DEBUG normalizeScoreKeys: Alias mappings = $aliasMappings")
+        
+        scores.forEach { (key, value) ->
+            val keyLower = key.lowercase()
+            
+            // First, try to find exact match with mapping keys (component names)
+            var normalizedKey = aliasMappings[keyLower]
+            
+            // If not found, try to find if the key itself is already an alias
+            if (normalizedKey == null) {
+                // Check if incoming key matches any of the alias values
+                normalizedKey = aliasMappings.values.find { it.lowercase() == keyLower }
+            }
+            
+            // If still not found, try flexible substring matching as last resort
+            if (normalizedKey == null) {
+                normalizedKey = aliasMappings.entries.find { (name, alias) ->
+                    keyLower.contains(name) || name.contains(keyLower) ||
+                    keyLower.contains(alias.lowercase()) || alias.lowercase().contains(keyLower)
+                }?.value
+            }
+            
+            // Final fallback: use the original key
+            val finalKey = normalizedKey ?: key
+            
+            println("DEBUG normalizeScoreKeys: Mapping '$key' -> '$finalKey'")
+            normalized[finalKey] = value
+        }
+        
+        println("DEBUG normalizeScoreKeys: Output normalized scores = $normalized")
+        return normalized
+    }
 }
+
+

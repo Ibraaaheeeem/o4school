@@ -12,40 +12,683 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles for staff class reports */
-        .staff-reports-layout {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: calc(100vh - 80px);
+        /* Override main-content padding for reports page */
+        main.main-content {
+            padding: 0 !important;
+            margin: 0 !important;
         }
 
-        @media (max-width: 1024px) {
-            .staff-reports-layout {
-                grid-template-columns: 1fr;
+        /* Unified Two-Column Layout for Staff Reports with Left Selection Panel */
+        .reports-main-layout {
+            display: grid !important;
+            grid-template-columns: 380px 1fr !important;
+            gap: 0 !important;
+            padding: 0 !important;
+            min-height: calc(100vh - 80px);
+            background: #f8fafc;
+            width: 100%;
+            overflow: hidden;
+            height: calc(100vh - 80px);
+        }
+
+        @media (max-width: 1200px) {
+            .reports-main-layout {
+                grid-template-columns: 320px 1fr !important;
+                gap: 0 !important;
             }
         }
 
-        .staff-sidebar {
-            background: white;
-            border-right: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
-            height: 100%;
-            overflow-y: auto;
-            border-radius: 22px 0 0 22px;
-        }
-
         @media (max-width: 1024px) {
-            .staff-sidebar {
-                border-right: none;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            .reports-main-layout {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+                padding: 1rem !important;
+                background: white;
+                overflow: visible;
                 height: auto;
             }
         }
 
-        .staff-content {
-            padding: 2rem;
+        @media (max-width: 768px) {
+            .reports-main-layout {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+                padding: 1rem !important;
+                background: white;
+                overflow: visible;
+                height: auto;
+            }
+        }
+
+        /* Enhanced Sidebar Styles - Left Selection Panel */
+        .reports-sidebar {
+            display: flex !important;
+            flex-direction: column;
+            gap: 0;
+            height: fit-content;
+            position: sticky;
+            top: 80px;
+            background: #ffffff;
+            border-right: 2px solid #cbd5e1;
+            padding: 2rem 0;
+            overflow-y: auto;
+            min-width: 0;
+            grid-column: 1;
+            align-self: start;
+        }
+
+        /* Content Area - ensures it takes full remaining space */
+        .reports-content {
+            display: flex !important;
+            flex-direction: column;
+            gap: 2rem;
+            padding: 2.5rem 2.5rem;
+            background: white;
+            overflow-y: auto;
+            grid-column: 2;
+            width: 100%;
+            min-width: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .reports-content {
+                padding: 2rem;
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .reports-content {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .reports-sidebar {
+                position: fixed !important;
+                top: 0;
+                left: 0;
+                transform: translateX(-100%);
+                width: 100%;
+                max-width: 380px;
+                height: 100vh;
+                z-index: 1040;
+                transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+                border-right: 1px solid #e2e8f0;
+                background: #ffffff;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .reports-sidebar.active {
+                transform: translateX(0);
+            }
+
+            .reports-sidebar::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 70px;
+                background: #ffffff;
+                border-bottom: 1px solid #e2e8f0;
+                z-index: 1041;
+            }
+
+            .reports-sidebar > * {
+                position: relative;
+                z-index: 1;
+            }
+
+            .reports-sidebar > *:first-child {
+                margin-top: 75px;
+            }
+
+            .filter-section {
+                margin: 0;
+                padding: 1.5rem 1.5rem;
+                border-radius: 0;
+                background: transparent;
+                border: none;
+            }
+
+            .filter-section:not(:last-child) {
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .filter-section-title {
+                font-size: 0.78rem;
+                margin-bottom: 0.85rem;
+                color: #334155;
+            }
+
+            .filter-group {
+                margin-bottom: 0.9rem;
+            }
+
+            .filter-label {
+                font-size: 0.78rem;
+                margin-bottom: 0.4rem;
+                color: #475569;
+            }
+
+            .filter-select {
+                padding: 0.6rem 0.65rem;
+                font-size: 0.82rem;
+                border: 1px solid #cbd5e1;
+                background-color: #f8fafc;
+                color: #0f172a;
+            }
+        }
+
+        /* Desktop web design (> 1024px) - ensure sidebar stays normal */
+        @media (min-width: 1025px) {
+            .reports-sidebar {
+                position: sticky !important;
+                top: 100px;
+                height: fit-content;
+                background: #ffffff;
+                border: none;
+                border-right: 2px solid #e2e8f0;
+                border-radius: 0;
+                padding: 2rem 0;
+                box-shadow: none;
+                overflow-y: visible;
+                transform: none !important;
+            }
+
+            .reports-sidebar::before {
+                display: none !important;
+            }
+
+            .reports-sidebar > *:first-child {
+                margin-top: 0;
+            }
+
+            .reports-sidebar.active {
+                transform: none !important;
+            }
+        }
+
+        .filter-section {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 1.5rem 1.5rem;
+            box-shadow: none;
+            margin: 0;
+        }
+
+        .filter-section:not(:last-child) {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .filter-section-title {
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        @media (max-width: 1024px) {
+            .filter-section-title {
+                font-size: 0.8rem;
+                margin: 1rem 0 0.75rem;
+                color: #1e293b;
+                font-weight: 700;
+            }
+        }
+
+        .filter-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .filter-group:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .filter-group {
+                margin-bottom: 1rem;
+            }
+
+            .filter-group:last-child {
+                margin-bottom: 1rem;
+            }
+        }
+
+        .filter-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.6rem;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        @media (max-width: 1024px) {
+            .filter-label {
+                font-size: 0.8rem;
+                margin-bottom: 0.45rem;
+                font-weight: 600;
+                color: #1e293b;
+            }
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background-color: #f8fafc;
+            color: #0f172a;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .filter-select:hover {
+            border-color: #94a3b8;
+            background-color: white;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.12);
+            color: #0f172a;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+        }
+
+        .filter-select option {
+            background: #1e293b;
+            color: #0f172a;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Content Area Styles */
+        .reports-content {
+            padding: 2.5rem;
+            background: white;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 1200px) {
+            .reports-content {
+                padding: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .reports-content {
+                padding: 1.5rem;
+                background: white;
+            }
+        }
+        .student-card {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            border-radius: 16px;
+            padding: 1.5rem;
+            color: white;
+            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .student-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .student-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .student-card-avatar {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .student-card-name {
+            font-size: 1rem;
+            font-weight: 800;
+            margin: 0 0 0.5rem;
+            line-height: 1.2;
+        }
+
+        .student-status {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .student-details {
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            opacity: 0.95;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            opacity: 0.85;
+        }
+
+        .detail-value {
+            font-weight: 700;
+        }
+
+        /* Main Content Styles */
+        .reports-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            padding: 2.5rem;
+            background: white;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 1200px) {
+            .reports-content {
+                padding: 2rem;
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .reports-content {
+                padding: 1.5rem;
+            }
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .result-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .draft-badge {
+            background: #fed7aa;
+            color: #92400e;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-result {
+            padding: 0.65rem 1.25rem;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .btn-primary-result {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-primary-result:hover {
+            background: #059669;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .btn-outline-result {
+            background: white;
+            color: #10b981;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-outline-result:hover {
+            background: #f1f5f9;
+            border-color: #10b981;
+        }
+
+        /* Assessment Table */
+        .assessment-table-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+        }
+
+        .assessment-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        .assessment-table thead {
             background: #f8fafc;
-            border-radius: 0 22px 22px 0;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .assessment-table thead th {
+            padding: 0.9rem 1rem;
+            text-align: left;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            border-right: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        .assessment-table thead th:last-child {
+            border-right: none;
+        }
+
+        .assessment-table tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.2s ease;
+        }
+
+        .assessment-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .assessment-table tbody td {
+            padding: 1rem;
+            font-size: 0.9rem;
+            color: #0f172a;
+            border-right: 1px solid #f1f5f9;
+        }
+
+        .assessment-table tbody td:last-child {
+            border-right: none;
+        }
+
+        .subject-name-cell {
+            font-weight: 700;
+            color: #0f172a;
+            width: 25%;
+        }
+
+        .score-cell {
+            text-align: center;
+        }
+
+        .score-input-cell {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .score-input {
+            width: 100%;
+            max-width: 70px;
+            padding: 0.5rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            background-color: white;
+            color: #0f172a;
+        }
+
+        .score-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .score-input:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .score-max {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .total-cell {
+            font-weight: 700;
+            color: #10b981;
+            text-align: center;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            background: #d1fae5;
+            color: #047857;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-align: center;
+            min-width: 40px;
+        }
+
+        /* Summary Row */
+        .assessment-summary {
+            background: #f8fafc;
+            border-top: 2px solid #e2e8f0;
+            padding: 1rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 3rem;
+            font-size: 0.9rem;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .summary-label {
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        /* System Insight */
+        .system-insight {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border: 1px solid #6ee7b7;
+            border-left: 4px solid #10b981;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: #065f46;
+        }
+
+        .system-insight strong {
+            font-weight: 700;
         }
 
         .report-tabs-container {
@@ -263,10 +906,10 @@
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: #3b82f6;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             border: none;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
             z-index: 1050;
             cursor: pointer;
             align-items: center;
@@ -276,8 +919,12 @@
         }
 
         .sidebar-toggle:hover {
-            transform: scale(1.1);
-            background: #2563eb;
+            transform: scale(1.12);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+        }
+
+        .sidebar-toggle:active {
+            transform: scale(0.95);
         }
 
         .reports-backdrop {
@@ -288,7 +935,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(4px);
             z-index: 1030;
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -299,57 +946,189 @@
                 display: flex;
             }
 
-            .staff-sidebar {
+            .reports-sidebar {
                 position: fixed !important;
                 top: 0;
-                left: -300px;
-                /* Start off-screen */
-                width: 300px;
+                left: 0;
+                transform: translateX(-100%);
+                width: 100%;
+                max-width: 380px;
                 height: 100vh;
                 z-index: 1040;
-                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+                transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
                 border-right: 1px solid #e2e8f0;
+                background: #ffffff;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
             }
 
-            .staff-sidebar.active {
-                transform: translateX(300px);
+            .reports-sidebar.active {
+                transform: translateX(0);
             }
+
+            .reports-sidebar::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 70px;
+                background: #ffffff;
+                border-bottom: 1px solid #e2e8f0;
+                z-index: 1041;
+            }
+
+            .reports-sidebar > * {
+                position: relative;
+                z-index: 1;
+            }
+
+            .reports-sidebar > *:first-child {
+                margin-top: 75px;
+            }
+
+            .filter-section {
+                margin: 0;
+                padding: 1.5rem 1.5rem;
+                border-radius: 0;
+                background: transparent;
+                border: none;
+            }
+
+            .filter-section:not(:last-child) {
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .filter-section-title {
+                font-size: 0.78rem;
+                margin-bottom: 0.85rem;
+                color: #334155;
+            }
+
+            .filter-group {
+                margin-bottom: 0.9rem;
+            }
+
+            .filter-label {
+                font-size: 0.78rem;
+                margin-bottom: 0.4rem;
+                color: #475569;
+            }
+
+            .filter-select {
+                padding: 0.6rem 0.65rem;
+                font-size: 0.82rem;
+                border: 1px solid #cbd5e1;
+                background-color: #f8fafc;
+                color: #0f172a;
+            }
+        }
+
+        /* Desktop web design (> 1024px) - ensure sidebar stays normal */
+        @media (min-width: 1025px) {
+            .reports-sidebar {
+                position: sticky !important;
+                top: 100px;
+                height: fit-content;
+                background: #ffffff;
+                border: none;
+                border-right: 2px solid #e2e8f0;
+                border-radius: 0;
+                padding: 2rem 0;
+                box-shadow: none;
+                overflow-y: visible;
+                transform: none !important;
+            }
+
+            .reports-sidebar::before {
+                display: none !important;
+            }
+
+            .reports-sidebar > *:first-child {
+                margin-top: 0;
+            }
+
+            .reports-sidebar.active {
+                transform: none !important;
+            }
+        }
 
             .reports-backdrop.active {
                 display: block;
                 opacity: 1;
             }
 
-            .staff-reports-layout {
+            .reports-main-layout {
                 grid-template-columns: 1fr;
             }
 
-            .staff-content {
-                padding: 1.5rem;
+            .sidebar-close {
+                display: flex !important;
+                position: fixed;
+                top: 1.25rem;
+                right: 1.25rem;
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid #cbd5e1;
+                border-radius: 50%;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.25rem;
+                color: #334155;
+                cursor: pointer;
+                z-index: 1042;
+                transition: all 0.2s ease;
+                padding: 0;
             }
 
-            .sidebar-close {
-                display: block !important;
+            .sidebar-close:hover {
+                color: white;
+                background: rgba(255, 255, 255, 0.15);
+                border-color: rgba(255, 255, 255, 0.3);
+                transform: scale(1.08);
             }
         }
 
         .sidebar-close {
             display: none;
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
             background: none;
             border: none;
             font-size: 1.5rem;
             color: #64748b;
             cursor: pointer;
+            padding: 0.5rem;
+            transition: all 0.2s ease;
         }
 
         /* Sticky Table Column */
         .table-responsive {
             overflow-x: auto;
             position: relative;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+
+        .table-responsive::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         #assessmentTableBody td:first-child,
@@ -381,14 +1160,105 @@
             margin: 0;
         }
 
+        /* Center align exam type headers */
+        #tableHeaderRow th:nth-child(2),
+        #tableHeaderRow th:nth-child(3),
+        #tableHeaderRow th:nth-child(4),
+        #tableHeaderRow th:nth-child(5),
+        #tableHeaderRow th:nth-child(6) {
+            text-align: center;
+        }
+
+        /* Responsive grid for assessment sections */
+        @media (max-width: 1200px) {
+            div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Edit Mode Toggle Switch */
+        .edit-mode-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .edit-mode-label {
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.95rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background-color: #475569;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border: none;
+            padding: 0;
+        }
+
+        .toggle-switch.active {
+            background-color: #10b981;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background-color: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .toggle-switch.active::after {
+            left: 26px;
+        }
+
+        .edit-status {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .edit-status.active {
+            color: #10b981;
+        }
+
         @media (max-width: 768px) {
+            .comment-card {
+                padding: 1.5rem 1.25rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .attendance-number-box {
+                width: 100%;
+                min-width: unset;
+                padding: 1rem 1.5rem;
+            }
+
             .behavioral-trait-card {
                 padding: 0.75rem 0.85rem;
                 gap: 0.5rem;
+                flex-direction: column;
+                align-items: stretch;
             }
 
             .rating-buttons {
                 gap: 0.35rem !important;
+                justify-content: space-between;
             }
 
             .behavior-score-btn {
@@ -397,8 +1267,262 @@
                 font-size: 0.75rem !important;
                 min-width: 0 !important;
             }
+
+            .result-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .result-title {
+                font-size: 1.35rem;
+                word-break: break-word;
+            }
+
+            .result-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .btn-result {
+                width: 100%;
+                justify-content: center;
+                padding: 0.75rem 1rem;
+            }
+
+            .assessment-table-container {
+                border-radius: 10px;
+            }
+
+            .assessment-table thead th {
+                padding: 0.6rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .assessment-table tbody td {
+                padding: 0.6rem 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            .score-input {
+                max-width: 60px;
+                padding: 0.4rem;
+                font-size: 0.8rem;
+            }
+
+            .assessment-summary {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .summary-item {
+                align-items: stretch;
+                width: 100%;
+            }
+
+            .summary-label,
+            .summary-value {
+                text-align: left;
+            }
+
+            .summary-value {
+                font-size: 1.15rem;
+            }
+
+            .edit-mode-container {
+                flex-wrap: wrap;
+                gap: 0.75rem;
+                padding: 0.85rem 1rem;
+            }
+
+            .tab-content {
+                padding-top: 1rem;
+            }
+
+            .report-tabs {
+                gap: 0.35rem;
+            }
+
+            .report-tab {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.8rem;
+            }
+
+            #studentCardContainer {
+                margin-bottom: 1rem;
+            }
+
+            .student-card {
+                padding: 1.25rem;
+            }
+
+            .student-card-avatar {
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .student-card-name {
+                font-size: 0.95rem;
+            }
+
+            .system-insight {
+                padding: 0.85rem 1rem;
+                font-size: 0.85rem;
+                gap: 0.6rem;
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .reports-main-layout {
+                gap: 1rem;
+                padding: 0.75rem;
+            }
+
+            .result-title {
+                font-size: 1.15rem;
+            }
+
+            .page-title {
+                font-size: 1.1rem;
+            }
+
+            .assessment-table {
+                font-size: 0.75rem;
+            }
+
+            .assessment-table thead th {
+                padding: 0.5rem 0.35rem;
+                font-size: 0.7rem;
+            }
+
+            .assessment-table tbody td {
+                padding: 0.5rem 0.35rem;
+                font-size: 0.8rem;
+            }
+
+            .score-input {
+                max-width: 50px;
+                padding: 0.35rem;
+                font-size: 0.75rem;
+            }
+
+            .behavioral-traits-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .assessment-summary {
+                gap: 0.75rem;
+            }
+
+            .sidebar-toggle {
+                width: 50px;
+                height: 50px;
+                bottom: 1.5rem;
+                right: 1rem;
+            }
+        }
+
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease;
+            border-left: 4px solid;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .notification-success .notification-content i {
+            color: #10b981;
+        }
+
+        .notification-error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .notification-error .notification-content i {
+            color: #ef4444;
+        }
+
+        .notification-info {
+            border-left-color: #3b82f6;
+            background: #f0f9ff;
+        }
+
+        .notification-info .notification-content i {
+            color: #3b82f6;
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .notification-content i {
+            font-size: 1.25rem;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .notification-close:hover {
+            color: #374151;
+        }
+
+        @media (max-width: 768px) {
+            .notification {
+                min-width: calc(100vw - 40px);
+                right: 20px;
+                left: 20px;
+            }
         }
     </style>
+    <!-- Import shared assessment reports JavaScript module -->
+    <script th:src="@{/js/assessment-reports.js}"></script>
 </head>
 
 <body class="bg-light">
@@ -410,248 +1534,242 @@
 
     <div class="reports-backdrop" id="reportsBackdrop" onclick="toggleSidebar(false)"></div>
 
-    <main class="main-content staff-reports-layout">
-        <!-- Sidebar with Filters -->
-        <aside class="staff-sidebar" id="staffSidebar">
-            <button class="sidebar-close" onclick="toggleSidebar(false)">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="sidebar-header mb-4">
-                <h3 class="h5 fw-bold">Class Reports</h3>
-                <p class="text-muted small">Filter and select student</p>
+    <main class="main-content">
+        <!-- New Two-Column Layout -->
+        <div class="reports-main-layout">
+            <!-- Left Sidebar -->
+            <div class="reports-sidebar">
+                <button class="sidebar-close" onclick="toggleSidebar(false)">
+                    <i class="fas fa-times"></i>
+                </button>
+                
+                <!-- Filters Section -->
+                <div class="filter-section">
+                    <h3 class="filter-section-title">
+                        <i class="fas fa-sliders-h"></i> Selection Filters
+                    </h3>
+
+                    <div class="filter-group">
+                        <label class="filter-label">Academic Session</label>
+                        <select id="sessionSelect" class="filter-select" onchange="handleSessionChange()" 
+                            th:data-current-value="${selectedSession}">
+                            <option value="">Select Session...</option>
+                            <option th:each="academic_session : ${academicSessions}" th:value="${academic_session.sessionYear}" 
+                                th:text="${academic_session.sessionYear}"></option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">Term</label>
+                        <select id="termSelect" class="filter-select" onchange="handleTermChange()" 
+                            th:data-current-value="${selectedTerm}">
+                            <option value="">Select Term...</option>
+                            <option th:each="term : ${terms}" th:value="${term}" th:text="${term}"></option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">Class</label>
+                        <select id="classSelect" class="filter-select" onchange="handleClassChange()">
+                            <option value="">Select Class...</option>
+                            <option th:each="cls : ${classes}" th:value="${cls.id}" th:text="${cls.className}"></option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">Student Name</label>
+                        <select id="studentSelect" class="filter-select" onchange="handleStudentChange()">
+                            <option value="">Select Student...</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
-            <div class="sidebar-filters">
-                <!-- Academic Period -->
-                <div class="filter-section mb-4">
-                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Academic Period</h6>
-                    <div class="mb-3">
-                        <label class="small fw-medium mb-1">Session</label>
-                        <select id="sessionFilter" class="form-select form-select-sm" onchange="updateFilters()">
-                            <option value="">Select Session</option>
-                            <option th:each="acadSession : ${academicSessions}" th:value="${acadSession.sessionYear}"
-                                th:text="${acadSession.sessionName}"
-                                th:selected="${selectedSession == acadSession.sessionYear}"></option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="small fw-medium mb-1">Term</label>
-                        <select id="termFilter" class="form-select form-select-sm" onchange="updateFilters()">
-                            <option value="">Select Term</option>
-                            <option th:each="term : ${terms}" th:value="${term}" th:text="${term}"
-                                th:selected="${selectedTerm == term}"></option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Class Selection -->
-                <div class="filter-section mb-4">
-                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Class Selection</h6>
-                    <div class="mb-3">
-                        <label class="small fw-medium mb-1">Class</label>
-                        <select id="classFilter" class="form-select form-select-sm" onchange="updateFilters()">
-                            <option value="">Select Class</option>
-                            <option th:each="cls : ${classes}" th:value="${cls.id}" th:text="${cls.className}"
-                                th:selected="${selectedClassId == cls.id}"></option>
-                        </select>
+            <!-- Right Content Area -->
+            <div class="reports-content" id="reportsContainer">
+                <!-- Student Card -->
+                <div id="studentCardContainer" style="display: none; margin-bottom: 1.5rem;">
+                    <div class="student-card">
+                        <div class="student-card-content">
+                            <div class="student-card-avatar" id="cardAvatar">IV</div>
+                            <h3 class="student-card-name" id="cardStudentName">Student Name</h3>
+                            <span class="student-status">Enrolled</span>
+                            
+                            <div class="student-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">ID:</span>
+                                    <span class="detail-value" id="cardStudentId">ADM-2024</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Admission #:</span>
+                                    <span class="detail-value" id="cardAdmissionNumber">A-001</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Class:</span>
+                                    <span class="detail-value" id="cardClassName">Form 3A</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Student Selection -->
-                <div class="filter-section mb-4">
-                    <h6 class="fw-bold small text-uppercase text-muted mb-3">Student</h6>
-                    <div id="studentSelectorContainer">
-                        <select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"
-                            th:fragment="student-selector">
-                            <option value="">Select Student</option>
-                            <option th:each="student : ${students}" th:value="${student.id}"
-                                th:text="${student.user.fullName + ' (' + student.admissionNumber + ')'}"></option>
-                        </select>
+                <!-- Empty State / Class Download State -->
+                <div id="emptyState" class="empty-state-premium">
+                    <div style="text-align: center; padding: 3rem 2rem;">
+                        <i class="fas fa-user-graduate" style="font-size: 3rem; color: #475569; margin-bottom: 1rem; display: block;"></i>
+                        <h2 class="empty-state-title">No Student Selected</h2>
+                        <p class="empty-state-text">Select a student from the filters to view and manage their assessment</p>
+                        
+                        <!-- Class Download Section (hidden by default) -->
+                        <div id="classDownloadSection" style="display: none; margin-top: 2rem; margin-bottom: 1rem;">
+                            <hr style="border: none; border-top: 1px solid #e2e8f0; margin-bottom: 2rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem;">
+                                <i class="fas fa-file-pdf" style="color: #ef4444;"></i> Download Class Reports
+                            </h3>
+                            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1.5rem;">Generate a comprehensive PDF document with report cards for all students in the selected class</p>
+                            <button class="btn-result btn-primary-result" onclick="downloadAllClassReports()" style="margin: 0 auto; display: inline-block;">
+                                <i class="fas fa-file-pdf"></i> Download All Reports
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-grid gap-2 mt-4">
-                    <button class="btn btn-primary btn-sm" onclick="applyFilters()">
-                        <i class="fas fa-sync-alt me-1"></i> Refresh List
-                    </button>
-                </div>
-            </div>
-        </aside>
+                <!-- Assessment Report Section -->
+                <div id="reportSection" style="display: none;">
+                    <!-- Header with Title and Actions -->
+                    <div class="result-header">
+                        <h1 class="result-title">
+                            <i class="fas fa-file-chart-bar"></i>
+                            Result Entry
+                            <span class="draft-badge">Draft Mode</span>
+                        </h1>
+                        <div class="result-actions">
+                            <button class="btn-result btn-outline-result" onclick="downloadReportCard()">
+                                <i class="fas fa-file-pdf"></i> Download Report Card
+                            </button>
+                            <button class="btn-result btn-outline-result" onclick="openImportModal()">
+                                <i class="fas fa-download"></i> Import CSV
+                            </button>
+                            <button class="btn-result btn-primary-result" onclick="saveAssessment()">
+                                <i class="fas fa-save"></i> Save All Entries
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- Main Content Area -->
-        <div class="staff-content" id="reportsContainer">
-            <div th:fragment="reports-content">
-                <div class="setup-header animate-fade-in mb-4">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <!-- Edit Mode Toggle -->
+                    <div class="edit-mode-container">
+                        <span class="edit-mode-label">Edit Mode:</span>
+                        <button class="toggle-switch" id="editModeToggle" onclick="toggleEditMode()"></button>
+                        <span class="edit-status" id="editModeStatus">Off - Read Only</span>
+                    </div>
+
+                    <!-- Assessment Table -->
+                    <div class="assessment-table-container">
+                        <table class="assessment-table">
+                            <thead>
+                                <tr id="tableHeaderRow">
+                                    <th>Subject Name</th>
+                                    <th>CA I<br><small style="font-weight: 500; color: #64748b;">(MAX 20)</small></th>
+                                    <th>CA II<br><small style="font-weight: 500; color: #64748b;">(MAX 20)</small></th>
+                                    <th>Exam<br><small style="font-weight: 500; color: #64748b;">(MAX 60)</small></th>
+                                    <th>Total</th>
+                                    <th>Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assessmentTableBody">
+                                <!-- Dynamic rows populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Assessment & Comments Container - Two Column Layout -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+                        
+                        <!-- Left Panel: Attendance & Behavioral Assessment -->
                         <div>
-                            <h1 class="h3 fw-bold">Student Assessment</h1>
-                            <p class="text-muted">Enter scores and behavioral ratings.</p>
-                        </div>
-                        <div class="header-actions d-flex gap-2">
-                            <button class="btn btn-outline-primary" onclick="openImportModal()">
-                                <i class="fas fa-download me-2"></i> Import Scores
-                            </button>
-                            <button class="btn btn-primary" onclick="saveAssessment()">
-                                <i class="fas fa-save me-2"></i> Save Assessment
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                            <!-- Attendance Assessment Card -->
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                <h3 class="section-title" style="margin-bottom: 1rem;">Attendance Assessment</h3>
+                                
+                                <!-- Attendance Rate Display -->
+                                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">Attendance Rate</div>
+                                        <div style="font-size: 2rem; font-weight: 800; color: #0f172a;" id="attendanceRate">92%</div>
+                                        <div style="font-size: 0.75rem; color: #10b981; margin-top: 0.25rem;">↑ Above Avg</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">Days Present</div>
+                                        <div style="font-size: 2rem; font-weight: 800; color: #10b981;" id="daysPresent">165</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">Days Absent</div>
+                                        <div style="font-size: 2rem; font-weight: 800; color: #ef4444;" id="daysAbsent">15</div>
+                                        <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">Unexcused: 02</div>
+                                    </div>
+                                </div>
 
-                <!-- Empty State -->
-                <div id="emptyState" class="glass-card-premium animate-slide-up text-center p-5"
-                    th:if="${selectedStudentId == null}">
-                    <div class="empty-state-icon mb-3" style="font-size: 3rem; color: #cbd5e1;">
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
-                    <h3 class="h5 fw-bold">No Student Selected</h3>
-                    <p class="text-muted">Please select a class and student from the sidebar to begin.</p>
-                </div>
-
-                <!-- Assessment Card -->
-                <div id="assessmentCard" class="glass-card-premium animate-slide-up" style="display: none;">
-                    <!-- Student Profile Header -->
-                    <div class="student-profile-header p-4 border-bottom d-flex align-items-center gap-4">
-                        <div class="student-avatar-large bg-primary text-white d-flex align-items-center justify-content-center rounded-circle"
-                            id="studentAvatar" style="width: 64px; height: 64px; font-size: 1.5rem; font-weight: 700;">
-                            JS
-                        </div>
-                        <div class="student-info-main">
-                            <h2 class="h4 fw-bold mb-1" id="studentNameHeader">Student Name</h2>
-                            <div class="report-meta-rows d-flex gap-3 text-muted small">
-                                <span class="report-meta-item"><i class="fas fa-id-card me-1"></i> <span
-                                        id="studentAdmissionMeta">ADM-001</span></span>
-                                <span class="report-meta-item"><i class="fas fa-layer-group me-1"></i> <span
-                                        id="studentTrackMeta">Track</span></span>
-                                <span class="report-meta-item"><i class="fas fa-school me-1"></i> <span
-                                        id="studentClassMeta">Class</span></span>
+                                <!-- Attendance Input -->
+                                <div>
+                                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.5rem;">Manual Entry (days)</label>
+                                    <input type="number" id="attendanceInput" class="premium-textarea" style="padding: 0.75rem; font-size: 1rem;" min="0" placeholder="Enter attendance days" disabled>
+                                </div>
                             </div>
-                        </div>
-                        <div class="header-actions">
-                            <button id="editModeBtn" class="btn btn-outline-primary btn-sm" onclick="toggleEditMode()">
-                                <i class="fas fa-edit me-1"></i> Edit Mode
-                            </button>
-                        </div>
-                    </div>
 
-                    <div class="card-body p-0">
-                        <!-- Tab Navigation -->
-                        <div class="px-4">
-                            <div class="report-tabs-container">
-                                <div class="report-tabs">
-                                    <button class="report-tab active" onclick="switchTab('academic')">
-                                        <i class="fas fa-book"></i> Academic Scores
-                                    </button>
-                                    <button class="report-tab" onclick="switchTab('behavioral')">
-                                        <i class="fas fa-user-check"></i> Behavioral
-                                    </button>
-                                    <button class="report-tab" onclick="switchTab('comments')">
-                                        <i class="fas fa-comment-alt"></i> Comments & Attendance
-                                    </button>
+                            <!-- Behavioral Assessment Card -->
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+                                <h3 class="section-title" style="margin-bottom: 0.5rem;">Behavioral Assessment</h3>
+                                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Scored on a scale of 1-5</p>
+                                <div id="behaviorContainer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <!-- Dynamic behavioral trait cards -->
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Tab Contents -->
-                        <div class="p-4">
-                            <!-- Academic Tab -->
-                            <div id="academicTab" class="tab-content active">
-                                <div id="scoringFallbackAlert" class="alert alert-info border-0 shadow-sm mb-4"
-                                    style="display: none; background: #eff6ff; border-left: 4px solid #3b82f6 !important;">
-                                    <div class="d-flex align-items-center">
-                                        <div class="flex-shrink-0 me-3">
-                                            <i class="fas fa-info-circle text-primary fs-4"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="h6 fw-bold mb-1 text-primary">Standard Scoring Active</h4>
-                                            <p class="mb-0 small text-muted">Standard components (CA 1, CA 2, Exam) are
-                                                being used for some subjects as they lack a defined scoring scheme.</p>
-                                        </div>
+                        <!-- Right Panel: Narrative Assessment (Comments) -->
+                        <div>
+                            <h2 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">Narrative Assessment</h2>
+                            
+                            <!-- Class Teacher Comments -->
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(139, 92, 246, 0.12); display: flex; align-items: center; justify-content: center; color: #8b5cf6;">
+                                        <i class="fas fa-user-tie"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0;">Class Teacher's Comments</h3>
+                                        <p style="font-size: 0.8rem; color: #64748b; margin: 0;">General academic and social evaluation</p>
                                     </div>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle">
-                                        <thead class="table-light">
-                                            <tr id="tableHeaderRow">
-                                                <!-- Dynamic Headers -->
-                                            </tr>
-                                        </thead>
-                                        <tbody id="assessmentTableBody">
-                                            <!-- Dynamic Rows -->
-                                        </tbody>
-                                    </table>
-                                </div>
+                                <textarea id="classTeacherComment" class="premium-textarea" rows="4" placeholder="Enter class teacher's detailed observation..." disabled></textarea>
                             </div>
 
-                            <!-- Behavioral Tab -->
-                            <div id="behavioralTab" class="tab-content">
-                                <div class="behavioral-header mb-4">
-                                    <h4 class="h6 fw-bold mb-1">Behavioral Assessment</h4>
-                                    <p class="text-muted small">Rate each trait on a scale of 1-5 (1 = Poor, 5 =
-                                        Excellent)</p>
+                            <!-- Head Teacher Comments -->
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+                                        <i class="fas fa-user-shield"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0;">Head Teacher's Remarks</h3>
+                                        <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Final assessment and promotion recommendations</p>
+                                    </div>
                                 </div>
-                                <div class="behavioral-traits-grid" id="behaviorContainer">
-                                    <!-- Dynamic Trait Cards -->
-                                </div>
+                                <textarea id="headTeacherComment" class="premium-textarea" rows="4" placeholder="Waiting for head teacher review..." disabled></textarea>
                             </div>
 
-                            <!-- Comments Tab -->
-                            <div id="commentsTab" class="tab-content">
-                                <div class="comments-layout-wrapper mx-auto" style="max-width: 900px;">
-                                    <!-- Attendance Card -->
-                                    <div class="comment-card attendance-card">
-                                        <div class="comment-icon-wrapper"
-                                            style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
-                                            <i class="fas fa-calendar-check"></i>
-                                        </div>
-                                        <h3 class="section-title">Term Attendance</h3>
-                                        <p class="section-subtitle">Number of days the student was present in school
-                                            this
-                                            term</p>
+                            <!-- Save & Finalize Button -->
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <button onclick="saveAssessment()" style="background: #0f172a; color: white; padding: 0.75rem 2rem; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    ✓ Save & Finalize Assessment
+                                </button>
+                            </div>
 
-                                        <div class="attendance-input-group">
-                                            <input type="number" id="attendanceInput"
-                                                class="attendance-number-box text-center border-0" min="0"
-                                                placeholder="0" disabled>
-                                            <div class="fw-bold text-muted small text-uppercase letter-spacing-1">Days
-                                                Present</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Class Teacher Remark -->
-                                    <div class="comment-card">
-                                        <div class="d-flex align-items-center gap-4 mb-4">
-                                            <div class="comment-icon-wrapper mb-0"
-                                                style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
-                                                <i class="fas fa-user-tie"></i>
-                                            </div>
-                                            <div>
-                                                <h3 class="section-title mb-0">Class Teacher's Remark</h3>
-                                                <p class="section-subtitle mb-0">General academic and social evaluation
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <textarea id="classTeacherComment" class="premium-textarea" rows="4"
-                                            placeholder="Enter academic remarks..." disabled></textarea>
-                                    </div>
-
-                                    <!-- Head Teacher Remark -->
-                                    <div class="comment-card">
-                                        <div class="d-flex align-items-center gap-4 mb-4">
-                                            <div class="comment-icon-wrapper mb-0"
-                                                style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
-                                                <i class="fas fa-user-shield"></i>
-                                            </div>
-                                            <div>
-                                                <h3 class="section-title mb-0">Head Teacher's Remark</h3>
-                                                <p class="section-subtitle mb-0">Final assessment and promotion
-                                                    recommendations</p>
-                                            </div>
-                                        </div>
-                                        <textarea id="headTeacherComment" class="premium-textarea" rows="4"
-                                            placeholder="Waiting for head teacher review..." disabled></textarea>
-                                    </div>
-                                </div>
+                            <!-- Discard Changes Button -->
+                            <div style="margin-top: 0.75rem; text-align: center;">
+                                <button onclick="clearAllEntries()" style="background: white; color: #64748b; padding: 0.5rem 2rem; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; cursor: pointer; width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    Discard Changes
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -718,18 +1836,18 @@
 
     <script>
         function toggleSidebar(show) {
-            const sidebar = document.getElementById('staffSidebar');
+            const sidebar = document.querySelector('.reports-sidebar');
             const backdrop = document.getElementById('reportsBackdrop');
             const toggle = document.getElementById('toggleSidebar');
 
-            if (show) {
+            if (show && sidebar) {
                 sidebar.classList.add('active');
-                backdrop.classList.add('active');
-                toggle.style.display = 'none';
-            } else {
+                if (backdrop) backdrop.classList.add('active');
+                if (toggle) toggle.style.display = 'none';
+            } else if (sidebar) {
                 sidebar.classList.remove('active');
-                backdrop.classList.remove('active');
-                if (window.innerWidth <= 1024) {
+                if (backdrop) backdrop.classList.remove('active');
+                if (toggle && window.innerWidth <= 1024) {
                     toggle.style.display = 'flex';
                 }
             }
@@ -747,475 +1865,739 @@
     </script>
 
     <script th:inline="javascript">
-        // --- State Management ---
-        let currentStudentData = null;
-        let isEditMode = false;
+        // currentStudentData and isEditMode are already declared in assessment-reports.js shared module
+        
+        // Track selections
+        let selectedSession = '';
+        let selectedTerm = '';
+        let selectedClass = '';
+        let selectedStudent = '';
 
-        // --- Core Filter Logic ---
-        function updateFilters() {
-            const session = document.getElementById('sessionFilter').value;
-            const term = document.getElementById('termFilter').value;
-            const classId = document.getElementById('classFilter').value;
+        // Initialize page with current session and term
+        function initializeFilters() {
+            const sessionSelect = document.getElementById('sessionSelect');
+            const termSelect = document.getElementById('termSelect');
+            
+            // Get current values from data attributes
+            const currentSessionValue = sessionSelect.getAttribute('data-current-value');
+            const currentTermValue = termSelect.getAttribute('data-current-value');
+            
+            // Set current session
+            if (currentSessionValue) {
+                sessionSelect.value = currentSessionValue;
+                selectedSession = currentSessionValue;
+            }
+            
+            // Set current term
+            if (currentTermValue) {
+                termSelect.value = currentTermValue;
+                selectedTerm = currentTermValue;
+                // Fetch classes for the current session and term
+                loadClassesForTerm();
+            }
+        }
+        
+        // Load classes for current session and term from backend
+        async function loadClassesForTerm() {
+            if (!selectedSession || !selectedTerm) return;
+            
+            const classSelect = document.getElementById('classSelect');
+            classSelect.innerHTML = '<option value="">Loading classes...</option>';
+            
+            try {
+                const url = `/staff/reports/filter-classes?sessionId=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const classes = await response.json();
+                    classSelect.innerHTML = '<option value="">Select Class...</option>';
+                    
+                    if (classes.length === 0) {
+                        classSelect.innerHTML = '<option value="">No classes available</option>';
+                    } else {
+                        classes.forEach(cls => {
+                            const option = document.createElement('option');
+                            option.value = cls.id;
+                            option.textContent = cls.className;
+                            classSelect.appendChild(option);
+                        });
+                    }
+                } else {
+                    classSelect.innerHTML = '<option value="">Error loading classes</option>';
+                    console.error('Failed to load classes:', response.status);
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                classSelect.innerHTML = '<option value="">Error loading classes</option>';
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeFilters);
 
-            if (session && term && classId) {
-                applyFilters();
+        // ===== Edit Mode Toggle =====
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const toggle = document.getElementById('editModeToggle');
+            const status = document.getElementById('editModeStatus');
+            
+            if (isEditMode) {
+                toggle.classList.add('active');
+                status.classList.add('active');
+                status.textContent = 'On - Editing Enabled';
             } else {
-                const container = document.getElementById('studentSelectorContainer');
-                container.innerHTML = '<select id="studentSelect" class="form-select form-select-sm" onchange="loadStudentData()"><option value="">Select session, term & class first</option></select>';
-                document.getElementById('assessmentCard').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'block';
+                toggle.classList.remove('active');
+                status.classList.remove('active');
+                status.textContent = 'Off - Read Only';
+            }
+            
+            // Enable/disable attendance and comment fields
+            const attendanceInput = document.getElementById('attendanceInput');
+            const classTeacherComment = document.getElementById('classTeacherComment');
+            const headTeacherComment = document.getElementById('headTeacherComment');
+            
+            if (attendanceInput) attendanceInput.disabled = !isEditMode;
+            if (classTeacherComment) classTeacherComment.disabled = !isEditMode;
+            if (headTeacherComment) headTeacherComment.disabled = !isEditMode;
+            
+            // Re-render the assessment table to update input disabled state
+            if (currentStudentData) {
+                renderAssessmentTable();
+                renderBehavioralAssessment();
             }
         }
 
-        async function applyFilters() {
-            const session = document.getElementById('sessionFilter').value;
-            const term = document.getElementById('termFilter').value;
-            const classId = document.getElementById('classFilter').value;
-
-            if (!session || !term || !classId) return;
-
-            const baseUrl = /*[[@{/staff/reports/class/filter}]]*/ '/staff/reports/class/filter';
-            const url = `${baseUrl}?sessionYear=${session}&term=${term}&classId=${classId}`;
-
-            htmx.ajax('GET', url, {
-                target: '#studentSelectorContainer',
-                swap: 'innerHTML'
-            });
+        // ===== Filter Handlers =====
+        function handleSessionChange() {
+            const sessionSelect = document.getElementById('sessionSelect');
+            selectedSession = sessionSelect.value;
+            
+            // Clear dependent selections
+            selectedTerm = '';
+            selectedClass = '';
+            selectedStudent = '';
+            
+            // Reset dependent dropdowns
+            document.getElementById('termSelect').value = '';
+            document.getElementById('classSelect').innerHTML = '<option value="">Select Class...</option>';
+            document.getElementById('studentSelect').innerHTML = '<option value="">Select Student...</option>';
+            
+            document.getElementById('studentCardContainer').style.display = 'none';
+            document.getElementById('reportSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
         }
 
-        // --- Student Data Management ---
-        async function loadStudentData() {
-            const studentId = document.getElementById('studentSelect').value;
-            const session = document.getElementById('sessionFilter').value;
-            const term = document.getElementById('termFilter').value;
-            const classId = document.getElementById('classFilter').value;
+        function handleTermChange() {
+            const termSelect = document.getElementById('termSelect');
+            selectedTerm = termSelect.value;
+            
+            // Clear dependent selections
+            selectedClass = '';
+            selectedStudent = '';
+            
+            // Reset student dropdown
+            document.getElementById('studentSelect').innerHTML = '<option value="">Select Student...</option>';
+            
+            // Load classes for the selected term and session
+            loadClassesForTerm();
+            
+            document.getElementById('studentCardContainer').style.display = 'none';
+            document.getElementById('reportSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+        }
 
-            if (!studentId) {
-                document.getElementById('assessmentCard').style.display = 'none';
+        async function handleClassChange() {
+            const classSelect = document.getElementById('classSelect');
+            selectedClass = classSelect.value;
+            selectedStudent = '';
+
+            // Populate students dropdown
+            const studentSelect = document.getElementById('studentSelect');
+            studentSelect.innerHTML = '<option value="">Select Student...</option>';
+
+            if (selectedClass && selectedSession && selectedTerm) {
+                try {
+                    // Updated endpoint - using query parameters for session/term context
+                    const url = `/staff/reports/class/${selectedClass}/students?sessionId=${selectedSession}&termId=${selectedTerm}`;
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        const students = await response.json();
+                        students.forEach(student => {
+                            const option = document.createElement('option');
+                            option.value = student.id;
+                            option.textContent = `${student.user?.fullName || student.name} (${student.admissionNumber})`;
+                            studentSelect.appendChild(option);
+                        });
+                    } else if (response.status === 404) {
+                        console.warn('Endpoint not found. Trying alternative endpoint...');
+                        // Try alternative endpoint
+                        const altResponse = await fetch(`/staff/class/${selectedClass}/students?session=${selectedSession}&term=${selectedTerm}`);
+                        if (altResponse.ok) {
+                            const students = await altResponse.json();
+                            students.forEach(student => {
+                                const option = document.createElement('option');
+                                option.value = student.id;
+                                option.textContent = `${student.user?.fullName || student.name} (${student.admissionNumber})`;
+                                studentSelect.appendChild(option);
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading students:', error);
+                    studentSelect.innerHTML = '<option value="">Error loading students</option>';
+                }
+            } else {
+                studentSelect.innerHTML = '<option value="">Select session and term first</option>';
+            }
+
+            document.getElementById('studentCardContainer').style.display = 'none';
+            document.getElementById('reportSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('classDownloadSection').style.display = selectedClass ? 'block' : 'none';
+        }
+
+        async function handleStudentChange() {
+            const studentSelect = document.getElementById('studentSelect');
+            selectedStudent = studentSelect.value;
+
+            if (selectedStudent && selectedClass) {
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('studentCardContainer').style.display = 'block';
+                document.getElementById('reportSection').style.display = 'block';
+                document.getElementById('classDownloadSection').style.display = 'none';
+                
+                // Close sidebar on mobile after student selection
+                if (window.innerWidth <= 1024) {
+                    toggleSidebar(false);
+                }
+                
+                // Load student data
+                await loadStudentData(selectedStudent);
+            } else {
+                document.getElementById('studentCardContainer').style.display = 'none';
+                document.getElementById('reportSection').style.display = 'none';
                 document.getElementById('emptyState').style.display = 'block';
+                
+                // Show download section if a class is selected
+                if (selectedClass) {
+                    document.getElementById('classDownloadSection').style.display = 'block';
+                } else {
+                    document.getElementById('classDownloadSection').style.display = 'none';
+                }
+            }
+        }
+
+        async function loadStudentData(studentId) {
+            if (!studentId || !selectedClass) return;
+
+            try {
+                // Build URL with correct endpoint and parameter names
+                const url = `/staff/reports/class/student-data?studentId=${studentId}&classId=${selectedClass}&session=${encodeURIComponent(selectedSession)}&term=${encodeURIComponent(selectedTerm)}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) throw new Error('Failed to load data');
+
+                currentStudentData = await response.json();
+
+                // Update student card
+                const names = currentStudentData.studentName.split(' ');
+                const initials = names.length > 1 ? 
+                    (names[0][0] + names[names.length - 1][0]).toUpperCase() : 
+                    names[0][0].toUpperCase();
+
+                // Safely update card elements if they exist
+                const cardAvatar = document.getElementById('cardAvatar');
+                const cardStudentName = document.getElementById('cardStudentName');
+                const cardStudentId = document.getElementById('cardStudentId');
+                const cardAdmissionNumber = document.getElementById('cardAdmissionNumber');
+                const cardClassName = document.getElementById('cardClassName');
+                
+                if (cardAvatar) cardAvatar.textContent = initials;
+                if (cardStudentName) cardStudentName.textContent = currentStudentData.studentName;
+                if (cardStudentId) cardStudentId.textContent = currentStudentData.admissionNumber;
+                if (cardAdmissionNumber) cardAdmissionNumber.textContent = currentStudentData.admissionNumber;
+                if (cardClassName) cardClassName.textContent = currentStudentData.className || 'N/A';
+
+                // Populate form fields
+                const attendanceInput = document.getElementById('attendanceInput');
+                const classTeacherComment = document.getElementById('classTeacherComment');
+                const headTeacherComment = document.getElementById('headTeacherComment');
+                
+                if (attendanceInput) attendanceInput.value = currentStudentData.attendance || 0;
+                if (classTeacherComment) classTeacherComment.value = currentStudentData.classTeacherComment || '';
+                if (headTeacherComment) headTeacherComment.value = currentStudentData.headTeacherComment || '';
+
+                // Update attendance display
+                const attendanceValue = currentStudentData.attendance || 0;
+                const attendanceRate = document.getElementById('attendanceRate');
+                const daysPresent = document.getElementById('daysPresent');
+                const daysAbsent = document.getElementById('daysAbsent');
+                
+                if (attendanceRate) attendanceRate.textContent = attendanceValue + '%';
+                if (daysPresent) daysPresent.textContent = attendanceValue > 0 ? Math.round(attendanceValue * 1.8) : 0;
+                if (daysAbsent) daysAbsent.textContent = attendanceValue > 0 ? Math.round(180 - (attendanceValue * 1.8)) : 0;
+
+                // Render table
+                renderAssessmentTable();
+                renderBehavioralAssessment();
+
+                // Update summary
+                updateSummary();
+
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                alert('Error loading student data: ' + error.message);
+                // Reset UI on error - safely with null checks
+                const studentCardContainer = document.getElementById('studentCardContainer');
+                const reportSection = document.getElementById('reportSection');
+                const emptyState = document.getElementById('emptyState');
+                
+                if (studentCardContainer) studentCardContainer.style.display = 'none';
+                if (reportSection) reportSection.style.display = 'none';
+                if (emptyState) emptyState.style.display = 'block';
+            }
+        }
+
+        function renderAssessmentTable() {
+            const tbody = document.getElementById('assessmentTableBody');
+            if (!tbody) return; // Exit if tbody doesn't exist
+            if (!currentStudentData || !currentStudentData.subjects) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No data available</td></tr>';
                 return;
             }
 
-            const url = `/staff/reports/class/student-data?studentId=${studentId}&classId=${classId}&session=${session}&term=${term}&v=${Date.now()}`;
-
-            htmx.ajax('GET', url, {
-                handler: function (elt, info) {
-                    if (info.xhr.status === 200) {
-                        try {
-                            currentStudentData = JSON.parse(info.xhr.responseText);
-
-                            // Update Profile Info
-                            document.getElementById('studentNameHeader').textContent = currentStudentData.studentName;
-                            document.getElementById('studentAdmissionMeta').textContent = currentStudentData.admissionNumber;
-                            document.getElementById('studentClassMeta').textContent = currentStudentData.className;
-                            document.getElementById('studentTrackMeta').textContent = currentStudentData.trackName;
-
-                            // Avatar
-                            const names = currentStudentData.studentName.split(' ');
-                            const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0][0].toUpperCase();
-                            document.getElementById('studentAvatar').textContent = initials;
-
-                            // Basic Fields
-                            document.getElementById('attendanceInput').value = currentStudentData.attendance || 0;
-                            document.getElementById('classTeacherComment').value = currentStudentData.classTeacherComment || '';
-                            document.getElementById('headTeacherComment').value = currentStudentData.headTeacherComment || '';
-
-                            // Render Complex UI
-                            isEditMode = false;
-                            document.getElementById('scoringFallbackAlert').style.display = 'none';
-                            renderAssessmentTable();
-                            renderBehavioralAssessment();
-                            updateEditModeUI();
-
-                            document.getElementById('emptyState').style.display = 'none';
-                            document.getElementById('assessmentCard').style.display = 'block';
-                            switchTab('academic');
-                        } catch (error) {
-                            console.error('Error parsing student data:', error);
-                            alert('Error processing student data');
-                        }
-                    } else {
-                        console.error('Error loading student data:', info.xhr.status);
-                        // If it's a redirect, HTMX will handle it before this
-                    }
-                }
-            });
-        }
-
-        // --- UI Rendering ---
-        function renderAssessmentTable() {
-            const headerRow = document.getElementById('tableHeaderRow');
-            const tbody = document.getElementById('assessmentTableBody');
-            if (!currentStudentData) return;
-
-            let usesFallback = false;
-            const components = new Set();
-            currentStudentData.subjects.forEach(s => {
-                if (s.scoringScheme) {
-                    try {
-                        const scheme = JSON.parse(s.scoringScheme);
-                        scheme.forEach(item => components.add(item.alias || item.name));
-                    } catch (e) { }
-                }
-            });
-
-            if (components.size === 0) {
-                ['CA', 'Exam'].forEach(c => components.add(c));
-                usesFallback = true;
-            }
-
-            const componentList = Array.from(components);
-
-            // Table Header
-            headerRow.innerHTML = '<th style="width: 30%;">Subject</th>';
-            componentList.forEach(c => headerRow.innerHTML += `<th class="text-center">${c}</th>`);
-            headerRow.innerHTML += `
-                <th class="text-center" style="width: 80px;">Total</th>
-                <th class="text-center" style="width: 80px;">Grade</th>
-                <th class="text-center" style="width: 100px;">Remark</th>
-            `;
-
-            // Table Body
             tbody.innerHTML = '';
-            currentStudentData.subjects.forEach(s => {
+            currentStudentData.subjects.forEach(subject => {
                 const tr = document.createElement('tr');
-                let scheme = [];
-                try { scheme = s.scoringScheme ? JSON.parse(s.scoringScheme) : []; } catch (e) { }
+                const total = (subject.ca1 || 0) + (subject.ca2 || 0) + (subject.exam || 0);
+                
+                let grade = 'F';
+                if (total >= 70) grade = 'A';
+                else if (total >= 60) grade = 'B';
+                else if (total >= 50) grade = 'C';
+                else if (total >= 45) grade = 'D';
+                else if (total >= 40) grade = 'E';
 
-                let rowHtml = `<td><div class="fw-bold">${s.subjectName}</div></td>`;
-                componentList.forEach(c => {
-                    let schemeItem = scheme.find(item => (item.alias || item.name) === c);
+                const disabledAttr = isEditMode ? '' : 'disabled';
+                const displayCA1 = subject.ca1 > 0 ? subject.ca1 : '';
+                const displayCA2 = subject.ca2 > 0 ? subject.ca2 : '';
+                const displayExam = subject.exam > 0 ? subject.exam : '';
 
-                    // Fallback: If no scheme item, provide default max and render input
-                    if (!schemeItem) {
-                        schemeItem = { name: c, max: c === 'CA' ? 40 : (c === 'Exam' ? 60 : 100) };
-                        usesFallback = true;
-                    }
-
-                    let val = '';
-                    if (s.scores && s.scores[c] !== undefined && s.scores[c] !== null) val = s.scores[c];
-                    else if (c.toLowerCase().includes('ca 1') && s.ca1 !== null) val = s.ca1;
-                    else if (c.toLowerCase().includes('ca 2') && s.ca2 !== null) val = s.ca2;
-                    else if (c.toLowerCase().includes('exam') && s.exam !== null) val = s.exam;
-
-                    rowHtml += `
-                        <td>
-                            <div class="d-flex align-items-center justify-content-center gap-1">
-                                <input type="number" class="form-control form-control-sm text-center score-input" 
-                                       style="width: 60px;" data-subject-id="${s.subjectId}" data-component="${c}"
-                                       value="${val}" min="0" max="${schemeItem.max}" ${isEditMode ? '' : 'disabled'}
-                                       oninput="if(this.value !== '' && Number(this.value) > Number(this.max)) this.value = this.max; updateRowTotal(this)"
-                                       onchange="updateRowTotal(this)">
-                                <span class="text-muted small">/ ${schemeItem.max}</span>
-                            </div>
-                        </td>
-                    `;
-                });
-
-                rowHtml += `
-                    <td class="text-center fw-bold row-total">${s.total !== null ? s.total : ''}</td>
-                    <td class="text-center"><span class="badge ${s.grade && s.grade !== '-' ? 'bg-primary' : 'bg-light text-dark border'} row-grade">${s.grade || '-'}</span></td>
-                    <td class="text-center"><span class="badge bg-light text-dark border row-remark">${s.remark || '-'}</span></td>
+                tr.innerHTML = `
+                    <td class="subject-name-cell">${subject.subjectName}</td>
+                    <td class="score-cell score-input-cell" style="text-align: center;">
+                        <input type="number" data-subject-id="${subject.subjectId}" data-component="ca1" 
+                               max="20" min="0" class="score-input" value="${displayCA1}" ${disabledAttr}
+                               oninput="validateScoreInput(this)" onchange="updateRowTotal(this)" style="width: 60px;">
+                    </td>
+                    <td class="score-cell score-input-cell" style="text-align: center;">
+                        <input type="number" data-subject-id="${subject.subjectId}" data-component="ca2" 
+                               max="20" min="0" class="score-input" value="${displayCA2}" ${disabledAttr}
+                               oninput="validateScoreInput(this)" onchange="updateRowTotal(this)" style="width: 60px;">
+                    </td>
+                    <td class="score-cell score-input-cell" style="text-align: center;">
+                        <input type="number" data-subject-id="${subject.subjectId}" data-component="exam" 
+                               max="60" min="0" class="score-input" value="${displayExam}" ${disabledAttr}
+                               oninput="validateScoreInput(this)" onchange="updateRowTotal(this)" style="width: 60px;">
+                    </td>
+                    <td class="score-cell total-cell" data-total="${total}" style="text-align: center;">${total}</td>
+                    <td class="score-cell" style="text-align: center;"><span class="grade-badge">${grade}</span></td>
                 `;
-                tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
             });
-
-            document.getElementById('scoringFallbackAlert').style.display = usesFallback ? 'block' : 'none';
         }
 
         function updateRowTotal(input) {
             const tr = input.closest('tr');
             const inputs = tr.querySelectorAll('.score-input');
-            let total = 0, allFilled = true;
+            let total = 0;
 
             inputs.forEach(inp => {
-                if (inp.value === '') allFilled = false;
-                else total += parseInt(inp.value) || 0;
+                const value = parseFloat(inp.value) || 0;
+                if (inp.value.trim() !== '') {
+                    total += value;
+                }
             });
 
-            const totalCell = tr.querySelector('.row-total');
-            const gradeBadge = tr.querySelector('.row-grade');
-            const remarkCell = tr.querySelector('.row-remark');
+            const totalCell = tr.querySelector('.total-cell');
+            totalCell.textContent = total;
+            totalCell.setAttribute('data-total', total);
 
-            if (!allFilled) {
-                totalCell.textContent = '';
-                gradeBadge.textContent = '-';
-                gradeBadge.className = 'badge bg-light text-dark border row-grade';
-                remarkCell.textContent = '-';
+            let grade = 'F';
+            if (total >= 70) grade = 'A';
+            else if (total >= 60) grade = 'B';
+            else if (total >= 50) grade = 'C';
+            else if (total >= 45) grade = 'D';
+            else if (total >= 40) grade = 'E';
+
+            tr.querySelector('.grade-badge').textContent = grade;
+            
+            // Update summary when any score changes
+            updateSummary();
+        }
+
+        function validateScoreInput(input) {
+            const max = parseInt(input.getAttribute('max'));
+            const value = parseFloat(input.value);
+
+            if (input.value === '') {
+                input.classList.remove('is-invalid');
                 return;
             }
 
-            totalCell.textContent = total;
-            let grade = 'F', remark = 'Fail', badgeClass = 'bg-danger';
-            if (total >= 70) { grade = 'A'; remark = 'Excellent'; badgeClass = 'bg-success'; }
-            else if (total >= 60) { grade = 'B'; remark = 'Very Good'; badgeClass = 'bg-primary'; }
-            else if (total >= 50) { grade = 'C'; remark = 'Good'; badgeClass = 'bg-info text-dark'; }
-            else if (total >= 45) { grade = 'D'; remark = 'Fair'; badgeClass = 'bg-warning text-dark'; }
-            else if (total >= 40) { grade = 'E'; remark = 'Pass'; badgeClass = 'bg-secondary'; }
+            if (isNaN(value) || value < 0 || value > max) {
+                input.classList.add('is-invalid');
+                input.value = Math.max(0, Math.min(max, value));
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        }
 
-            gradeBadge.textContent = grade;
-            gradeBadge.className = `badge ${badgeClass} row-grade`;
-            remarkCell.textContent = remark;
+        function updateSummary() {
+            let totalSubjects = 0;
+            let totalScore = 0;
+
+            document.querySelectorAll('#assessmentTableBody tr').forEach(tr => {
+                totalSubjects++;
+                const total = parseInt(tr.querySelector('.total-cell').getAttribute('data-total')) || 0;
+                totalScore += total;
+            });
+
+            const avgScore = totalSubjects > 0 ? (totalScore / (totalSubjects * 100) * 4.0).toFixed(2) : 0;
+
+            // Only update if elements exist (for backward compatibility)
+            const totalCreditsEl = document.getElementById('totalCredits');
+            const termGPAEl = document.getElementById('termGPA');
+            if (totalCreditsEl) totalCreditsEl.textContent = totalSubjects + '.0';
+            if (termGPAEl) termGPAEl.textContent = avgScore;
         }
 
         function renderBehavioralAssessment() {
-            const container = document.getElementById('behaviorContainer');
-            if (!container || !currentStudentData) return;
-            container.innerHTML = '';
+            if (document.getElementById('behaviorContainer')) {
+                const container = document.getElementById('behaviorContainer');
+                container.innerHTML = '';
 
-            const traits = [
-                { key: 'fluency', label: 'Fluency', icon: 'fa-comment-dots', color: '#3b82f6' },
-                { key: 'handwriting', label: 'Handwriting', icon: 'fa-pen-nib', color: '#8b5cf6' },
-                { key: 'game', label: 'Game/Sports', icon: 'fa-volleyball-ball', color: '#10b981' },
-                { key: 'initiative', label: 'Initiative', icon: 'fa-lightbulb', color: '#f59e0b' },
-                { key: 'criticalThinking', label: 'Critical Thinking', icon: 'fa-brain', color: '#ec4899' },
-                { key: 'punctuality', label: 'Punctuality', icon: 'fa-clock', color: '#06b6d4' },
-                { key: 'attentiveness', label: 'Attentiveness', icon: 'fa-eye', color: '#6366f1' },
-                { key: 'neatness', label: 'Neatness', icon: 'fa-broom', color: '#14b8a6' },
-                { key: 'selfDiscipline', label: 'Self Discipline', icon: 'fa-user-shield', color: '#ef4444' },
-                { key: 'politeness', label: 'Politeness', icon: 'fa-smile', color: '#f97316' }
-            ];
+                const traits = [
+                    { key: 'punctuality', label: 'Punctuality', icon: 'fa-clock' },
+                    { key: 'neatness', label: 'Neatness', icon: 'fa-sparkles' },
+                    { key: 'politeness', label: 'Relationship with Peers', icon: 'fa-handshake' },
+                    { key: 'initiative', label: 'Leadership', icon: 'fa-star' },
+                    { key: 'handwriting', label: 'Handwriting', icon: 'fa-pen-fancy' },
+                    { key: 'fluency', label: 'Communication', icon: 'fa-comments' },
+                    { key: 'game', label: 'Game/Sports', icon: 'fa-basketball' },
+                    { key: 'attentiveness', label: 'Attentiveness', icon: 'fa-eye' },
+                    { key: 'criticalThinking', label: 'Critical Thinking', icon: 'fa-lightbulb' },
+                    { key: 'selfDiscipline', label: 'Self Discipline', icon: 'fa-dumbbell' }
+                ];
 
-            traits.forEach(trait => {
-                const val = currentStudentData[trait.key] || 0;
-                let buttons = '';
-                for (let i = 1; i <= 5; i++) {
-                    buttons += `<button type="button" class="behavior-score-btn ${i === val ? 'active' : ''}" 
-                                ${!isEditMode ? 'disabled' : ''} onclick="selectBehavior(this, '${trait.key}', ${i})">${i}</button>`;
-                }
-                container.innerHTML += `
-                    <div class="behavioral-trait-card">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="p-2 rounded-lg" style="background: ${trait.color}10; color: ${trait.color}; min-width: 36px; text-align: center;">
+                traits.forEach(trait => {
+                    const value = currentStudentData[trait.key] || 0;
+                    const buttonsHtml = Array.from({length: 5}, (_, i) => {
+                        const ratingValue = i + 1;
+                        const isActive = ratingValue === value ? 'active' : '';
+                        const disabledAttr = !isEditMode ? 'disabled' : '';
+                        return `<button class="behavior-score-btn ${isActive}" ${disabledAttr} 
+                                onclick="selectBehavior(this, '${trait.key}', ${ratingValue})">${ratingValue}</button>`;
+                    }).join('');
+
+                    const scoreDisplay = value > 0 ? `${value}/5` : '0/5';
+                    const bgColor = value === 0 ? '#e0e7ff' : '#dbeafe';
+                    const iconColor = value === 0 ? '#6366f1' : '#0284c7';
+
+                    const traitCard = document.createElement('div');
+                    traitCard.style.cssText = `
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 0.75rem;
+                        background: ${bgColor};
+                        border-radius: 8px;
+                        padding: 0.75rem;
+                        transition: all 0.2s ease;
+                    `;
+                    traitCard.className = 'behavioral-trait-card';
+                    traitCard.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                            <div style="width: 36px; height: 36px; border-radius: 8px; background: white; display: flex; align-items: center; justify-content: center; color: ${iconColor}; font-size: 0.9rem; flex-shrink: 0;">
                                 <i class="fas ${trait.icon}"></i>
                             </div>
-                            <span class="fw-bold small text-dark">${trait.label}</span>
+                            <span style="font-size: 0.9rem; font-weight: 600; color: #1e293b;">${trait.label}</span>
                         </div>
-                        <div class="rating-buttons">${buttons}</div>
-                        <input type="hidden" id="behavior_${trait.key}" value="${val}">
-                    </div>`;
-            });
-        }
-
-        // --- Interaction Handlers ---
-        window.switchTab = function (tabId) {
-            document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
-            const tabBtn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
-            if (tabBtn) tabBtn.classList.add('active');
-
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            const content = document.getElementById(tabId + 'Tab');
-            if (content) content.classList.add('active');
-        };
-
-        window.toggleEditMode = function () {
-            isEditMode = !isEditMode;
-            updateEditModeUI();
-        };
-
-        function updateEditModeUI() {
-            const btn = document.getElementById('editModeBtn');
-            if (btn) {
-                btn.innerHTML = isEditMode ? '<i class="fas fa-times me-1"></i> Cancel Edit' : '<i class="fas fa-edit me-1"></i> Edit Mode';
-                btn.className = isEditMode ? 'btn btn-outline-danger btn-sm' : 'btn btn-outline-primary btn-sm';
-            }
-
-            // Sync all inputs and textareas
-            const selectors = ['input.score-input', 'textarea.form-control', 'input#attendanceInput', 'button.behavior-score-btn'];
-            selectors.forEach(sel => {
-                document.querySelectorAll(sel).forEach(el => {
-                    el.disabled = !isEditMode;
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div class="rating-buttons" style="display: flex; gap: 0.3rem;">
+                                ${buttonsHtml}
+                            </div>
+                            <div style="font-size: 0.85rem; font-weight: 700; color: ${iconColor}; min-width: 35px; text-align: right;">
+                                ${scoreDisplay}
+                            </div>
+                        </div>
+                        <input type="hidden" id="behavior_${trait.key}" value="${value}">
+                    `;
+                    container.appendChild(traitCard);
                 });
-            });
+            }
         }
 
-        window.selectBehavior = function (btn, key, val) {
+        window.selectBehavior = function (btn, key, value) {
             if (!isEditMode) return;
             const card = btn.closest('.behavioral-trait-card');
             card.querySelectorAll('.behavior-score-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             const input = document.getElementById(`behavior_${key}`);
-            if (input) input.value = val;
+            if (input) input.value = value;
         };
 
-        // --- Save Logic ---
-        async function saveAssessment() {
-            const studentId = document.getElementById('studentSelect').value;
-            if (!studentId) return;
-
-            const scores = [];
-            document.querySelectorAll('#assessmentTableBody tr').forEach(row => {
-                const inputs = row.querySelectorAll('.score-input');
-                if (inputs.length === 0) return;
-
-                const subjectId = inputs[0].dataset.subjectId;
-                const subjectScores = {};
-                inputs.forEach(inp => subjectScores[inp.dataset.component] = inp.value === '' ? null : parseInt(inp.value));
-
-                scores.push({
-                    subjectId: subjectId,
-                    scores: subjectScores
-                });
+        function recalculateGrades() {
+            document.querySelectorAll('#assessmentTableBody tr').forEach(tr => {
+                const inputs = tr.querySelectorAll('.score-input');
+                if (inputs.length > 0) {
+                    updateRowTotal(inputs[0]);
+                }
             });
+        }
 
-            const payload = {
-                studentId: studentId,
-                classId: document.getElementById('classFilter').value,
-                session: document.getElementById('sessionFilter').value,
-                term: document.getElementById('termFilter').value,
-                scores: scores,
-                attendance: parseInt(document.getElementById('attendanceInput').value) || 0,
-                classTeacherComment: document.getElementById('classTeacherComment').value,
-                headTeacherComment: document.getElementById('headTeacherComment').value,
-                fluency: parseInt(document.getElementById('behavior_fluency')?.value) || 0,
-                handwriting: parseInt(document.getElementById('behavior_handwriting')?.value) || 0,
-                game: parseInt(document.getElementById('behavior_game')?.value) || 0,
-                initiative: parseInt(document.getElementById('behavior_initiative')?.value) || 0,
-                criticalThinking: parseInt(document.getElementById('behavior_criticalThinking')?.value) || 0,
-                punctuality: parseInt(document.getElementById('behavior_punctuality')?.value) || 0,
-                attentiveness: parseInt(document.getElementById('behavior_attentiveness')?.value) || 0,
-                neatness: parseInt(document.getElementById('behavior_neatness')?.value) || 0,
-                selfDiscipline: parseInt(document.getElementById('behavior_selfDiscipline')?.value) || 0,
-                politeness: parseInt(document.getElementById('behavior_politeness')?.value) || 0
-            };
+        function clearAllEntries() {
+            if (!confirm('Are you sure you want to clear all entries?')) return;
+            
+            document.querySelectorAll('.score-input').forEach(input => {
+                if (!input.disabled) input.value = '';
+            });
+            
+            recalculateGrades();
+        }
+
+        async function saveAssessment() {
+            if (!selectedStudent || !selectedClass) {
+                alert('Please select a student first');
+                return;
+            }
+
+            if (!selectedSession || !selectedTerm) {
+                alert('Please select a session and term first');
+                return;
+            }
 
             try {
-                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
-                const headers = {
-                    'Content-Type': 'application/json',
-                    'HX-Request': 'true'
+                const scores = [];
+                const rows = document.querySelectorAll('#assessmentTableBody tr');
+                
+                rows.forEach((row, index) => {
+                    const inputs = row.querySelectorAll('.score-input');
+                    if (inputs.length > 0) {
+                        const subjectId = inputs[0].getAttribute('data-subject-id');
+                        const ca1 = parseInt(inputs[0].value) || 0;
+                        const ca2 = parseInt(inputs[1].value) || 0;
+                        const exam = parseInt(inputs[2].value) || 0;
+
+                        scores.push({ subjectId, ca1, ca2, exam });
+                    }
+                });
+
+                // Collect behavioral assessment data
+                const requestData = {
+                    studentId: selectedStudent,
+                    classId: selectedClass,
+                    session: selectedSession,
+                    term: selectedTerm,
+                    scores: scores,
+                    attendance: document.getElementById('attendanceInput') ? parseInt(document.getElementById('attendanceInput').value) || 0 : 0,
+                    fluency: parseInt(document.getElementById('behavior_fluency')?.value || 0) || 0,
+                    handwriting: parseInt(document.getElementById('behavior_handwriting')?.value || 0) || 0,
+                    game: parseInt(document.getElementById('behavior_game')?.value || 0) || 0,
+                    initiative: parseInt(document.getElementById('behavior_initiative')?.value || 0) || 0,
+                    criticalThinking: parseInt(document.getElementById('behavior_criticalThinking')?.value || 0) || 0,
+                    punctuality: parseInt(document.getElementById('behavior_punctuality')?.value || 0) || 0,
+                    attentiveness: parseInt(document.getElementById('behavior_attentiveness')?.value || 0) || 0,
+                    neatness: parseInt(document.getElementById('behavior_neatness')?.value || 0) || 0,
+                    selfDiscipline: parseInt(document.getElementById('behavior_selfDiscipline')?.value || 0) || 0,
+                    politeness: parseInt(document.getElementById('behavior_politeness')?.value || 0) || 0,
+                    classTeacherComment: document.getElementById('classTeacherComment') ? document.getElementById('classTeacherComment').value : '',
+                    headTeacherComment: document.getElementById('headTeacherComment') ? document.getElementById('headTeacherComment').value : ''
                 };
-                if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+
+                const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+                const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
                 const response = await fetch('/staff/reports/class/save', {
                     method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(payload)
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(header && token ? { [header]: token } : {})
+                    },
+                    body: JSON.stringify(requestData)
                 });
 
-                // Check for HTMX redirect header (session expired)
-                const hxRedirect = response.headers.get('HX-Redirect');
-                if (hxRedirect) {
-                    window.location.href = hxRedirect;
-                    return;
-                }
-
-                const res = await response.json();
-                if (res.success) {
-                    alert('Saved successfully');
-                    loadStudentData();
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Assessment saved successfully!');
+                    loadStudentData(selectedStudent);
                 } else {
-                    alert('Error: ' + res.message);
+                    alert('Failed to save assessment');
                 }
-            } catch (e) {
-                console.error('Save error:', e);
-                alert('Connection error');
+            } catch (error) {
+                console.error('Error saving:', error);
+                alert('Error saving assessment: ' + error.message);
             }
         }
 
-        // --- Import Logic ---
-        window.openImportModal = function () {
-            const select = document.getElementById('importComponent');
-            select.innerHTML = '';
-            document.querySelectorAll('#tableHeaderRow th').forEach((th, i) => {
-                if (i > 0 && i < document.querySelectorAll('#tableHeaderRow th').length - 3) {
-                    const opt = document.createElement('option');
-                    opt.value = th.textContent;
-                    opt.textContent = th.textContent;
-                    select.appendChild(opt);
-                }
-            });
-            document.getElementById('sourceExamsContainer').innerHTML = '';
-            addSourceExamRow();
-            const modal = new bootstrap.Modal(document.getElementById('importModal'));
-            modal.show();
-        };
-
-        window.closeModal = function (id) {
-            const m = bootstrap.Modal.getInstance(document.getElementById(id));
-            if (m) m.hide();
-            else document.getElementById(id).style.display = 'none';
-        };
-
-        function addSourceExamRow() {
-            const container = document.getElementById('sourceExamsContainer');
-            const div = document.createElement('div');
-            div.className = 'd-flex gap-2 align-items-center mb-2';
-            div.innerHTML = `
-                <select class="form-select form-select-sm exam-type-select">
-                    <option value="Assignment">Assignment</option>
-                    <option value="Continuous Assessment">Continuous Assessment</option>
-                    <option value="Mid-Term Test">Mid-Term Test</option>
-                    <option value="End-of-Term Examination">End-of-Term Examination</option>
-                </select>
-                <input type="number" class="form-control form-control-sm factor-input" style="width: 70px; display: none;" value="1" step="0.1">
-                <button class="btn btn-link text-danger p-0" onclick="this.parentElement.remove(); updateImportUI();"><i class="fas fa-times"></i></button>`;
-            container.appendChild(div);
-            updateImportUI();
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            if (modal) {
+                modal.classList.add('active');
+            }
         }
 
-        function updateImportUI() {
-            const rows = document.querySelectorAll('#sourceExamsContainer > div');
-            const multi = rows.length > 1;
-            document.getElementById('formulaConfig').style.display = multi ? 'block' : 'none';
-            rows.forEach(r => r.querySelector('.factor-input').style.display = multi ? 'block' : 'none');
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('active');
+            }
         }
 
-        async function executeImport() {
-            const sources = Array.from(document.querySelectorAll('#sourceExamsContainer > div')).map(r => ({
-                examType: r.querySelector('.exam-type-select').value,
-                factor: parseFloat(r.querySelector('.factor-input').value) || 1.0
-            }));
+        function showNotification(message, type = 'info') {
+            try {
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                        <span>${message}</span>
+                    </div>
+                    <button class="notification-close" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+            } catch (error) {
+                console.error('Error showing notification:', error);
+            }
+        }
 
-            const data = {
-                classId: document.getElementById('classFilter').value,
-                session: document.getElementById('sessionFilter').value,
-                term: document.getElementById('termFilter').value,
-                componentName: document.getElementById('importComponent').value,
-                sources: sources,
-                divisor: parseFloat(document.getElementById('importDivisor').value) || 1.0,
-                studentId: document.getElementById('importAllStudents').checked ? null : document.getElementById('studentSelect').value
-            };
+        async function downloadReportCard() {
+            if (!selectedStudent || !selectedClass) {
+                alert('Please select a student first');
+                return;
+            }
 
             try {
-                const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
-                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
-                const headers = {
-                    'Content-Type': 'application/json',
-                    'HX-Request': 'true'
-                };
-                if (csrfToken && csrfHeader) headers[csrfHeader] = csrfToken;
+                // Show loading state
+                const btn = event.target.closest('button');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+                btn.disabled = true;
 
-                const response = await fetch('/staff/reports/class/import', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(data)
-                });
+                // Call the backend endpoint to generate PDF
+                const url = `/staff/reports/class/download-report-card?` +
+                    `studentId=${selectedStudent}` +
+                    `&classId=${selectedClass}` +
+                    `&session=${encodeURIComponent(selectedSession)}` +
+                    `&term=${encodeURIComponent(selectedTerm)}`;
 
-                // Check for HTMX redirect header (session expired)
-                const hxRedirect = response.headers.get('HX-Redirect');
-                if (hxRedirect) {
-                    window.location.href = hxRedirect;
-                    return;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate report card');
                 }
 
-                const res = await response.json();
-                if (res.success) {
-                    alert(res.message);
-                    closeModal('importModal');
-                    loadStudentData();
-                } else alert('Import failed: ' + res.message);
-            } catch (e) {
-                console.error('Import error:', e);
-                alert('Network error during import');
+                // Get the blob and create a download link
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                
+                // Get student name for filename
+                const studentName = currentStudentData?.studentName?.replace(/\s+/g, '_') || 'Report';
+                link.download = `${studentName}_ReportCard.pdf`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(downloadUrl);
+
+                // Reset button
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                showNotification('Report card downloaded successfully', 'success');
+            } catch (error) {
+                console.error('Error downloading report:', error);
+                alert('Error downloading report card: ' + error.message);
+                
+                // Reset button on error
+                const btn = event.target.closest('button');
+                btn.innerHTML = '<i class="fas fa-file-pdf"></i> Download Report Card';
+                btn.disabled = false;
             }
         }
 
-        // Initialize state
+        async function downloadAllClassReports() {
+            if (!selectedClass) {
+                showNotification('Please select a class first', 'error');
+                return;
+            }
+
+            try {
+                // Show loading state
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+                btn.disabled = true;
+
+                // Call the backend endpoint to generate PDF for all class students
+                const url = `/staff/reports/class/download-all-report-cards?` +
+                    `classId=${selectedClass}` +
+                    `&session=${encodeURIComponent(selectedSession)}` +
+                    `&term=${encodeURIComponent(selectedTerm)}`;
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate class reports');
+                }
+
+                // Get the blob and create a download link
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                
+                // Create filename with class, session, and term
+                const className = document.getElementById('classSelect')?.selectedOptions[0]?.text || 'Reports';
+                const cleanClassName = className.replace(/\s+/g, '_').split('(')[0].trim();
+                const sessionStr = selectedSession?.replace(/\s+/g, '_') || 'Session';
+                const termStr = selectedTerm?.replace(/\s+/g, '_') || 'Term';
+                
+                link.download = `${cleanClassName}_${sessionStr}_${termStr}_Reports.pdf`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(downloadUrl);
+
+                // Reset button
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                showNotification('Class reports downloaded successfully', 'success');
+            } catch (error) {
+                console.error('Error downloading class reports:', error);
+                showNotification('Error downloading class reports: ' + error.message, 'error');
+                
+                // Reset button on error
+                const btn = event.target;
+                btn.innerHTML = '<i class="fas fa-file-pdf"></i> Download All Reports';
+                btn.disabled = false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('Class Reports Manager Initialized');
+            console.log('Staff reports page loaded');
         });
     </script>
 </body>

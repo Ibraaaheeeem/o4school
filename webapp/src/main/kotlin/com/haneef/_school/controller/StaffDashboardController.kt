@@ -1,4 +1,3 @@
-@file:Suppress("DEPRECATION") // Legacy ca1Score/ca2Score/examScore fields written intentionally for backward compat
 package com.haneef._school.controller
 
 import java.util.UUID
@@ -19,6 +18,12 @@ import java.time.LocalDateTime
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
 import java.util.Collections.reverseOrder
+import org.springframework.http.ResponseEntity
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfWriter
+import com.itextpdf.io.image.ImageDataFactory
 
 @Controller
 @RequestMapping("/staff")
@@ -1410,6 +1415,124 @@ class StaffDashboardController(
         }
     }
 
+    @GetMapping("/reports/filter-classes")
+    @ResponseBody
+    fun filterClassesBySessionAndTerm(
+        @RequestParam sessionId: String,
+        @RequestParam term: String,
+        authentication: Authentication,
+        session_http: HttpSession
+    ): List<Map<String, Any>> {
+        return try {
+            val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+            val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+            val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID 
+                ?: throw RuntimeException("School not selected")
+
+            val staff = staffRepository.findByUserIdAndSchoolId(customUser.getUserId()!!, selectedSchoolId)
+                ?: throw RuntimeException("Staff record not found")
+
+            // Try to parse sessionId as UUID first, then as session year string
+            val academicSession = try {
+                val uuid = java.util.UUID.fromString(sessionId)
+                academicSessionRepository.findById(uuid).orElse(null)
+            } catch (e: IllegalArgumentException) {
+                // If not a UUID, try to find by session year
+                academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, sessionId, true)
+            } ?: throw RuntimeException("Academic session not found")
+
+            // Find the term in the session
+            val termEntity = termRepository.findByAcademicSessionIdAndTermNameAndIsActive(
+                academicSession.id!!, term, true
+            ).orElse(null) ?: throw RuntimeException("Term not found")
+
+            // Get class teacher assignments for this session and term
+            val classTeacherAssignments = classTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                staff.id!!, academicSession.id!!, termEntity.id!!, true
+            )
+
+            // Get subject teacher assignments for this session and term
+            val subjectTeacherAssignments = subjectTeacherRepository.findByStaffIdAndAcademicSessionIdAndTermIdAndIsActive(
+                staff.id!!, academicSession.id!!, termEntity.id!!, true
+            )
+
+            // Combine and deduplicate class IDs
+            val classIds = (classTeacherAssignments.mapNotNull { it.schoolClass.id } + 
+                           subjectTeacherAssignments.mapNotNull { it.schoolClass.id }).toSet()
+
+            // Fetch the actual class objects and return as JSON
+            schoolClassRepository.findAllById(classIds)
+                .filter { it.isActive }
+                .sortedBy { it.className }
+                .map { mapOf("id" to it.id.toString(), "className" to it.className) }
+
+        } catch (e: Exception) {
+            logger.error("Error filtering classes", e)
+            emptyList()
+        }
+    }
+
+    @GetMapping("/reports/class/{classId}/students")
+    @ResponseBody
+    fun getClassStudentsForReports(
+        @org.springframework.web.bind.annotation.PathVariable classId: UUID,
+        @RequestParam(required = false) sessionId: String?,
+        @RequestParam(required = false) termId: String?,
+        authentication: Authentication,
+        session_http: HttpSession
+    ): List<Map<String, Any>> {
+        return try {
+            val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+            val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+            val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID 
+                ?: throw RuntimeException("School not selected")
+
+            val schoolClass = schoolClassRepository.findById(classId).orElse(null)
+                ?: throw RuntimeException("Class not found")
+
+            // Parse session and term IDs
+            val academicSession = if (!sessionId.isNullOrBlank()) {
+                try {
+                    academicSessionRepository.findById(java.util.UUID.fromString(sessionId)).orElse(null)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            } else null
+
+            val term = if (!termId.isNullOrBlank() && academicSession != null) {
+                try {
+                    termRepository.findById(java.util.UUID.fromString(termId)).orElse(null)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            } else null
+
+            // Fetch students enrolled in the class for this session and term
+            val students = if (academicSession != null && term != null) {
+                studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+                    classId, academicSession.id!!, term.id!!, true
+                ).map { it.student }
+            } else {
+                studentClassRepository.findBySchoolClassIdAndIsActive(classId, true).map { it.student }
+            }
+
+            // Return students as JSON
+            students.map { student ->
+                mapOf(
+                    "id" to (student.id?.toString() ?: ""),
+                    "name" to (student.user?.fullName ?: ""),
+                    "admissionNumber" to (student.admissionNumber ?: ""),
+                    "user" to mapOf("fullName" to (student.user?.fullName ?: ""))
+                )
+            }
+
+        } catch (e: Exception) {
+            logger.error("Error fetching students for class reports", e)
+            emptyList()
+        }
+    }
+
+
     @PostMapping("/reports/class/save")
     @ResponseBody
     @Transactional
@@ -1592,11 +1715,9 @@ class StaffDashboardController(
                 subjectScore.classSubject = classSubject
             }
 
-            // Source of Truth: JSON Map
+            // Source of Truth: JSON Map (scoresJson only)
             if (scoreInput.scores.isNotEmpty()) {
                 subjectScore.scoresJson = objectMapper.writeValueAsString(scoreInput.scores)
-                // Use filterNotNull and takeIf to return null if all values are null
-                subjectScore.totalScore = scoreInput.scores.values.filterNotNull().let { if (it.isEmpty()) null else it.sumOf { s -> s } }
             } else {
                 // Fallback for legacy inputs if JSON map is empty
                 val legacyScores = mutableMapOf<String, Int?>()
@@ -1606,20 +1727,12 @@ class StaffDashboardController(
                 
                 if (legacyScores.isNotEmpty()) {
                     subjectScore.scoresJson = objectMapper.writeValueAsString(legacyScores)
-                    subjectScore.totalScore = legacyScores.values.filterNotNull().sumOf { it }
                 } else {
-                    subjectScore.totalScore = null
                     subjectScore.scoresJson = null
                 }
             }
             
-            // Sync legacy columns for backward compatibility
-            // Fixed: use containsKey to allow setting to null (emptying scores)
-            if (scoreInput.scores.containsKey("1st CA")) subjectScore.ca1Score = scoreInput.scores["1st CA"]
-            if (scoreInput.scores.containsKey("2nd CA")) subjectScore.ca2Score = scoreInput.scores["2nd CA"]
-            if (scoreInput.scores.containsKey("Exam")) subjectScore.examScore = scoreInput.scores["Exam"]
-            
-            val total = subjectScore.totalScore
+            val total = subjectScore.getTotalScore()
             if (total != null) {
                 subjectScore.grade = when {
                     total >= 70 -> "A"
@@ -1763,6 +1876,75 @@ class StaffDashboardController(
 
         val assessment = assessmentOpt.orElse(null)
 
+        // Calculate class statistics and rankings for each subject
+        val classStatistics = mutableMapOf<UUID, Map<String, Any?>>() // Map of subjectId -> {highest, lowest, average, rankings}
+        val studentRankings = mutableMapOf<UUID, MutableMap<UUID, String>>() // Map of subjectId -> Map of studentId -> rankingString
+        
+        val allClassStudents = studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
+        
+        for (subject in filteredClassSubjects) {
+            val subjectScores = mutableListOf<Int>()
+            val scoreToStudentMap = mutableMapOf<Int, MutableList<UUID>>() // Score -> List of StudentIds with that score
+            
+            // For each student in class, find their score for this subject
+            for (classStudent in allClassStudents) {
+                val studentAssessment = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                    classStudent.student.id!!, sessionEntity.id!!, termEntity.id!!, selectedSchoolId, true
+                )
+                if (studentAssessment.isPresent) {
+                    val subjectScore = subjectScoreRepository.findByAssessmentIdAndSubjectIdAndSchoolIdAndIsActive(
+                        studentAssessment.get().id!!, subject.subject.id!!, selectedSchoolId, true
+                    )
+                    if (subjectScore.isNotEmpty()) {
+                        val total = subjectScore[0].getTotalScore()
+                        if (total != null) {
+                            subjectScores.add(total)
+                            // Map scores to students for ranking
+                            scoreToStudentMap.computeIfAbsent(total) { mutableListOf() }.add(classStudent.student.id!!)
+                        }
+                    }
+                }
+            }
+            
+            // Calculate statistics
+            if (subjectScores.isNotEmpty()) {
+                val highest = subjectScores.maxOrNull()
+                val lowest = subjectScores.minOrNull()
+                val average = subjectScores.average()
+                
+                classStatistics[subject.subject.id!!] = mapOf(
+                    "highest" to highest,
+                    "lowest" to lowest,
+                    "average" to average
+                )
+                
+                // Calculate rankings with tie handling
+                val sortedScores = subjectScores.distinct().sortedDescending()
+                var position = 1
+                val subjectRankings = mutableMapOf<UUID, String>()
+                
+                for (score in sortedScores) {
+                    val studentsWithThisScore = scoreToStudentMap[score] ?: emptyList()
+                    val positionString = when {
+                        position == 1 -> "1st"
+                        position == 2 -> "2nd"
+                        position == 3 -> "3rd"
+                        else -> "${position}th"
+                    }
+                    
+                    // Assign this position to all students with this score
+                    for (studentId in studentsWithThisScore) {
+                        subjectRankings[studentId] = positionString
+                    }
+                    
+                    // Increment position by the number of students with this score (tie handling)
+                    position += studentsWithThisScore.size
+                }
+                
+                studentRankings[subject.subject.id!!] = subjectRankings
+            }
+        }
+
         val subjectDataList = filteredClassSubjects.map { cs ->
             var ca1: Int? = null
             var ca2: Int? = null
@@ -1779,27 +1961,35 @@ class StaffDashboardController(
                 )
                 if (subjectScores.isNotEmpty()) {
                     val ss = subjectScores[0]
-                    ca1 = ss.ca1Score
-                    ca2 = ss.ca2Score
-                    exam = ss.examScore
-                    total = ss.totalScore
+                    total = ss.getTotalScore()
                     grade = ss.grade
                     remark = ss.remark
                     
                     if (!ss.scoresJson.isNullOrBlank()) {
                         try {
                             scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<MutableMap<String, Int?>>() {})
-                            // Sync legacy variables from map if they exist for consistent DTO response
-                            // Fixed: use containsKey to allow nulls (emptied scores) to correctly overwrite legacy columns
-                            if (scoresMap.containsKey("1st CA")) ca1 = scoresMap["1st CA"]
-                            if (scoresMap.containsKey("2nd CA")) ca2 = scoresMap["2nd CA"]
-                            if (scoresMap.containsKey("Exam")) exam = scoresMap["Exam"]
+                            // Extract legacy variables from map for DTO response
+                            for ((key, value) in scoresMap) {
+                                val keyLower = key.lowercase()
+                                if (keyLower.contains("ca 1") || keyLower.contains("ca1") || keyLower.contains("1st ca")) ca1 = value ?: ca1
+                                else if (keyLower.contains("ca 2") || keyLower.contains("ca2") || keyLower.contains("2nd ca")) ca2 = value ?: ca2
+                                else if (keyLower.contains("exam")) exam = value ?: exam
+                            }
                         } catch (e: Exception) {
                             println("Error parsing scoresJson for subject ${cs.subject.subjectName}: ${e.message}")
                         }
                     }
                 }
             }
+            
+            // Get class statistics for this subject
+            val stats = classStatistics[cs.subject.id]
+            val highestScore = stats?.get("highest") as? Int
+            val lowestScore = stats?.get("lowest") as? Int
+            val averageScore = stats?.get("average") as? Double
+            
+            // Get student's class position for this subject
+            val classPosition = studentRankings[cs.subject.id]?.get(studentId)
 
             SubjectAssessmentData(
                 subjectId = cs.subject.id!!,
@@ -1811,7 +2001,11 @@ class StaffDashboardController(
                 grade = grade,
                 remark = remark,
                 scoringScheme = cs.schoolClass.scoringScheme,
-                scores = scoresMap
+                scores = scoresMap,
+                highestScore = highestScore,
+                lowestScore = lowestScore,
+                averageScore = averageScore,
+                classPosition = classPosition
             )
         }
 
@@ -1820,6 +2014,16 @@ class StaffDashboardController(
         
         val className = schoolClass.className
         val trackName = schoolClass.department?.track?.name ?: "Unknown Track"
+        
+        // Get school info
+        val school = schoolRepository.findById(selectedSchoolId).orElse(null)
+        val schoolName = school?.name ?: "School"
+        val schoolLogoUrl = school?.logoUrl
+        val schoolAddress = buildString {
+            school?.addressLine1?.let { append(it) }
+            if (!school?.addressLine1.isNullOrBlank() && !school?.addressLine2.isNullOrBlank()) append(", ")
+            school?.addressLine2?.let { append(it) }
+        }
 
         return AssessmentReportData(
             studentId = student.id!!,
@@ -1840,7 +2044,11 @@ class StaffDashboardController(
             selfDiscipline = assessment?.selfDiscipline ?: 0,
             politeness = assessment?.politeness ?: 0,
             classTeacherComment = assessment?.classTeacherComment,
-            headTeacherComment = assessment?.headTeacherComment
+            headTeacherComment = assessment?.headTeacherComment,
+            schoolName = schoolName,
+            schoolLogoUrl = schoolLogoUrl,
+            schoolAddress = schoolAddress,
+            studentPassportPhotoUrl = student.passportPhotoUrl
         )
     }
 
@@ -1995,22 +2203,11 @@ class StaffDashboardController(
                             objectMapper.readValue(subjectScore.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<MutableMap<String, Int?>>() {})
                         } catch (e: Exception) { mutableMapOf<String, Int?>() }
                     } else {
-                        mutableMapOf<String, Int?>().apply {
-                            if ((subjectScore.ca1Score ?: 0) > 0) put("CA 1", subjectScore.ca1Score)
-                            if ((subjectScore.ca2Score ?: 0) > 0) put("CA 2", subjectScore.ca2Score)
-                            if ((subjectScore.examScore ?: 0) > 0) put("Exam", subjectScore.examScore)
-                        }
+                        mutableMapOf<String, Int?>()
                     }
 
                     scoresMap[request.componentName] = finalScore
-                    when (request.componentName.lowercase()) {
-                        "ca 1", "ca1", "continuous assessment 1" -> subjectScore.ca1Score = finalScore
-                        "ca 2", "ca2", "continuous assessment 2" -> subjectScore.ca2Score = finalScore
-                        "exam", "examination" -> subjectScore.examScore = finalScore
-                    }
-                    
                     subjectScore.scoresJson = objectMapper.writeValueAsString(scoresMap)
-                    subjectScore.totalScore = scoresMap.values.filterNotNull().sumOf { it }
                     subjectScoreRepository.save(subjectScore)
                     importedCount++
                 }
@@ -2703,9 +2900,694 @@ class StaffDashboardController(
             mapOf("success" to false, "message" to (e.message ?: "Failed to generate questions"))
         }
     }
-}
+
+    @GetMapping("/reports/class/download-report-card")
+    fun downloadReportCard(
+        @RequestParam studentId: UUID,
+        @RequestParam classId: UUID,
+        @RequestParam session: String,
+        @RequestParam term: String,
+        authentication: Authentication,
+        session_http: HttpSession
+    ): ResponseEntity<ByteArray> {
+        return try {
+            val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID 
+                ?: throw RuntimeException("School not selected")
+            
+            // Get the assessment data
+            val reportData = getStudentAssessmentData(studentId, classId, session, term, authentication, session_http)
+            
+            // Generate PDF
+            val pdfBytes = generateReportCardPDF(reportData)
+            
+            // Create response with PDF content type and attachment disposition
+            val fileName = "${reportData.studentName.replace(" ", "_")}_ReportCard.pdf"
+            
+            ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header("Content-Disposition", "attachment; filename=\"$fileName\"")
+                .body(pdfBytes)
+        } catch (e: Exception) {
+            logger.error("Error generating report card PDF", e)
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ByteArray(0))
+        }
+    }
+
+    @GetMapping("/reports/class/download-all-report-cards")
+    fun downloadAllClassReportCards(
+        @RequestParam classId: UUID,
+        @RequestParam session: String,
+        @RequestParam term: String,
+        authentication: Authentication,
+        session_http: HttpSession
+    ): ResponseEntity<ByteArray> {
+        return try {
+            val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID 
+                ?: throw RuntimeException("School not selected")
+            
+            val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+            val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+            
+            // Get class details
+            val schoolClass = schoolClassRepository.findById(classId)
+                .orElseThrow { RuntimeException("Class not found") }
+            
+            // Get all students in the class
+            val classStudents = studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
+            
+            if (classStudents.isEmpty()) {
+                throw RuntimeException("No students found in this class")
+            }
+            
+            // Generate PDF with all student reports
+            val pdfBytes = generateAllClassReportsPDF(
+                classStudents.map { it.student.id!! },
+                classId,
+                session,
+                term,
+                authentication,
+                session_http
+            )
+            
+            // Create response with PDF content type and attachment disposition
+            val fileName = "${schoolClass.className.replace(" ", "_")}_${session.replace(" ", "_")}_${term.replace(" ", "_")}_Reports.pdf"
+            
+            ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header("Content-Disposition", "attachment; filename=\"$fileName\"")
+                .body(pdfBytes)
+        } catch (e: Exception) {
+            logger.error("Error generating all class report cards PDF", e)
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ByteArray(0))
+        }
+    }
+
+    private fun generateAllClassReportsPDF(
+        studentIds: List<UUID>,
+        classId: UUID,
+        session: String,
+        term: String,
+        authentication: Authentication,
+        session_http: HttpSession
+    ): ByteArray {
+        val outputStream = java.io.ByteArrayOutputStream()
+        
+        val writer = PdfWriter(outputStream)
+        val pdf = PdfDocument(writer)
+        val document = com.itextpdf.layout.Document(pdf)
+        
+        var isFirstPage = true
+        
+        // Generate report for each student
+        for (studentId in studentIds) {
+            try {
+                // Add page break before each student (except first)
+                if (!isFirstPage) {
+                    document.add(com.itextpdf.layout.element.AreaBreak())
+                }
+                isFirstPage = false
+                
+                // Get assessment data for this student
+                val reportData = getStudentAssessmentData(studentId, classId, session, term, authentication, session_http)
+                
+                // Add report content (reuse the report generation logic without wrapper)
+                addReportContentToDocument(document, reportData)
+                
+            } catch (e: Exception) {
+                logger.warn("Error generating report for student $studentId", e)
+                // Continue with next student instead of failing entirely
+                document.add(
+                    com.itextpdf.layout.element.Paragraph("Error generating report for student")
+                        .setFontSize(10f)
+                )
+            }
+        }
+        
+        document.close()
+        return outputStream.toByteArray()
+    }
+
+    private fun addReportContentToDocument(
+        document: com.itextpdf.layout.Document,
+        reportData: AssessmentReportData
+    ) {
+        // Set margins
+        document.setMargins(20f, 20f, 20f, 20f)
+        
+        // ==== SCHOOL HEADER ====
+        val headerTable = com.itextpdf.layout.element.Table(3)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Left cell - School Logo
+        val leftCell = com.itextpdf.layout.element.Cell(1, 1)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+            .setPadding(12f)
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+        if (!reportData.schoolLogoUrl.isNullOrBlank()) {
+            try {
+                val logoUrl = reportData.schoolLogoUrl!!
+                val imageData = ImageDataFactory.create(logoUrl)
+                val image = com.itextpdf.layout.element.Image(imageData)
+                    .setMaxWidth(60f)
+                    .setMaxHeight(60f)
+                leftCell.add(image)
+            } catch (e: Exception) {
+                // Leave empty on error
+            }
+        }
+        headerTable.addCell(leftCell)
+        
+        // Center cell - School Name and Address
+        val centerCell = com.itextpdf.layout.element.Cell(1, 1)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+        centerCell.add(
+            com.itextpdf.layout.element.Paragraph(reportData.schoolName ?: "School")
+                .setFontSize(16f)
+                .setBold()
+        )
+        if (!reportData.schoolAddress.isNullOrBlank()) {
+            centerCell.add(
+                com.itextpdf.layout.element.Paragraph(reportData.schoolAddress!!)
+                    .setFontSize(9f)
+                    .setMarginTop(2f)
+            )
+        }
+        headerTable.addCell(centerCell)
+        
+        // Right cell - Student Photo
+        val rightCell = com.itextpdf.layout.element.Cell(1, 1)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+            .setPadding(12f)
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+        if (!reportData.studentPassportPhotoUrl.isNullOrBlank()) {
+            try {
+                val photoUrl = reportData.studentPassportPhotoUrl!!
+                val imageData = ImageDataFactory.create(photoUrl)
+                val image = com.itextpdf.layout.element.Image(imageData)
+                    .setMaxWidth(55f)
+                    .setMaxHeight(65f)
+                rightCell.add(image)
+            } catch (e: Exception) {
+                // Leave empty on error
+            }
+        }
+        headerTable.addCell(rightCell)
+        
+        // Style header table - no border, no padding on table level
+        headerTable.setBorder(null)
+            .setMarginBottom(16f)
+        
+        document.add(headerTable)
+        
+        // Separator line
+        val separator = com.itextpdf.layout.element.Paragraph(" ")
+        separator.setMarginBottom(12f)
+        document.add(separator)
+        
+        // ==== STUDENT INFORMATION ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("STUDENT INFORMATION")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val studentInfoTable = com.itextpdf.layout.element.Table(2)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        addTableRow(studentInfoTable, "Student Name:", reportData.studentName)
+        addTableRow(studentInfoTable, "Admission Number:", reportData.admissionNumber)
+        addTableRow(studentInfoTable, "Class:", reportData.className)
+        addTableRow(studentInfoTable, "Track:", reportData.trackName)
+        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}%")
+        
+        document.add(studentInfoTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
+        // ==== ACADEMIC PERFORMANCE ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("ACADEMIC PERFORMANCE")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val scoresTable = com.itextpdf.layout.element.Table(9)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Table headers
+        addTableHeader(scoresTable, arrayOf("Subject", "CA 1", "CA 2", "Exam", "Total", "Highest", "Lowest", "Average", "Position"))
+        
+        // Table rows with subject scores
+        reportData.subjects.forEach { subject ->
+            val ca1 = subject.ca1?.toString() ?: "-"
+            val ca2 = subject.ca2?.toString() ?: "-"
+            val exam = subject.exam?.toString() ?: "-"
+            val total = subject.total?.toString() ?: "-"
+            val highest = subject.highestScore?.toString() ?: "-"
+            val lowest = subject.lowestScore?.toString() ?: "-"
+            val average = if (subject.averageScore != null) String.format("%.1f", subject.averageScore) else "-"
+            val position = subject.classPosition ?: "-"
+            
+            val row = com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(subject.subjectName).setFontSize(9f)
+            )
+            scoresTable.addCell(row)
+            
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(ca1).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(ca2).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(exam).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(total).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(highest).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(lowest).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(average).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(position).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+        }
+        
+        document.add(scoresTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
+        // ==== BEHAVIORAL TRAITS ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("BEHAVIORAL TRAITS")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val behavioralTable = com.itextpdf.layout.element.Table(4)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Left column traits
+        val leftTraits = listOf(
+            Pair("Fluency:", reportData.fluency?.toString() ?: "N/A"),
+            Pair("Handwriting:", reportData.handwriting?.toString() ?: "N/A"),
+            Pair("Game Sense:", reportData.game?.toString() ?: "N/A"),
+            Pair("Initiative:", reportData.initiative?.toString() ?: "N/A"),
+            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "N/A")
+        )
+        
+        // Right column traits
+        val rightTraits = listOf(
+            Pair("Punctuality:", reportData.punctuality?.toString() ?: "N/A"),
+            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "N/A"),
+            Pair("Neatness:", reportData.neatness?.toString() ?: "N/A"),
+            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "N/A"),
+            Pair("Politeness:", reportData.politeness?.toString() ?: "N/A")
+        )
+        
+        // Add rows with left and right trait pairs
+        for (i in 0 until maxOf(leftTraits.size, rightTraits.size)) {
+            // Left trait label
+            val leftLabel = if (i < leftTraits.size) leftTraits[i].first else ""
+            val leftLabelCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(leftLabel).setBold().setFontSize(9f))
+            behavioralTable.addCell(leftLabelCell)
+            
+            // Left trait value
+            val leftValue = if (i < leftTraits.size) leftTraits[i].second else ""
+            val leftValueCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(leftValue).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+            behavioralTable.addCell(leftValueCell)
+            
+            // Right trait label
+            val rightLabel = if (i < rightTraits.size) rightTraits[i].first else ""
+            val rightLabelCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(rightLabel).setBold().setFontSize(9f))
+            behavioralTable.addCell(rightLabelCell)
+            
+            // Right trait value
+            val rightValue = if (i < rightTraits.size) rightTraits[i].second else ""
+            val rightValueCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(rightValue).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+            behavioralTable.addCell(rightValueCell)
+        }
+        
+        document.add(behavioralTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
+        // ==== COMMENTS ====
+        if (!reportData.classTeacherComment.isNullOrBlank() || !reportData.headTeacherComment.isNullOrBlank()) {
+            document.add(
+                com.itextpdf.layout.element.Paragraph("COMMENTS")
+                    .setFontSize(12f)
+                    .setBold()
+                    .setMarginBottom(8f)
+            )
+            
+            if (!reportData.classTeacherComment.isNullOrBlank()) {
+                document.add(
+                    com.itextpdf.layout.element.Paragraph("Class Teacher Comment:")
+                        .setBold()
+                        .setFontSize(10f)
+                )
+                document.add(
+                    com.itextpdf.layout.element.Paragraph(reportData.classTeacherComment!!)
+                        .setFontSize(10f)
+                        .setMarginBottom(8f)
+                )
+            }
+            
+            if (!reportData.headTeacherComment.isNullOrBlank()) {
+                document.add(
+                    com.itextpdf.layout.element.Paragraph("Head Teacher Comment:")
+                        .setBold()
+                        .setFontSize(10f)
+                )
+                document.add(
+                    com.itextpdf.layout.element.Paragraph(reportData.headTeacherComment!!)
+                        .setFontSize(10f)
+                )
+            }
+        }
+    }
+
+    private fun generateReportCardPDF(reportData: AssessmentReportData): ByteArray {
+        val outputStream = java.io.ByteArrayOutputStream()
+        
+        val writer = PdfWriter(outputStream)
+        val pdf = PdfDocument(writer)
+        val document = com.itextpdf.layout.Document(pdf)
+        
+        // Set margins
+        document.setMargins(20f, 20f, 20f, 20f)
+        
+        // ==== SCHOOL HEADER ====
+        val headerTable = com.itextpdf.layout.element.Table(3)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Left cell - School Logo
+        val leftCell = com.itextpdf.layout.element.Cell(1, 1)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+            .setPadding(12f)
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+        if (!reportData.schoolLogoUrl.isNullOrBlank()) {
+            try {
+                val logoUrl = reportData.schoolLogoUrl!!
+                val imageData = ImageDataFactory.create(logoUrl)
+                val image = com.itextpdf.layout.element.Image(imageData)
+                    .setMaxWidth(60f)
+                    .setMaxHeight(60f)
+                leftCell.add(image)
+            } catch (e: Exception) {
+                // Leave empty on error
+            }
+        }
+        headerTable.addCell(leftCell)
+        
+        // Center cell - School Name and Address
+        val centerCell = com.itextpdf.layout.element.Cell(1, 1)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+        centerCell.add(
+            com.itextpdf.layout.element.Paragraph(reportData.schoolName ?: "School")
+                .setFontSize(16f)
+                .setBold()
+        )
+        if (!reportData.schoolAddress.isNullOrBlank()) {
+            centerCell.add(
+                com.itextpdf.layout.element.Paragraph(reportData.schoolAddress!!)
+                    .setFontSize(9f)
+                    .setMarginTop(2f)
+            )
+        }
+        headerTable.addCell(centerCell)
+        
+        // Right cell - Student Photo
+        val rightCell = com.itextpdf.layout.element.Cell(1, 1)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+            .setPadding(12f)
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+        if (!reportData.studentPassportPhotoUrl.isNullOrBlank()) {
+            try {
+                val photoUrl = reportData.studentPassportPhotoUrl!!
+                val imageData = ImageDataFactory.create(photoUrl)
+                val image = com.itextpdf.layout.element.Image(imageData)
+                    .setMaxWidth(55f)
+                    .setMaxHeight(65f)
+                rightCell.add(image)
+            } catch (e: Exception) {
+                // Leave empty on error
+            }
+        }
+        headerTable.addCell(rightCell)
+        
+        // Style header table - no border, no padding on table level
+        headerTable.setBorder(null)
+            .setMarginBottom(16f)
+        
+        document.add(headerTable)
+        
+        // Separator line
+        val separator = com.itextpdf.layout.element.Paragraph(" ")
+        separator.setMarginBottom(12f)
+        document.add(separator)
+        
+        // ==== STUDENT INFORMATION ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("STUDENT INFORMATION")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val studentInfoTable = com.itextpdf.layout.element.Table(2)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        addTableRow(studentInfoTable, "Student Name:", reportData.studentName)
+        addTableRow(studentInfoTable, "Admission Number:", reportData.admissionNumber)
+        addTableRow(studentInfoTable, "Class:", reportData.className)
+        addTableRow(studentInfoTable, "Track:", reportData.trackName)
+        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}%")
+        
+        document.add(studentInfoTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
+        // ==== ACADEMIC PERFORMANCE ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("ACADEMIC PERFORMANCE")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val scoresTable = com.itextpdf.layout.element.Table(9)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Table headers
+        addTableHeader(scoresTable, arrayOf("Subject", "CA 1", "CA 2", "Exam", "Total", "Highest", "Lowest", "Average", "Position"))
+        
+        // Table rows with subject scores
+        reportData.subjects.forEach { subject ->
+            val ca1 = subject.ca1?.toString() ?: "-"
+            val ca2 = subject.ca2?.toString() ?: "-"
+            val exam = subject.exam?.toString() ?: "-"
+            val total = subject.total?.toString() ?: "-"
+            val highest = subject.highestScore?.toString() ?: "-"
+            val lowest = subject.lowestScore?.toString() ?: "-"
+            val average = if (subject.averageScore != null) String.format("%.1f", subject.averageScore) else "-"
+            val position = subject.classPosition ?: "-"
+            
+            val row = com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(subject.subjectName).setFontSize(9f)
+            )
+            scoresTable.addCell(row)
+            
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(ca1).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(ca2).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(exam).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(total).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(highest).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(lowest).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(average).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(position).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+        }
+        
+        document.add(scoresTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
+        // ==== BEHAVIORAL TRAITS ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("BEHAVIORAL TRAITS")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val behavioralTable = com.itextpdf.layout.element.Table(4)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Left column traits
+        val leftTraits = listOf(
+            Pair("Fluency:", reportData.fluency?.toString() ?: "N/A"),
+            Pair("Handwriting:", reportData.handwriting?.toString() ?: "N/A"),
+            Pair("Game Sense:", reportData.game?.toString() ?: "N/A"),
+            Pair("Initiative:", reportData.initiative?.toString() ?: "N/A"),
+            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "N/A")
+        )
+        
+        // Right column traits
+        val rightTraits = listOf(
+            Pair("Punctuality:", reportData.punctuality?.toString() ?: "N/A"),
+            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "N/A"),
+            Pair("Neatness:", reportData.neatness?.toString() ?: "N/A"),
+            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "N/A"),
+            Pair("Politeness:", reportData.politeness?.toString() ?: "N/A")
+        )
+        
+        // Add rows with left and right trait pairs
+        for (i in 0 until maxOf(leftTraits.size, rightTraits.size)) {
+            // Left trait label
+            val leftLabel = if (i < leftTraits.size) leftTraits[i].first else ""
+            val leftLabelCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(leftLabel).setBold().setFontSize(9f))
+            behavioralTable.addCell(leftLabelCell)
+            
+            // Left trait value
+            val leftValue = if (i < leftTraits.size) leftTraits[i].second else ""
+            val leftValueCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(leftValue).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+            behavioralTable.addCell(leftValueCell)
+            
+            // Right trait label
+            val rightLabel = if (i < rightTraits.size) rightTraits[i].first else ""
+            val rightLabelCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(rightLabel).setBold().setFontSize(9f))
+            behavioralTable.addCell(rightLabelCell)
+            
+            // Right trait value
+            val rightValue = if (i < rightTraits.size) rightTraits[i].second else ""
+            val rightValueCell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(com.itextpdf.layout.element.Paragraph(rightValue).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+            behavioralTable.addCell(rightValueCell)
+        }
+        
+        document.add(behavioralTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
+        // ==== COMMENTS ====
+        if (!reportData.classTeacherComment.isNullOrBlank() || !reportData.headTeacherComment.isNullOrBlank()) {
+            document.add(
+                com.itextpdf.layout.element.Paragraph("COMMENTS")
+                    .setFontSize(12f)
+                    .setBold()
+                    .setMarginBottom(8f)
+            )
+            
+            if (!reportData.classTeacherComment.isNullOrBlank()) {
+                document.add(
+                    com.itextpdf.layout.element.Paragraph("Class Teacher Comment:")
+                        .setBold()
+                        .setFontSize(10f)
+                )
+                document.add(
+                    com.itextpdf.layout.element.Paragraph(reportData.classTeacherComment!!)
+                        .setFontSize(10f)
+                        .setMarginBottom(8f)
+                )
+            }
+            
+            if (!reportData.headTeacherComment.isNullOrBlank()) {
+                document.add(
+                    com.itextpdf.layout.element.Paragraph("Head Teacher Comment:")
+                        .setBold()
+                        .setFontSize(10f)
+                )
+                document.add(
+                    com.itextpdf.layout.element.Paragraph(reportData.headTeacherComment!!)
+                        .setFontSize(10f)
+                )
+            }
+        }
+        
+        document.close()
+        return outputStream.toByteArray()
+    }
+
+    private fun addTableRow(table: com.itextpdf.layout.element.Table, label: String, value: String) {
+        val labelCell = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(label).setBold().setFontSize(10f))
+        val valueCell = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(value).setFontSize(10f))
+        
+        table.addCell(labelCell)
+        table.addCell(valueCell)
+    }
+
+    private fun addTableHeader(table: com.itextpdf.layout.element.Table, headers: Array<String>) {
+        headers.forEach { header ->
+            val cell = com.itextpdf.layout.element.Cell(1, 1)
+                .add(
+                    com.itextpdf.layout.element.Paragraph(header)
+                        .setBold()
+                        .setFontSize(10f)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                )
+                .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
+            table.addCell(cell)
+        }
+    }
+
 
 data class AttendanceSubmissionRequest(
     val date: String,
     val attendance: Map<String, String> // studentId -> status
 )
+}

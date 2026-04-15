@@ -287,7 +287,7 @@ class SchoolDataTools(
                     if (scores.isNotEmpty()) {
                         report.append("Current Grades:\n")
                         scores.forEach { score ->
-                            report.append("- ${score.subject.subjectName}: ${score.totalScore ?: 0}% (${score.grade ?: "N/A"})\n")
+                            report.append("- ${score.subject.subjectName}: ${score.getTotalScore() ?: 0}% (${score.grade ?: "N/A"})\n")
                         }
                     }
                 } else {

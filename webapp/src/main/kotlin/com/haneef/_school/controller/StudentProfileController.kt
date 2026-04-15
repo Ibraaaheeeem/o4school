@@ -336,14 +336,11 @@ class StudentProfileController(
                     )
                     if (subjectScores.isNotEmpty()) {
                         val ss = subjectScores[0]
-                        ca1 = ss.ca1Score
-                        ca2 = ss.ca2Score
-                        exam = ss.examScore
-                        total = ss.totalScore
+                        total = ss.getTotalScore()
                         grade = ss.grade
                         remark = ss.remark
 
-                        // Sync from JSON map if available (Source of Truth)
+                        // Sync from JSON map (Source of Truth)
                         if (!ss.scoresJson.isNullOrBlank()) {
                             try {
                                 val scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {})

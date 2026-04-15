@@ -27,22 +27,6 @@ class SubjectScore(
     @JoinColumn(name = "class_subject_id", nullable = false)
     var classSubject: ClassSubject? = null,
     
-    // Assessment scores (Legacy - Deprecated)
-    @Deprecated("Use scoresJson instead")
-    @Column(name = "ca1_score")
-    var ca1Score: Int? = null,
-    
-    @Deprecated("Use scoresJson instead")
-    @Column(name = "ca2_score")
-    var ca2Score: Int? = null,
-    
-    @Deprecated("Use scoresJson instead")
-    @Column(name = "exam_score")
-    var examScore: Int? = null,
-    
-    @Column(name = "total_score")
-    var totalScore: Int? = null,
-    
     @Column(name = "scores_json", columnDefinition = "TEXT")
     var scoresJson: String? = null,
     
@@ -50,6 +34,21 @@ class SubjectScore(
     var position: Int? = null,
     var remark: String? = null
 ) : TenantAwareEntity() {
+    
+    // Computed totalScore: Calculate from scoresJson on-the-fly
+    fun getTotalScore(): Int? {
+        if (scoresJson.isNullOrBlank()) return null
+        return try {
+            val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+            val scoresMap = mapper.readValue(
+                scoresJson,
+                object : com.fasterxml.jackson.core.type.TypeReference<Map<String, Int?>>() {}
+            )
+            scoresMap.values.filterNotNull().takeIf { it.isNotEmpty() }?.sumOf { it }
+        } catch (e: Exception) {
+            null
+        }
+    }
     
     constructor() : this(
         assessment = Assessment(),
