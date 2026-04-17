@@ -22,12 +22,46 @@ class AiService(
         private val logger = LoggerFactory.getLogger(AiService::class.java)
         private const val PROVIDER_GEMINI = "gemini"
         private const val PROVIDER_DEEPSEEK = "deepseek"
-        private const val REQUEST_TIMEOUT_SECONDS = 60L
+        private const val REQUEST_TIMEOUT_SECONDS = 300L  // 5 minutes for DeepSeek reasoning
     }
 
     private val httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(15))
+        .connectTimeout(Duration.ofSeconds(60))
         .build()
+
+    /**
+     * Retry a function with exponential backoff on timeout errors
+     */
+    private fun <T> retryWithBackoff(
+        maxAttempts: Int = 3,
+        initialDelayMs: Long = 500,
+        block: () -> T
+    ): T {
+        var lastException: Exception? = null
+        var delay = initialDelayMs
+
+        for (attempt in 1..maxAttempts) {
+            try {
+                return block()
+            } catch (e: java.net.http.HttpTimeoutException) {
+                lastException = e
+                logger.warn("API timeout on attempt $attempt/$maxAttempts, retrying in ${delay}ms...", e)
+                if (attempt < maxAttempts) {
+                    Thread.sleep(delay)
+                    delay *= 2  // Exponential backoff
+                }
+            } catch (e: java.io.IOException) {
+                lastException = e
+                logger.warn("Network error on attempt $attempt/$maxAttempts, retrying in ${delay}ms...", e)
+                if (attempt < maxAttempts) {
+                    Thread.sleep(delay)
+                    delay *= 2
+                }
+            }
+        }
+
+        throw lastException ?: IllegalStateException("API request failed after $maxAttempts attempts")
+    }
 
     @Value("\${ai.provider:gemini}")
     private lateinit var provider: String
@@ -140,9 +174,11 @@ class AiService(
             .build()
 
         try {
-            val response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+            val response = retryWithBackoff(maxAttempts = 3) {
+                httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+            }
             if (response.statusCode() != 200) {
-                logger.error("DeepSeek API returned status {}", response.statusCode())
+                logger.error("DeepSeek API returned status {} for {}", response.statusCode(), deepseekApiKey)
                 throw IllegalStateException("Failed to generate questions from DeepSeek")
             }
 

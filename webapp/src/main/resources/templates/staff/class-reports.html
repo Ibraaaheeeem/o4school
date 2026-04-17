@@ -31,6 +31,13 @@
             height: calc(100vh - 80px);
         }
 
+        /* Select/Option dropdown styling - fix black background */
+        select,
+        option {
+            background-color: white !important;
+            color: #0f172a !important;
+        }
+
         @media (max-width: 1200px) {
             .reports-main-layout {
                 grid-template-columns: 320px 1fr !important;
@@ -71,7 +78,7 @@
             background: #ffffff;
             border-right: 2px solid #cbd5e1;
             padding: 2rem 0;
-            overflow-y: auto;
+            overflow-y: visible;
             min-width: 0;
             grid-column: 1;
             align-self: start;
