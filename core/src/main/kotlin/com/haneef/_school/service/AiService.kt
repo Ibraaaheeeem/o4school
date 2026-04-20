@@ -22,7 +22,7 @@ class AiService(
         private val logger = LoggerFactory.getLogger(AiService::class.java)
         private const val PROVIDER_GEMINI = "gemini"
         private const val PROVIDER_DEEPSEEK = "deepseek"
-        private const val REQUEST_TIMEOUT_SECONDS = 300L  // 5 minutes for DeepSeek reasoning
+        private const val REQUEST_TIMEOUT_SECONDS = 90L  // Nginx timeout is ~60s, so use 90s max to avoid 504
     }
 
     private val httpClient = HttpClient.newBuilder()
@@ -86,7 +86,9 @@ class AiService(
     }
 
     fun generateQuestions(request: AiQuestionRequest): List<GeneratedQuestionDto> {
-        return when (normalizedProvider()) {
+        val normalizedProv = normalizedProvider()
+        logger.info("🤖 Starting AI question generation with provider: {} (configured: {})", normalizedProv, provider)
+        return when (normalizedProv) {
             PROVIDER_DEEPSEEK -> generateWithDeepSeek(request)
             PROVIDER_GEMINI -> generateWithGemini(request)
             else -> {
@@ -98,7 +100,7 @@ class AiService(
 
     private fun generateWithGemini(request: AiQuestionRequest): List<GeneratedQuestionDto> {
         if (geminiApiKey.isBlank()) {
-            logger.error("Gemini API key is not configured")
+            logger.error("❌ CRITICAL: Gemini API key is not configured. Set GEMINI_API_KEY environment variable.")
             throw IllegalStateException("Gemini AI is currently unavailable (API key missing)")
         }
 
@@ -149,7 +151,7 @@ class AiService(
 
     private fun generateWithDeepSeek(request: AiQuestionRequest): List<GeneratedQuestionDto> {
         if (deepseekApiKey.isBlank()) {
-            logger.error("DeepSeek API key is not configured")
+            logger.error("❌ CRITICAL: DeepSeek API key is not configured. Set DEEPSEEK_API_KEY environment variable.")
             throw IllegalStateException("DeepSeek AI is currently unavailable (API key missing)")
         }
 

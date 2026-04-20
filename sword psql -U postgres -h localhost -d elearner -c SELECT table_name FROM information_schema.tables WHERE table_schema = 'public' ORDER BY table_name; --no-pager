@@ -1,0 +1,57 @@
+                       List of tables
+ Schema |            Name             | Type  |    Owner     
+--------+-----------------------------+-------+--------------
+ public | alembic_version             | table | abuhaneefayn
+ public | assessment_results          | table | abuhaneefayn
+ public | assessments                 | table | abuhaneefayn
+ public | audit_logs                  | table | abuhaneefayn
+ public | class_captains              | table | abuhaneefayn
+ public | class_enrollments           | table | abuhaneefayn
+ public | class_subjects              | table | abuhaneefayn
+ public | classes                     | table | abuhaneefayn
+ public | content_prerequisites       | table | abuhaneefayn
+ public | curriculum_generation_runs  | table | abuhaneefayn
+ public | curriculum_generation_state | table | abuhaneefayn
+ public | drag_drop_items             | table | abuhaneefayn
+ public | drag_drop_questions         | table | abuhaneefayn
+ public | essay_questions             | table | abuhaneefayn
+ public | fill_blank_answers          | table | abuhaneefayn
+ public | fill_blank_questions        | table | abuhaneefayn
+ public | generated_content_tracking  | table | abuhaneefayn
+ public | hotspot_areas               | table | abuhaneefayn
+ public | hotspot_questions           | table | abuhaneefayn
+ public | lesson_questions            | table | abuhaneefayn
+ public | lessons                     | table | abuhaneefayn
+ public | matching_pairs              | table | abuhaneefayn
+ public | matching_questions          | table | abuhaneefayn
+ public | media_response_questions    | table | abuhaneefayn
+ public | messages                    | table | abuhaneefayn
+ public | multiple_choice_options     | table | abuhaneefayn
+ public | multiple_choice_questions   | table | abuhaneefayn
+ public | numerical_questions         | table | abuhaneefayn
+ public | ordering_items              | table | abuhaneefayn
+ public | ordering_questions          | table | abuhaneefayn
+ public | questions                   | table | abuhaneefayn
+ public | reviews                     | table | abuhaneefayn
+ public | roles                       | table | abuhaneefayn
+ public | schools                     | table | abuhaneefayn
+ public | security_events             | table | abuhaneefayn
+ public | short_answer_key_points     | table | abuhaneefayn
+ public | short_answer_questions      | table | abuhaneefayn
+ public | student_academic_records    | table | abuhaneefayn
+ public | student_profiles            | table | abuhaneefayn
+ public | student_progress            | table | abuhaneefayn
+ public | student_responses           | table | abuhaneefayn
+ public | subject_enrollments         | table | abuhaneefayn
+ public | subjects                    | table | abuhaneefayn
+ public | subtopics                   | table | abuhaneefayn
+ public | teacher_assignments         | table | abuhaneefayn
+ public | topics                      | table | abuhaneefayn
+ public | true_false_questions        | table | abuhaneefayn
+ public | user_classes                | table | abuhaneefayn
+ public | user_roles                  | table | abuhaneefayn
+ public | user_subjects               | table | abuhaneefayn
+ public | users                       | table | abuhaneefayn
+ public | weeks                       | table | abuhaneefayn
+(52 rows)
+

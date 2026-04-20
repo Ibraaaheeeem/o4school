@@ -203,9 +203,9 @@ class LearningContentService(
         if (elearnerSubjectIds.isEmpty()) return emptyList()
 
         // 1. Fetch Subject Names
-        val subjectsSql = "SELECT id, name FROM subjects WHERE id IN (:ids)"
+        val subjectsSql = "SELECT id, subject_name FROM subjects WHERE id IN (:ids)"
         val subjectsList = jdbcTemplate.query(subjectsSql, mapOf("ids" to elearnerSubjectIds)) { rs, _ ->
-            rs.getObject("id", UUID::class.java) to rs.getString("name")
+            rs.getObject("id", UUID::class.java) to rs.getString("subject_name")
         }.toMap()
 
         // 2. Fetch All Topics for the Term (needed for tabs)

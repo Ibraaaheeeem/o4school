@@ -16,8 +16,16 @@ echo "🚀 Preparing deployment for version: $VERSION"
 echo "📥 Pulling latest image..."
 docker pull $IMAGE_NAME:$VERSION
 
-# 2. Start Staging Container
+# 2. Ensure network and database are running
+echo "🗄️ Ensuring database and network are ready..."
+docker compose up -d db
+
+# 3. Start Staging Container
 echo "🧪 Starting Staging container on port $STAGING_PORT..."
+# Remove any existing staging container
+docker stop 4school_staging 2>/dev/null || true
+docker rm 4school_staging 2>/dev/null || true
+
 # We use the existing docker-compose environment variables if possible, 
 # but for a standalone staging test, we can use docker run.
 # To ensure it has all DB links, we run it on the same network.

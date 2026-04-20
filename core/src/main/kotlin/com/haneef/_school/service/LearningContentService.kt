@@ -88,6 +88,7 @@ class LearningContentService(
     @Value("\${elearner.datasource.max-pool-size:10}") private val maxPoolSize: Int
 ) {
 
+
     companion object {
         private val logger = LoggerFactory.getLogger(LearningContentService::class.java)
         private const val DEFAULT_MAX_WEEK = 12
@@ -99,6 +100,8 @@ class LearningContentService(
     fun init() {
         require(dbUrl.isNotBlank()) { "elearner.datasource.url must not be blank" }
         require(dbUser.isNotBlank()) { "elearner.datasource.username must not be blank" }
+        logger.info("Initializing elearner datasource: url={}, username={}", dbUrl, dbUser)
+        logger.info("Database URL: {}", dbUrl)
         val dataSource = HikariDataSource().apply {
             poolName = "elearner-pool"
             connectionTimeout = 30_000L
@@ -107,6 +110,25 @@ class LearningContentService(
             username = dbUser
             password = dbPass
             maximumPoolSize = maxPoolSize
+        }
+        try {
+            // Test the connection
+            dataSource.connection.use { conn ->
+                logger.info("Successfully connected to elearner database")
+                // List available tables
+                val query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"
+                conn.createStatement().use { stmt ->
+                    val rs = stmt.executeQuery(query)
+                    val tables = mutableListOf<String>()
+                    while (rs.next()) {
+                        tables.add(rs.getString("table_name"))
+                    }
+                    logger.info("Available tables in elearner: {}", tables)
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to connect to elearner database or verify schema", e)
+            throw IllegalStateException("Cannot initialize elearner datasource", e)
         }
         jdbcTemplate = NamedParameterJdbcTemplate(dataSource)
         logger.info("LearningContentService initialized with pool size {}", maxPoolSize)
@@ -198,42 +220,26 @@ class LearningContentService(
     fun getMenuHierarchy(elearnerSubjectIds: List<UUID>, term: Int): List<WeekMenuDto> {
         if (elearnerSubjectIds.isEmpty()) return emptyList()
 
-        // 1. Fetch Subject Names
+        // 1. Fetch Subject Names (elearner.subjects has 'name' column)
         val subjectsSql = "SELECT id, name FROM subjects WHERE id IN (:ids)"
+        logger.debug("Fetching subject names for IDs: {}", elearnerSubjectIds.joinToString(", "))
         val subjectsList = jdbcTemplate.query(subjectsSql, mapOf("ids" to elearnerSubjectIds)) { rs, _ ->
             rs.getObject("id", UUID::class.java) to rs.getString("name")
         }.toMap()
 
-        // 2. Fetch All Topics for the Term (needed for tabs)
-        val topicsSql = """
-            SELECT id, name, description, subject_id, week 
-            FROM topics 
-            WHERE subject_id IN (:ids) AND term = :term 
-            ORDER BY week ASC, "order" ASC
-        """
-        val allTopics = jdbcTemplate.query(topicsSql, mapOf("ids" to elearnerSubjectIds, "term" to term)) { rs, _ ->
-            mapOf(
-                "id" to rs.getInt("id"),
-                "name" to rs.getString("name"),
-                "description" to rs.getString("description"),
-                "subjectId" to rs.getObject("subject_id", UUID::class.java),
-                "week" to rs.getInt("week")
-            )
-        }
-
-        // 3. Fetch All Lessons for the Term (including subtheme)
+        // 2. Fetch All Lessons for the Term (including topic and subtheme)
         val lessonsSql = """
             SELECT id, title, topic, subtheme, duration_minutes, lesson_type, subject_id, week 
             FROM lessons 
             WHERE subject_id IN (:ids) AND term = :term 
-            ORDER BY "order" ASC
+            ORDER BY week ASC, "order" ASC
         """
         val allLessons = jdbcTemplate.query(lessonsSql, mapOf("ids" to elearnerSubjectIds, "term" to term)) { rs, _ ->
             mapOf(
                 "id" to rs.getInt("id"),
                 "title" to rs.getString("title"),
-                "topicName" to rs.getString("topic"),
-                "subtheme" to rs.getString("subtheme"),
+                "topicName" to (rs.getString("topic") ?: ""),
+                "subtheme" to (rs.getString("subtheme") ?: "General"),
                 "durationMinutes" to rs.getObject("duration_minutes", Int::class.javaObjectType),
                 "lessonType" to rs.getString("lesson_type"),
                 "subjectId" to rs.getObject("subject_id", UUID::class.java),
@@ -241,8 +247,8 @@ class LearningContentService(
             )
         }
 
-        // 4. Group by Week and Subject
-        val maxWeek = (allTopics.map { it["week"] as Int } + allLessons.map { it["week"] as Int } + listOf(DEFAULT_MAX_WEEK)).maxOrNull() ?: DEFAULT_MAX_WEEK
+        // 3. Derive topics from lessons and group by week and subject
+        val maxWeek = (allLessons.map { it["week"] as Int } + listOf(DEFAULT_MAX_WEEK)).maxOrNull() ?: DEFAULT_MAX_WEEK
         
         return (1..maxWeek).map { weekNum ->
             WeekMenuDto(
@@ -250,42 +256,26 @@ class LearningContentService(
                 subjects = elearnerSubjectIds.map { subjId ->
                     val subjName = subjectsList[subjId] ?: "Unknown"
                     
-                    val weekSubjTopics = allTopics.filter { it["week"] == weekNum && it["subjectId"] == subjId }
                     val weekSubjLessons = allLessons.filter { it["week"] == weekNum && it["subjectId"] == subjId }
                     
+                    // Derive unique topics from lessons for this week/subject
+                    val uniqueTopics = weekSubjLessons
+                        .map { it["topicName"]?.toString()?.trim() ?: "" }
+                        .distinct()
+                        .filter { it.isNotEmpty() }
+                    
                     // Group by Topics (for tabs)
-                    var topicDtos = weekSubjTopics.map { t ->
-                        val tId = t["id"] as Int
-                        val tName = t["name"] as String
+                    val topicDtos = uniqueTopics.mapIndexed { index, topicName ->
                         val tLessons = weekSubjLessons.filter {
-                            it["topicName"]?.toString()?.trim()?.equals(tName.trim(), ignoreCase = true) == true
+                            it["topicName"]?.toString()?.trim()?.equals(topicName, ignoreCase = true) == true
                         }.map { it.toLessonDto() }
 
                         TopicMenuDto(
-                            id = tId,
-                            name = tName,
-                            description = t["description"]?.toString(),
+                            id = index,
+                            name = topicName,
+                            description = null,
                             lessons = tLessons
                         )
-                    }
-
-                    // Unassigned lessons (relative to topics)
-                    val assignedLessonIds = topicDtos.flatMap { it.lessons }.map { it.id }.toSet()
-                    val remainingLessons = weekSubjLessons.filter { (it["id"] as Int) !in assignedLessonIds }
-
-                    // FALLBACK: If we have unassigned lessons with subthemes, promote them to virtual topics
-                    if (remainingLessons.isNotEmpty()) {
-                        val virtualTopics = remainingLessons.groupBy { it["subtheme"]?.toString() }
-                            .mapNotNull { (name, lessons) ->
-                                name ?: return@mapNotNull null
-                                TopicMenuDto(
-                                    id = (lessons.first()["id"] as Int) * -1,
-                                    name = name,
-                                    description = null,
-                                    lessons = lessons.map { it.toLessonDto() }
-                                )
-                            }
-                        topicDtos = topicDtos + virtualTopics
                     }
 
                     // Group by Subthemes (for sidebar hierarchy)
@@ -323,31 +313,40 @@ class LearningContentService(
         }
     }
 
-    // Fetches topics and all their subtopics in two queries (batch) instead of N+1
+    // Fetches topics derived from lessons data (no separate topics table)
     private fun fetchTopicsWithSubtopics(subjectId: UUID, week: Int, term: Int): List<TopicDto> {
-        val sql = "SELECT id, name, description FROM topics WHERE subject_id = :subjectId AND week = :week AND term = :term ORDER BY \"order\" ASC"
+        val lessonsSql = """
+            SELECT DISTINCT topic FROM lessons 
+            WHERE subject_id = :subjectId AND week = :week AND term = :term AND topic IS NOT NULL
+            ORDER BY topic ASC
+        """
         val params = mapOf("subjectId" to subjectId, "week" to week, "term" to term)
-        val topics = jdbcTemplate.query(sql, params) { rs, _ ->
-            Triple(rs.getInt("id"), rs.getString("name"), rs.getString("description"))
-        }
-        if (topics.isEmpty()) return emptyList()
-        val subtopicsByTopic = fetchSubtopicsBatch(topics.map { it.first })
-        return topics.map { (id, name, description) ->
-            TopicDto(id = id, name = name, description = description, subtopics = subtopicsByTopic[id] ?: emptyList())
-        }
-    }
-
-    // Batch-loads subtopics for multiple topic IDs in a single query instead of one query per topic
-    private fun fetchSubtopicsBatch(topicIds: List<Int>): Map<Int, List<SubtopicDto>> {
-        if (topicIds.isEmpty()) return emptyMap()
-        val sql = "SELECT id, name, description, topic_id FROM subtopics WHERE topic_id IN (:topicIds)"
-        return jdbcTemplate.query(sql, mapOf("topicIds" to topicIds)) { rs, _ ->
-            rs.getInt("topic_id") to SubtopicDto(
-                id = rs.getInt("id"),
-                name = rs.getString("name"),
-                description = rs.getString("description")
+        val topics = jdbcTemplate.query(lessonsSql, params) { rs, _ ->
+            rs.getString("topic") ?: ""
+        }.distinct()
+        
+        return topics.mapIndexed { index, topicName ->
+            // Fetch subtopics (derived from distinct subthemes within each topic)
+            val subtopicsSql = """
+                SELECT DISTINCT subtheme FROM lessons 
+                WHERE subject_id = :subjectId AND week = :week AND term = :term AND topic = :topic
+            """
+            val subtopicParams = mapOf(
+                "subjectId" to subjectId,
+                "week" to week,
+                "term" to term,
+                "topic" to topicName
             )
-        }.groupBy({ it.first }, { it.second })
+            val subtopics = jdbcTemplate.query(subtopicsSql, subtopicParams) { rs, _ ->
+                SubtopicDto(
+                    id = rs.getString("subtheme").hashCode() % 10000,
+                    name = rs.getString("subtheme") ?: "General",
+                    description = null
+                )
+            }
+            
+            TopicDto(id = index, name = topicName, description = null, subtopics = subtopics)
+        }
     }
 
     private fun fetchLessons(subjectId: UUID, week: Int, term: Int): List<LessonDto> {
