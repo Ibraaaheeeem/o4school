@@ -912,45 +912,54 @@
             }
 
             .elearner-sidebar {
-                position: fixed;
-                left: 0;
-                top: 80px;
-                height: calc(100vh - 80px);
-                max-height: calc(100vh - 80px);
-                z-index: 1050;
-                transform: translateX(-100%);
-                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.15);
-                border-radius: 0;
-                width: 85vw;
-                max-width: 360px;
+                position: fixed !important;
+                display: flex !important;
+                left: 0 !important;
+                top: 80px !important;
+                height: calc(100vh - 80px) !important;
+                max-height: calc(100vh - 80px) !important;
+                z-index: 1050 !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.15) !important;
+                border-radius: 0 !important;
+                width: 85vw !important;
+                max-width: 360px !important;
+                overflow: visible !important;
             }
 
             .elearner-sidebar.active {
-                transform: translateX(0);
+                transform: translateX(0) !important;
             }
 
             .sidebar-overlay {
-                display: none;
-                position: fixed;
-                inset: 0;
-                top: 80px;
-                background: rgba(15, 23, 42, 0.6);
-                backdrop-filter: blur(4px);
-                z-index: 1040;
-                opacity: 0;
-                transition: opacity 0.4s;
+                position: fixed !important;
+                left: 0 !important;
+                top: 80px !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                background: rgba(15, 23, 42, 0.6) !important;
+                backdrop-filter: blur(4px) !important;
+                z-index: 1040 !important;
+                opacity: 0 !important;
+                transition: opacity 0.4s ease !important;
+                pointer-events: none !important;
+                cursor: pointer !important;
+                display: none !important;
             }
 
             .sidebar-overlay.active {
-                display: block;
-                opacity: 1;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                display: none !important;
             }
 
             .mobile-nav-toggle {
-                display: flex;
-                bottom: 2.5rem;
-                right: 2.5rem;
+                display: none !important;
+                position: fixed !important;
+                bottom: 2.5rem !important;
+                right: 2.5rem !important;
+                z-index: 1100 !important;
             }
 
             .elearner-main {
@@ -1172,253 +1181,17 @@
 </head>
 
 <body>
-    <!-- Include School Header -->
-    <div th:replace="~{fragments/header :: school-header}"></div>
-
-    <div class="elearner-layout">
-        <!-- Sidebar Overlay -->
-        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileMenu()"></div>
-
-        <!-- Mobile Nav Toggle -->
-        <button class="mobile-nav-toggle" id="mobile-toggle" onclick="toggleMobileMenu()">
-            <div
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
-                <i class="fas fa-bars" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
-                <span
-                    style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Menu</span>
-            </div>
-        </button>
-
-        <!-- Sidebar Navigation -->
-        <aside class="elearner-sidebar">
-            <div class="sidebar-header">
-                <h2><i class="fas fa-book-open"></i> Digital Library</h2>
-                <p>Grade <span th:text="${gradeLevel}">10</span></p>
-                <div class="term-selector">
-                    <label for="term-select">Term:</label>
-                    <select id="term-select" th:attr="data-current-term=${term}">
-                        <option value="1" th:selected="${term == 1}">First Term</option>
-                        <option value="2" th:selected="${term == 2}">Second Term</option>
-                        <option value="3" th:selected="${term == 3}">Third Term</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="sidebar-search">
-                <input type="text" id="lesson-search" placeholder="Search lessons...">
-            </div>
-
-            <nav class="sidebar-menu">
-                <th:block th:if="${menuHierarchy != null and !#lists.isEmpty(menuHierarchy)}">
-                    <div th:each="weekGroup : ${menuHierarchy}"
-                        th:classappend="${weekGroup.week == week} ? 'menu-week open' : 'menu-week'" class="menu-week">
-
-                        <button class="week-toggle" onclick="toggleMenu(this)" type="button">
-                            <h3>Week <span th:text="${weekGroup.week}">1</span> <span class="week-badge" th:text="${weekGroup.subjects.size()}">0</span></h3>
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-
-                        <div class="week-content">
-                            <div th:each="subjectMenu : ${weekGroup.subjects}"
-                                th:classappend="${subjectMenu.id == selectedSubjectId and weekGroup.week == week} ? 'menu-subject open' : 'menu-subject'"
-                                class="menu-subject">
-
-                                <a th:href="@{/elearner/landing(classId=${classId}, gradeLevel=${gradeLevel}, term=${term}, week=${weekGroup.week}, subjectId=${subjectMenu.id})}"
-                                    th:onclick="'closeLesson()'"
-                                    th:classappend="${subjectMenu.id == selectedSubjectId and weekGroup.week == week} ? 'active' : ''"
-                                    class="subject-toggle">
-                                    <span th:text="${subjectMenu.name}">Subject</span>
-                                    <i th:if="${subjectMenu.subThemes != null and !#lists.isEmpty(subjectMenu.subThemes)}" class="fas fa-chevron-right"></i>
-                                </a>
-
-                                <div class="topic-list" th:if="${subjectMenu.subThemes != null and !#lists.isEmpty(subjectMenu.subThemes)}">
-                                    <div th:each="subTheme : ${subjectMenu.subThemes}" class="menu-subtheme">
-                                        <span class="subtheme-label" th:text="${subTheme.name ?: 'Topics'}">Subtheme</span>
-                                        <a th:each="lesson : ${subTheme.lessons}" href="javascript:void(0)"
-                                            th:onclick="'loadLesson(' + ${lesson.id} + ')'" th:text="${lesson.title}"
-                                            class="menu-lesson">
-                                            Lesson Title
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </th:block>
-                <th:block th:if="${menuHierarchy == null or #lists.isEmpty(menuHierarchy)}">
-                    <div class="p-4 text-center text-slate-500">
-                        <i class="fas fa-inbox text-2xl mb-2 block"></i>
-                        <p class="text-sm">No content available</p>
-                    </div>
-                </th:block>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="elearner-main" th:if="${content != null or (menuHierarchy != null and !#lists.isEmpty(menuHierarchy))}">
-            <!-- Normal Subject View -->
-            <div id="subject-view" th:classappend="${content == null} ? 'hidden' : ''">
-                <!-- Breadcrumbs / Selection Info -->
-                <div th:if="${selectedSubject != null}" class="subject-info">
-                    <div class="breadcrumb">
-                        <span><i class="fas fa-book"></i> Week <span th:text="${week}">1</span></span>
-                        <span>•</span>
-                        <span th:text="${selectedSubject.subject.subjectCode ?: 'Subject'}">MTH</span>
-                    </div>
-                    <h1 th:text="${selectedSubject.subject.subjectName ?: 'Subject Name'}">Subject Name</h1>
-                    <p th:if="${content != null and content.weekTheme}" th:text="${content.weekTheme}">Theme description</p>
-                </div>
-
-                <!-- Content Tabs -->
-                <div th:if="${content != null and ((content.topics != null and !#lists.isEmpty(content.topics)) or (content.unassignedLessons != null and !#lists.isEmpty(content.unassignedLessons)))}">
-                    <div class="content-tabs">
-                        <button th:each="topic, stats : ${content.topics}" class="tab-item"
-                            th:classappend="${(selectedTopicId == null and stats.first) or topic.id == selectedTopicId} ? 'active' : ''"
-                            th:onclick="'switchTab(\'topic-' + ${topic.id} + '\', this)'" th:text="${topic.name}">
-                            Topic Name
-                        </button>
-                        <button th:if="${content.unassignedLessons != null and !#lists.isEmpty(content.unassignedLessons)}" class="tab-item"
-                            th:classappend="${(selectedTopicId == null and (content.topics == null or #lists.isEmpty(content.topics))) or selectedTopicId == 'unassigned'} ? 'active' : ''"
-                            onclick="switchTab('topic-unassigned', this)">
-                            Other Lessons
-                        </button>
-                    </div>
-
-                    <!-- Tab Panes -->
-                    <div th:each="topic, stats : ${content.topics}" th:id="'topic-' + ${topic.id}" class="tab-pane"
-                        th:classappend="${(selectedTopicId == null and stats.first) or topic.id == selectedTopicId} ? 'active' : ''">
-
-                        <div class="mb-8" th:if="${topic.description}">
-                            <p class="text-slate-600 italic" th:text="${topic.description}">Topic description...</p>
-                        </div>
-
-                        <div class="lesson-grid">
-                            <a th:each="lesson : ${topic.lessons}" href="javascript:void(0)"
-                                th:onclick="'loadLesson(' + ${lesson.id} + ')'" class="lesson-item">
-                                <div class="lesson-icon">
-                                    <i class="fas fa-book"></i>
-                                </div>
-                                <div class="lesson-details">
-                                    <h4 th:text="${lesson.title}">Lesson Title</h4>
-                                    <p>
-                                        <span th:if="${lesson.durationMinutes}"
-                                            th:text="${lesson.durationMinutes} + ' mins'"></span>
-                                        <span th:if="${lesson.durationMinutes and lesson.lessonType}"> • </span>
-                                        <span th:text="${lesson.lessonType ?: 'Content'}">Type</span>
-                                    </p>
-                                </div>
-                                <i class="fas fa-chevron-right chevron"></i>
-                            </a>
-                        </div>
-
-                        <!-- Tab Navigation -->
-                        <div class="tab-navigation">
-                            <button th:if="${!stats.first}" class="nav-btn prev" th:onclick="'navigateTabs(-1)'">
-                                <i class="fas fa-arrow-left"></i>
-                                <div class="nav-label">
-                                    <span class="nav-sub">Previous Topic</span>
-                                    <span th:text="${content.topics[stats.index - 1].name}">Prev Name</span>
-                                </div>
-                            </button>
-
-                            <button th:if="${!stats.last or !content.unassignedLessons.empty}" class="nav-btn next"
-                                th:onclick="'navigateTabs(1)'">
-                                <div class="nav-label">
-                                    <span class="nav-sub">Next Topic</span>
-                                    <span
-                                        th:text="${stats.last ? 'Other Lessons' : content.topics[stats.index + 1].name}">Next
-                                        Name</span>
-                                </div>
-                                <i class="fas fa-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Unassigned Lessons Pane -->
-                    <div th:if="${content.unassignedLessons != null and !#lists.isEmpty(content.unassignedLessons)}" id="topic-unassigned" class="tab-pane"
-                        th:classappend="${(selectedTopicId == null and (content.topics == null or #lists.isEmpty(content.topics))) or selectedTopicId == 'unassigned'} ? 'active' : ''">
-
-                        <div class="lesson-grid">
-                            <a th:each="lesson : ${content.unassignedLessons}" href="javascript:void(0)"
-                                th:onclick="'loadLesson(' + ${lesson.id} + ')'" class="lesson-item">
-                                <div class="lesson-icon">
-                                    <i class="fas fa-file-alt"></i>
-                                </div>
-                                <div class="lesson-details">
-                                    <h4 th:text="${lesson.title}">Lesson Title</h4>
-                                    <p th:text="${lesson.lessonType ?: 'Content'}">Type</p>
-                                </div>
-                                <i class="fas fa-chevron-right chevron"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- No content state -->
-                    <div th:if="${content == null or ((content.topics == null or #lists.isEmpty(content.topics)) and (content.unassignedLessons == null or #lists.isEmpty(content.unassignedLessons)))}">
-                        <div class="empty-state">
-                            <i class="fas fa-inbox text-4xl"></i>
-                            <h3>No Lessons Available</h3>
-                            <p>This subject has no lessons assigned for this week.</p>
-                        </div>
-                    </div>
-                            <button th:if="${!content.topics.empty}" class="nav-btn prev" onclick="navigateTabs(-1)">
-                                <i class="fas fa-arrow-left"></i>
-                                <div class="nav-label">
-                                    <span class="nav-sub">Previous Topic</span>
-                                    <span th:text="${content.topics.last().name}">Prev Name</span>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Empty State -->
-                <div th:if="${content == null}" class="empty-dashboard">
-                    <i class="fas fa-book-reader"></i>
-                    <h3>Select a subject from the menu</h3>
-                    <p>Browse through weeks and subjects to find your lessons and resources.</p>
-                </div>
-
-                <div th:if="${content != null and content.topics.empty and content.unassignedLessons.empty}"
-                    class="empty-dashboard">
-                    <i class="fas fa-calendar-times"></i>
-                    <h3>No lessons available</h3>
-                    <p>There is no digital content scheduled for <span
-                            th:text="${selectedSubject?.subject?.subjectName}">this subject</span> in Week <span
-                            th:text="${week}">1</span>. Check back later for updates.</p>
-                </div>
-            </div>
-
-            <!-- Dynamic Lesson Viewer -->
-            <div id="lesson-viewer" class="lesson-viewer">
-                <button onclick="closeLesson()" class="back-button">
-                    <i class="fas fa-arrow-left"></i> Back to Subject Overview
-                </button>
-                <div class="lesson-header">
-                    <div id="lesson-breadcrumbs"
-                        class="text-xs uppercase font-bold tracking-wider text-indigo-600 mb-2"></div>
-                    <h1 id="lesson-title" class="text-3xl font-extrabold text-slate-900"></h1>
-                </div>
-
-                <div id="lesson-tabs" class="lesson-nav-tabs">
-                    <!-- Tabs will be injected here -->
-                </div>
-
-                <div id="lesson-content-panes">
-                    <!-- Panes will be injected here -->
-                </div>
-            </div>
-        </main>
-    </div>
-
+    <!-- Early function definitions for inline onclick handlers -->
     <script th:inline="javascript">
+        // Declare userRole early so it's available for all functions
         const userRole = /*[[${userRole}]]*/ 'STUDENT';
+        
+        // Lesson tab mapping configuration
         const lessonTabMapping = [
             { key: 'hook_introduction', label: 'Hook / Introduction' },
             { key: 'learning_objectives', label: 'Learning Objectives' },
             { key: 'introduction', label: 'Background' },
             { key: 'lesson_content', label: 'Core Content' },
-            // subject_specific_content will be injected here dynamically
             { key: 'key_concepts', label: 'Key Concepts' },
             { key: 'real_life_scenarios', label: 'Real-Life Context' },
             { key: 'practical_activities', label: 'Practical Work' },
@@ -1431,182 +1204,135 @@
             { key: 'student_notes', label: 'My Notes' }
         ];
 
-        async function loadLesson(lessonId) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Navigation Functions
+        function toggleMenu(btn) {
+            const week = btn.parentElement;
+            week.classList.toggle('open');
+        }
 
-            try {
-                const response = await fetch(`/elearner/api/lesson/${lessonId}`);
-                if (!response.ok) throw new Error('Failed to fetch lesson');
-                const lesson = await response.json();
-
-                document.getElementById('subject-view').style.display = 'none';
-                document.getElementById('lesson-viewer').classList.add('active');
-
-                document.getElementById('lesson-title').innerText = lesson.title;
-                document.getElementById('lesson-breadcrumbs').innerText = `${lesson.subtheme || lesson.topic || 'Lesson'} • ${lesson.topic || 'Unit'}`;
-
-                const tabsContainer = document.getElementById('lesson-tabs');
-                const panesContainer = document.getElementById('lesson-content-panes');
-                tabsContainer.innerHTML = '';
-                panesContainer.innerHTML = '';
-
-                let activeTabs = []; // [{id, label, content}]
-
-                // Helper to add data to activeTabs
-                const collectTab = (id, label, content) => {
-                    activeTabs.push({ id, label, content });
-                };
-
-                const formatLabel = (str) => {
-                    if (!str) return 'Content';
-                    return str.split(/_|\s/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-                };
-
-                // 1. Process standard fields
-                lessonTabMapping.forEach(item => {
-                    // Inject subject_specific_content map if exists (before Key Concepts)
-                    if (item.key === 'key_concepts' && lesson.subject_specific_content) {
-                        try {
-                            const specContent = typeof lesson.subject_specific_content === 'string'
-                                ? JSON.parse(lesson.subject_specific_content)
-                                : lesson.subject_specific_content;
-
-                            if (typeof specContent === 'object' && specContent !== null) {
-                                for (const [specKey, specHtml] of Object.entries(specContent)) {
-                                    collectTab(`spec_${specKey}`, formatLabel(specKey), specHtml);
-                                }
-                            }
-                        } catch (e) { console.warn("Failed to parse subject_specific_content", e); }
-                    }
-
-                    let content = lesson[item.key] || (item.key === 'lesson_content' ? lesson['content'] : null);
-
-                    // Check for teacher notes for this section
-                    if (userRole !== 'STUDENT') {
-                        const teacherNoteKey = item.key + '_teacher_notes';
-                        const teacherNote = lesson[teacherNoteKey];
-                        if (teacherNote) {
-                            const teacherHtml = `<div class="teacher-notes-section mt-8 p-6 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
-                                <h4 class="text-amber-800 font-bold mb-2"><i class="fas fa-chalkboard-teacher mr-2"></i>Teacher's Notes</h4>
-                                <div class="prose prose-amber max-w-none">${teacherNote}</div>
-                            </div>`;
-
-                            // If original content is empty, just show teacher note
-                            // If original content exists, append teacher note
-                            if (!content || (typeof content === 'string' && content.trim() === '')) {
-                                content = teacherHtml;
-                            } else if (typeof content === 'string') {
-                                content = content + teacherHtml;
-                            }
-                            // Note: If content is JSON/Object, we might need special handling, but appending string usually works for the renderers
-                        }
-                    }
-
-                    if (content && (typeof content !== 'string' || content.trim() !== '')) {
-                        // Check if lesson_content is JSON and needs expansion
-                        if (item.key === 'lesson_content') {
-                            try {
-                                const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-                                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                                    // Expand JSON keys into individual tabs
-                                    for (const [subKey, subHtml] of Object.entries(parsed)) {
-                                        collectTab(`${item.key}_${subKey}`, formatLabel(subKey), subHtml);
-                                    }
-                                    return; // Skip original "Core Content" tab
-                                }
-                            } catch (e) { /* Not JSON, proceed as string */ }
-                        }
-
-                        collectTab(item.key, item.label, content);
-                    }
-                });
-
-                // 2. Add Teacher Overview/Notes Tabs if applicable
-                if (userRole !== 'STUDENT') {
-                    if (lesson.teachers_overview) {
-                        collectTab('teachers_overview', 'Teacher Overview', lesson.teachers_overview);
-                    }
-                    if (lesson.teachers_notes) {
-                        collectTab('teachers_notes', 'Teacher Notes', lesson.teachers_notes);
-                    }
-                }
-
-                if (activeTabs.length === 0) {
-                    tabsContainer.innerHTML = '<span class="text-slate-400 p-4">Detailed lesson content is successfully requested and will appear here when ready.</span>';
-                } else {
-                    // Render all tabs and panes with navigation
-                    activeTabs.forEach((tab, index) => {
-                        // Create Tab Button
-                        const btn = document.createElement('button');
-                        btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
-                        btn.innerText = tab.label;
-                        btn.onclick = () => switchLessonTab(tab.id, btn);
-                        tabsContainer.appendChild(btn);
-
-                        // Create Content Pane
-                        const pane = document.createElement('div');
-                        pane.id = `lesson-pane-${tab.id}`;
-                        pane.className = `lesson-pane ${index === 0 ? 'active' : ''}`;
-
-                        let rawHtml = (tab.id === 'assessment_questions')
-                            ? renderAssessments(tab.content)
-                            : tab.content;
-
-                        // Render Markdown if it doesn't look like pure HTML
-                        const isMarkdown = (text) => {
-                            if (!text) return false;
-                            const markdownIndicators = ['# ', '**', '__', '* ', '- ', '> ', '```', '['];
-                            return markdownIndicators.some(indicator => text.includes(indicator)) && !text.trim().startsWith('<');
-                        };
-
-                        let contentHtml = isMarkdown(rawHtml) ? marked.parse(rawHtml) : rawHtml;
-
-                        // Add Navigation Footer
-                        let navHtml = '<div class="tab-navigation">';
-
-                        if (index > 0) {
-                            const prev = activeTabs[index - 1];
-                            navHtml += `
-                                <button class="nav-btn prev" onclick="navigateLessonTabs(-1)">
-                                    <i class="fas fa-arrow-left"></i>
-                                    <div class="nav-label">
-                                        <span class="nav-sub">Previous</span>
-                                        <span>${prev.label}</span>
-                                    </div>
-                                </button>
-                            `;
-                        }
-
-                        if (index < activeTabs.length - 1) {
-                            const next = activeTabs[index + 1];
-                            navHtml += `
-                                <button class="nav-btn next" onclick="navigateLessonTabs(1)">
-                                    <div class="nav-label">
-                                        <span class="nav-sub">Next</span>
-                                        <span>${next.label}</span>
-                                    </div>
-                                    <i class="fas fa-arrow-right"></i>
-                                </button>
-                            `;
-                        }
-
-                        navHtml += '</div>';
-
-                        pane.innerHTML = `<div class="prose max-w-none mb-10">${contentHtml}</div>` + navHtml;
-                        panesContainer.appendChild(pane);
-                    });
-                }
-
-            } catch (error) {
-                console.error('Error loading lesson:', error);
-                alert('Could not load lesson details. Please try again.');
+        function toggleSubject(link, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const menuSubject = link.closest('.menu-subject');
+            const topicList = menuSubject.querySelector('.topic-list');
+            
+            if (topicList) {
+                // If there are topics, toggle visibility (don't navigate, don't close drawer)
+                menuSubject.classList.toggle('open');
+            } else {
+                // If no topics, navigate directly
+                window.location.href = link.href;
             }
+            return false;
+        }
+
+        function toggleMobileMenu(event) {
+            if (event && event.stopPropagation) {
+                event.stopPropagation();
+            }
+            const sidebar = document.querySelector('.elearner-sidebar');
+            const toggleIcon = document.querySelector('#mobile-toggle i');
+
+            if (!sidebar) return;
+
+            sidebar.classList.toggle('active');
+
+            if (sidebar.classList.contains('active')) {
+                toggleIcon.className = 'fas fa-times';
+                document.body.style.overflow = 'hidden';
+            } else {
+                toggleIcon.className = 'fas fa-bars';
+                document.body.style.overflow = '';
+            }
+        }
+
+        function closeLesson() {
+            document.getElementById('lesson-viewer').classList.remove('active');
+            document.getElementById('subject-view').style.display = 'block';
+        }
+
+        function switchTab(topicId, btn) {
+            // Deactivate all tabs
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+            // Activate current
+            btn.classList.add('active');
+            document.getElementById(topicId).classList.add('active');
+        }
+
+        function navigateTabs(direction) {
+            const tabs = Array.from(document.querySelectorAll('.content-tabs .tab-item'));
+            const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
+            const nextIndex = activeIndex + direction;
+
+            if (nextIndex >= 0 && nextIndex < tabs.length) {
+                tabs[nextIndex].click();
+                document.querySelector('.elearner-main').scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function toggleAnswer(btn) {
+            const answer = btn.nextElementSibling;
+            const isShowing = answer.classList.contains('show');
+
+            if (isShowing) {
+                answer.classList.remove('show');
+                btn.innerHTML = '<i class="fas fa-eye mr-2"></i> Show Answer';
+                btn.style.background = 'white';
+                btn.style.color = 'var(--primary-color)';
+            } else {
+                answer.classList.add('show');
+                btn.innerHTML = '<i class="fas fa-eye-slash mr-2"></i> Hide Answer';
+                btn.style.background = 'var(--primary-color)';
+                btn.style.color = 'white';
+            }
+        }
+
+        function navigateLessonTabs(direction) {
+            const tabs = Array.from(document.querySelectorAll('#lesson-tabs .tab-btn'));
+            const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
+            const nextIndex = activeIndex + direction;
+
+            if (nextIndex >= 0 && nextIndex < tabs.length) {
+                tabs[nextIndex].click();
+                document.getElementById('lesson-viewer').scrollTo({ top: 0, behavior: 'smooth' });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function switchLessonTab(paneId, btn) {
+            // Deactivate all
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.lesson-pane').forEach(p => p.classList.remove('active'));
+
+            // Activate current
+            btn.classList.add('active');
+            document.getElementById(`lesson-pane-${paneId}`).classList.add('active');
+
+            // Auto-center the active tab in its container
+            centerActiveTab(btn);
+        }
+
+        function centerActiveTab(activeTab) {
+            const container = document.getElementById('lesson-tabs');
+            if (!container || !activeTab) return;
+
+            const containerWidth = container.offsetWidth;
+            const tabOffset = activeTab.offsetLeft;
+            const tabWidth = activeTab.offsetWidth;
+
+            const scrollTarget = tabOffset - (containerWidth / 2) + (tabWidth / 2);
+
+            container.scrollTo({
+                left: scrollTarget,
+                behavior: 'smooth'
+            });
         }
 
         function renderAssessments(content) {
             let questions = [];
             try {
-                // Handle different possible formats
                 if (typeof content === 'string') {
                     if (content.startsWith('{')) {
                         questions = content.slice(1, -1).split(/",\s*"/).map(q => q.replace(/^"|"$/g, '').trim());
@@ -1666,147 +1392,439 @@
             }
         }
 
-        function toggleAnswer(btn) {
-            const answer = btn.nextElementSibling;
-            const isShowing = answer.classList.contains('show');
+        async function loadLesson(lessonId) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            if (isShowing) {
-                answer.classList.remove('show');
-                btn.innerHTML = '<i class="fas fa-eye mr-2"></i> Show Answer';
-                btn.style.background = 'white';
-                btn.style.color = 'var(--primary-color)';
-            } else {
-                answer.classList.add('show');
-                btn.innerHTML = '<i class="fas fa-eye-slash mr-2"></i> Hide Answer';
-                btn.style.background = 'var(--primary-color)';
-                btn.style.color = 'white';
-            }
-        }
+            try {
+                const response = await fetch(`/elearner/api/lesson/${lessonId}`);
+                if (!response.ok) throw new Error('Failed to fetch lesson');
+                const lesson = await response.json();
 
-        function navigateLessonTabs(direction) {
-            const tabs = Array.from(document.querySelectorAll('#lesson-tabs .tab-btn'));
-            const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
-            const nextIndex = activeIndex + direction;
+                document.getElementById('subject-view').style.display = 'none';
+                document.getElementById('lesson-viewer').classList.add('active');
 
-            if (nextIndex >= 0 && nextIndex < tabs.length) {
-                tabs[nextIndex].click();
-                // Scroll to top of viewer
-                document.getElementById('lesson-viewer').scrollTo({ top: 0, behavior: 'smooth' });
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
+                document.getElementById('lesson-title').innerText = lesson.title;
+                document.getElementById('lesson-breadcrumbs').innerText = `${lesson.subtheme || lesson.topic || 'Lesson'} • ${lesson.topic || 'Unit'}`;
 
-        function switchLessonTab(paneId, btn) {
-            // Deactivate all
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.lesson-pane').forEach(p => p.classList.remove('active'));
+                const tabsContainer = document.getElementById('lesson-tabs');
+                const panesContainer = document.getElementById('lesson-content-panes');
+                tabsContainer.innerHTML = '';
+                panesContainer.innerHTML = '';
 
-            // Activate current
-            btn.classList.add('active');
-            document.getElementById(`lesson-pane-${paneId}`).classList.add('active');
+                let activeTabs = [];
 
-            // Auto-center the active tab in its container
-            centerActiveTab(btn);
-        }
+                const collectTab = (id, label, content) => {
+                    activeTabs.push({ id, label, content });
+                };
 
-        function centerActiveTab(activeTab) {
-            const container = document.getElementById('lesson-tabs');
-            if (!container || !activeTab) return;
+                const formatLabel = (str) => {
+                    if (!str) return 'Content';
+                    return str.split(/_|\s/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                };
 
-            const containerWidth = container.offsetWidth;
-            const tabOffset = activeTab.offsetLeft;
-            const tabWidth = activeTab.offsetWidth;
+                lessonTabMapping.forEach(item => {
+                    if (item.key === 'key_concepts' && lesson.subject_specific_content) {
+                        try {
+                            const specContent = typeof lesson.subject_specific_content === 'string'
+                                ? JSON.parse(lesson.subject_specific_content)
+                                : lesson.subject_specific_content;
 
-            // Calculate target scroll: center of container - center of tab
-            const scrollTarget = tabOffset - (containerWidth / 2) + (tabWidth / 2);
+                            if (typeof specContent === 'object' && specContent !== null) {
+                                for (const [specKey, specHtml] of Object.entries(specContent)) {
+                                    collectTab(`spec_${specKey}`, formatLabel(specKey), specHtml);
+                                }
+                            }
+                        } catch (e) { console.warn("Failed to parse subject_specific_content", e); }
+                    }
 
-            container.scrollTo({
-                left: scrollTarget,
-                behavior: 'smooth'
-            });
-        }
+                    let content = lesson[item.key] || (item.key === 'lesson_content' ? lesson['content'] : null);
 
-        function closeLesson() {
-            document.getElementById('lesson-viewer').classList.remove('active');
-            document.getElementById('subject-view').style.display = 'block';
-        }
+                    if (userRole !== 'STUDENT') {
+                        const teacherNoteKey = item.key + '_teacher_notes';
+                        const teacherNote = lesson[teacherNoteKey];
+                        if (teacherNote) {
+                            const teacherHtml = `<div class="teacher-notes-section mt-8 p-6 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
+                                <h4 class="text-amber-800 font-bold mb-2"><i class="fas fa-chalkboard-teacher mr-2"></i>Teacher's Notes</h4>
+                                <div class="prose prose-amber max-w-none">${teacherNote}</div>
+                            </div>`;
 
-        function toggleMenu(btn) {
-            const week = btn.parentElement;
-            week.classList.toggle('open');
-        }
+                            if (!content || (typeof content === 'string' && content.trim() === '')) {
+                                content = teacherHtml;
+                            } else if (typeof content === 'string') {
+                                content = content + teacherHtml;
+                            }
+                        }
+                    }
 
-        function toggleMobileMenu() {
-            const sidebar = document.querySelector('.elearner-sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            const toggleIcon = document.querySelector('#mobile-toggle i');
+                    if (content && (typeof content !== 'string' || content.trim() !== '')) {
+                        if (item.key === 'lesson_content') {
+                            try {
+                                const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+                                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                                    for (const [subKey, subHtml] of Object.entries(parsed)) {
+                                        collectTab(`${item.key}_${subKey}`, formatLabel(subKey), subHtml);
+                                    }
+                                    return;
+                                }
+                            } catch (e) { }
+                        }
 
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
+                        collectTab(item.key, item.label, content);
+                    }
+                });
 
-            if (sidebar.classList.contains('active')) {
-                toggleIcon.className = 'fas fa-times';
-            } else {
-                toggleIcon.className = 'fas fa-bars';
+                if (userRole !== 'STUDENT') {
+                    if (lesson.teachers_overview) {
+                        collectTab('teachers_overview', 'Teacher Overview', lesson.teachers_overview);
+                    }
+                    if (lesson.teachers_notes) {
+                        collectTab('teachers_notes', 'Teacher Notes', lesson.teachers_notes);
+                    }
+                }
+
+                if (activeTabs.length === 0) {
+                    tabsContainer.innerHTML = '<span class="text-slate-400 p-4">Detailed lesson content is successfully requested and will appear here when ready.</span>';
+                } else {
+                    activeTabs.forEach((tab, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+                        btn.innerText = tab.label;
+                        btn.onclick = () => switchLessonTab(tab.id, btn);
+                        tabsContainer.appendChild(btn);
+
+                        const pane = document.createElement('div');
+                        pane.id = `lesson-pane-${tab.id}`;
+                        pane.className = `lesson-pane ${index === 0 ? 'active' : ''}`;
+
+                        let rawHtml = (tab.id === 'assessment_questions')
+                            ? renderAssessments(tab.content)
+                            : tab.content;
+
+                        const isMarkdown = (text) => {
+                            if (!text) return false;
+                            const markdownIndicators = ['# ', '**', '__', '* ', '- ', '> ', '```', '['];
+                            return markdownIndicators.some(indicator => text.includes(indicator)) && !text.trim().startsWith('<');
+                        };
+
+                        let contentHtml = isMarkdown(rawHtml) ? marked.parse(rawHtml) : rawHtml;
+
+                        let navHtml = '<div class="tab-navigation">';
+
+                        if (index > 0) {
+                            const prev = activeTabs[index - 1];
+                            navHtml += `
+                                <button class="nav-btn prev" onclick="navigateLessonTabs(-1)">
+                                    <i class="fas fa-arrow-left"></i>
+                                    <div class="nav-label">
+                                        <span class="nav-sub">Previous</span>
+                                        <span>${prev.label}</span>
+                                    </div>
+                                </button>
+                            `;
+                        }
+
+                        if (index < activeTabs.length - 1) {
+                            const next = activeTabs[index + 1];
+                            navHtml += `
+                                <button class="nav-btn next" onclick="navigateLessonTabs(1)">
+                                    <div class="nav-label">
+                                        <span class="nav-sub">Next</span>
+                                        <span>${next.label}</span>
+                                    </div>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            `;
+                        }
+
+                        navHtml += '</div>';
+
+                        pane.innerHTML = `<div class="prose max-w-none mb-10">${contentHtml}</div>` + navHtml;
+                        panesContainer.appendChild(pane);
+                    });
+                }
+
+                // Close the drawer on mobile after lesson is loaded
+                const sidebar = document.querySelector('.elearner-sidebar');
+                if (sidebar && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    document.body.style.overflow = '';
+                    const hamburgerIcon = document.querySelector('.hamburger-menu i');
+                    if (hamburgerIcon) {
+                        hamburgerIcon.className = 'fas fa-bars';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading lesson:', error);
+                alert('Could not load lesson details. Please try again.');
             }
         }
 
         // Close mobile menu on lesson click
-        const originalLoadLesson = loadLesson;
-        loadLesson = async function (lessonId) {
+        const originalLoadLessonWrapper = loadLesson;
+        window.loadLessonGlobal = async function (lessonId) {
             if (window.innerWidth <= 1024) {
                 const sidebar = document.querySelector('.elearner-sidebar');
                 const overlay = document.getElementById('sidebar-overlay');
                 const toggleIcon = document.querySelector('#mobile-toggle i');
 
-                if (sidebar.classList.contains('active')) {
+                if (sidebar && sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
                     overlay.classList.remove('active');
                     toggleIcon.className = 'fas fa-bars';
                 }
             }
-            return originalLoadLesson(lessonId);
-        }
+            return originalLoadLessonWrapper(lessonId);
+        };
 
         // Close on subject switch
-        const originalCloseLesson = closeLesson;
-        closeLesson = function () {
+        const originalCloseLessonWrapper = closeLesson;
+        window.closeLessonGlobal = function () {
             if (window.innerWidth <= 1024) {
                 const sidebar = document.querySelector('.elearner-sidebar');
                 const overlay = document.getElementById('sidebar-overlay');
                 const toggleIcon = document.querySelector('#mobile-toggle i');
 
-                if (sidebar.classList.contains('active')) {
+                if (sidebar && sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
                     overlay.classList.remove('active');
                     toggleIcon.className = 'fas fa-bars';
                 }
             }
-            return originalCloseLesson();
-        }
+            return originalCloseLessonWrapper();
+        };
+    </script>
 
-        function navigateTabs(direction) {
-            const tabs = Array.from(document.querySelectorAll('.content-tabs .tab-item'));
-            const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
-            const nextIndex = activeIndex + direction;
+    <!-- Include School Header -->
+    <div th:replace="~{fragments/header :: school-header}"></div>
 
-            if (nextIndex >= 0 && nextIndex < tabs.length) {
-                tabs[nextIndex].click();
-                // Scroll to top of content
-                document.querySelector('.elearner-main').scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
+    <div class="elearner-layout">
+        <!-- Sidebar Overlay - HIDDEN -->
+        <div class="sidebar-overlay" id="sidebar-overlay" style="display: none !important;"></div>
 
-        function switchTab(topicId, btn) {
-            // Deactivate all tabs
-            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        <!-- Mobile Nav Toggle -->
+        <button class="mobile-nav-toggle" id="mobile-toggle" onclick="toggleMobileMenu()">
+            <div
+                style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
+                <i class="fas fa-bars" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
+                <span
+                    style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Menu</span>
+            </div>
+        </button>
 
-            // Activate current
-            btn.classList.add('active');
-            document.getElementById(topicId).classList.add('active');
-        }
+        <!-- Sidebar Navigation -->
+        <aside class="elearner-sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-book-open"></i> Digital Library</h2>
+                <p>Grade <span th:text="${gradeLevel}">10</span></p>
+                <div class="term-selector">
+                    <label for="term-select">Term:</label>
+                    <select id="term-select" th:attr="data-current-term=${term}">
+                        <option value="1" th:selected="${term == 1}">First Term</option>
+                        <option value="2" th:selected="${term == 2}">Second Term</option>
+                        <option value="3" th:selected="${term == 3}">Third Term</option>
+                    </select>
+                </div>
+            </div>
 
+            <div class="sidebar-search">
+                <input type="text" id="lesson-search" placeholder="Search lessons...">
+            </div>
+
+            <nav class="sidebar-menu">
+                <th:block th:if="${menuHierarchy != null and !#lists.isEmpty(menuHierarchy)}">
+                    <div th:each="weekGroup : ${menuHierarchy}"
+                        th:classappend="${weekGroup.week == week} ? 'menu-week open' : 'menu-week'" class="menu-week">
+
+                        <button class="week-toggle" onclick="toggleMenu(this)" type="button">
+                            <h3>Week <span th:text="${weekGroup.week}">1</span> <span class="week-badge" th:text="${weekGroup.subjects.size()}">0</span></h3>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+
+                        <div class="week-content">
+                            <div th:each="subjectMenu : ${weekGroup.subjects}"
+                                th:classappend="${subjectMenu.id == selectedSubjectId and weekGroup.week == week} ? 'menu-subject open' : 'menu-subject'"
+                                class="menu-subject">
+
+                                <a th:href="@{/elearner/landing(classId=${classId}, gradeLevel=${gradeLevel}, term=${term}, week=${weekGroup.week}, subjectId=${subjectMenu.id})}"
+                                    th:onclick="'toggleSubject(this, event)'"
+                                    th:classappend="${subjectMenu.id == selectedSubjectId and weekGroup.week == week} ? 'active' : ''"
+                                    class="subject-toggle">
+                                    <span th:text="${subjectMenu.name}">Subject</span>
+                                    <i th:if="${subjectMenu.subThemes != null and !#lists.isEmpty(subjectMenu.subThemes)}" class="fas fa-chevron-right"></i>
+                                </a>
+
+                                <div class="topic-list" th:if="${subjectMenu.subThemes != null and !#lists.isEmpty(subjectMenu.subThemes)}">
+                                    <div th:each="subTheme : ${subjectMenu.subThemes}" class="menu-subtheme">
+                                        <span class="subtheme-label" th:text="${subTheme.name ?: 'Topics'}">Subtheme</span>
+                                        <a th:each="lesson : ${subTheme.lessons}" href="javascript:void(0)"
+                                            th:onclick="'loadLesson(' + ${lesson.id} + ')'" th:text="${lesson.title}"
+                                            class="menu-lesson">
+                                            Lesson Title
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </th:block>
+                <th:block th:if="${menuHierarchy == null or #lists.isEmpty(menuHierarchy)}">
+                    <div class="p-4 text-center text-slate-500">
+                        <i class="fas fa-inbox text-2xl mb-2 block"></i>
+                        <p class="text-sm">No content available</p>
+                    </div>
+                </th:block>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="elearner-main" th:if="${content != null or (menuHierarchy != null and !#lists.isEmpty(menuHierarchy))}">
+            <!-- Normal Subject View -->
+            <div id="subject-view" th:classappend="${content == null} ? 'hidden' : ''">
+                <!-- Breadcrumbs / Selection Info -->
+                <div th:if="${selectedSubject != null}" class="subject-info">
+                    <div class="breadcrumb">
+                        <span><i class="fas fa-book"></i> Week <span th:text="${week}">1</span></span>
+                        <span>•</span>
+                        <span th:text="${selectedSubject.subject.subjectCode ?: 'Subject'}">MTH</span>
+                    </div>
+                    <h1 th:text="${selectedSubject.subject.subjectName ?: 'Subject Name'}">Subject Name</h1>
+                    <p th:if="${content != null and !#strings.isEmpty(content.weekTheme)}" th:text="${content.weekTheme}">Theme description</p>
+                </div>
+
+                <!-- Content Tabs -->
+                <div th:if="${content != null and ((content.topics != null and !#lists.isEmpty(content.topics)) or (content.unassignedLessons != null and !#lists.isEmpty(content.unassignedLessons)))}">
+                    <div class="content-tabs">
+                        <button th:each="topic, stats : ${content.topics}" class="tab-item"
+                            th:classappend="${(selectedTopicId == null and stats.first) or topic.id == selectedTopicId} ? 'active' : ''"
+                            th:onclick="|switchTab('topic-${topic.id}', this)|" th:text="${topic.name}">
+                            Topic Name
+                        </button>
+                        <button th:if="${content.unassignedLessons != null and !#lists.isEmpty(content.unassignedLessons)}" class="tab-item"
+                            th:classappend="${(selectedTopicId == null and (content.topics == null or #lists.isEmpty(content.topics))) or selectedTopicId == 'unassigned'} ? 'active' : ''"
+                            onclick="switchTab('topic-unassigned', this)">
+                            Other Lessons
+                        </button>
+                    </div>
+
+                    <!-- Tab Panes -->
+                    <div th:each="topic, stats : ${content.topics}" th:id="'topic-' + ${topic.id}" class="tab-pane"
+                        th:classappend="${(selectedTopicId == null and stats.first) or topic.id == selectedTopicId} ? 'active' : ''">
+
+                        <div class="mb-8" th:if="${topic.description}">
+                            <p class="text-slate-600 italic" th:text="${topic.description}">Topic description...</p>
+                        </div>
+
+                        <div class="lesson-grid">
+                            <a th:each="lesson : ${topic.lessons}" href="javascript:void(0)"
+                                th:onclick="'loadLesson(' + ${lesson.id} + ')'" class="lesson-item">
+                                <div class="lesson-icon">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <div class="lesson-details">
+                                    <h4 th:text="${lesson.title}">Lesson Title</h4>
+                                    <p>
+                                        <span th:if="${lesson.durationMinutes != null}"
+                                            th:text="${lesson.durationMinutes} + ' mins'"></span>
+                                        <span th:if="${lesson.durationMinutes != null and lesson.lessonType != null}"> • </span>
+                                        <span th:text="${lesson.lessonType ?: 'Content'}">Type</span>
+                                    </p>
+                                </div>
+                                <i class="fas fa-chevron-right chevron"></i>
+                            </a>
+                        </div>
+
+                        <!-- Tab Navigation -->
+                        <div class="tab-navigation">
+                            <button th:if="${!stats.first}" class="nav-btn prev" th:onclick="'navigateTabs(-1)'">
+                                <i class="fas fa-arrow-left"></i>
+                                <div class="nav-label">
+                                    <span class="nav-sub">Previous Topic</span>
+                                    <span th:text="${content.topics[stats.index - 1].name}">Prev Name</span>
+                                </div>
+                            </button>
+
+                            <button th:if="${!stats.last or !content.unassignedLessons.empty}" class="nav-btn next"
+                                th:onclick="'navigateTabs(1)'">
+                                <div class="nav-label">
+                                    <span class="nav-sub">Next Topic</span>
+                                    <span
+                                        th:text="${stats.last ? 'Other Lessons' : content.topics[stats.index + 1].name}">Next
+                                        Name</span>
+                                </div>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Unassigned Lessons Pane -->
+                    <div th:if="${content.unassignedLessons != null and !#lists.isEmpty(content.unassignedLessons)}" id="topic-unassigned" class="tab-pane"
+                        th:classappend="${(selectedTopicId == null and (content.topics == null or #lists.isEmpty(content.topics))) or selectedTopicId == 'unassigned'} ? 'active' : ''">
+
+                        <div class="lesson-grid">
+                            <a th:each="lesson : ${content.unassignedLessons}" href="javascript:void(0)"
+                                th:onclick="'loadLesson(' + ${lesson.id} + ')'" class="lesson-item">
+                                <div class="lesson-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="lesson-details">
+                                    <h4 th:text="${lesson.title}">Lesson Title</h4>
+                                    <p th:text="${lesson.lessonType ?: 'Content'}">Type</p>
+                                </div>
+                                <i class="fas fa-chevron-right chevron"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- No content state -->
+                    <div th:if="${content == null or ((content.topics == null or #lists.isEmpty(content.topics)) and (content.unassignedLessons == null or #lists.isEmpty(content.unassignedLessons)))}">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox text-4xl"></i>
+                            <h3>No Lessons Available</h3>
+                            <p>This subject has no lessons assigned for this week.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div th:if="${content == null}" class="empty-dashboard">
+                    <i class="fas fa-book-reader"></i>
+                    <h3>Select a subject from the menu</h3>
+                    <p>Browse through weeks and subjects to find your lessons and resources.</p>
+                </div>
+
+                <div th:if="${content != null and content.topics.empty and content.unassignedLessons.empty}"
+                    class="empty-dashboard">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No lessons available</h3>
+                    <p>There is no digital content scheduled for <span
+                            th:text="${selectedSubject?.subject?.subjectName}">this subject</span> in Week <span
+                            th:text="${week}">1</span>. Check back later for updates.</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Lesson Viewer -->
+            <div id="lesson-viewer" class="lesson-viewer">
+                <button onclick="closeLesson()" class="back-button">
+                    <i class="fas fa-arrow-left"></i> Back to Subject Overview
+                </button>
+                <div class="lesson-header">
+                    <div id="lesson-breadcrumbs"
+                        class="text-xs uppercase font-bold tracking-wider text-indigo-600 mb-2"></div>
+                    <h1 id="lesson-title" class="text-3xl font-extrabold text-slate-900"></h1>
+                </div>
+
+                <div id="lesson-tabs" class="lesson-nav-tabs">
+                    <!-- Tabs will be injected here -->
+                </div>
+
+                <div id="lesson-content-panes">
+                    <!-- Panes will be injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
         // Scroll handler for header hiding
         let lastScrollY = window.scrollY;
         window.addEventListener('scroll', () => {
@@ -1842,13 +1860,11 @@
         // Auto-expand active subject's week on load
         document.addEventListener('DOMContentLoaded', () => {
             // Configure Header Back Link
-            // userRole is already defined globally
             const dashboardNav = document.getElementById('dashboardNav');
             const dashboardLink = document.getElementById('dashboardLink');
             const dashboardText = document.getElementById('dashboardText');
 
             if (dashboardNav && dashboardLink) {
-                // Default to Student Dashboard if role not found or explicitly student
                 let targetUrl = '/student/dashboard';
                 let label = 'Dashboard';
 
@@ -1869,7 +1885,6 @@
                 if (dashboardText) dashboardText.textContent = label;
                 dashboardNav.style.display = 'flex';
 
-                // Also update the Brand Logo Link to point to Dashboard
                 const brandLink = document.querySelector('.brand-section');
                 if (brandLink) brandLink.href = targetUrl;
             }
@@ -1883,20 +1898,18 @@
                 if (subjectParent) subjectParent.classList.add('open');
             }
 
-            // Handle term selection changes
             const termSelect = document.getElementById('term-select');
             if (termSelect) {
                 termSelect.addEventListener('change', function () {
                     const newTerm = this.value;
                     const urlParams = new URLSearchParams(window.location.search);
                     urlParams.set('term', newTerm);
-                    urlParams.set('week', '1'); // Reset to week 1 when changing terms
-                    urlParams.delete('subjectId'); // Clear subject selection
+                    urlParams.set('week', '1');
+                    urlParams.delete('subjectId');
                     window.location.href = window.location.pathname + '?' + urlParams.toString();
                 });
             }
 
-            // Search functionality
             const searchInput = document.getElementById('lesson-search');
             if (searchInput) {
                 searchInput.addEventListener('input', function (e) {
@@ -1905,12 +1918,10 @@
                     const allSubjects = document.querySelectorAll('.subject-toggle');
 
                     if (!query) {
-                        // Reset visibility
                         allLessons.forEach(l => l.style.display = '');
                         allSubjects.forEach(s => s.style.display = '');
                         document.querySelectorAll('.menu-week').forEach(w => w.classList.remove('open'));
                     } else {
-                        // Filter lessons and subjects
                         allLessons.forEach(lesson => {
                             const matches = lesson.textContent.toLowerCase().includes(query);
                             lesson.style.display = matches ? '' : 'none';
@@ -1923,7 +1934,6 @@
                             subject.style.display = (subjectName.includes(query) || hasVisibleLessons) ? '' : 'none';
                         });
 
-                        // Auto-expand weeks with matching content
                         document.querySelectorAll('.menu-week').forEach(week => {
                             const hasVisibleItems = Array.from(week.querySelectorAll('.menu-lesson, .subject-toggle'))
                                 .some(item => item.style.display !== 'none');
@@ -1933,7 +1943,6 @@
                 });
             }
 
-            // Mobile menu toggle improvements
             const mobileToggle = document.getElementById('mobile-toggle');
             const sidebar = document.querySelector('.elearner-sidebar');
             const overlay = document.querySelector('.sidebar-overlay');
@@ -1951,7 +1960,6 @@
                     });
                 }
 
-                // Close sidebar when clicking a lesson
                 document.addEventListener('click', function (e) {
                     if (e.target.closest('.menu-lesson') || e.target.closest('.subject-toggle')) {
                         setTimeout(() => {
@@ -1962,7 +1970,6 @@
                 });
             }
 
-            // Smooth scrolling for better UX
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     e.preventDefault();

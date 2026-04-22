@@ -722,7 +722,7 @@
                 opacity: 1;
             }
 
-            @media (max-width: 900px) {
+            @media (max-width: 1024px) {
                 .hamburger-menu {
                     display: flex;
                     align-items: center;
@@ -746,9 +746,8 @@
         </style>
 
         <div class="header-container">
-            <!-- Hamburger Menu for Mobile (Admin/Student only) -->
-            <button class="hamburger-menu" onclick="toggleMobileSidebar()" aria-label="Toggle Menu"
-                th:if="${isStaff != true && isParent != true}">
+            <!-- Hamburger Menu for Mobile (all users) -->
+            <button class="hamburger-menu" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
                 <i class="fas fa-bars"></i>
             </button>
 
@@ -928,19 +927,40 @@
         <!-- Dashboard Navigation Script & Financial History Management -->
         <script>
             function toggleMobileSidebar() {
-                const sidebar = document.getElementById('quickActionsSidebar');
-                const overlay = document.getElementById('sidebarOverlay');
-                if (sidebar) {
-                    sidebar.classList.toggle('mobile-active');
-                }
-                if (overlay) {
-                    overlay.classList.toggle('active');
-                }
-                // Prevent body scroll when sidebar is open
-                if (sidebar && sidebar.classList.contains('mobile-active')) {
-                    document.body.style.overflow = 'hidden';
+                // Check if we're on elearner/landing page
+                const isElearner = window.location.pathname.includes('/elearner/landing');
+                
+                if (isElearner) {
+                    // Toggle elearner drawer
+                    const elearnerSidebar = document.querySelector('.elearner-sidebar');
+                    const toggleIcon = document.querySelector('.hamburger-menu i');
+                    
+                    if (elearnerSidebar) {
+                        elearnerSidebar.classList.toggle('active');
+                        if (elearnerSidebar.classList.contains('active')) {
+                            toggleIcon.className = 'fas fa-times';
+                            document.body.style.overflow = 'hidden';
+                        } else {
+                            toggleIcon.className = 'fas fa-bars';
+                            document.body.style.overflow = '';
+                        }
+                    }
                 } else {
-                    document.body.style.overflow = '';
+                    // Toggle regular sidebar (dashboard)
+                    const sidebar = document.getElementById('quickActionsSidebar');
+                    const overlay = document.getElementById('sidebarOverlay');
+                    if (sidebar) {
+                        sidebar.classList.toggle('mobile-active');
+                    }
+                    if (overlay) {
+                        overlay.classList.toggle('active');
+                    }
+                    // Prevent body scroll when sidebar is open
+                    if (sidebar && sidebar.classList.contains('mobile-active')) {
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        document.body.style.overflow = '';
+                    }
                 }
             }
 
