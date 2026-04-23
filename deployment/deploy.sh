@@ -6,34 +6,25 @@ STAGING_PORT=8081
 PROD_PORT=8080
 HEALTH_CHECK_URL="http://localhost:$STAGING_PORT/auth/login"
 
-# Navigate to project root (one level up from deployment folder)
-PROJECT_ROOT="$(dirname "$0")/.."
-cd "$PROJECT_ROOT" || exit 1
+# This script runs on the SERVER - just pulls and deploys
+# For building, use build-and-push.sh on your local machine first
+
+# Navigate to deployment folder
+cd "$(dirname "$0")" || exit 1
 
 # 1. Get version
 VERSION=${1:-latest}
-echo "🚀 Preparing deployment for version: $VERSION"
+echo "🚀 Deploying version: $VERSION"
 
-# 2. Clean build the application
-echo "🔨 Building application with clean build..."
-./gradlew clean build -x test
+# 2. Pull the version from Docker registry
+echo "📥 Pulling image from Docker registry..."
+docker pull $IMAGE_NAME:$VERSION
 if [ $? -ne 0 ]; then
-    echo "❌ Build failed"
+    echo "❌ Failed to pull image. Make sure build-and-push.sh was run locally first."
     exit 1
 fi
 
-# 3. Build Docker image locally with no-cache
-echo "🐳 Building Docker image locally (no cache)..."
-docker build --no-cache -t $IMAGE_NAME:$VERSION .
-if [ $? -ne 0 ]; then
-    echo "❌ Docker build failed"
-    exit 1
-fi
-
-# Navigate back to deployment folder for docker-compose
-cd "$(dirname "$0")"
-
-# 2. Ensure network and database are running
+# 3. Ensure network and database are running
 echo "🗄️ Ensuring database and network are ready..."
 docker compose up -d db
 

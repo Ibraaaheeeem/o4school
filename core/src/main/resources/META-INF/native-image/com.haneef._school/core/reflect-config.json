@@ -8,6 +8,7 @@
         "allDeclaredConstructors": true,
         "allPublicMethods": true,
         "allDeclaredFields": true,
+        "allPublicConstructors": true,
         "fields": [
             { "name": "week" },
             { "name": "subjects" }
@@ -18,6 +19,7 @@
         "allDeclaredConstructors": true,
         "allPublicMethods": true,
         "allDeclaredFields": true,
+        "allPublicConstructors": true,
         "fields": [
             { "name": "id" },
             { "name": "name" },
@@ -31,6 +33,7 @@
         "allDeclaredConstructors": true,
         "allPublicMethods": true,
         "allDeclaredFields": true,
+        "allPublicConstructors": true,
         "fields": [
             { "name": "name" },
             { "name": "lessons" }
@@ -41,6 +44,7 @@
         "allDeclaredConstructors": true,
         "allPublicMethods": true,
         "allDeclaredFields": true,
+        "allPublicConstructors": true,
         "fields": [
             { "name": "id" },
             { "name": "name" },
@@ -53,6 +57,7 @@
         "allDeclaredConstructors": true,
         "allPublicMethods": true,
         "allDeclaredFields": true,
+        "allPublicConstructors": true,
         "fields": [
             { "name": "id" },
             { "name": "title" },
@@ -60,6 +65,26 @@
             { "name": "subtheme" },
             { "name": "durationMinutes" },
             { "name": "lessonType" }
+        ]
+    },
+    {
+        "name": "java.util.List",
+        "allDeclaredMethods": true,
+        "allPublicMethods": true,
+        "methods": [
+            { "name": "size", "parameterTypes": [] },
+            { "name": "isEmpty", "parameterTypes": [] },
+            { "name": "get", "parameterTypes": ["int"] }
+        ]
+    },
+    {
+        "name": "java.util.ArrayList",
+        "allDeclaredMethods": true,
+        "allPublicMethods": true,
+        "methods": [
+            { "name": "size", "parameterTypes": [] },
+            { "name": "isEmpty", "parameterTypes": [] },
+            { "name": "get", "parameterTypes": ["int"] }
         ]
     },
     {
