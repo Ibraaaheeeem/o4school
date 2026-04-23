@@ -2,5 +2,69 @@
     {
         "name": "[Ljava.util.UUID;",
         "unsafeAllocated": true
+    },
+    {
+        "name": "com.haneef._school.service.WeekMenuDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "fields": [
+            { "name": "week" },
+            { "name": "subjects" }
+        ]
+    },
+    {
+        "name": "com.haneef._school.service.SubjectMenuDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "fields": [
+            { "name": "id" },
+            { "name": "name" },
+            { "name": "topics" },
+            { "name": "subThemes" },
+            { "name": "unassignedLessons" }
+        ]
+    },
+    {
+        "name": "com.haneef._school.service.SubThemeMenuDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "fields": [
+            { "name": "name" },
+            { "name": "lessons" }
+        ]
+    },
+    {
+        "name": "com.haneef._school.service.TopicMenuDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "fields": [
+            { "name": "id" },
+            { "name": "name" },
+            { "name": "description" },
+            { "name": "lessons" }
+        ]
+    },
+    {
+        "name": "com.haneef._school.service.LessonDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "fields": [
+            { "name": "id" },
+            { "name": "title" },
+            { "name": "topicName" },
+            { "name": "subtheme" },
+            { "name": "durationMinutes" },
+            { "name": "lessonType" }
+        ]
+    },
+    {
+        "name": "java.util.UUID",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true
     }
 ]
