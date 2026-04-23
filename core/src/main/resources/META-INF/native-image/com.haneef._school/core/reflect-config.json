@@ -88,6 +88,16 @@
         ]
     },
     {
+        "name": "java.util.Arrays$ArrayList",
+        "allDeclaredMethods": true,
+        "allPublicMethods": true,
+        "methods": [
+            { "name": "size", "parameterTypes": [] },
+            { "name": "isEmpty", "parameterTypes": [] },
+            { "name": "get", "parameterTypes": ["int"] }
+        ]
+    },
+    {
         "name": "java.util.UUID",
         "allDeclaredConstructors": true,
         "allPublicMethods": true
