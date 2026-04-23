@@ -79,7 +79,7 @@ class ElearnerController(
 
         // 2. Build Full Term Menu Hierarchy
         val elearnerIds = subjects.map { it.elearnerSubjectId }
-        val menuHierarchy = if (elearnerIds.isNotEmpty()) {
+        val menuHierarchy: List<com.haneef._school.service.WeekMenuDto> = if (elearnerIds.isNotEmpty()) {
             learningContentService.getMenuHierarchy(elearnerIds, term)
         } else {
             emptyList()
