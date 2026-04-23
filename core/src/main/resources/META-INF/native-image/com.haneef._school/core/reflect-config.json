@@ -4,6 +4,36 @@
         "unsafeAllocated": true
     },
     {
+        "name": "com.haneef._school.controller.SubjectViewDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "allPublicConstructors": true,
+        "fields": [
+            { "name": "subject" },
+            { "name": "elearnerSubjectId" }
+        ]
+    },
+    {
+        "name": "com.haneef._school.entity.Subject",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "allPublicConstructors": true,
+        "fields": [
+            { "name": "id" },
+            { "name": "subjectName" },
+            { "name": "subjectCode" },
+            { "name": "description" },
+            { "name": "isCoreSubject" },
+            { "name": "creditHours" },
+            { "name": "minGradeLevel" },
+            { "name": "maxGradeLevel" },
+            { "name": "category" },
+            { "name": "mappings" }
+        ]
+    },
+    {
         "name": "com.haneef._school.service.WeekMenuDto",
         "allDeclaredConstructors": true,
         "allPublicMethods": true,
