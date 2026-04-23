@@ -91,8 +91,11 @@ class StudentDashboardController(
                     studentExams.forEach { exam ->
                         val group = getGroup(exam.schoolClass.track)
                         val category = when {
-                            exam.startTime != null && exam.endTime != null && now.isAfter(exam.startTime) && now.isBefore(exam.endTime) -> "ongoing"
-                            exam.endTime != null && now.isAfter(exam.endTime) -> "past"
+                            // Ongoing: startTime has passed AND (no endTime OR endTime hasn't passed yet)
+                            exam.startTime != null && now.isAfter(exam.startTime) && (exam.endTime == null || now.isBefore(exam.endTime) || now.isEqual(exam.endTime)) -> "ongoing"
+                            // Past: endTime has been reached
+                            exam.endTime != null && (now.isAfter(exam.endTime) || now.isEqual(exam.endTime)) -> "past"
+                            // Upcoming: everything else
                             else -> "upcoming"
                         }
                         @Suppress("UNCHECKED_CAST")
