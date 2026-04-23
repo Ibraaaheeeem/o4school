@@ -56,20 +56,29 @@ data class LessonDto(
 )
 
 data class WeekMenuDto(
+    @get:com.fasterxml.jackson.annotation.JsonProperty("week")
     val week: Int,
+    @get:com.fasterxml.jackson.annotation.JsonProperty("subjects")
     val subjects: List<SubjectMenuDto>
 )
 
 data class SubjectMenuDto(
+    @get:com.fasterxml.jackson.annotation.JsonProperty("id")
     val id: UUID,
+    @get:com.fasterxml.jackson.annotation.JsonProperty("name")
     val name: String,
+    @get:com.fasterxml.jackson.annotation.JsonProperty("topics")
     val topics: List<TopicMenuDto>,
+    @get:com.fasterxml.jackson.annotation.JsonProperty("subThemes")
     val subThemes: List<SubThemeMenuDto> = emptyList(),
+    @get:com.fasterxml.jackson.annotation.JsonProperty("unassignedLessons")
     val unassignedLessons: List<LessonDto> = emptyList()
 )
 
 data class SubThemeMenuDto(
+    @get:com.fasterxml.jackson.annotation.JsonProperty("name")
     val name: String,
+    @get:com.fasterxml.jackson.annotation.JsonProperty("lessons")
     val lessons: List<LessonDto>
 )
 
