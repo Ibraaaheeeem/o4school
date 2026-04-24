@@ -34,6 +34,46 @@
         ]
     },
     {
+        "name": "com.haneef._school.service.ClassroomContent",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "allPublicConstructors": true,
+        "fields": [
+            { "name": "subjectName" },
+            { "name": "weekNumber" },
+            { "name": "weekTheme" },
+            { "name": "topics" },
+            { "name": "unassignedLessons" }
+        ]
+    },
+    {
+        "name": "com.haneef._school.service.TopicContentDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "allPublicConstructors": true,
+        "fields": [
+            { "name": "id" },
+            { "name": "name" },
+            { "name": "description" },
+            { "name": "subtopics" },
+            { "name": "lessons" }
+        ]
+    },
+    {
+        "name": "com.haneef._school.service.SubtopicDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "allPublicConstructors": true,
+        "fields": [
+            { "name": "id" },
+            { "name": "name" },
+            { "name": "description" }
+        ]
+    },
+    {
         "name": "com.haneef._school.service.WeekMenuDto",
         "allDeclaredConstructors": true,
         "allPublicMethods": true,
