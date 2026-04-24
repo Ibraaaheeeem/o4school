@@ -12,5 +12,23 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  nginx:
+    image: nginx:latest
+    container_name: 4school-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - db
+    networks:
+      - school_network
+
 volumes:
   postgres_data:
+
+networks:
+  school_network:
+    driver: bridge

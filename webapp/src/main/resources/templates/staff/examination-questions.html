@@ -976,6 +976,15 @@
                         if (input && quill) input.value = quill.root.innerHTML;
                     });
 
+                    // Reindex form fields to avoid gaps from deleted questions
+                    const questionCards = document.querySelectorAll('#newQuestionsList .question-card');
+                    questionCards.forEach((card, newIndex) => {
+                        ['instruction', 'questionText', 'optionA', 'optionB', 'optionC', 'optionD', 'optionE', 'correctAnswer', 'marks', 'explanation'].forEach(field => {
+                            const input = card.querySelector(`input[name*=".${field}"], select[name*=".${field}"]`);
+                            if (input) input.name = `questions[${newIndex}].${field}`;
+                        });
+                    });
+
                     const formData = new FormData(this);
                     const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
 
