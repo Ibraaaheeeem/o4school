@@ -386,6 +386,77 @@
             font-size: 0.9rem;
         }
 
+        /* Navigation Buttons */
+        .tab-navigation {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #475569;
+            flex: 1;
+            max-width: 280px;
+        }
+
+        .nav-btn:hover {
+            border-color: var(--primary-color);
+            color: white;
+            background: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2);
+        }
+
+        .nav-btn.next {
+            justify-content: flex-end;
+            margin-left: auto;
+        }
+
+        .nav-btn.prev {
+            justify-content: flex-start;
+        }
+
+        .nav-btn i {
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+        }
+
+        .nav-btn.prev:hover i {
+            transform: translateX(-4px);
+        }
+
+        .nav-btn.next:hover i {
+            transform: translateX(4px);
+        }
+
+        .nav-btn .nav-label {
+            display: flex;
+            flex-direction: column;
+            align-items: inherit;
+        }
+
+        .nav-btn .nav-sub {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.6;
+            font-weight: 700;
+        }
+
         .lesson-nav-tabs .tab-btn:hover {
             background: #f1f5f9;
             color: #1e293b;
