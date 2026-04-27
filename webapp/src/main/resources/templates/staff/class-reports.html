@@ -1138,6 +1138,25 @@
             background: #94a3b8;
         }
 
+        /* Sticky First Column */
+        .sticky-column {
+            position: sticky;
+            left: 0;
+            background-color: #f8fafc;
+            z-index: 10;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            border-right: 2px solid #e2e8f0;
+        }
+
+        .assessment-table tbody td.sticky-column {
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 9;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            border-right: 2px solid #e2e8f0;
+        }
+
         #assessmentTableBody td:first-child,
         #tableHeaderRow th:first-child {
             position: sticky;
@@ -1672,21 +1691,23 @@
 
                     <!-- Assessment Table -->
                     <div class="assessment-table-container">
-                        <table class="assessment-table">
-                            <thead>
-                                <tr id="tableHeaderRow">
-                                    <th>Subject Name</th>
-                                    <th>CA I<br><small style="font-weight: 500; color: #64748b;">(MAX 20)</small></th>
-                                    <th>CA II<br><small style="font-weight: 500; color: #64748b;">(MAX 20)</small></th>
-                                    <th>Exam<br><small style="font-weight: 500; color: #64748b;">(MAX 60)</small></th>
-                                    <th>Total</th>
-                                    <th>Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody id="assessmentTableBody">
-                                <!-- Dynamic rows populated by JS -->
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="assessment-table">
+                                <thead>
+                                    <tr id="tableHeaderRow">
+                                        <th class="sticky-column">Subject Name</th>
+                                        <th>CA I<br><small style="font-weight: 500; color: #64748b;">(MAX 20)</small></th>
+                                        <th>CA II<br><small style="font-weight: 500; color: #64748b;">(MAX 20)</small></th>
+                                        <th>Exam<br><small style="font-weight: 500; color: #64748b;">(MAX 60)</small></th>
+                                        <th>Total</th>
+                                        <th>Grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="assessmentTableBody">
+                                    <!-- Dynamic rows populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <!-- Assessment & Comments Container - Two Column Layout -->
