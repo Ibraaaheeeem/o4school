@@ -365,6 +365,40 @@ class StudentProfileController(
                 )
                 cs_mapped
             }
+            
+            // Calculate summary statistics
+            val totals = subjectDataList.mapNotNull { it["total"] as? Int }
+            val totalScore = totals.sum()
+            val totalAverage = if (totals.isNotEmpty()) totalScore.toDouble() / totals.size else 0.0
+            
+            // For highest and lowest, we calculate from each subject's scores if available
+            val allScores = subjectDataList.mapNotNull { subject ->
+                val ca1 = (subject["ca1"] as? Int) ?: 0
+                val ca2 = (subject["ca2"] as? Int) ?: 0
+                val exam = (subject["exam"] as? Int) ?: 0
+                Triple(ca1, ca2, exam)
+            }
+            
+            val allScoresList = allScores.flatMap { (ca1, ca2, exam) -> listOf(ca1, ca2, exam) }.filter { it > 0 }
+            val highestScoresAvg = if (allScoresList.isNotEmpty()) allScoresList.maxOrNull()?.toDouble() ?: 0.0 else 0.0
+            val lowestScoresAvg = if (allScoresList.isNotEmpty()) allScoresList.minOrNull()?.toDouble() ?: 0.0 else 0.0
+            
+            // Determine performance grade based on average
+            val performanceGrade = when {
+                totalAverage >= 90 -> "A"
+                totalAverage >= 80 -> "B"
+                totalAverage >= 70 -> "C"
+                totalAverage >= 60 -> "D"
+                totalAverage >= 50 -> "E"
+                else -> "F"
+            }
+            
+            model.addAttribute("totalScore", totalScore)
+            model.addAttribute("totalAverage", String.format("%.1f", totalAverage))
+            model.addAttribute("highestScoresAvg", String.format("%.1f", highestScoresAvg))
+            model.addAttribute("lowestScoresAvg", String.format("%.1f", lowestScoresAvg))
+            model.addAttribute("performanceGrade", performanceGrade)
+            
         } else {
              // If we really can't find any class info, we can't list subjects.
              model.addAttribute("error", "Student Class information not found. Cannot generate report.")

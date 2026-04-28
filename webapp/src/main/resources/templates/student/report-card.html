@@ -158,6 +158,172 @@
             color: #ef4444;
         }
 
+        /* Summary Section Styles */
+        .summary-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-section h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        /* Behavioral Traits Section */
+        .behavioral-section {
+            margin-bottom: 2rem;
+        }
+
+        .behavioral-section h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .behavioral-traits-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .behavioral-column h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .behavioral-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .behavioral-item:last-child {
+            border-bottom: none;
+        }
+
+        .behavioral-label {
+            font-size: 0.9rem;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .behavioral-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            min-width: 30px;
+            text-align: center;
+            background: #f1f5f9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        /* Ratings Legend */
+        .ratings-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .ratings-section h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ratings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .rating-item {
+            text-align: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .rating-badge {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .rating-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .rating-1 { background: #ef4444; }
+        .rating-2 { background: #f97316; }
+        .rating-3 { background: #eab308; }
+        .rating-4 { background: #3b82f6; }
+        .rating-5 { background: #10b981; }
+
         .footer-remarks {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -297,6 +463,119 @@
             <p>No assessment records found for this term.</p>
         </div>
 
+        <!-- Summary Section -->
+        <div class="summary-section" th:if="${not #lists.isEmpty(subjects)}">
+            <h3>Report Summary</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Total Score</div>
+                    <div class="summary-value" th:text="${totalScore ?: '-'}">780.25</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Total Average</div>
+                    <div class="summary-value" th:text="${totalAverage ?: '-'}">78.1</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Highest Scores Avg</div>
+                    <div class="summary-value" th:text="${highestScoresAvg ?: '-'}">85.9</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Lowest Scores Avg</div>
+                    <div class="summary-value" th:text="${lowestScoresAvg ?: '-'}">40.1</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Performance Grade</div>
+                    <div class="summary-value">
+                        <span th:class="'grade-badge grade-' + ${performanceGrade ?: 'F'}" 
+                            th:text="${performanceGrade ?: '-'}">A</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Behavioral Traits Section -->
+        <div class="behavioral-section" th:if="${not #lists.isEmpty(subjects) AND assessment != null}">
+            <h3>Behavioral Assessment</h3>
+            <div class="behavioral-traits-grid">
+                <!-- Psychomotor Column (Left) -->
+                <div class="behavioral-column">
+                    <h4>Psychomotor</h4>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Fluency</span>
+                        <span class="behavioral-value" th:text="${assessment.fluency ?: '-'}">4</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Handwriting</span>
+                        <span class="behavioral-value" th:text="${assessment.handwriting ?: '-'}">2</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Game</span>
+                        <span class="behavioral-value" th:text="${assessment.game ?: '-'}">4</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Initiative</span>
+                        <span class="behavioral-value" th:text="${assessment.initiative ?: '-'}">4</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Critical Thinking</span>
+                        <span class="behavioral-value" th:text="${assessment.criticalThinking ?: '-'}">5</span>
+                    </div>
+                </div>
+                <!-- Cognitive & Affective Column (Right) -->
+                <div class="behavioral-column">
+                    <h4>Cognitive & Affective</h4>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Punctuality</span>
+                        <span class="behavioral-value" th:text="${assessment.punctuality ?: '-'}">5</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Attentiveness</span>
+                        <span class="behavioral-value" th:text="${assessment.attentiveness ?: '-'}">5</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Neatness</span>
+                        <span class="behavioral-value" th:text="${assessment.neatness ?: '-'}">5</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Self Discipline</span>
+                        <span class="behavioral-value" th:text="${assessment.selfDiscipline ?: '-'}">5</span>
+                    </div>
+                    <div class="behavioral-item">
+                        <span class="behavioral-label">Politeness</span>
+                        <span class="behavioral-value" th:text="${assessment.politeness ?: '-'}">3</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ratings Legend -->
+        <div class="ratings-section" th:if="${not #lists.isEmpty(subjects)}">
+            <h3>Ratings</h3>
+            <div class="ratings-grid">
+                <div class="rating-item">
+                    <div class="rating-badge rating-5">5</div>
+                    <div class="rating-label">Excellent</div>
+                </div>
+                <div class="rating-item">
+                    <div class="rating-badge rating-4">4</div>
+                    <div class="rating-label">Very Good</div>
+                </div>
+                <div class="rating-item">
+                    <div class="rating-badge rating-3">3</div>
+                    <div class="rating-label">Good</div>
+                </div>
+                <div class="rating-item">
+                    <div class="rating-badge rating-2">2</div>
+                    <div class="rating-label">Poor</div>
+                </div>
+                <div class="rating-item">
+                    <div class="rating-badge rating-1">1</div>
+                    <div class="rating-label">Very Poor</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments Section -->
         <div class="footer-remarks" th:if="${not #lists.isEmpty(subjects)}">
             <div class="remark-box">
                 <div class="remark-title">

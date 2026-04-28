@@ -27,6 +27,11 @@
     # 3. Ensure network and database are running
     echo "🗄️ Ensuring database and network are ready..."
     docker network create school_network 2>/dev/null || true
+    
+    # Clean up any stuck containers/ports
+    docker compose down 2>/dev/null || true
+    docker rm -f 4school_db 2>/dev/null || true
+    
     docker compose up -d db
 
     # 4. Start Staging Container
