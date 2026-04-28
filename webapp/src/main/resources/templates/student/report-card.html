@@ -159,49 +159,33 @@
         }
 
         /* Summary Section Styles */
-        .summary-section {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1.5rem;
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
             margin-bottom: 2rem;
-        }
-
-        .summary-section h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 1rem;
-        }
-
-        .summary-item {
-            text-align: center;
-            padding: 1rem;
             background: white;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #000;
+        }
+
+        .summary-table td {
+            padding: 0.75rem 1rem;
+            border: 1px solid #000;
+            font-weight: 600;
+            color: #1e293b;
         }
 
         .summary-label {
-            font-size: 0.75rem;
+            text-align: left;
+            width: 50%;
+            font-size: 0.9rem;
             text-transform: uppercase;
-            color: #64748b;
-            font-weight: 600;
             letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
         }
 
         .summary-value {
-            font-size: 1.5rem;
-            font-weight: 700;
+            text-align: right;
+            font-size: 0.9rem;
+            font-weight: 600;
             color: #1e293b;
         }
 
@@ -464,33 +448,29 @@
         </div>
 
         <!-- Summary Section -->
-        <div class="summary-section" th:if="${not #lists.isEmpty(subjects)}">
-            <h3>Report Summary</h3>
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-label">Total Score</div>
-                    <div class="summary-value" th:text="${totalScore ?: '-'}">780.25</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Total Average</div>
-                    <div class="summary-value" th:text="${totalAverage ?: '-'}">78.1</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Highest Scores Avg</div>
-                    <div class="summary-value" th:text="${highestScoresAvg ?: '-'}">85.9</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Lowest Scores Avg</div>
-                    <div class="summary-value" th:text="${lowestScoresAvg ?: '-'}">40.1</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Performance Grade</div>
-                    <div class="summary-value">
-                        <span th:class="'grade-badge grade-' + ${performanceGrade ?: 'F'}" 
-                            th:text="${performanceGrade ?: '-'}">A</span>
-                    </div>
-                </div>
-            </div>
+        <div th:if="${not #lists.isEmpty(subjects)}">
+            <table class="summary-table">
+                <tr>
+                    <td class="summary-label">TOTAL SCORE</td>
+                    <td class="summary-value" th:text="${totalScore ?: '-'}">780.25</td>
+                </tr>
+                <tr>
+                    <td class="summary-label">TOTAL AVERAGE</td>
+                    <td class="summary-value" th:text="${totalAverage ?: '-'}">78.1</td>
+                </tr>
+                <tr>
+                    <td class="summary-label">HIGHEST SCORES AVG</td>
+                    <td class="summary-value" th:text="${highestScoresAvg ?: '-'}">85.9</td>
+                </tr>
+                <tr>
+                    <td class="summary-label">LOWEST SCORES AVG</td>
+                    <td class="summary-value" th:text="${lowestScoresAvg ?: '-'}">40.1</td>
+                </tr>
+                <tr>
+                    <td class="summary-label">PERFORMANCE GRADE</td>
+                    <td class="summary-value" th:text="${performanceGrade ?: '-'}">A</td>
+                </tr>
+            </table>
         </div>
 
         <!-- Behavioral Traits Section -->
