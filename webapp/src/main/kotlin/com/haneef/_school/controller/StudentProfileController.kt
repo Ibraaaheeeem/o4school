@@ -366,8 +366,11 @@ class StudentProfileController(
                 cs_mapped
             }
             
-            // Calculate summary statistics - only from subjects with valid (non-null) totals
-            val subjectsWithValidTotals = subjectDataList.filter { it["total"] as? Int != null }
+            // Calculate summary statistics - only from subjects with valid (non-zero) totals
+            val subjectsWithValidTotals = subjectDataList.filter { subject ->
+                val total = subject["total"] as? Int
+                total != null && total > 0
+            }
             val totals = subjectsWithValidTotals.mapNotNull { it["total"] as? Int }
             val totalScore = totals.sum()
             val totalAverage = if (totals.isNotEmpty()) totalScore.toDouble() / totals.size else 0.0

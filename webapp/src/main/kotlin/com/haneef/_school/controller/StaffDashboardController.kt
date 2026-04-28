@@ -2025,8 +2025,8 @@ class StaffDashboardController(
             school?.addressLine2?.let { append(it) }
         }
 
-        // Calculate summary statistics - only from subjects with valid (non-null) totals
-        val subjectsWithValidTotals = subjectDataList.filter { it.total != null }
+        // Calculate summary statistics - only from subjects with valid (non-zero) totals
+        val subjectsWithValidTotals = subjectDataList.filter { subject -> subject.total != null && (subject.total ?: 0) > 0 }
         val totals = subjectsWithValidTotals.mapNotNull { it.total }.map { it.toDouble() }
         val totalScore = totals.sum()
         val totalAverage = if (totals.isNotEmpty()) totalScore / totals.size else 0.0
