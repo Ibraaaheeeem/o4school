@@ -2025,6 +2025,32 @@ class StaffDashboardController(
             school?.addressLine2?.let { append(it) }
         }
 
+        // Calculate summary statistics
+        val totals = subjectDataList.mapNotNull { it.total }.map { it.toDouble() }
+        val totalScore = totals.sum()
+        val totalAverage = if (totals.isNotEmpty()) totalScore / totals.size else 0.0
+        
+        // Get highest and lowest from all individual scores
+        val allScores = subjectDataList.flatMap { subject ->
+            listOfNotNull(
+                subject.ca1?.toDouble(),
+                subject.ca2?.toDouble(),
+                subject.exam?.toDouble()
+            )
+        }
+        val highestScoresAvg = if (allScores.isNotEmpty()) allScores.maxOrNull() ?: 0.0 else 0.0
+        val lowestScoresAvg = if (allScores.isNotEmpty()) allScores.minOrNull() ?: 0.0 else 0.0
+        
+        // Determine performance grade based on average
+        val performanceGrade = when {
+            totalAverage >= 90 -> "A"
+            totalAverage >= 80 -> "B"
+            totalAverage >= 70 -> "C"
+            totalAverage >= 60 -> "D"
+            totalAverage >= 50 -> "E"
+            else -> "F"
+        }
+
         return AssessmentReportData(
             studentId = student.id!!,
             studentName = student.user.fullName ?: "User",
@@ -2048,7 +2074,12 @@ class StaffDashboardController(
             schoolName = schoolName,
             schoolLogoUrl = schoolLogoUrl,
             schoolAddress = schoolAddress,
-            studentPassportPhotoUrl = student.passportPhotoUrl
+            studentPassportPhotoUrl = student.passportPhotoUrl,
+            totalScore = totalScore,
+            totalAverage = totalAverage,
+            highestScoresAvg = highestScoresAvg,
+            lowestScoresAvg = lowestScoresAvg,
+            performanceGrade = performanceGrade
         )
     }
 
@@ -3194,6 +3225,27 @@ class StaffDashboardController(
         document.add(scoresTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
         
+        // ==== SUMMARY SECTION ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("SUMMARY")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val summaryTable = com.itextpdf.layout.element.Table(2)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Summary rows with borders
+        addTableRow(summaryTable, "TOTAL SCORE", String.format("%.2f", reportData.totalScore))
+        addTableRow(summaryTable, "TOTAL AVERAGE", String.format("%.1f", reportData.totalAverage))
+        addTableRow(summaryTable, "HIGHEST SCORES AVG", String.format("%.1f", reportData.highestScoresAvg))
+        addTableRow(summaryTable, "LOWEST SCORES AVG", String.format("%.1f", reportData.lowestScoresAvg))
+        addTableRow(summaryTable, "PERFORMANCE GRADE", reportData.performanceGrade)
+        
+        document.add(summaryTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
         // ==== BEHAVIORAL TRAITS ====
         document.add(
             com.itextpdf.layout.element.Paragraph("BEHAVIORAL TRAITS")
@@ -3459,6 +3511,27 @@ class StaffDashboardController(
         }
         
         document.add(scoresTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
+        
+        // ==== SUMMARY SECTION ====
+        document.add(
+            com.itextpdf.layout.element.Paragraph("SUMMARY")
+                .setFontSize(12f)
+                .setBold()
+                .setMarginBottom(8f)
+        )
+        
+        val summaryTable = com.itextpdf.layout.element.Table(2)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+        
+        // Summary rows with borders
+        addTableRow(summaryTable, "TOTAL SCORE", String.format("%.2f", reportData.totalScore))
+        addTableRow(summaryTable, "TOTAL AVERAGE", String.format("%.1f", reportData.totalAverage))
+        addTableRow(summaryTable, "HIGHEST SCORES AVG", String.format("%.1f", reportData.highestScoresAvg))
+        addTableRow(summaryTable, "LOWEST SCORES AVG", String.format("%.1f", reportData.lowestScoresAvg))
+        addTableRow(summaryTable, "PERFORMANCE GRADE", reportData.performanceGrade)
+        
+        document.add(summaryTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
         
         // ==== BEHAVIORAL TRAITS ====

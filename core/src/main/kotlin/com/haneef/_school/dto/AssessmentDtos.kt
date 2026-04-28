@@ -53,7 +53,13 @@ data class AssessmentReportData(
     val schoolName: String? = null,
     val schoolLogoUrl: String? = null,
     val schoolAddress: String? = null,
-    val studentPassportPhotoUrl: String? = null
+    val studentPassportPhotoUrl: String? = null,
+    // Summary statistics
+    val totalScore: Double = 0.0,
+    val totalAverage: Double = 0.0,
+    val highestScoresAvg: Double = 0.0,
+    val lowestScoresAvg: Double = 0.0,
+    val performanceGrade: String = "F"
 )
 
 @NativeDto
