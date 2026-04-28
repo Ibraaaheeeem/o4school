@@ -2213,7 +2213,7 @@
                 const displayExam = subject.exam > 0 ? subject.exam : '';
 
                 tr.innerHTML = `
-                    <td class="subject-name-cell">${subject.subjectName}</td>
+                    <td class="subject-name-cell sticky-column">${subject.subjectName}</td>
                     <td class="score-cell score-input-cell" style="text-align: center;">
                         <input type="number" data-subject-id="${subject.subjectId}" data-component="ca1" 
                                max="20" min="0" class="score-input" value="${displayCA1}" ${disabledAttr}
