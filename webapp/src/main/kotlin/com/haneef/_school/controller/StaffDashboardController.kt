@@ -2025,30 +2025,36 @@ class StaffDashboardController(
             school?.addressLine2?.let { append(it) }
         }
 
-        // Calculate summary statistics
-        val totals = subjectDataList.mapNotNull { it.total }.map { it.toDouble() }
+        // Calculate summary statistics - only from subjects with valid (non-null) totals
+        val subjectsWithValidTotals = subjectDataList.filter { it.total != null }
+        val totals = subjectsWithValidTotals.mapNotNull { it.total }.map { it.toDouble() }
         val totalScore = totals.sum()
         val totalAverage = if (totals.isNotEmpty()) totalScore / totals.size else 0.0
         
-        // Get highest and lowest from all individual scores
-        val allScores = subjectDataList.flatMap { subject ->
+        // Get highest and lowest from individual scores of subjects with valid totals only
+        val allScores = subjectsWithValidTotals.flatMap { subject ->
             listOfNotNull(
                 subject.ca1?.toDouble(),
                 subject.ca2?.toDouble(),
                 subject.exam?.toDouble()
             )
-        }
+        }.filter { it > 0.0 } // Exclude zero scores
+        
         val highestScoresAvg = if (allScores.isNotEmpty()) allScores.maxOrNull() ?: 0.0 else 0.0
         val lowestScoresAvg = if (allScores.isNotEmpty()) allScores.minOrNull() ?: 0.0 else 0.0
         
-        // Determine performance grade based on average
-        val performanceGrade = when {
-            totalAverage >= 90 -> "A"
-            totalAverage >= 80 -> "B"
-            totalAverage >= 70 -> "C"
-            totalAverage >= 60 -> "D"
-            totalAverage >= 50 -> "E"
-            else -> "F"
+        // Determine performance grade based on average (only if there are valid totals)
+        val performanceGrade = if (totals.isNotEmpty()) {
+            when {
+                totalAverage >= 90 -> "A"
+                totalAverage >= 80 -> "B"
+                totalAverage >= 70 -> "C"
+                totalAverage >= 60 -> "D"
+                totalAverage >= 50 -> "E"
+                else -> "F"
+            }
+        } else {
+            "F" // Default grade when no valid totals
         }
 
         return AssessmentReportData(

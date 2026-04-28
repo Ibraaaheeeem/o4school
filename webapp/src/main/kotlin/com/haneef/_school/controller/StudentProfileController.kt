@@ -366,31 +366,37 @@ class StudentProfileController(
                 cs_mapped
             }
             
-            // Calculate summary statistics
-            val totals = subjectDataList.mapNotNull { it["total"] as? Int }
+            // Calculate summary statistics - only from subjects with valid (non-null) totals
+            val subjectsWithValidTotals = subjectDataList.filter { it["total"] as? Int != null }
+            val totals = subjectsWithValidTotals.mapNotNull { it["total"] as? Int }
             val totalScore = totals.sum()
             val totalAverage = if (totals.isNotEmpty()) totalScore.toDouble() / totals.size else 0.0
             
-            // For highest and lowest, we calculate from each subject's scores if available
-            val allScores = subjectDataList.mapNotNull { subject ->
-                val ca1 = (subject["ca1"] as? Int) ?: 0
-                val ca2 = (subject["ca2"] as? Int) ?: 0
-                val exam = (subject["exam"] as? Int) ?: 0
-                Triple(ca1, ca2, exam)
-            }
+            // For highest and lowest, collect scores from subjects with valid totals only
+            // Only include scores that are actually present (not null/empty), then filter by > 0
+            val allScores = subjectsWithValidTotals.flatMap { subject ->
+                listOfNotNull(
+                    (subject["ca1"] as? Int),
+                    (subject["ca2"] as? Int),
+                    (subject["exam"] as? Int)
+                )
+            }.filter { it > 0 }
             
-            val allScoresList = allScores.flatMap { (ca1, ca2, exam) -> listOf(ca1, ca2, exam) }.filter { it > 0 }
-            val highestScoresAvg = if (allScoresList.isNotEmpty()) allScoresList.maxOrNull()?.toDouble() ?: 0.0 else 0.0
-            val lowestScoresAvg = if (allScoresList.isNotEmpty()) allScoresList.minOrNull()?.toDouble() ?: 0.0 else 0.0
+            val highestScoresAvg = if (allScores.isNotEmpty()) allScores.maxOrNull()?.toDouble() ?: 0.0 else 0.0
+            val lowestScoresAvg = if (allScores.isNotEmpty()) allScores.minOrNull()?.toDouble() ?: 0.0 else 0.0
             
-            // Determine performance grade based on average
-            val performanceGrade = when {
-                totalAverage >= 90 -> "A"
-                totalAverage >= 80 -> "B"
-                totalAverage >= 70 -> "C"
-                totalAverage >= 60 -> "D"
-                totalAverage >= 50 -> "E"
-                else -> "F"
+            // Determine performance grade based on average (only if there are valid totals)
+            val performanceGrade = if (totals.isNotEmpty()) {
+                when {
+                    totalAverage >= 90 -> "A"
+                    totalAverage >= 80 -> "B"
+                    totalAverage >= 70 -> "C"
+                    totalAverage >= 60 -> "D"
+                    totalAverage >= 50 -> "E"
+                    else -> "F"
+                }
+            } else {
+                "F" // Default grade when no valid totals
             }
             
             model.addAttribute("totalScore", totalScore)
