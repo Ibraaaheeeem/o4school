@@ -10,6 +10,12 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         @media print {
             .no-print {
                 display: none !important;
@@ -30,177 +36,444 @@
             }
         }
 
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
         .report-container {
             max-width: 900px;
-            margin: 2rem auto;
+            margin: 0 auto;
             background: white;
-            border-radius: 22px;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             padding: 3rem;
+            border: 2px solid #f0f0f0;
         }
 
         .school-header {
-            text-align: center;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 2rem;
-            margin-bottom: 2rem;
+            background: white;
+            border-radius: 0;
+            padding: 2rem;
+            margin: -3rem -3rem 2rem -3rem;
+            color: #333;
+            position: relative;
+            overflow: visible;
+            border: 3px solid #333;
+            border-bottom: 6px solid #333;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .school-header::before {
+            content: none;
+        }
+
+        .school-header::after {
+            content: none;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            text-align: left;
+            min-width: 140px;
+        }
+
+        .header-left-contact {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .header-left-contact div {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-left-contact i {
+            font-size: 1rem;
+            color: #667eea;
+            width: 20px;
+        }
+
+        .header-left-attendance {
+            background: #f0f4ff;
+            padding: 0.8rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .header-left-attendance i {
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+
+        .header-left-attendance-label {
+            font-size: 0.75rem;
+            color: #667eea;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .header-left-attendance-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #333;
         }
 
         .school-logo {
             width: 80px;
             height: 80px;
             object-fit: contain;
-            margin-bottom: 1rem;
+            margin-bottom: 0;
+            position: relative;
+            z-index: 1;
+            display: none;
+        }
+
+        .school-info {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .school-info h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1e293b;
+            font-size: 1.8rem;
+            font-weight: 800;
             margin-bottom: 0.5rem;
+            text-shadow: none;
+            color: #333;
         }
 
         .school-info p {
-            color: #64748b;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             margin-bottom: 0.25rem;
+            opacity: 1;
+            color: #666;
+            font-weight: 600;
         }
 
+        .session-term-line {
+            font-size: 0.75rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            margin-top: 0.5rem !important;
+            margin-bottom: 0 !important;
+            color: #667eea !important;
+            font-weight: 700 !important;
+            display: block;
+            white-space: nowrap;
+        }
+
+        .header-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+            text-align: right;
+            min-width: 180px;
+        }
+
+        .header-right-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .header-right-info {
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .header-right-photo {
+            width: 100px;
+            height: 120px;
+            object-fit: cover;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+            background: #f0f4ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin-top: 0.5rem;
+        }
+
+        .session-term-badge {
+            display: none;
+        }
+
+        .session-term-badge .session,
+        .session-term-badge .term {
+            display: none;
+        }
+
+        .session-term-badge .session::before {
+            content: none;
+        }
+
+        .session-term-badge .term::before {
+            content: none;
+        }
+
+        .session-term-badge .session-label,
+        .session-term-badge .term-label {
+            display: none;
+        }
+
+        .session-term-badge .session-value,
+        .session-term-badge .term-value {
+            display: none;
+        }
+
+        /* Student Details Section */
         .student-details {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 2rem;
-            margin-bottom: 2rem;
-            background: #f8fafc;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
+            margin-bottom: 2.5rem;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 2px solid #e0e7ff;
         }
 
         .detail-row {
             display: flex;
-            margin-bottom: 0.75rem;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
         }
 
+        .detail-row:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateX(4px);
+        }
+
+        .detail-row::before {
+            font-size: 1.2rem;
+            min-width: 24px;
+        }
+
+        .detail-row:nth-child(1)::before { content: '👤'; }
+        .detail-row:nth-child(2)::before { content: '📋'; }
+        .detail-row:nth-child(3)::before { content: '📖'; }
+        .detail-row:nth-child(4)::before { content: '🎯'; }
+        .detail-row:nth-child(5)::before { content: '👨‍👩‍👧'; }
+        .detail-row:nth-child(6)::before { content: '📅'; }
+
         .detail-label {
-            font-weight: 600;
-            color: #64748b;
-            width: 140px;
+            font-weight: 700;
+            color: #667eea;
+            width: auto;
+            min-width: 140px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .detail-value {
             color: #334155;
-            font-weight: 500;
+            font-weight: 600;
+            flex: 1;
         }
 
+        /* Scores Table */
         .scores-table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 2rem;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 2.5rem;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .scores-table th {
-            background: #f1f5f9;
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: #475569;
-            border-bottom: 2px solid #e2e8f0;
-            font-size: 0.9rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1.2rem;
+            text-align: center;
+            font-weight: 700;
+            color: white;
+            font-size: 0.85rem;
             text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .scores-table th:first-child {
+            text-align: left;
         }
 
         .scores-table td {
-            padding: 1rem;
+            padding: 1rem 1.2rem;
             border-bottom: 1px solid #e2e8f0;
             color: #334155;
+            text-align: center;
+        }
+
+        .scores-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: #667eea;
         }
 
         .scores-table tr:last-child td {
             border-bottom: none;
         }
 
+        .scores-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .scores-table td.font-bold {
+            font-weight: 700;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 6px;
+        }
+
         .grade-badge {
             display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-weight: 600;
+            padding: 0.35rem 0.9rem;
+            border-radius: 20px;
+            font-weight: 700;
             font-size: 0.85rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .grade-A {
-            background: #dcfce7;
-            color: #166534;
+            background: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
+            color: white;
         }
 
         .grade-B {
-            background: #dbeafe;
-            color: #1e40af;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
         }
 
         .grade-C {
-            background: #ffedd5;
-            color: #9a3412;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
         }
 
         .grade-D {
-            background: #fee2e2;
-            color: #991b1b;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
         }
 
         .grade-E {
-            background: #f3f4f6;
-            color: #374151;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
         }
 
         .grade-F {
-            background: #fef2f2;
-            color: #ef4444;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
         }
 
-        /* Summary Section Styles */
+        /* Summary Section */
         .summary-table {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 2rem;
-            background: white;
-            border: 1px solid #000;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 2.5rem;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .summary-table tr:nth-child(odd) {
+            background: linear-gradient(90deg, #f8fafc 0%, #eff6ff 100%);
+        }
+
+        .summary-table tr:nth-child(even) {
+            background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        .summary-table tr:nth-child(3) {
+            background: linear-gradient(90deg, #dbeafe 0%, #bfdbfe 100%);
         }
 
         .summary-table td {
-            padding: 0.75rem 1rem;
-            border: 1px solid #000;
-            font-weight: 600;
+            padding: 1.2rem;
+            font-weight: 700;
             color: #1e293b;
+            border: 1px solid rgba(0, 0, 0, 0.06);
         }
 
         .summary-label {
             text-align: left;
-            width: 50%;
+            width: 60%;
             font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
+
+        .summary-label::before {
+            font-size: 1.3rem;
+        }
+
+        .summary-table tr:nth-child(1) .summary-label::before { content: '📊'; }
+        .summary-table tr:nth-child(2) .summary-label::before { content: '📈'; }
+        .summary-table tr:nth-child(3) .summary-label::before { content: '⭐'; }
 
         .summary-value {
             text-align: right;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #1e293b;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #667eea;
         }
 
-        /* Behavioral Traits Section */
+        /* Behavioral Section */
         .behavioral-section {
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
 
         .behavioral-section h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #667eea;
+            margin-bottom: 1.5rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .behavioral-section h3::before {
+            content: '🎭';
+            font-size: 1.5rem;
         }
 
         .behavioral-traits-grid {
@@ -210,104 +483,133 @@
             margin-bottom: 1.5rem;
         }
 
+        .behavioral-column {
+            background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid #dbeafe;
+        }
+
         .behavioral-column h4 {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 700;
-            color: #475569;
-            margin-bottom: 1rem;
+            color: #667eea;
+            margin-bottom: 1.2rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 0.5rem;
+            letter-spacing: 0.08em;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #bfdbfe;
         }
 
         .behavioral-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f1f5f9;
+            padding: 0.9rem;
+            margin-bottom: 0.5rem;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
         }
 
-        .behavioral-item:last-child {
-            border-bottom: none;
+        .behavioral-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
         }
 
         .behavioral-label {
             font-size: 0.9rem;
             color: #475569;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .behavioral-value {
             font-size: 0.9rem;
-            font-weight: 600;
-            color: #1e293b;
-            min-width: 30px;
+            font-weight: 700;
+            color: white;
+            min-width: 40px;
             text-align: center;
-            background: #f1f5f9;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
         }
 
         /* Ratings Legend */
         .ratings-section {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
         }
 
         .ratings-section h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #b45309;
+            margin-bottom: 1.5rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .ratings-section h3::before {
+            content: '📊';
+            font-size: 1.5rem;
         }
 
         .ratings-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 1rem;
         }
 
         .rating-item {
             text-align: center;
-            padding: 1rem;
+            padding: 1.2rem;
             background: white;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            border: 2px solid #fbbf24;
+            transition: all 0.3s ease;
+        }
+
+        .rating-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
         }
 
         .rating-badge {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-weight: 800;
             color: white;
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .rating-label {
             font-size: 0.85rem;
-            color: #64748b;
-            font-weight: 500;
+            color: #475569;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .rating-1 { background: #ef4444; }
-        .rating-2 { background: #f97316; }
-        .rating-3 { background: #eab308; }
-        .rating-4 { background: #3b82f6; }
-        .rating-5 { background: #10b981; }
+        .rating-1 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .rating-2 { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+        .rating-3 { background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); }
+        .rating-4 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .rating-5 { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
 
+        /* Footer Remarks */
         .footer-remarks {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -316,43 +618,153 @@
         }
 
         .remark-box {
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
             padding: 1.5rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+            transition: all 0.3s ease;
+        }
+
+        .remark-box:hover {
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+            transform: translateY(-4px);
         }
 
         .remark-title {
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 1rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 1.2rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
+        .remark-box:first-child .remark-title::before {
+            content: '👨‍🏫';
+            font-size: 1.5rem;
+        }
+
+        .remark-box:last-child .remark-title::before {
+            content: '👔';
+            font-size: 1.5rem;
+        }
+
+        .remark-box p {
+            color: #475569;
+            font-size: 0.9rem;
+            min-height: 80px;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .remark-box .mt-4 {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        /* Footer Text */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-8 {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e0e7ff;
+            color: #94a3b8 !important;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Print Button */
         .print-btn {
             position: fixed;
             bottom: 2rem;
             right: 2rem;
-            padding: 1rem 2rem;
-            background: #2563eb;
+            padding: 0.9rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 9999px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
             border: none;
             cursor: pointer;
             z-index: 100;
+            font-size: 1rem;
         }
 
         .print-btn:hover {
-            background: #1d4ed8;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+        }
+
+        .print-btn:active {
             transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .report-container {
+                padding: 2rem;
+            }
+
+            .student-details,
+            .behavioral-traits-grid,
+            .footer-remarks {
+                grid-template-columns: 1fr;
+            }
+
+            .school-header {
+                margin: -2rem -2rem 1.5rem -2rem;
+                padding: 1.5rem;
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .school-header .school-info {
+                order: 2;
+            }
+
+            .header-left {
+                order: 1;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                width: 100%;
+            }
+
+            .header-right {
+                order: 3;
+                align-items: center;
+                text-align: center;
+                width: 100%;
+            }
+
+            .school-info h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-right-photo {
+                width: 80px;
+                height: 100px;
+                margin: 0.5rem auto 0;
+            }
         }
     </style>
 </head>
@@ -361,16 +773,43 @@
 
     <div class="report-container">
         <div class="school-header">
-            <!-- Logo placeholder if available -->
-            <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+            <!-- Left Section: Contact & Attendance -->
+            <div class="header-left">
+                <div class="header-left-contact">
+                    <div th:if="${school != null and school.phoneNumber}">
+                        <i class="fas fa-phone"></i>
+                        <span th:text="${school.phoneNumber}">Phone: 123-456-7890</span>
+                    </div>
+                    <div th:if="${school != null and school.email}">
+                        <i class="fas fa-envelope"></i>
+                        <span th:text="${school.email}">email@school.com</span>
+                    </div>
+                </div>
+                <div class="header-left-attendance">
+                    <i class="fas fa-calendar-check"></i>
+                    <div class="header-left-attendance-label">Attendance</div>
+                    <div class="header-left-attendance-value" th:text="${assessment?.attendancePercentage != null ? assessment.attendancePercentage + '%' : 'N/A'}">85%</div>
+                </div>
+            </div>
+
+            <!-- Center Section: School Info -->
             <div class="school-info">
                 <h1 th:text="${school != null ? school.name : 'School Name'}">School Name</h1>
-                <p th:text="${school != null ? school.addressLine1 + ', ' + school.city : 'Address'}">School Address</p>
-                <p th:text="${school != null ? school.email : 'Email'}">contact@school.com</p>
+                <p style="font-size: 0.8rem; color: #999;" th:text="${school != null ? school.addressLine1 : 'School Address'}">School Address</p>
+                <p th:if="${sessionName or termName}" class="session-term-line">
+                    <span th:if="${termName}" th:text="${termName}">FIRST TERM</span>
+                    <span th:if="${sessionName}">, <span th:text="${sessionName}">2025/2026</span> ACADEMIC SESSION</span>
+                </p>
             </div>
-            <div
-                class="mt-4 inline-block px-4 py-1 bg-slate-100 rounded-full text-slate-600 font-semibold border border-slate-200">
-                <span th:text="${sessionName}">2023/2024</span> &bull; <span th:text="${termName}">First Term</span>
+
+            <!-- Right Section: Student Info & Photo -->
+            <div class="header-right">
+                <div class="header-right-name" th:text="${student.user.fullName}">MORGAN MAXWELL</div>
+                <div class="header-right-info">Admission number</div>
+                <div class="header-right-info" th:text="${student.admissionNumber + ' • ' + className}">ADM-001 • Conventional, SS2</div>
+                <div class="header-right-photo">
+                    <i class="fas fa-user"></i>
+                </div>
             </div>
         </div>
 
@@ -452,23 +891,15 @@
             <table class="summary-table">
                 <tr>
                     <td class="summary-label">TOTAL SCORE</td>
-                    <td class="summary-value" th:text="${totalScore ?: '-'}">780.25</td>
+                    <td class="summary-value" th:text="${totalScore ?: '-'}"></td>
                 </tr>
                 <tr>
                     <td class="summary-label">TOTAL AVERAGE</td>
-                    <td class="summary-value" th:text="${totalAverage ?: '-'}">78.1</td>
-                </tr>
-                <tr>
-                    <td class="summary-label">HIGHEST SCORES AVG</td>
-                    <td class="summary-value" th:text="${highestScoresAvg ?: '-'}">85.9</td>
-                </tr>
-                <tr>
-                    <td class="summary-label">LOWEST SCORES AVG</td>
-                    <td class="summary-value" th:text="${lowestScoresAvg ?: '-'}">40.1</td>
+                    <td class="summary-value" th:text="${totalAverage ?: '-'}"></td>
                 </tr>
                 <tr>
                     <td class="summary-label">PERFORMANCE GRADE</td>
-                    <td class="summary-value" th:text="${performanceGrade ?: '-'}">A</td>
+                    <td class="summary-value" th:text="${performanceGrade ?: '-'}"></td>
                 </tr>
             </table>
         </div>
@@ -482,23 +913,23 @@
                     <h4>Psychomotor</h4>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Fluency</span>
-                        <span class="behavioral-value" th:text="${assessment.fluency ?: '-'}">4</span>
+                        <span class="behavioral-value" th:text="${assessment.fluency ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Handwriting</span>
-                        <span class="behavioral-value" th:text="${assessment.handwriting ?: '-'}">2</span>
+                        <span class="behavioral-value" th:text="${assessment.handwriting ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Game</span>
-                        <span class="behavioral-value" th:text="${assessment.game ?: '-'}">4</span>
+                        <span class="behavioral-value" th:text="${assessment.game ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Initiative</span>
-                        <span class="behavioral-value" th:text="${assessment.initiative ?: '-'}">4</span>
+                        <span class="behavioral-value" th:text="${assessment.initiative ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Critical Thinking</span>
-                        <span class="behavioral-value" th:text="${assessment.criticalThinking ?: '-'}">5</span>
+                        <span class="behavioral-value" th:text="${assessment.criticalThinking ?: '-'}"></span>
                     </div>
                 </div>
                 <!-- Cognitive & Affective Column (Right) -->
@@ -506,23 +937,23 @@
                     <h4>Cognitive & Affective</h4>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Punctuality</span>
-                        <span class="behavioral-value" th:text="${assessment.punctuality ?: '-'}">5</span>
+                        <span class="behavioral-value" th:text="${assessment.punctuality ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Attentiveness</span>
-                        <span class="behavioral-value" th:text="${assessment.attentiveness ?: '-'}">5</span>
+                        <span class="behavioral-value" th:text="${assessment.attentiveness ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Neatness</span>
-                        <span class="behavioral-value" th:text="${assessment.neatness ?: '-'}">5</span>
+                        <span class="behavioral-value" th:text="${assessment.neatness ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Self Discipline</span>
-                        <span class="behavioral-value" th:text="${assessment.selfDiscipline ?: '-'}">5</span>
+                        <span class="behavioral-value" th:text="${assessment.selfDiscipline ?: '-'}"></span>
                     </div>
                     <div class="behavioral-item">
                         <span class="behavioral-label">Politeness</span>
-                        <span class="behavioral-value" th:text="${assessment.politeness ?: '-'}">3</span>
+                        <span class="behavioral-value" th:text="${assessment.politeness ?: '-'}"></span>
                     </div>
                 </div>
             </div>

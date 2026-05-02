@@ -2028,23 +2028,37 @@ class StaffDashboardController(
         // Calculate summary statistics - only from subjects with valid (non-zero) totals
         val subjectsWithValidTotals = subjectDataList.filter { subject -> subject.total != null && (subject.total ?: 0) > 0 }
         val totals = subjectsWithValidTotals.mapNotNull { it.total }.map { it.toDouble() }
-        val totalScore = totals.sum()
-        val totalAverage = if (totals.isNotEmpty()) totalScore / totals.size else 0.0
         
-        // Get highest and lowest from individual scores of subjects with valid totals only
-        val allScores = subjectsWithValidTotals.flatMap { subject ->
-            listOfNotNull(
+        // Return null instead of 0 when no valid totals
+        val totalScore = if (totals.isNotEmpty()) totals.sum() else null
+        val totalAverage = if (totals.isNotEmpty()) totalScore!! / totals.size else null
+        
+        // For highest and lowest scores: average of highest/lowest per subject (include zeros in min/max)
+        // Collect the highest and lowest score for each subject
+        val highestScoresPerSubject = mutableListOf<Double>()
+        val lowestScoresPerSubject = mutableListOf<Double>()
+        
+        for (subject in subjectsWithValidTotals) {
+            val scores = listOfNotNull(
                 subject.ca1?.toDouble(),
                 subject.ca2?.toDouble(),
                 subject.exam?.toDouble()
             )
-        }.filter { it > 0.0 } // Exclude zero scores
+            
+            if (scores.isNotEmpty()) {
+                highestScoresPerSubject.add(scores.maxOrNull() ?: 0.0)
+                lowestScoresPerSubject.add(scores.minOrNull() ?: 0.0)
+            }
+        }
         
-        val highestScoresAvg = if (allScores.isNotEmpty()) allScores.maxOrNull() ?: 0.0 else 0.0
-        val lowestScoresAvg = if (allScores.isNotEmpty()) allScores.minOrNull() ?: 0.0 else 0.0
+        // Calculate averages of the highest and lowest scores across all subjects
+        val highestScoresAvg = if (highestScoresPerSubject.isNotEmpty()) 
+            highestScoresPerSubject.average() else null
+        val lowestScoresAvg = if (lowestScoresPerSubject.isNotEmpty()) 
+            lowestScoresPerSubject.average() else null  
         
-        // Determine performance grade based on average (only if there are valid totals)
-        val performanceGrade = if (totals.isNotEmpty()) {
+        // Determine performance grade based on TOTAL AVERAGE
+        val performanceGrade = if (totalAverage != null) {
             when {
                 totalAverage >= 90 -> "A"
                 totalAverage >= 80 -> "B"
@@ -2054,7 +2068,7 @@ class StaffDashboardController(
                 else -> "F"
             }
         } else {
-            "F" // Default grade when no valid totals
+            null // Return null when no valid totals
         }
 
         return AssessmentReportData(
@@ -2081,6 +2095,8 @@ class StaffDashboardController(
             schoolLogoUrl = schoolLogoUrl,
             schoolAddress = schoolAddress,
             studentPassportPhotoUrl = student.passportPhotoUrl,
+            sessionName = session,
+            termName = term,
             totalScore = totalScore,
             totalAverage = totalAverage,
             highestScoresAvg = highestScoresAvg,
@@ -3144,6 +3160,30 @@ class StaffDashboardController(
         separator.setMarginBottom(12f)
         document.add(separator)
         
+        // ==== SESSION & TERM BADGE ====
+        val sessionTermTable = com.itextpdf.layout.element.Table(2)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+            .setMarginBottom(12f)
+        
+        val sessionCell = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("SESSION").setBold().setFontSize(9f).setMarginBottom(4f))
+            .add(com.itextpdf.layout.element.Paragraph(reportData.sessionName ?: "N/A").setFontSize(12f).setBold())
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 30f, 0f, 0f))
+            .setPadding(10f)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+        
+        val termCell = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("TERM").setBold().setFontSize(9f).setMarginBottom(4f))
+            .add(com.itextpdf.layout.element.Paragraph(reportData.termName ?: "N/A").setFontSize(12f).setBold())
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(30f, 20f, 0f, 0f))
+            .setPadding(10f)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+        
+        sessionTermTable.addCell(sessionCell)
+        sessionTermTable.addCell(termCell)
+        document.add(sessionTermTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(12f))
+        
         // ==== STUDENT INFORMATION ====
         document.add(
             com.itextpdf.layout.element.Paragraph("STUDENT INFORMATION")
@@ -3242,12 +3282,42 @@ class StaffDashboardController(
         val summaryTable = com.itextpdf.layout.element.Table(2)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
         
-        // Summary rows with borders
-        addTableRow(summaryTable, "TOTAL SCORE", String.format("%.2f", reportData.totalScore))
-        addTableRow(summaryTable, "TOTAL AVERAGE", String.format("%.1f", reportData.totalAverage))
-        addTableRow(summaryTable, "HIGHEST SCORES AVG", String.format("%.1f", reportData.highestScoresAvg))
-        addTableRow(summaryTable, "LOWEST SCORES AVG", String.format("%.1f", reportData.lowestScoresAvg))
-        addTableRow(summaryTable, "PERFORMANCE GRADE", reportData.performanceGrade)
+        // Summary rows with colored backgrounds
+        // Row 1: TOTAL SCORE - Light Blue background
+        val totalScoreLabel = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("TOTAL SCORE").setBold().setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
+            .setPadding(8f)
+        val totalScoreValue = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalScore != null) String.format("%.2f", reportData.totalScore!!) else "-").setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
+            .setPadding(8f)
+        summaryTable.addCell(totalScoreLabel)
+        summaryTable.addCell(totalScoreValue)
+        
+        // Row 2: TOTAL AVERAGE - Light Yellow background
+        val totalAvgLabel = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("TOTAL AVERAGE").setBold().setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
+            .setPadding(8f)
+        val totalAvgValue = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalAverage != null) String.format("%.1f", reportData.totalAverage!!) else "-").setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
+            .setPadding(8f)
+        summaryTable.addCell(totalAvgLabel)
+        summaryTable.addCell(totalAvgValue)
+        
+        // Row 3: PERFORMANCE GRADE - Light Green background
+        val gradeLabel = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("PERFORMANCE GRADE").setBold().setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
+            .setPadding(8f)
+        val gradeValue = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(reportData.performanceGrade ?: "-").setFontSize(10f).setBold())
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
+            .setPadding(8f)
+        summaryTable.addCell(gradeLabel)
+        summaryTable.addCell(gradeValue)
         
         document.add(summaryTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
@@ -3432,6 +3502,30 @@ class StaffDashboardController(
         separator.setMarginBottom(12f)
         document.add(separator)
         
+        // ==== SESSION & TERM BADGE ====
+        val sessionTermTable = com.itextpdf.layout.element.Table(2)
+            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
+            .setMarginBottom(12f)
+        
+        val sessionCell = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("SESSION").setBold().setFontSize(9f).setMarginBottom(4f))
+            .add(com.itextpdf.layout.element.Paragraph(reportData.sessionName ?: "N/A").setFontSize(12f).setBold())
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 30f, 0f, 0f))
+            .setPadding(10f)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+        
+        val termCell = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("TERM").setBold().setFontSize(9f).setMarginBottom(4f))
+            .add(com.itextpdf.layout.element.Paragraph(reportData.termName ?: "N/A").setFontSize(12f).setBold())
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(30f, 20f, 0f, 0f))
+            .setPadding(10f)
+            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+        
+        sessionTermTable.addCell(sessionCell)
+        sessionTermTable.addCell(termCell)
+        document.add(sessionTermTable)
+        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(12f))
+        
         // ==== STUDENT INFORMATION ====
         document.add(
             com.itextpdf.layout.element.Paragraph("STUDENT INFORMATION")
@@ -3530,12 +3624,42 @@ class StaffDashboardController(
         val summaryTable = com.itextpdf.layout.element.Table(2)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
         
-        // Summary rows with borders
-        addTableRow(summaryTable, "TOTAL SCORE", String.format("%.2f", reportData.totalScore))
-        addTableRow(summaryTable, "TOTAL AVERAGE", String.format("%.1f", reportData.totalAverage))
-        addTableRow(summaryTable, "HIGHEST SCORES AVG", String.format("%.1f", reportData.highestScoresAvg))
-        addTableRow(summaryTable, "LOWEST SCORES AVG", String.format("%.1f", reportData.lowestScoresAvg))
-        addTableRow(summaryTable, "PERFORMANCE GRADE", reportData.performanceGrade)
+        // Summary rows with colored backgrounds
+        // Row 1: TOTAL SCORE - Light Blue background
+        val totalScoreLabel = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("TOTAL SCORE").setBold().setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
+            .setPadding(8f)
+        val totalScoreValue = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalScore != null) String.format("%.2f", reportData.totalScore!!) else "-").setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
+            .setPadding(8f)
+        summaryTable.addCell(totalScoreLabel)
+        summaryTable.addCell(totalScoreValue)
+        
+        // Row 2: TOTAL AVERAGE - Light Yellow background
+        val totalAvgLabel = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("TOTAL AVERAGE").setBold().setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
+            .setPadding(8f)
+        val totalAvgValue = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalAverage != null) String.format("%.1f", reportData.totalAverage!!) else "-").setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
+            .setPadding(8f)
+        summaryTable.addCell(totalAvgLabel)
+        summaryTable.addCell(totalAvgValue)
+        
+        // Row 3: PERFORMANCE GRADE - Light Green background
+        val gradeLabel = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph("PERFORMANCE GRADE").setBold().setFontSize(10f))
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
+            .setPadding(8f)
+        val gradeValue = com.itextpdf.layout.element.Cell(1, 1)
+            .add(com.itextpdf.layout.element.Paragraph(reportData.performanceGrade ?: "-").setFontSize(10f).setBold())
+            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
+            .setPadding(8f)
+        summaryTable.addCell(gradeLabel)
+        summaryTable.addCell(gradeValue)
         
         document.add(summaryTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
