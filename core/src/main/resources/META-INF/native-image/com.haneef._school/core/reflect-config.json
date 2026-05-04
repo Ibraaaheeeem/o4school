@@ -198,5 +198,18 @@
             { "name": "classCode" },
             { "name": "track" }
         ]
+    },
+    {
+        "name": "com.haneef._school.service.ElearnerSubjectDto",
+        "allDeclaredConstructors": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "allPublicConstructors": true,
+        "fields": [
+            { "name": "id" },
+            { "name": "name" },
+            { "name": "code" },
+            { "name": "gradeLevel" }
+        ]
     }
 ]
