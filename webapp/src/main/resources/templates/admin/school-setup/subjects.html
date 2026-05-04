@@ -454,7 +454,7 @@
                     <!-- Results count -->
                     <div class="subjects-meta">
                         <span class="results-count">
-                            <strong th:text="${subjectsWithClasses.size()}">0</strong> subject<span th:if="${subjectsWithClasses.size() != 1}">s</span>
+                            <strong th:text="${#lists.size(subjectsWithClasses)}">0</strong> subject<span th:if="${#lists.size(subjectsWithClasses) != 1}">s</span>
                             <span th:if="${searchQuery != null and !searchQuery.isEmpty()}">
                                 matching &#8220;<em th:text="${searchQuery}"></em>&#8221;
                             </span>

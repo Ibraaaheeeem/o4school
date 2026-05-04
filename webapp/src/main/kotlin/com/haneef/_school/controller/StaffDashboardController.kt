@@ -3127,6 +3127,24 @@ class StaffDashboardController(
                     .setMarginTop(2f)
             )
         }
+        // Add Session/Term on single line under address
+        if (!reportData.sessionName.isNullOrBlank() || !reportData.termName.isNullOrBlank()) {
+            val sessionTermText = buildString {
+                if (!reportData.termName.isNullOrBlank()) {
+                    append(reportData.termName)
+                }
+                if (!reportData.sessionName.isNullOrBlank()) {
+                    if (isNotEmpty()) append(", ")
+                    append("${reportData.sessionName} ACADEMIC SESSION")
+                }
+            }
+            centerCell.add(
+                com.itextpdf.layout.element.Paragraph(sessionTermText)
+                    .setFontSize(7f)
+                    .setMarginTop(4f)
+                    .setFontColor(com.itextpdf.kernel.colors.DeviceRgb(102, 126, 234))
+            )
+        }
         headerTable.addCell(centerCell)
         
         // Right cell - Student Photo
@@ -3155,34 +3173,7 @@ class StaffDashboardController(
         
         document.add(headerTable)
         
-        // Separator line
-        val separator = com.itextpdf.layout.element.Paragraph(" ")
-        separator.setMarginBottom(12f)
-        document.add(separator)
-        
-        // ==== SESSION & TERM BADGE ====
-        val sessionTermTable = com.itextpdf.layout.element.Table(2)
-            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
-            .setMarginBottom(12f)
-        
-        val sessionCell = com.itextpdf.layout.element.Cell(1, 1)
-            .add(com.itextpdf.layout.element.Paragraph("SESSION").setBold().setFontSize(9f).setMarginBottom(4f))
-            .add(com.itextpdf.layout.element.Paragraph(reportData.sessionName ?: "N/A").setFontSize(12f).setBold())
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 30f, 0f, 0f))
-            .setPadding(10f)
-            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-        
-        val termCell = com.itextpdf.layout.element.Cell(1, 1)
-            .add(com.itextpdf.layout.element.Paragraph("TERM").setBold().setFontSize(9f).setMarginBottom(4f))
-            .add(com.itextpdf.layout.element.Paragraph(reportData.termName ?: "N/A").setFontSize(12f).setBold())
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(30f, 20f, 0f, 0f))
-            .setPadding(10f)
-            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-        
-        sessionTermTable.addCell(sessionCell)
-        sessionTermTable.addCell(termCell)
-        document.add(sessionTermTable)
-        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(12f))
+        // Separator line removed (session/term now in header)
         
         // ==== STUDENT INFORMATION ====
         document.add(
@@ -3469,6 +3460,24 @@ class StaffDashboardController(
                     .setMarginTop(2f)
             )
         }
+        // Add Session/Term on single line under address
+        if (!reportData.sessionName.isNullOrBlank() || !reportData.termName.isNullOrBlank()) {
+            val sessionTermText = buildString {
+                if (!reportData.termName.isNullOrBlank()) {
+                    append(reportData.termName)
+                }
+                if (!reportData.sessionName.isNullOrBlank()) {
+                    if (isNotEmpty()) append(", ")
+                    append("${reportData.sessionName} ACADEMIC SESSION")
+                }
+            }
+            centerCell.add(
+                com.itextpdf.layout.element.Paragraph(sessionTermText)
+                    .setFontSize(7f)
+                    .setMarginTop(4f)
+                    .setFontColor(com.itextpdf.kernel.colors.DeviceRgb(102, 126, 234))
+            )
+        }
         headerTable.addCell(centerCell)
         
         // Right cell - Student Photo
@@ -3497,34 +3506,7 @@ class StaffDashboardController(
         
         document.add(headerTable)
         
-        // Separator line
-        val separator = com.itextpdf.layout.element.Paragraph(" ")
-        separator.setMarginBottom(12f)
-        document.add(separator)
-        
-        // ==== SESSION & TERM BADGE ====
-        val sessionTermTable = com.itextpdf.layout.element.Table(2)
-            .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
-            .setMarginBottom(12f)
-        
-        val sessionCell = com.itextpdf.layout.element.Cell(1, 1)
-            .add(com.itextpdf.layout.element.Paragraph("SESSION").setBold().setFontSize(9f).setMarginBottom(4f))
-            .add(com.itextpdf.layout.element.Paragraph(reportData.sessionName ?: "N/A").setFontSize(12f).setBold())
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 30f, 0f, 0f))
-            .setPadding(10f)
-            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-        
-        val termCell = com.itextpdf.layout.element.Cell(1, 1)
-            .add(com.itextpdf.layout.element.Paragraph("TERM").setBold().setFontSize(9f).setMarginBottom(4f))
-            .add(com.itextpdf.layout.element.Paragraph(reportData.termName ?: "N/A").setFontSize(12f).setBold())
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(30f, 20f, 0f, 0f))
-            .setPadding(10f)
-            .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-        
-        sessionTermTable.addCell(sessionCell)
-        sessionTermTable.addCell(termCell)
-        document.add(sessionTermTable)
-        document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(12f))
+        // Separator line removed (session/term now in header)
         
         // ==== STUDENT INFORMATION ====
         document.add(
