@@ -667,6 +667,9 @@
     </div>
 
     <script>
+        // Debug: Log when script loads
+        console.log('Subjects page script loaded');
+        
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
         }
@@ -675,6 +678,9 @@
             document.getElementById(modalId).classList.remove('active');
             resetForm();
         }
+        
+        // Make editSubject accessible in global scope
+        window.editSubject = null;
 
         let debounceTimer;
         async function checkAvailability(name) {
@@ -1022,6 +1028,11 @@
 
         // Update class dropdown when track filter changes
         // Helper to get grade level name
+
+        // Ensure functions are in global scope
+        window.editSubject = editSubject;
+        window.openModal = openModal;
+        window.closeModal = closeModal;
 
     </script>
 </body>
