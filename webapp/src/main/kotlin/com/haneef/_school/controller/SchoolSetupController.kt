@@ -657,7 +657,7 @@ class SchoolSetupController(
                 id = subject.id!!,
                 subjectName = subject.subjectName,
                 subjectCode = subject.subjectCode,
-                isCoreSubject = subject.isCoreSubject,
+                isCoreSubject = subject.isCoreSubject ?: false,
                 assignedClasses = relevantClasses
             )
         }.filter { subjectWithClasses ->
@@ -667,7 +667,7 @@ class SchoolSetupController(
                 trackId != null || classId != null -> subjectWithClasses.assignedClasses.isNotEmpty()
                 else -> true 
             }
-        }.sortedBy { it.subject.subjectName }
+        }.sortedBy { it.subjectName }
 
         // Apply pagination
         val pageSize = 20
