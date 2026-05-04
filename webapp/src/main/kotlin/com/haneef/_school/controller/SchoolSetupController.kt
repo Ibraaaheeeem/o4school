@@ -653,7 +653,13 @@ class SchoolSetupController(
                 matchesTrack && matchesClass
             }
             
-            SubjectWithClasses(subject, relevantClasses)
+            SubjectWithClasses(
+                id = subject.id!!,
+                subjectName = subject.subjectName,
+                subjectCode = subject.subjectCode,
+                isCoreSubject = subject.isCoreSubject,
+                assignedClasses = relevantClasses
+            )
         }.filter { subjectWithClasses ->
             // Show subjects that have relevant class assignments if filters are applied,
             // or show ALL subjects if no filters are applied
@@ -1100,7 +1106,10 @@ class SchoolSetupController(
     }
 
     data class SubjectWithClasses(
-        val subject: Subject,
+        val id: UUID,
+        val subjectName: String,
+        val subjectCode: String?,
+        val isCoreSubject: Boolean,
         val assignedClasses: List<SchoolClass>
     )
     

@@ -468,12 +468,12 @@
                             <!-- Header: name + code -->
                             <div class="subject-card-header">
                                 <span class="subject-card-name"
-                                    th:text="${subjectWithClasses.subject.subjectName}">
+                                    th:text="${subjectWithClasses.subjectName}">
                                     Mathematics
                                 </span>
                                 <span class="subject-code-badge"
-                                    th:if="${subjectWithClasses.subject.subjectCode != null and !subjectWithClasses.subject.subjectCode.isEmpty()}"
-                                    th:text="${subjectWithClasses.subject.subjectCode}">
+                                    th:if="${subjectWithClasses.subjectCode != null and !subjectWithClasses.subjectCode.isEmpty()}"
+                                    th:text="${subjectWithClasses.subjectCode}">
                                     MTH
                                 </span>
                             </div>
@@ -502,7 +502,7 @@
                             <!-- Footer: Edit action -->
                             <div class="subject-card-footer">
                                 <button class="btn-edit-subject"
-                                    th:data-id="${subjectWithClasses.subject.id}"
+                                    th:data-id="${subjectWithClasses.id}"
                                     onclick="editSubject(this.getAttribute('data-id'))">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
                                         fill="none" stroke="currentColor" stroke-width="2.5"
