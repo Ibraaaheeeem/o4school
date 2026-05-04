@@ -775,7 +775,7 @@
                 <div class="header-left-attendance">
                     <i class="fas fa-calendar-check"></i>
                     <div class="header-left-attendance-label">Attendance</div>
-                    <div class="header-left-attendance-value" th:text="${assessment?.attendancePercentage != null ? assessment.attendancePercentage + '%' : 'N/A'}">85%</div>
+                    <div class="header-left-attendance-value" th:text="${assessment?.attendancePercentage != null ? assessment.attendancePercentage : 'N/A'}">85</div>
                 </div>
             </div>
 
