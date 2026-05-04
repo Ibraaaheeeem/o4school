@@ -501,9 +501,8 @@
 
                             <!-- Footer: Edit action -->
                             <div class="subject-card-footer">
-                                <button class="btn-edit-subject"
-                                    th:data-id="${subjectWithClasses.id}"
-                                    onclick="editSubject(this.getAttribute('data-id'))">
+                                <button class="btn-edit-subject btn-edit-subject-trigger"
+                                    th:data-id="${subjectWithClasses.id}">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
                                         fill="none" stroke="currentColor" stroke-width="2.5"
                                         stroke-linecap="round" stroke-linejoin="round">
@@ -678,9 +677,6 @@
             document.getElementById(modalId).classList.remove('active');
             resetForm();
         }
-        
-        // Make editSubject accessible in global scope
-        window.editSubject = null;
 
         let debounceTimer;
         async function checkAvailability(name) {
@@ -1024,6 +1020,17 @@
             cacheClassFilterOptions();
             filterClassDropdownByTrack();
             trackFilter.addEventListener('change', filterClassDropdownByTrack);
+            
+            // Add event delegation for edit subject buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.btn-edit-subject-trigger')) {
+                    const button = e.target.closest('.btn-edit-subject-trigger');
+                    const subjectId = button.getAttribute('data-id');
+                    if (subjectId) {
+                        editSubject(subjectId);
+                    }
+                }
+            });
         });
 
         // Update class dropdown when track filter changes
@@ -1033,6 +1040,17 @@
         window.editSubject = editSubject;
         window.openModal = openModal;
         window.closeModal = closeModal;
+
+        // Setup event delegation for edit buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-edit-subject-trigger')) {
+                const button = e.target.closest('.btn-edit-subject-trigger');
+                const subjectId = button.getAttribute('data-id');
+                if (subjectId) {
+                    editSubject(subjectId);
+                }
+            }
+        });
 
     </script>
 </body>
