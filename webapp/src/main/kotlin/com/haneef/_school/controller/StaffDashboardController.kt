@@ -3314,14 +3314,20 @@ class StaffDashboardController(
         val schoolNamePara = com.itextpdf.layout.element.Paragraph(reportData.schoolName ?: "School")
             .setFontSize(16f)
             .setBold()
-        if (arabicFont != null) schoolNamePara.setFont(arabicFont)
+        if (arabicFont != null) {
+            schoolNamePara.setFont(arabicFont)
+            schoolNamePara.setBaseDirection(com.itextpdf.layout.properties.BaseDirection.DEFAULT_BIDI)
+        }
         centerCell.add(schoolNamePara)
         
         if (!reportData.schoolAddress.isNullOrBlank()) {
             val addressPara = com.itextpdf.layout.element.Paragraph(reportData.schoolAddress!!)
                 .setFontSize(9f)
                 .setMarginTop(2f)
-            if (arabicFont != null) addressPara.setFont(arabicFont)
+            if (arabicFont != null) {
+                addressPara.setFont(arabicFont)
+                addressPara.setBaseDirection(com.itextpdf.layout.properties.BaseDirection.DEFAULT_BIDI)
+            }
             centerCell.add(addressPara)
         }
         // Add Session/Term on single line under address
@@ -3339,7 +3345,10 @@ class StaffDashboardController(
                 .setFontSize(7f)
                 .setMarginTop(4f)
                 .setFontColor(com.itextpdf.kernel.colors.DeviceRgb(102, 126, 234))
-            if (arabicFont != null) sessionTermPara.setFont(arabicFont)
+            if (arabicFont != null) {
+                sessionTermPara.setFont(arabicFont)
+                sessionTermPara.setBaseDirection(com.itextpdf.layout.properties.BaseDirection.DEFAULT_BIDI)
+            }
             centerCell.add(sessionTermPara)
         }
         headerTable.addCell(centerCell)
@@ -3601,6 +3610,9 @@ class StaffDashboardController(
         // Set margins
         document.setMargins(20f, 20f, 20f, 20f)
         
+        // Get Arabic-compatible font once
+        val arabicFont = getArabicFont()
+        
         // ==== SCHOOL HEADER ====
         val headerTable = com.itextpdf.layout.element.Table(3)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
@@ -3631,14 +3643,14 @@ class StaffDashboardController(
             .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
         // School name with calligraphy styling
         centerCell.add(
-            createCalligraphyParagraph(reportData.schoolName ?: "School", size = 16f, isBold = true)
+            createCalligraphyParagraph(reportData.schoolName ?: "School", size = 16f, isBold = true, arabicFont = arabicFont)
         )
         if (!reportData.schoolAddress.isNullOrBlank()) {
-            centerCell.add(
-                com.itextpdf.layout.element.Paragraph(reportData.schoolAddress!!)
-                    .setFontSize(9f)
-                    .setMarginTop(2f)
-            )
+            val addressPara = com.itextpdf.layout.element.Paragraph(reportData.schoolAddress!!)
+                .setFontSize(9f)
+                .setMarginTop(2f)
+            if (arabicFont != null) addressPara.setFont(arabicFont)
+            centerCell.add(addressPara)
         }
         // Add Session/Term on single line under address
         if (!reportData.sessionName.isNullOrBlank() || !reportData.termName.isNullOrBlank()) {
@@ -3726,9 +3738,9 @@ class StaffDashboardController(
             val average = if (subject.averageScore != null) String.format("%.1f", subject.averageScore) else "-"
             val position = subject.classPosition ?: "-"
             
-            val row = com.itextpdf.layout.element.Cell(1, 1).add(
-                com.itextpdf.layout.element.Paragraph(subject.subjectName).setFontSize(9f)
-            )
+            val subjectPara = com.itextpdf.layout.element.Paragraph(subject.subjectName).setFontSize(9f)
+            if (arabicFont != null) subjectPara.setFont(arabicFont)
+            val row = com.itextpdf.layout.element.Cell(1, 1).add(subjectPara)
             scoresTable.addCell(row)
             
             scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
@@ -3918,12 +3930,18 @@ class StaffDashboardController(
 
     private fun addTableRow(table: com.itextpdf.layout.element.Table, label: String, value: String, arabicFont: com.itextpdf.kernel.font.PdfFont? = null) {
         val labelPara = com.itextpdf.layout.element.Paragraph(label).setBold().setFontSize(10f)
-        if (arabicFont != null) labelPara.setFont(arabicFont)
+        if (arabicFont != null) {
+            labelPara.setFont(arabicFont)
+            labelPara.setBaseDirection(com.itextpdf.layout.properties.BaseDirection.DEFAULT_BIDI)
+        }
         val labelCell = com.itextpdf.layout.element.Cell(1, 1)
             .add(labelPara)
         
         val valuePara = com.itextpdf.layout.element.Paragraph(value).setFontSize(10f)
-        if (arabicFont != null) valuePara.setFont(arabicFont)
+        if (arabicFont != null) {
+            valuePara.setFont(arabicFont)
+            valuePara.setBaseDirection(com.itextpdf.layout.properties.BaseDirection.DEFAULT_BIDI)
+        }
         val valueCell = com.itextpdf.layout.element.Cell(1, 1)
             .add(valuePara)
         
@@ -3937,7 +3955,10 @@ class StaffDashboardController(
                 .setBold()
                 .setFontSize(10f)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-            if (arabicFont != null) headerPara.setFont(arabicFont)
+            if (arabicFont != null) {
+                headerPara.setFont(arabicFont)
+                headerPara.setBaseDirection(com.itextpdf.layout.properties.BaseDirection.DEFAULT_BIDI)
+            }
             val cell = com.itextpdf.layout.element.Cell(1, 1)
                 .add(headerPara)
                 .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
@@ -3947,6 +3968,7 @@ class StaffDashboardController(
 
     /**
      * Create a paragraph with calligraphy-style aesthetics using bold formatting and colors
+     * Supports Arabic RTL text with proper shaping
      */
     private fun createCalligraphyParagraph(text: String, size: Float = 12f, isBold: Boolean = false, marginBottom: Float = 8f, arabicFont: com.itextpdf.kernel.font.PdfFont? = null): com.itextpdf.layout.element.Paragraph {
         val para = com.itextpdf.layout.element.Paragraph(text)
@@ -3954,7 +3976,11 @@ class StaffDashboardController(
             .setMarginBottom(marginBottom)
             .setBold()  // Always bold for emphasis
         
-        if (arabicFont != null) para.setFont(arabicFont)
+        if (arabicFont != null) {
+            para.setFont(arabicFont)
+            // Enable RTL (right-to-left) for Arabic text
+            para.setBaseDirection(com.itextpdf.layout.properties.BaseDirection.DEFAULT_BIDI)
+        }
         
         // Add elegant color gradient based on size
         if (size > 14f) {
