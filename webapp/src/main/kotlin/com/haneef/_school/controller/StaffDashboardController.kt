@@ -3543,22 +3543,25 @@ class StaffDashboardController(
         val behavioralTable = com.itextpdf.layout.element.Table(4)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
         
+        // Helper function to format behavior scores
+        fun formatBehaviorScore(value: Int?): String = if (value == null || value == 0) "-" else value.toString()
+        
         // Left column traits
         val leftTraits = listOf(
-            Pair("Fluency:", reportData.fluency?.toString() ?: "-"),
-            Pair("Handwriting:", reportData.handwriting?.toString() ?: "-"),
-            Pair("Game Sense:", reportData.game?.toString() ?: "-"),
-            Pair("Initiative:", reportData.initiative?.toString() ?: "-"),
-            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "-")
+            Pair("Fluency:", formatBehaviorScore(reportData.fluency)),
+            Pair("Handwriting:", formatBehaviorScore(reportData.handwriting)),
+            Pair("Game Sense:", formatBehaviorScore(reportData.game)),
+            Pair("Initiative:", formatBehaviorScore(reportData.initiative)),
+            Pair("Critical Thinking:", formatBehaviorScore(reportData.criticalThinking))
         )
         
         // Right column traits
         val rightTraits = listOf(
-            Pair("Punctuality:", reportData.punctuality?.toString() ?: "-"),
-            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "-"),
-            Pair("Neatness:", reportData.neatness?.toString() ?: "-"),
-            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "-"),
-            Pair("Politeness:", reportData.politeness?.toString() ?: "-")
+            Pair("Punctuality:", formatBehaviorScore(reportData.punctuality)),
+            Pair("Attentiveness:", formatBehaviorScore(reportData.attentiveness)),
+            Pair("Neatness:", formatBehaviorScore(reportData.neatness)),
+            Pair("Self-Discipline:", formatBehaviorScore(reportData.selfDiscipline)),
+            Pair("Politeness:", formatBehaviorScore(reportData.politeness))
         )
         
         // Add rows with left and right trait pairs
@@ -3874,22 +3877,25 @@ class StaffDashboardController(
         val behavioralTable = com.itextpdf.layout.element.Table(4)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
         
+        // Helper function to format behavior scores
+        fun formatBehaviorScore(value: Int?): String = if (value == null || value == 0) "-" else value.toString()
+        
         // Left column traits
         val leftTraits = listOf(
-            Pair("Fluency:", reportData.fluency?.toString() ?: "-"),
-            Pair("Handwriting:", reportData.handwriting?.toString() ?: "-"),
-            Pair("Game Sense:", reportData.game?.toString() ?: "-"),
-            Pair("Initiative:", reportData.initiative?.toString() ?: "-"),
-            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "-")
+            Pair("Fluency:", formatBehaviorScore(reportData.fluency)),
+            Pair("Handwriting:", formatBehaviorScore(reportData.handwriting)),
+            Pair("Game Sense:", formatBehaviorScore(reportData.game)),
+            Pair("Initiative:", formatBehaviorScore(reportData.initiative)),
+            Pair("Critical Thinking:", formatBehaviorScore(reportData.criticalThinking))
         )
         
         // Right column traits
         val rightTraits = listOf(
-            Pair("Punctuality:", reportData.punctuality?.toString() ?: "-"),
-            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "-"),
-            Pair("Neatness:", reportData.neatness?.toString() ?: "-"),
-            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "-"),
-            Pair("Politeness:", reportData.politeness?.toString() ?: "-")
+            Pair("Punctuality:", formatBehaviorScore(reportData.punctuality)),
+            Pair("Attentiveness:", formatBehaviorScore(reportData.attentiveness)),
+            Pair("Neatness:", formatBehaviorScore(reportData.neatness)),
+            Pair("Self-Discipline:", formatBehaviorScore(reportData.selfDiscipline)),
+            Pair("Politeness:", formatBehaviorScore(reportData.politeness))
         )
         
         // Add rows with left and right trait pairs
