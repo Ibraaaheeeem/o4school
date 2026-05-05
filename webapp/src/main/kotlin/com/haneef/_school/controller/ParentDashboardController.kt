@@ -563,7 +563,6 @@ class ParentDashboardController(
         // Get parents/guardians (for display)
         val parentRelationships = parentStudentRepository.findByStudentIdWithParentDetails(studentId)
         
-        
         model.addAttribute("student", student)
         model.addAttribute("enrollments", enrollments)
         model.addAttribute("school", school)
@@ -573,6 +572,8 @@ class ParentDashboardController(
         model.addAttribute("lateCount", lateCount)
         model.addAttribute("totalAttendance", totalAttendance)
         model.addAttribute("parentRelationships", parentRelationships)
+        model.addAttribute("effectiveSession", effectiveSession)
+        model.addAttribute("effectiveTerm", effectiveTerm)
         
         // Add user info for header
         model.addAttribute("user", customUser.user)

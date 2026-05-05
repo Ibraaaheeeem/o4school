@@ -235,6 +235,36 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Report Card Section (Parent Only) -->
+                    <div th:if="${userRole == 'Parent'}" class="content-panel">
+                        <div class="section-header">
+                            <h3 class="section-title">Report Card</h3>
+                        </div>
+                        <div th:if="${effectiveSession != null and effectiveTerm != null}">
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                                View and download the report card for <strong th:text="${effectiveSession.sessionYear}">Session Year</strong> - 
+                                <strong th:text="${effectiveTerm.termName}">Term</strong>
+                            </p>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                <a th:href="@{'/staff/report-card/' + ${student.id} + '?session=' + ${effectiveSession.sessionYear} + '&term=' + ${effectiveTerm.termName}}" 
+                                   class="btn btn-primary"
+                                   style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: var(--primary-color); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none;">
+                                    <i class="fas fa-eye"></i> View Report Card
+                                </a>
+                                <a th:href="@{'/staff/reports/class/download-report-card?studentId=' + ${student.id} + '&classId=' + ${enrollments[0].schoolClass.id} + '&session=' + ${effectiveSession.sessionYear} + '&term=' + ${effectiveTerm.termName}}" 
+                                   class="btn btn-secondary"
+                                   style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #6b7280; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none;">
+                                    <i class="fas fa-download"></i> Download PDF
+                                </a>
+                            </div>
+                        </div>
+                        <div th:if="${effectiveSession == null or effectiveTerm == null}"
+                            style="padding: 1rem; background: #fef3c7; color: #92400e; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Report card is not available. Please contact the school administrator.</span>
+                        </div>
+                    </div>
+
                     <!-- Security & Access (Parent Only) -->
                     <div th:if="${userRole == 'Parent'}" class="content-panel">
                         <div class="section-header">

@@ -24,6 +24,9 @@ import org.springframework.http.MediaType
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.io.image.ImageDataFactory
+import com.itextpdf.kernel.font.PdfFont
+import com.itextpdf.kernel.font.PdfFontFactory
+import java.io.File
 
 @Controller
 @RequestMapping("/staff")
@@ -49,6 +52,7 @@ class StaffDashboardController(
     private val educationTrackRepository: EducationTrackRepository,
     private val departmentRepository: DepartmentRepository,
     private val parentStudentRepository: ParentStudentRepository,
+    private val parentRepository: com.haneef._school.repository.ParentRepository,
     private val htmlSanitizerService: com.haneef._school.service.HtmlSanitizerService,
     private val examinationSubmissionRepository: ExaminationSubmissionRepository,
     private val aiService: com.haneef._school.service.AiService,
@@ -56,6 +60,27 @@ class StaffDashboardController(
 ) {
     private val objectMapper = ObjectMapper().registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
     private val logger = LoggerFactory.getLogger(StaffDashboardController::class.java)
+    
+    // Create a font that supports Arabic and other Unicode characters
+    private fun getArabicFont(): com.itextpdf.kernel.font.PdfFont? {
+        return try {
+            // Try to use DejaVuSans which supports Arabic
+            PdfFontFactory.createFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "Identity-H", com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED)
+        } catch (e: Exception) {
+            try {
+                // Fallback to Liberation font
+                PdfFontFactory.createFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "Identity-H", com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED)
+            } catch (e2: Exception) {
+                try {
+                    // Fallback to Noto Sans
+                    PdfFontFactory.createFont("/usr/share/fonts/opentype/noto/NotoSans-Regular.ttf", "Identity-H", com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED)
+                } catch (e3: Exception) {
+                    logger.warn("Could not load Arabic-supporting font, will use default", e3)
+                    null
+                }
+            }
+        }
+    }
 
     @GetMapping("/dashboard")
     fun staffDashboard(model: Model, authentication: Authentication, session: HttpSession): String {
@@ -1490,8 +1515,8 @@ class StaffDashboardController(
             val schoolClass = schoolClassRepository.findById(classId).orElse(null)
                 ?: throw RuntimeException("Class not found")
 
-            // Parse session and term IDs
-            val academicSession = if (!sessionId.isNullOrBlank()) {
+            // Parse session and term IDs from request
+            var academicSession = if (!sessionId.isNullOrBlank()) {
                 try {
                     academicSessionRepository.findById(java.util.UUID.fromString(sessionId)).orElse(null)
                 } catch (e: IllegalArgumentException) {
@@ -1499,7 +1524,7 @@ class StaffDashboardController(
                 }
             } else null
 
-            val term = if (!termId.isNullOrBlank() && academicSession != null) {
+            var term = if (!termId.isNullOrBlank() && academicSession != null) {
                 try {
                     termRepository.findById(java.util.UUID.fromString(termId)).orElse(null)
                 } catch (e: IllegalArgumentException) {
@@ -1507,13 +1532,21 @@ class StaffDashboardController(
                 }
             } else null
 
-            // Fetch students enrolled in the class for this session and term
+            // If no session/term provided, use current session/term from HTTP session
+            if (academicSession == null || term == null) {
+                val (currentSession, currentTerm) = getEffectiveSessionAndTerm(session_http, selectedSchoolId)
+                if (academicSession == null) academicSession = currentSession
+                if (term == null) term = currentTerm
+            }
+
+            // Fetch students enrolled in the class for THIS specific session and term ONLY (no duplicates)
             val students = if (academicSession != null && term != null) {
                 studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
                     classId, academicSession.id!!, term.id!!, true
-                ).map { it.student }
+                ).map { it.student }.distinctBy { it.id } // Remove any duplicates just in case
             } else {
-                studentClassRepository.findBySchoolClassIdAndIsActive(classId, true).map { it.student }
+                // Fallback if session/term cannot be resolved
+                emptyList()
             }
 
             // Return students as JSON
@@ -1880,7 +1913,10 @@ class StaffDashboardController(
         val classStatistics = mutableMapOf<UUID, Map<String, Any?>>() // Map of subjectId -> {highest, lowest, average, rankings}
         val studentRankings = mutableMapOf<UUID, MutableMap<UUID, String>>() // Map of subjectId -> Map of studentId -> rankingString
         
-        val allClassStudents = studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
+        // Get ONLY students enrolled in THIS specific session and term to avoid duplicates
+        val allClassStudents = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+            classId, sessionEntity.id!!, termEntity.id!!, true
+        )
         
         for (subject in filteredClassSubjects) {
             val subjectScores = mutableListOf<Int>()
@@ -2454,6 +2490,144 @@ class StaffDashboardController(
         }
     }
 
+    // Parent-accessible assessment data fetching (bypasses staff authorization)
+    private fun getParentAccessibleAssessmentData(
+        studentId: UUID,
+        classId: UUID,
+        session: String,
+        term: String,
+        schoolId: UUID
+    ): AssessmentReportData {
+        // Resolve session and term
+        val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(schoolId, session, true)
+            ?: throw RuntimeException("Session not found")
+        
+        val sessionTerms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(sessionEntity.id!!, true)
+        val termEntity = sessionTerms.find { it.termName.equals(term, ignoreCase = true) }
+            ?: throw RuntimeException("Term '$term' not found in session '$session'")
+        
+        // Get student, class, and school info
+        val student = studentRepository.findById(studentId)
+            .orElseThrow { RuntimeException("Student not found") }
+        val schoolClass = schoolClassRepository.findById(classId)
+            .orElseThrow { RuntimeException("Class not found") }
+        val school = schoolRepository.findById(schoolId).orElse(null)
+        
+        // Get all subjects for this class
+        val classSubjects = classSubjectRepository.findBySchoolClassIdAndIsActive(classId, true)
+        
+        // Get assessment for this student/session/term
+        val assessmentOpt = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+            studentId, sessionEntity.id!!, termEntity.id!!, schoolId, true
+        )
+        val assessment = assessmentOpt.orElse(null)
+        
+        // Build subject data
+        val subjectDataList = classSubjects.map { classSubject ->
+            var ca1: Int? = null
+            var ca2: Int? = null
+            var exam: Int? = null
+            var total: Int? = null
+            var grade: String? = null
+            var remark: String? = null
+            var scoresMap = mutableMapOf<String, Int?>()
+            
+            if (assessment != null) {
+                val subjectScores = subjectScoreRepository.findByAssessmentIdAndSubjectIdAndSchoolIdAndIsActive(
+                    assessment.id!!, classSubject.subject.id!!, schoolId, true
+                )
+                if (subjectScores.isNotEmpty()) {
+                    val ss = subjectScores[0]
+                    total = ss.getTotalScore()
+                    grade = ss.grade
+                    remark = ss.remark
+                    
+                    if (!ss.scoresJson.isNullOrBlank()) {
+                        try {
+                            scoresMap = objectMapper.readValue(ss.scoresJson, object : com.fasterxml.jackson.core.type.TypeReference<MutableMap<String, Int?>>() {})
+                            for ((key, value) in scoresMap) {
+                                val keyLower = key.lowercase()
+                                if (keyLower.contains("ca 1") || keyLower.contains("ca1") || keyLower.contains("1st ca")) ca1 = value ?: ca1
+                                else if (keyLower.contains("ca 2") || keyLower.contains("ca2") || keyLower.contains("2nd ca")) ca2 = value ?: ca2
+                                else if (keyLower.contains("exam")) exam = value ?: exam
+                            }
+                        } catch (e: Exception) {
+                            logger.warn("Error parsing scoresJson for subject ${classSubject.subject.subjectName}: ${e.message}")
+                        }
+                    }
+                }
+            }
+            
+            SubjectAssessmentData(
+                subjectId = classSubject.subject.id!!,
+                subjectName = classSubject.subject.subjectName,
+                ca1 = ca1,
+                ca2 = ca2,
+                exam = exam,
+                total = total,
+                grade = grade,
+                remark = remark,
+                scoringScheme = schoolClass.scoringScheme,
+                scores = scoresMap
+            )
+        }
+        
+        // Calculate summary statistics
+        val subjectsWithValidTotals = subjectDataList.filter { it.total != null && (it.total ?: 0) > 0 }
+        val totals = subjectsWithValidTotals.mapNotNull { it.total }.map { it.toDouble() }
+        
+        val totalScore = if (totals.isNotEmpty()) totals.sum() else null
+        val totalAverage = if (totals.isNotEmpty()) totalScore!! / totals.size else null
+        
+        val performanceGrade = if (totalAverage != null) {
+            when {
+                totalAverage >= 90 -> "A"
+                totalAverage >= 80 -> "B"
+                totalAverage >= 70 -> "C"
+                totalAverage >= 60 -> "D"
+                totalAverage >= 50 -> "E"
+                else -> "F"
+            }
+        } else {
+            null
+        }
+        
+        return AssessmentReportData(
+            studentId = studentId,
+            studentName = student.user.fullName ?: "User",
+            admissionNumber = student.admissionNumber ?: "",
+            className = schoolClass.className,
+            trackName = schoolClass.department?.track?.name ?: "Unknown Track",
+            subjects = subjectDataList,
+            attendance = assessment?.attendance ?: 0,
+            fluency = assessment?.fluency ?: 0,
+            handwriting = assessment?.handwriting ?: 0,
+            game = assessment?.game ?: 0,
+            initiative = assessment?.initiative ?: 0,
+            criticalThinking = assessment?.criticalThinking ?: 0,
+            punctuality = assessment?.punctuality ?: 0,
+            attentiveness = assessment?.attentiveness ?: 0,
+            neatness = assessment?.neatness ?: 0,
+            selfDiscipline = assessment?.selfDiscipline ?: 0,
+            politeness = assessment?.politeness ?: 0,
+            classTeacherComment = assessment?.classTeacherComment,
+            headTeacherComment = assessment?.headTeacherComment,
+            schoolName = school?.name ?: "School",
+            schoolLogoUrl = school?.logoUrl,
+            schoolAddress = buildString {
+                school?.addressLine1?.let { append(it) }
+                if (!school?.addressLine1.isNullOrBlank() && !school?.addressLine2.isNullOrBlank()) append(", ")
+                school?.addressLine2?.let { append(it) }
+            },
+            studentPassportPhotoUrl = student.passportPhotoUrl,
+            sessionName = sessionEntity.sessionYear,
+            termName = termEntity.termName,
+            totalScore = totalScore,
+            totalAverage = totalAverage,
+            performanceGrade = performanceGrade
+        )
+    }
+
     // Helper method for resolving session/term context
     private fun getEffectiveSessionAndTerm(session: HttpSession, schoolId: UUID): Pair<AcademicSession?, Term?> {
         val selectedSessionId = session.getAttribute("selectedSessionId") as? UUID
@@ -2955,6 +3129,7 @@ class StaffDashboardController(
     }
 
     @GetMapping("/reports/class/download-report-card")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TEACHER', 'PARENT')")
     fun downloadReportCard(
         @RequestParam studentId: UUID,
         @RequestParam classId: UUID,
@@ -2967,8 +3142,26 @@ class StaffDashboardController(
             val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID 
                 ?: throw RuntimeException("School not selected")
             
-            // Get the assessment data
-            val reportData = getStudentAssessmentData(studentId, classId, session, term, authentication, session_http)
+            val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+            val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+            val userRole = customUser.authorities.firstOrNull()?.authority?.replace("ROLE_", "") ?: ""
+            
+            // If user is a parent, validate parent-student access and use parent-accessible data fetching
+            val reportData = if (userRole == "PARENT") {
+                val parents = parentRepository.findByUserIdWithWallet(customUser.user.id!!)
+                val parent = parents.firstOrNull() ?: throw RuntimeException("Parent record not found")
+                
+                // Verify student belongs to parent
+                if (!parent.activeStudentRelationships.any { it.student.id == studentId }) {
+                    throw RuntimeException("Unauthorized access to student data")
+                }
+                
+                // Use parent-specific assessment data fetching
+                getParentAccessibleAssessmentData(studentId, classId, session, term, selectedSchoolId)
+            } else {
+                // Use standard staff authorization-based assessment data fetching
+                getStudentAssessmentData(studentId, classId, session, term, authentication, session_http)
+            }
             
             // Generate PDF
             val pdfBytes = generateReportCardPDF(reportData)
@@ -3087,6 +3280,9 @@ class StaffDashboardController(
         // Set margins
         document.setMargins(20f, 20f, 20f, 20f)
         
+        // Get Arabic-compatible font once
+        val arabicFont = getArabicFont()
+        
         // ==== SCHOOL HEADER ====
         val headerTable = com.itextpdf.layout.element.Table(3)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
@@ -3115,17 +3311,18 @@ class StaffDashboardController(
             .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
             .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
             .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
-        centerCell.add(
-            com.itextpdf.layout.element.Paragraph(reportData.schoolName ?: "School")
-                .setFontSize(16f)
-                .setBold()
-        )
+        val schoolNamePara = com.itextpdf.layout.element.Paragraph(reportData.schoolName ?: "School")
+            .setFontSize(16f)
+            .setBold()
+        if (arabicFont != null) schoolNamePara.setFont(arabicFont)
+        centerCell.add(schoolNamePara)
+        
         if (!reportData.schoolAddress.isNullOrBlank()) {
-            centerCell.add(
-                com.itextpdf.layout.element.Paragraph(reportData.schoolAddress!!)
-                    .setFontSize(9f)
-                    .setMarginTop(2f)
-            )
+            val addressPara = com.itextpdf.layout.element.Paragraph(reportData.schoolAddress!!)
+                .setFontSize(9f)
+                .setMarginTop(2f)
+            if (arabicFont != null) addressPara.setFont(arabicFont)
+            centerCell.add(addressPara)
         }
         // Add Session/Term on single line under address
         if (!reportData.sessionName.isNullOrBlank() || !reportData.termName.isNullOrBlank()) {
@@ -3138,12 +3335,12 @@ class StaffDashboardController(
                     append("${reportData.sessionName} ACADEMIC SESSION")
                 }
             }
-            centerCell.add(
-                com.itextpdf.layout.element.Paragraph(sessionTermText)
-                    .setFontSize(7f)
-                    .setMarginTop(4f)
-                    .setFontColor(com.itextpdf.kernel.colors.DeviceRgb(102, 126, 234))
-            )
+            val sessionTermPara = com.itextpdf.layout.element.Paragraph(sessionTermText)
+                .setFontSize(7f)
+                .setMarginTop(4f)
+                .setFontColor(com.itextpdf.kernel.colors.DeviceRgb(102, 126, 234))
+            if (arabicFont != null) sessionTermPara.setFont(arabicFont)
+            centerCell.add(sessionTermPara)
         }
         headerTable.addCell(centerCell)
         
@@ -3177,10 +3374,7 @@ class StaffDashboardController(
         
         // ==== STUDENT INFORMATION ====
         document.add(
-            com.itextpdf.layout.element.Paragraph("STUDENT INFORMATION")
-                .setFontSize(12f)
-                .setBold()
-                .setMarginBottom(8f)
+            createCalligraphyParagraph("STUDENT INFORMATION", size = 12f, isBold = true)
         )
         
         val studentInfoTable = com.itextpdf.layout.element.Table(2)
@@ -3188,19 +3382,15 @@ class StaffDashboardController(
         
         addTableRow(studentInfoTable, "Student Name:", reportData.studentName)
         addTableRow(studentInfoTable, "Admission Number:", reportData.admissionNumber)
-        addTableRow(studentInfoTable, "Class:", reportData.className)
-        addTableRow(studentInfoTable, "Track:", reportData.trackName)
-        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}%")
+        addTableRow(studentInfoTable, "Track / Class:", "${reportData.trackName} / ${reportData.className}")
+        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}")
         
         document.add(studentInfoTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
         
         // ==== ACADEMIC PERFORMANCE ====
         document.add(
-            com.itextpdf.layout.element.Paragraph("ACADEMIC PERFORMANCE")
-                .setFontSize(12f)
-                .setBold()
-                .setMarginBottom(8f)
+            createCalligraphyParagraph("ACADEMIC PERFORMANCE", size = 12f, isBold = true)
         )
         
         val scoresTable = com.itextpdf.layout.element.Table(9)
@@ -3264,10 +3454,7 @@ class StaffDashboardController(
         
         // ==== SUMMARY SECTION ====
         document.add(
-            com.itextpdf.layout.element.Paragraph("SUMMARY")
-                .setFontSize(12f)
-                .setBold()
-                .setMarginBottom(8f)
+            createCalligraphyParagraph("SUMMARY", size = 12f, isBold = true)
         )
         
         val summaryTable = com.itextpdf.layout.element.Table(2)
@@ -3277,36 +3464,36 @@ class StaffDashboardController(
         // Row 1: TOTAL SCORE - Light Blue background
         val totalScoreLabel = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph("TOTAL SCORE").setBold().setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         val totalScoreValue = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalScore != null) String.format("%.2f", reportData.totalScore!!) else "-").setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         summaryTable.addCell(totalScoreLabel)
         summaryTable.addCell(totalScoreValue)
         
         // Row 2: TOTAL AVERAGE - Light Yellow background
         val totalAvgLabel = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph("TOTAL AVERAGE").setBold().setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         val totalAvgValue = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalAverage != null) String.format("%.1f", reportData.totalAverage!!) else "-").setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         summaryTable.addCell(totalAvgLabel)
         summaryTable.addCell(totalAvgValue)
         
         // Row 3: PERFORMANCE GRADE - Light Green background
         val gradeLabel = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph("PERFORMANCE GRADE").setBold().setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         val gradeValue = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph(reportData.performanceGrade ?: "-").setFontSize(10f).setBold())
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         summaryTable.addCell(gradeLabel)
         summaryTable.addCell(gradeValue)
         
@@ -3315,10 +3502,7 @@ class StaffDashboardController(
         
         // ==== BEHAVIORAL TRAITS ====
         document.add(
-            com.itextpdf.layout.element.Paragraph("BEHAVIORAL TRAITS")
-                .setFontSize(12f)
-                .setBold()
-                .setMarginBottom(8f)
+            createCalligraphyParagraph("BEHAVIORAL TRAITS", size = 12f, isBold = true)
         )
         
         val behavioralTable = com.itextpdf.layout.element.Table(4)
@@ -3377,10 +3561,7 @@ class StaffDashboardController(
         // ==== COMMENTS ====
         if (!reportData.classTeacherComment.isNullOrBlank() || !reportData.headTeacherComment.isNullOrBlank()) {
             document.add(
-                com.itextpdf.layout.element.Paragraph("COMMENTS")
-                    .setFontSize(12f)
-                    .setBold()
-                    .setMarginBottom(8f)
+                createCalligraphyParagraph("COMMENTS", size = 12f, isBold = true)
             )
             
             if (!reportData.classTeacherComment.isNullOrBlank()) {
@@ -3443,15 +3624,14 @@ class StaffDashboardController(
         }
         headerTable.addCell(leftCell)
         
-        // Center cell - School Name and Address
+        // Center cell - School Name and Address with calligraphy styling
         val centerCell = com.itextpdf.layout.element.Cell(1, 1)
             .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
             .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
             .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+        // School name with calligraphy styling
         centerCell.add(
-            com.itextpdf.layout.element.Paragraph(reportData.schoolName ?: "School")
-                .setFontSize(16f)
-                .setBold()
+            createCalligraphyParagraph(reportData.schoolName ?: "School", size = 16f, isBold = true)
         )
         if (!reportData.schoolAddress.isNullOrBlank()) {
             centerCell.add(
@@ -3510,10 +3690,7 @@ class StaffDashboardController(
         
         // ==== STUDENT INFORMATION ====
         document.add(
-            com.itextpdf.layout.element.Paragraph("STUDENT INFORMATION")
-                .setFontSize(12f)
-                .setBold()
-                .setMarginBottom(8f)
+            createCalligraphyParagraph("STUDENT INFORMATION", size = 12f, isBold = true)
         )
         
         val studentInfoTable = com.itextpdf.layout.element.Table(2)
@@ -3521,19 +3698,15 @@ class StaffDashboardController(
         
         addTableRow(studentInfoTable, "Student Name:", reportData.studentName)
         addTableRow(studentInfoTable, "Admission Number:", reportData.admissionNumber)
-        addTableRow(studentInfoTable, "Class:", reportData.className)
-        addTableRow(studentInfoTable, "Track:", reportData.trackName)
-        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}%")
+        addTableRow(studentInfoTable, "Track / Class:", "${reportData.trackName} / ${reportData.className}")
+        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}")
         
         document.add(studentInfoTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
         
         // ==== ACADEMIC PERFORMANCE ====
         document.add(
-            com.itextpdf.layout.element.Paragraph("ACADEMIC PERFORMANCE")
-                .setFontSize(12f)
-                .setBold()
-                .setMarginBottom(8f)
+            createCalligraphyParagraph("ACADEMIC PERFORMANCE", size = 12f, isBold = true)
         )
         
         val scoresTable = com.itextpdf.layout.element.Table(9)
@@ -3610,36 +3783,36 @@ class StaffDashboardController(
         // Row 1: TOTAL SCORE - Light Blue background
         val totalScoreLabel = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph("TOTAL SCORE").setBold().setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         val totalScoreValue = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalScore != null) String.format("%.2f", reportData.totalScore!!) else "-").setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(15f, 5f, 0f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         summaryTable.addCell(totalScoreLabel)
         summaryTable.addCell(totalScoreValue)
         
         // Row 2: TOTAL AVERAGE - Light Yellow background
         val totalAvgLabel = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph("TOTAL AVERAGE").setBold().setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         val totalAvgValue = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph(if (reportData.totalAverage != null) String.format("%.1f", reportData.totalAverage!!) else "-").setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(0f, 8f, 25f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         summaryTable.addCell(totalAvgLabel)
         summaryTable.addCell(totalAvgValue)
         
         // Row 3: PERFORMANCE GRADE - Light Green background
         val gradeLabel = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph("PERFORMANCE GRADE").setBold().setFontSize(10f))
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         val gradeValue = com.itextpdf.layout.element.Cell(1, 1)
             .add(com.itextpdf.layout.element.Paragraph(reportData.performanceGrade ?: "-").setFontSize(10f).setBold())
-            .setBackgroundColor(com.itextpdf.kernel.colors.DeviceCmyk(20f, 0f, 20f, 0f))
-            .setPadding(8f)
+            
+            .setPadding(4f)
         summaryTable.addCell(gradeLabel)
         summaryTable.addCell(gradeValue)
         
@@ -3710,10 +3883,7 @@ class StaffDashboardController(
         // ==== COMMENTS ====
         if (!reportData.classTeacherComment.isNullOrBlank() || !reportData.headTeacherComment.isNullOrBlank()) {
             document.add(
-                com.itextpdf.layout.element.Paragraph("COMMENTS")
-                    .setFontSize(12f)
-                    .setBold()
-                    .setMarginBottom(8f)
+                createCalligraphyParagraph("COMMENTS", size = 12f, isBold = true)
             )
             
             if (!reportData.classTeacherComment.isNullOrBlank()) {
@@ -3746,28 +3916,56 @@ class StaffDashboardController(
         return outputStream.toByteArray()
     }
 
-    private fun addTableRow(table: com.itextpdf.layout.element.Table, label: String, value: String) {
+    private fun addTableRow(table: com.itextpdf.layout.element.Table, label: String, value: String, arabicFont: com.itextpdf.kernel.font.PdfFont? = null) {
+        val labelPara = com.itextpdf.layout.element.Paragraph(label).setBold().setFontSize(10f)
+        if (arabicFont != null) labelPara.setFont(arabicFont)
         val labelCell = com.itextpdf.layout.element.Cell(1, 1)
-            .add(com.itextpdf.layout.element.Paragraph(label).setBold().setFontSize(10f))
+            .add(labelPara)
+        
+        val valuePara = com.itextpdf.layout.element.Paragraph(value).setFontSize(10f)
+        if (arabicFont != null) valuePara.setFont(arabicFont)
         val valueCell = com.itextpdf.layout.element.Cell(1, 1)
-            .add(com.itextpdf.layout.element.Paragraph(value).setFontSize(10f))
+            .add(valuePara)
         
         table.addCell(labelCell)
         table.addCell(valueCell)
     }
 
-    private fun addTableHeader(table: com.itextpdf.layout.element.Table, headers: Array<String>) {
+    private fun addTableHeader(table: com.itextpdf.layout.element.Table, headers: Array<String>, arabicFont: com.itextpdf.kernel.font.PdfFont? = null) {
         headers.forEach { header ->
+            val headerPara = com.itextpdf.layout.element.Paragraph(header)
+                .setBold()
+                .setFontSize(10f)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            if (arabicFont != null) headerPara.setFont(arabicFont)
             val cell = com.itextpdf.layout.element.Cell(1, 1)
-                .add(
-                    com.itextpdf.layout.element.Paragraph(header)
-                        .setBold()
-                        .setFontSize(10f)
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                )
+                .add(headerPara)
                 .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
             table.addCell(cell)
         }
+    }
+
+    /**
+     * Create a paragraph with calligraphy-style aesthetics using bold formatting and colors
+     */
+    private fun createCalligraphyParagraph(text: String, size: Float = 12f, isBold: Boolean = false, marginBottom: Float = 8f, arabicFont: com.itextpdf.kernel.font.PdfFont? = null): com.itextpdf.layout.element.Paragraph {
+        val para = com.itextpdf.layout.element.Paragraph(text)
+            .setFontSize(size)
+            .setMarginBottom(marginBottom)
+            .setBold()  // Always bold for emphasis
+        
+        if (arabicFont != null) para.setFont(arabicFont)
+        
+        // Add elegant color gradient based on size
+        if (size > 14f) {
+            // Larger text (like school name) - rich dark blue
+            para.setFontColor(com.itextpdf.kernel.colors.DeviceRgb(25, 50, 120))
+        } else if (size >= 12f) {
+            // Section headers - elegant blue with slight transparency effect via color
+            para.setFontColor(com.itextpdf.kernel.colors.DeviceRgb(50, 80, 150))
+        }
+        
+        return para
     }
 
 
