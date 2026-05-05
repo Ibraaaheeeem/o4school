@@ -2096,11 +2096,11 @@ class StaffDashboardController(
         // Determine performance grade based on TOTAL AVERAGE
         val performanceGrade = if (totalAverage != null) {
             when {
-                totalAverage >= 90 -> "A"
-                totalAverage >= 80 -> "B"
-                totalAverage >= 70 -> "C"
-                totalAverage >= 60 -> "D"
-                totalAverage >= 50 -> "E"
+                totalAverage >= 70 -> "A"
+                totalAverage >= 60 -> "B"
+                totalAverage >= 50 -> "C"
+                totalAverage >= 45 -> "D"
+                totalAverage >= 40 -> "E"
                 else -> "F"
             }
         } else {
@@ -3208,11 +3208,21 @@ class StaffDashboardController(
             val schoolClass = schoolClassRepository.findById(classId)
                 .orElseThrow { RuntimeException("Class not found") }
             
-            // Get all students in the class
-            val classStudents = studentClassRepository.findBySchoolClassIdAndIsActive(classId, true)
+            // Resolve session and term
+            val sessionEntity = academicSessionRepository.findBySchoolIdAndSessionYearAndIsActive(selectedSchoolId, session, true)
+                ?: throw RuntimeException("Session '$session' not found")
+            
+            val sessionTerms = termRepository.findByAcademicSessionIdAndIsActiveOrderByStartDate(sessionEntity.id!!, true)
+            val termEntity = sessionTerms.find { it.termName.equals(term, ignoreCase = true) }
+                ?: throw RuntimeException("Term '$term' not found in session '$session'")
+            
+            // Get all students in the class FOR THIS SPECIFIC SESSION/TERM ONLY
+            val classStudents = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+                classId, sessionEntity.id!!, termEntity.id!!, true
+            ).distinctBy { it.student.id }  // Remove any potential duplicates
             
             if (classStudents.isEmpty()) {
-                throw RuntimeException("No students found in this class")
+                throw RuntimeException("No students found in this class for the selected session and term")
             }
             
             // Generate PDF with all student reports
@@ -3402,7 +3412,7 @@ class StaffDashboardController(
         addTableRow(studentInfoTable, "Student Name:", reportData.studentName)
         addTableRow(studentInfoTable, "Admission Number:", reportData.admissionNumber)
         addTableRow(studentInfoTable, "Track / Class:", "${reportData.trackName} / ${reportData.className}")
-        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}")
+        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance} / 122 (${String.format("%.2f", reportData.attendance.toDouble()/122.0 * 100)}%)")
         
         document.add(studentInfoTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
@@ -3412,11 +3422,11 @@ class StaffDashboardController(
             createCalligraphyParagraph("ACADEMIC PERFORMANCE", size = 12f, isBold = true)
         )
         
-        val scoresTable = com.itextpdf.layout.element.Table(9)
+        val scoresTable = com.itextpdf.layout.element.Table(10)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
         
         // Table headers
-        addTableHeader(scoresTable, arrayOf("Subject", "CA 1", "CA 2", "Exam", "Total", "Highest", "Lowest", "Average", "Position"))
+        addTableHeader(scoresTable, arrayOf("Subject", "CA 1", "CA 2", "Exam", "Total", "Grade", "Highest", "Lowest", "Average", "Position"))
         
         // Table rows with subject scores
         reportData.subjects.forEach { subject ->
@@ -3424,6 +3434,7 @@ class StaffDashboardController(
             val ca2 = subject.ca2?.toString() ?: "-"
             val exam = subject.exam?.toString() ?: "-"
             val total = subject.total?.toString() ?: "-"
+            val grade = subject.grade ?: "-"
             val highest = subject.highestScore?.toString() ?: "-"
             val lowest = subject.lowestScore?.toString() ?: "-"
             val average = if (subject.averageScore != null) String.format("%.1f", subject.averageScore) else "-"
@@ -3448,6 +3459,10 @@ class StaffDashboardController(
             ))
             scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
                 com.itextpdf.layout.element.Paragraph(total).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(grade).setFontSize(9f)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
             ))
             scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
@@ -3731,11 +3746,11 @@ class StaffDashboardController(
             createCalligraphyParagraph("ACADEMIC PERFORMANCE", size = 12f, isBold = true)
         )
         
-        val scoresTable = com.itextpdf.layout.element.Table(9)
+        val scoresTable = com.itextpdf.layout.element.Table(10)
             .setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100f))
         
         // Table headers
-        addTableHeader(scoresTable, arrayOf("Subject", "CA 1", "CA 2", "Exam", "Total", "Highest", "Lowest", "Average", "Position"))
+        addTableHeader(scoresTable, arrayOf("Subject", "CA 1", "CA 2", "Exam", "Total", "Grade", "Highest", "Lowest", "Average", "Position"))
         
         // Table rows with subject scores
         reportData.subjects.forEach { subject ->
@@ -3743,6 +3758,7 @@ class StaffDashboardController(
             val ca2 = subject.ca2?.toString() ?: "-"
             val exam = subject.exam?.toString() ?: "-"
             val total = subject.total?.toString() ?: "-"
+            val grade = subject.grade ?: "-"
             val highest = subject.highestScore?.toString() ?: "-"
             val lowest = subject.lowestScore?.toString() ?: "-"
             val average = if (subject.averageScore != null) String.format("%.1f", subject.averageScore) else "-"
@@ -3767,6 +3783,10 @@ class StaffDashboardController(
             ))
             scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
                 com.itextpdf.layout.element.Paragraph(total).setFontSize(9f)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+            ))
+            scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
+                com.itextpdf.layout.element.Paragraph(grade).setFontSize(9f)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
             ))
             scoresTable.addCell(com.itextpdf.layout.element.Cell(1, 1).add(
