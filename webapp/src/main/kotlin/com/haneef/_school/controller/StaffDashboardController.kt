@@ -3412,7 +3412,8 @@ class StaffDashboardController(
         addTableRow(studentInfoTable, "Student Name:", reportData.studentName)
         addTableRow(studentInfoTable, "Admission Number:", reportData.admissionNumber)
         addTableRow(studentInfoTable, "Track / Class:", "${reportData.trackName} / ${reportData.className}")
-        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance} / 122 (${String.format("%.2f", reportData.attendance.toDouble()/122.0 * 100)}%)")
+        val attendanceDisplay = if (reportData.attendance == null || reportData.attendance == 0) "-" else "${reportData.attendance} / 122 (${String.format("%.2f", reportData.attendance.toDouble()/122.0 * 100)}%)"
+        addTableRow(studentInfoTable, "Attendance:", attendanceDisplay)
         
         document.add(studentInfoTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
@@ -3544,20 +3545,20 @@ class StaffDashboardController(
         
         // Left column traits
         val leftTraits = listOf(
-            Pair("Fluency:", reportData.fluency?.toString() ?: "N/A"),
-            Pair("Handwriting:", reportData.handwriting?.toString() ?: "N/A"),
-            Pair("Game Sense:", reportData.game?.toString() ?: "N/A"),
-            Pair("Initiative:", reportData.initiative?.toString() ?: "N/A"),
-            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "N/A")
+            Pair("Fluency:", reportData.fluency?.toString() ?: "-"),
+            Pair("Handwriting:", reportData.handwriting?.toString() ?: "-"),
+            Pair("Game Sense:", reportData.game?.toString() ?: "-"),
+            Pair("Initiative:", reportData.initiative?.toString() ?: "-"),
+            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "-")
         )
         
         // Right column traits
         val rightTraits = listOf(
-            Pair("Punctuality:", reportData.punctuality?.toString() ?: "N/A"),
-            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "N/A"),
-            Pair("Neatness:", reportData.neatness?.toString() ?: "N/A"),
-            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "N/A"),
-            Pair("Politeness:", reportData.politeness?.toString() ?: "N/A")
+            Pair("Punctuality:", reportData.punctuality?.toString() ?: "-"),
+            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "-"),
+            Pair("Neatness:", reportData.neatness?.toString() ?: "-"),
+            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "-"),
+            Pair("Politeness:", reportData.politeness?.toString() ?: "-")
         )
         
         // Add rows with left and right trait pairs
@@ -3736,7 +3737,8 @@ class StaffDashboardController(
         addTableRow(studentInfoTable, "Student Name:", reportData.studentName)
         addTableRow(studentInfoTable, "Admission Number:", reportData.admissionNumber)
         addTableRow(studentInfoTable, "Track / Class:", "${reportData.trackName} / ${reportData.className}")
-        addTableRow(studentInfoTable, "Attendance:", "${reportData.attendance}")
+        val attendanceDisplay2 = if (reportData.attendance == null || reportData.attendance == 0) "-" else reportData.attendance.toString()
+        addTableRow(studentInfoTable, "Attendance:", attendanceDisplay2)
         
         document.add(studentInfoTable)
         document.add(com.itextpdf.layout.element.Paragraph(" ").setMarginBottom(8f))
@@ -3874,20 +3876,20 @@ class StaffDashboardController(
         
         // Left column traits
         val leftTraits = listOf(
-            Pair("Fluency:", reportData.fluency?.toString() ?: "N/A"),
-            Pair("Handwriting:", reportData.handwriting?.toString() ?: "N/A"),
-            Pair("Game Sense:", reportData.game?.toString() ?: "N/A"),
-            Pair("Initiative:", reportData.initiative?.toString() ?: "N/A"),
-            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "N/A")
+            Pair("Fluency:", reportData.fluency?.toString() ?: "-"),
+            Pair("Handwriting:", reportData.handwriting?.toString() ?: "-"),
+            Pair("Game Sense:", reportData.game?.toString() ?: "-"),
+            Pair("Initiative:", reportData.initiative?.toString() ?: "-"),
+            Pair("Critical Thinking:", reportData.criticalThinking?.toString() ?: "-")
         )
         
         // Right column traits
         val rightTraits = listOf(
-            Pair("Punctuality:", reportData.punctuality?.toString() ?: "N/A"),
-            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "N/A"),
-            Pair("Neatness:", reportData.neatness?.toString() ?: "N/A"),
-            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "N/A"),
-            Pair("Politeness:", reportData.politeness?.toString() ?: "N/A")
+            Pair("Punctuality:", reportData.punctuality?.toString() ?: "-"),
+            Pair("Attentiveness:", reportData.attentiveness?.toString() ?: "-"),
+            Pair("Neatness:", reportData.neatness?.toString() ?: "-"),
+            Pair("Self-Discipline:", reportData.selfDiscipline?.toString() ?: "-"),
+            Pair("Politeness:", reportData.politeness?.toString() ?: "-")
         )
         
         // Add rows with left and right trait pairs

@@ -242,20 +242,45 @@
                         </div>
                         <div th:if="${effectiveSession != null and effectiveTerm != null}">
                             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-                                View and download the report card for <strong th:text="${effectiveSession.sessionYear}">Session Year</strong> - 
+                                Download report cards for <strong th:text="${effectiveSession.sessionYear}">Session Year</strong> - 
                                 <strong th:text="${effectiveTerm.termName}">Term</strong>
                             </p>
-                            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                                <a th:href="@{'/staff/report-card/' + ${student.id} + '?session=' + ${effectiveSession.sessionYear} + '&term=' + ${effectiveTerm.termName}}" 
-                                   class="btn btn-primary"
-                                   style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: var(--primary-color); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none;">
-                                    <i class="fas fa-eye"></i> View Report Card
-                                </a>
-                                <a th:href="@{'/staff/reports/class/download-report-card?studentId=' + ${student.id} + '&classId=' + ${enrollments[0].schoolClass.id} + '&session=' + ${effectiveSession.sessionYear} + '&term=' + ${effectiveTerm.termName}}" 
-                                   class="btn btn-secondary"
-                                   style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #6b7280; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none;">
-                                    <i class="fas fa-download"></i> Download PDF
-                                </a>
+                            <div th:if="${enrollments != null and !enrollments.isEmpty()}" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                                <div th:each="enrollment : ${enrollments}" style="padding: 1.25rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; display: flex; flex-direction: column; gap: 1rem;">
+                                    <!-- Class/Track Header -->
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">
+                                            <span th:text="${enrollment.schoolClass.className}">Class Name</span>
+                                        </div>
+                                        <div th:if="${enrollment.schoolClass.department != null and enrollment.schoolClass.department.track != null}" 
+                                             style="font-size: 0.85rem; color: var(--text-muted);">
+                                            <span th:text="${enrollment.schoolClass.department.track.name}">Track Name</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- View/Download Links -->
+                                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                        <a th:href="@{'/staff/report-card/' + ${student.id} + '?classId=' + ${enrollment.schoolClass.id} + '&session=' + ${effectiveSession.sessionYear} + '&term=' + ${effectiveTerm.termName}}" 
+                                           class="btn btn-primary"
+                                           style="flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; text-decoration: none; transition: background 0.2s;"
+                                           onmouseover="this.style.opacity='0.9'"
+                                           onmouseout="this.style.opacity='1'">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a th:href="@{'/staff/reports/class/download-report-card?studentId=' + ${student.id} + '&classId=' + ${enrollment.schoolClass.id} + '&session=' + ${effectiveSession.sessionYear} + '&term=' + ${effectiveTerm.termName}}" 
+                                           class="btn btn-secondary"
+                                           style="flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; text-decoration: none; transition: background 0.2s;"
+                                           onmouseover="this.style.background='#2563eb'"
+                                           onmouseout="this.style.background='#3b82f6'">
+                                            <i class="fas fa-download"></i> PDF
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div th:if="${enrollments == null or enrollments.isEmpty()}" 
+                                style="padding: 1rem; background: #fef3c7; color: #92400e; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>No class enrollments found for this term.</span>
                             </div>
                         </div>
                         <div th:if="${effectiveSession == null or effectiveTerm == null}"
