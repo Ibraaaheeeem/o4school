@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Card - [[${reportData.studentName}]]</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .report-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+
+        .report-header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 2rem;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 1rem;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+        }
+
+        .header-logo img {
+            max-width: 80px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        .header-school-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            text-align: center;
+        }
+
+        .header-school-name {
+            color: #1a237e;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .header-school-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .student-info {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .section-title {
+            color: #333;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #667eea;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        thead {
+            background: #f5f5f5;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+            border-bottom: 2px solid #ddd;
+        }
+
+        td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .grade-A { color: #27ae60; font-weight: 600; }
+        .grade-B { color: #3498db; font-weight: 600; }
+        .grade-C { color: #f39c12; font-weight: 600; }
+        .grade-D { color: #e74c3c; font-weight: 600; }
+        .grade-E { color: #e74c3c; font-weight: 600; }
+        .grade-F { color: #c0392b; font-weight: 600; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .behaviors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .behavior-item {
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .behavior-label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .behavior-value {
+            background: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+
+        @media print {
+            body {
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .header-actions {
+                display: none !important;
+            }
+
+            .report-container {
+                box-shadow: none !important;
+                max-width: 100% !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="report-container">
+        <div class="report-header">
+            <div class="header-logo">
+                <img th:if="${reportData.schoolLogoUrl}" th:src="${reportData.schoolLogoUrl}" alt="School Logo">
+                <img th:unless="${reportData.schoolLogoUrl}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23667eea'/%3E%3Ctext x='50' y='60' text-anchor='middle' font-size='40' fill='white' font-family='Arial'%3ES%3C/text%3E%3C/svg%3E" alt="School Logo">
+            </div>
+            <div class="header-school-info">
+                <p class="header-school-name" th:text="${reportData.schoolName}">School Name</p>
+                <p class="header-school-subtitle">Report Card</p>
+            </div>
+            <div class="header-actions">
+                <a th:href="${userRole == 'PARENT' ? '/parent/dashboard' : '/staff/dashboard'}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="student-info">
+            <div class="info-item">
+                <span class="info-label">Student Name</span>
+                <span class="info-value" th:text="${reportData.studentName}">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Admission Number</span>
+                <span class="info-value" th:text="${reportData.admissionNumber}">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Track / Class</span>
+                <span class="info-value">
+                    <span th:text="${reportData.trackName}">-</span> / <span th:text="${reportData.className}">-</span>
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Session / Term</span>
+                <span class="info-value">
+                    <span th:text="${reportData.sessionName}">-</span> / <span th:text="${reportData.termName}">-</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="section-title">Academic Performance</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>1st CA</th>
+                    <th>2nd CA</th>
+                    <th>Exam</th>
+                    <th>Total</th>
+                    <th>Grade</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="subject : ${reportData.subjects}">
+                    <td th:text="${subject.subjectName}">-</td>
+                    <td th:text="${subject.ca1 != null ? subject.ca1 : '-'}">-</td>
+                    <td th:text="${subject.ca2 != null ? subject.ca2 : '-'}">-</td>
+                    <td th:text="${subject.exam != null ? subject.exam : '-'}">-</td>
+                    <td th:text="${subject.total != null ? subject.total : '-'}">-</td>
+                    <td>
+                        <span th:if="${subject.grade}" 
+                              th:class="'grade-' + ${subject.grade}" 
+                              th:text="${subject.grade}">-</span>
+                        <span th:unless="${subject.grade}">-</span>
+                    </td>
+                    <td th:text="${subject.remark != null ? subject.remark : '-'}">-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Score</div>
+                <div class="stat-value" th:text="${reportData.totalScore != null ? reportData.totalScore : '-'}">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Average Score</div>
+                <div class="stat-value" th:text="${reportData.totalAverage != null ? #numbers.formatDecimal(reportData.totalAverage, 1, 2) : '-'}">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Performance Grade</div>
+                <div class="stat-value" th:text="${reportData.performanceGrade != null ? reportData.performanceGrade : '-'}">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Attendance</div>
+                <div class="stat-value" th:text="${reportData.attendance != null ? reportData.attendance : '-'}">-</div>
+            </div>
+        </div>
+
+        <div class="section-title">Behavioral Traits</div>
+        <div class="behaviors-grid">
+            <div class="behavior-item" th:if="${reportData.fluency != null}">
+                <span class="behavior-label">Fluency</span>
+                <span class="behavior-value" th:text="${reportData.fluency != 0 ? reportData.fluency : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.handwriting != null}">
+                <span class="behavior-label">Handwriting</span>
+                <span class="behavior-value" th:text="${reportData.handwriting != 0 ? reportData.handwriting : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.game != null}">
+                <span class="behavior-label">Game Sense</span>
+                <span class="behavior-value" th:text="${reportData.game != 0 ? reportData.game : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.initiative != null}">
+                <span class="behavior-label">Initiative</span>
+                <span class="behavior-value" th:text="${reportData.initiative != 0 ? reportData.initiative : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.criticalThinking != null}">
+                <span class="behavior-label">Critical Thinking</span>
+                <span class="behavior-value" th:text="${reportData.criticalThinking != 0 ? reportData.criticalThinking : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.punctuality != null}">
+                <span class="behavior-label">Punctuality</span>
+                <span class="behavior-value" th:text="${reportData.punctuality != 0 ? reportData.punctuality : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.attentiveness != null}">
+                <span class="behavior-label">Attentiveness</span>
+                <span class="behavior-value" th:text="${reportData.attentiveness != 0 ? reportData.attentiveness : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.neatness != null}">
+                <span class="behavior-label">Neatness</span>
+                <span class="behavior-value" th:text="${reportData.neatness != 0 ? reportData.neatness : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.selfDiscipline != null}">
+                <span class="behavior-label">Self-Discipline</span>
+                <span class="behavior-value" th:text="${reportData.selfDiscipline != 0 ? reportData.selfDiscipline : '-'}">-</span>
+            </div>
+            <div class="behavior-item" th:if="${reportData.politeness != null}">
+                <span class="behavior-label">Politeness</span>
+                <span class="behavior-value" th:text="${reportData.politeness != 0 ? reportData.politeness : '-'}">-</span>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -2522,6 +2522,77 @@ class StaffDashboardController(
         )
         val assessment = assessmentOpt.orElse(null)
         
+        // Calculate class statistics and rankings for each subject
+        val classStatistics = mutableMapOf<UUID, Map<String, Any?>>() // Map of subjectId -> {highest, lowest, average, rankings}
+        val studentRankings = mutableMapOf<UUID, MutableMap<UUID, String>>() // Map of subjectId -> Map of studentId -> rankingString
+        
+        // Get ONLY students enrolled in THIS specific session and term
+        val allClassStudents = studentClassRepository.findBySchoolClassIdAndAcademicSessionIdAndTermIdAndIsActive(
+            classId, sessionEntity.id!!, termEntity.id!!, true
+        )
+        
+        for (subject in classSubjects) {
+            val subjectScores = mutableListOf<Int>()
+            val scoreToStudentMap = mutableMapOf<Int, MutableList<UUID>>() // Score -> List of StudentIds with that score
+            
+            // For each student in class, find their score for this subject
+            for (classStudent in allClassStudents) {
+                val studentAssessment = assessmentRepository.findByStudentIdAndAcademicSessionIdAndTermIdAndSchoolIdAndIsActive(
+                    classStudent.student.id!!, sessionEntity.id!!, termEntity.id!!, schoolId, true
+                )
+                if (studentAssessment.isPresent) {
+                    val subjectScore = subjectScoreRepository.findByAssessmentIdAndSubjectIdAndSchoolIdAndIsActive(
+                        studentAssessment.get().id!!, subject.subject.id!!, schoolId, true
+                    )
+                    if (subjectScore.isNotEmpty()) {
+                        val total = subjectScore[0].getTotalScore()
+                        if (total != null) {
+                            subjectScores.add(total)
+                            scoreToStudentMap.computeIfAbsent(total) { mutableListOf() }.add(classStudent.student.id!!)
+                        }
+                    }
+                }
+            }
+            
+            // Calculate statistics
+            if (subjectScores.isNotEmpty()) {
+                val highest = subjectScores.maxOrNull()
+                val lowest = subjectScores.minOrNull()
+                val average = subjectScores.average()
+                
+                classStatistics[subject.subject.id!!] = mapOf(
+                    "highest" to highest,
+                    "lowest" to lowest,
+                    "average" to average
+                )
+                
+                // Calculate rankings with tie handling
+                val sortedScores = subjectScores.distinct().sortedDescending()
+                var position = 1
+                val subjectRankings = mutableMapOf<UUID, String>()
+                
+                for (score in sortedScores) {
+                    val studentsWithThisScore = scoreToStudentMap[score] ?: emptyList()
+                    val positionString = when {
+                        position == 1 -> "1st"
+                        position == 2 -> "2nd"
+                        position == 3 -> "3rd"
+                        else -> "${position}th"
+                    }
+                    
+                    // Assign this position to all students with this score
+                    for (studentId in studentsWithThisScore) {
+                        subjectRankings[studentId] = positionString
+                    }
+                    
+                    // Increment position by the number of students with this score (tie handling)
+                    position += studentsWithThisScore.size
+                }
+                
+                studentRankings[subject.subject.id!!] = subjectRankings
+            }
+        }
+        
         // Build subject data
         val subjectDataList = classSubjects.map { classSubject ->
             var ca1: Int? = null
@@ -2558,6 +2629,15 @@ class StaffDashboardController(
                 }
             }
             
+            // Get class statistics for this subject
+            val stats = classStatistics[classSubject.subject.id]
+            val highestScore = stats?.get("highest") as? Int
+            val lowestScore = stats?.get("lowest") as? Int
+            val averageScore = stats?.get("average") as? Double
+            
+            // Get student's class position for this subject
+            val classPosition = studentRankings[classSubject.subject.id]?.get(studentId)
+            
             SubjectAssessmentData(
                 subjectId = classSubject.subject.id!!,
                 subjectName = classSubject.subject.subjectName,
@@ -2568,7 +2648,11 @@ class StaffDashboardController(
                 grade = grade,
                 remark = remark,
                 scoringScheme = schoolClass.scoringScheme,
-                scores = scoresMap
+                scores = scoresMap,
+                highestScore = highestScore,
+                lowestScore = lowestScore,
+                averageScore = averageScore,
+                classPosition = classPosition
             )
         }
         
@@ -2579,13 +2663,35 @@ class StaffDashboardController(
         val totalScore = if (totals.isNotEmpty()) totals.sum() else null
         val totalAverage = if (totals.isNotEmpty()) totalScore!! / totals.size else null
         
+        // Calculate highest and lowest scores per subject
+        val highestScoresPerSubject = mutableListOf<Double>()
+        val lowestScoresPerSubject = mutableListOf<Double>()
+        
+        for (subject in subjectsWithValidTotals) {
+            val scores = listOfNotNull(
+                subject.ca1?.toDouble(),
+                subject.ca2?.toDouble(),
+                subject.exam?.toDouble()
+            )
+            
+            if (scores.isNotEmpty()) {
+                highestScoresPerSubject.add(scores.maxOrNull() ?: 0.0)
+                lowestScoresPerSubject.add(scores.minOrNull() ?: 0.0)
+            }
+        }
+        
+        val highestScoresAvg = if (highestScoresPerSubject.isNotEmpty()) 
+            highestScoresPerSubject.average() else null
+        val lowestScoresAvg = if (lowestScoresPerSubject.isNotEmpty()) 
+            lowestScoresPerSubject.average() else null
+        
         val performanceGrade = if (totalAverage != null) {
             when {
-                totalAverage >= 90 -> "A"
-                totalAverage >= 80 -> "B"
-                totalAverage >= 70 -> "C"
-                totalAverage >= 60 -> "D"
-                totalAverage >= 50 -> "E"
+                totalAverage >= 70 -> "A"
+                totalAverage >= 60 -> "B"
+                totalAverage >= 50 -> "C"
+                totalAverage >= 45 -> "D"
+                totalAverage >= 40 -> "E"
                 else -> "F"
             }
         } else {
@@ -2624,6 +2730,8 @@ class StaffDashboardController(
             termName = termEntity.termName,
             totalScore = totalScore,
             totalAverage = totalAverage,
+            highestScoresAvg = highestScoresAvg,
+            lowestScoresAvg = lowestScoresAvg,
             performanceGrade = performanceGrade
         )
     }
@@ -3125,6 +3233,57 @@ class StaffDashboardController(
         } catch (e: Exception) {
             logger.error("AI Generation failed", e)
             mapOf("success" to false, "message" to (e.message ?: "Failed to generate questions"))
+        }
+    }
+
+    @GetMapping("/report-card/{studentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TEACHER', 'PARENT')")
+    fun viewReportCard(
+        @PathVariable studentId: UUID,
+        @RequestParam(required = false) classId: UUID?,
+        @RequestParam(required = false) session: String?,
+        @RequestParam(required = false) term: String?,
+        model: Model,
+        authentication: Authentication,
+        session_http: HttpSession
+    ): String {
+        return try {
+            val selectedSchoolId = session_http.getAttribute("selectedSchoolId") as? UUID 
+                ?: throw RuntimeException("School not selected")
+            
+            val userDetails = userDetailsService.loadUserByUsername(authentication.name)
+            val customUser = userDetails as com.haneef._school.service.CustomUserDetails
+            
+            // Check if user is a parent
+            val isParent = customUser.authorities.any { 
+                it.authority?.equals("PARENT", ignoreCase = true) == true || 
+                it.authority?.equals("ROLE_PARENT", ignoreCase = true) == true
+            }
+            
+            // Fetch assessment data
+            val reportData = if (isParent && classId != null) {
+                logger.info("Processing report card view as parent user")
+                val parents = parentRepository.findByUserIdWithWallet(customUser.user.id!!)
+                val parent = parents.firstOrNull() ?: throw RuntimeException("Parent record not found")
+                
+                if (!parent.activeStudentRelationships.any { it.student.id == studentId }) {
+                    throw RuntimeException("Unauthorized access to student data")
+                }
+                
+                getParentAccessibleAssessmentData(studentId, classId, session ?: "2025-2026", term ?: "", selectedSchoolId)
+            } else if (classId != null) {
+                logger.info("Processing report card view as staff user")
+                getStudentAssessmentData(studentId, classId, session ?: "2025-2026", term ?: "", authentication, session_http)
+            } else {
+                throw RuntimeException("Class ID is required")
+            }
+            
+            model.addAttribute("reportData", reportData)
+            model.addAttribute("userRole", if (isParent) "PARENT" else "STAFF")
+            "staff/report-card-view"
+        } catch (e: Exception) {
+            logger.error("Error displaying report card", e)
+            "redirect:/staff/dashboard?error=${e.message}"
         }
     }
 
