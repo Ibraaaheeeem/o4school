@@ -1,0 +1,69 @@
+                                  Table "public.users"
+           Column           |           Type           | Collation | Nullable | Default 
+----------------------------+--------------------------+-----------+----------+---------
+ id                         | uuid                     |           | not null | 
+ created_at                 | timestamp with time zone |           | not null | 
+ is_active                  | boolean                  |           | not null | 
+ updated_at                 | timestamp with time zone |           | not null | 
+ address_line1              | character varying(255)   |           |          | 
+ address_line2              | character varying(255)   |           |          | 
+ approval_status            | character varying(255)   |           |          | 
+ approved_at                | timestamp with time zone |           |          | 
+ approved_by                | uuid                     |           |          | 
+ city                       | character varying(255)   |           |          | 
+ country                    | character varying(255)   |           |          | 
+ date_of_birth              | date                     |           |          | 
+ email                      | character varying(255)   |           |          | 
+ email_verification_expires | timestamp with time zone |           |          | 
+ email_verification_token   | character varying(255)   |           |          | 
+ email_verified             | boolean                  |           |          | 
+ first_name                 | character varying(255)   |           |          | 
+ gender                     | character varying(255)   |           |          | 
+ is_verified                | boolean                  |           |          | 
+ last_login_at              | timestamp with time zone |           |          | 
+ last_name                  | character varying(255)   |           |          | 
+ last_otp_sent              | timestamp with time zone |           |          | 
+ middle_name                | character varying(255)   |           |          | 
+ otp_attempts               | integer                  |           |          | 
+ otp_code                   | character varying(255)   |           |          | 
+ otp_expires                | timestamp with time zone |           |          | 
+ password_hash              | character varying(255)   |           |          | 
+ phone_number               | character varying(255)   |           |          | 
+ postal_code                | character varying(255)   |           |          | 
+ profile_picture_url        | character varying(255)   |           |          | 
+ state                      | character varying(255)   |           |          | 
+ status                     | character varying(255)   |           |          | 
+ verification_status        | character varying(255)   |           |          | 
+ verified_at                | timestamp with time zone |           |          | 
+ intended_role              | character varying(255)   |           |          | 
+ intended_school_slug       | character varying(255)   |           |          | 
+ is_system_admin            | boolean                  |           |          | 
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+    "ix_users_email" btree (email)
+    "ix_users_phone_number" UNIQUE, btree (phone_number)
+    "uk9q63snka3mdh91as4io72espi" UNIQUE CONSTRAINT, btree (phone_number)
+    "unique_user_email" UNIQUE CONSTRAINT, btree (email)
+Check constraints:
+    "users_status_check" CHECK (status::text = ANY (ARRAY['PENDING'::text, 'ACTIVE'::text, 'INACTIVE'::text, 'SUSPENDED'::text, 'APPROVED'::text]))
+Referenced by:
+    TABLE "examinations" CONSTRAINT "examinations_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id)
+    TABLE "user_global_roles" CONSTRAINT "fkaov6f0l996be2sjlt4mo9h6oe" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "parents" CONSTRAINT "fkchh8tf8w072tapgqoijrahojk" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "staff" CONSTRAINT "fkdlvw23ak3u9v9bomm8g12rtc0" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "students" CONSTRAINT "fkdt1cjx5ve5bdabmuuf3ibrwaq" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "user_school_roles" CONSTRAINT "fksl58trocsy3fqs3g95q5kuhse" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "school_reimbursements" CONSTRAINT "fktdf18u97w3g98dxoe8l8jfh99" FOREIGN KEY (recorded_by_id) REFERENCES users(id)
+    TABLE "internal_message_participants" CONSTRAINT "internal_message_participants_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "internal_messages" CONSTRAINT "internal_messages_sender_id_fkey" FOREIGN KEY (sender_id) REFERENCES users(id)
+    TABLE "message_recipients" CONSTRAINT "message_recipients_recipient_id_fkey" FOREIGN KEY (recipient_id) REFERENCES users(id)
+    TABLE "messages" CONSTRAINT "messages_sender_id_fkey" FOREIGN KEY (sender_id) REFERENCES users(id)
+    TABLE "parents" CONSTRAINT "parents_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "service_usage_logs" CONSTRAINT "service_usage_logs_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "sms_messages" CONSTRAINT "sms_messages_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "staff" CONSTRAINT "staff_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "students" CONSTRAINT "students_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "user_school_roles" CONSTRAINT "user_school_roles_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "user_sessions" CONSTRAINT "user_sessions_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+    TABLE "whatsapp_messages" CONSTRAINT "whatsapp_messages_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+

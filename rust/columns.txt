@@ -1,0 +1,1 @@
+ql postgres://postgres:password@localhost:5432/myschool -A -F \, -c SELECT\ column_name\,\ data_type\ FROM\ information_schema.columns\ WHERE\ table_name\ \=\ \'schools\'\ ORDER\ BY\ ordinal_position\;

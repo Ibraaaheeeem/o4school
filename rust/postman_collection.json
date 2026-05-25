@@ -1,0 +1,688 @@
+{
+  "info": {
+    "_postman_id": "4school-auth-api",
+    "name": "4School Auth API",
+    "description": "Complete Auth API testing collection for 4School backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth Endpoints",
+      "item": [
+        {
+          "name": "Sign Up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"user_id\", jsonData.user_id);",
+                  "    pm.environment.set(\"email\", jsonData.email);",
+                  "    pm.environment.set(\"verification_token\", jsonData.verification_token);",
+                  "    console.log(\"User ID: \" + jsonData.user_id);",
+                  "    console.log(\"Verification Token: \" + jsonData.verification_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser{{$timestamp}}@example.com\",\n  \"password\": \"SecurePassword123\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"phone_number\": \"+1{{$randomInt}}\",\n  \"role\": \"SCHOOL_ADMIN\",\n  \"school_code\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-up",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-up"
+              ]
+            },
+            "description": "Create a new user account. User status will be PENDING until email is verified. For SCHOOL_ADMIN role, school_code can be null. For STAFF, PARENT, ADMIN roles, provide a valid school_code. Values are auto-captured for next requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"user_id\", jsonData.user_id);",
+                  "    console.log(\"Email verified for: \" + jsonData.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"verification_code\": \"{{verification_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-email"
+              ]
+            },
+            "description": "Verify user email using the verification code from sign up. Uses captured user_id and verification_token."
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"Activation Status: \" + jsonData.status);",
+                  "    console.log(\"Message: \" + jsonData.message);",
+                  "    console.log(\"Next Route: \" + jsonData.next_route);",
+                  "    ",
+                  "    if (jsonData.status === 'email_not_found') {",
+                  "        console.log(\"❌ Email not found. Suggest user to sign up first.\");",
+                  "    }",
+                  "    if (jsonData.status === 'otp_sent') {",
+                  "        pm.environment.set(\"user_id\", jsonData.user_id);",
+                  "        console.log(\"✓ OTP sent successfully. Proceed to verify OTP endpoint.\");",
+                  "    }",
+                  "    if (jsonData.status === 'email_already_active') {",
+                  "        pm.environment.set(\"user_id\", jsonData.user_id);",
+                  "        console.log(\"⚠ Email is already active. User can sign in directly.\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "activate"
+              ]
+            },
+            "description": "**Activate Account - Smart Email Status Check**\n\nThis endpoint validates the email address and handles three distinct scenarios:\n\n**Scenario 1: Email Not Found**\n- **Condition**: Email doesn't exist in the database\n- **Response Status**: `email_not_found`\n- **HTTP Code**: 200 OK\n- **Next Step**: User should sign up\n- **Response Example**:\n```json\n{\n  \"email\": \"nonexistent@example.com\",\n  \"user_id\": null,\n  \"status\": \"email_not_found\",\n  \"message\": \"Email address not found in our records\",\n  \"next_route\": \"/auth/sign-up\",\n  \"otp_sent\": false\n}\n```\n\n**Scenario 2: Email Exists but Inactive (OTP Sent)**\n- **Condition**: Email exists in database AND `is_active=false`\n- **Response Status**: `otp_sent`\n- **HTTP Code**: 200 OK\n- **Action Taken**: 6-digit OTP generated and stored (15-min expiration)\n- **Next Step**: User must verify OTP at `/auth/verify-otp` endpoint\n- **Response Example**:\n```json\n{\n  \"email\": \"user@example.com\",\n  \"user_id\": \"d5cd9e29-5e33-4b2d-be7c-502605e698a9\",\n  \"status\": \"otp_sent\",\n  \"message\": \"OTP sent to user@example.com. Please enter the OTP to verify your account.\",\n  \"next_route\": \"/auth/verify-otp\",\n  \"otp_sent\": true\n}\n```\n\n**Scenario 3: Email Already Active**\n- **Condition**: Email exists in database AND `is_active=true` AND `status=ACTIVE`\n- **Response Status**: `email_already_active`\n- **HTTP Code**: 200 OK\n- **Next Step**: User should sign in at `/auth/sign-in` endpoint\n- **Response Example**:\n```json\n{\n  \"email\": \"active_user@example.com\",\n  \"user_id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"status\": \"email_already_active\",\n  \"message\": \"Email address is already active. Please sign in to continue.\",\n  \"next_route\": \"/auth/sign-in\",\n  \"otp_sent\": false\n}\n```\n\n**Complete Workflow**:\n1. User clicks \"Activate Account\" and enters email\n2. System checks email status\n3. If inactive → OTP sent → User verifies OTP → Account activated → Can sign in\n4. If not found → Direct to sign up\n5. If already active → Direct to sign in"
+          },
+          "response": []
+        },
+        {
+          "name": "Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test: HTTP Status Code",
+                  "pm.test(\"Sign In - Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Parse response",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "// Test: Response has required fields",
+                  "pm.test(\"Sign In - Response has required fields\", function () {",
+                  "    pm.expect(jsonData).to.have.property('user_id');",
+                  "    pm.expect(jsonData).to.have.property('email');",
+                  "    pm.expect(jsonData).to.have.property('access_token');",
+                  "    pm.expect(jsonData).to.have.property('token_type');",
+                  "    pm.expect(jsonData).to.have.property('expires_in');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData).to.have.property('next_route');",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('schools');",
+                  "});",
+                  "",
+                  "// Test: User data is valid",
+                  "pm.test(\"Sign In - User data is valid\", function () {",
+                  "    pm.expect(jsonData.user_id).to.be.a('string');",
+                  "    pm.expect(jsonData.email).to.be.a('string');",
+                  "    pm.expect(jsonData.email).to.match(/^[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+$/);",
+                  "});",
+                  "",
+                  "// Test: Token information is valid",
+                  "pm.test(\"Sign In - Token information is valid\", function () {",
+                  "    pm.expect(jsonData.access_token).to.be.a('string');",
+                  "    pm.expect(jsonData.access_token.length).to.be.greaterThan(0);",
+                  "    pm.expect(jsonData.token_type).to.equal('Bearer');",
+                  "    pm.expect(jsonData.expires_in).to.equal(3600);",
+                  "});",
+                  "",
+                  "// Test: Status and next_route",
+                  "pm.test(\"Sign In - Status and next_route are correct\", function () {",
+                  "    pm.expect(jsonData.status).to.equal('ACTIVE');",
+                  "    pm.expect(['dashboard', 'profile/complete']).to.include(jsonData.next_route.split('/')[1]);",
+                  "});",
+                  "",
+                  "// Test: Schools array structure",
+                  "pm.test(\"Sign In - Schools array has correct structure\", function () {",
+                  "    pm.expect(jsonData.schools).to.be.an('array');",
+                  "    jsonData.schools.forEach(function(school) {",
+                  "        pm.expect(school).to.have.property('id');",
+                  "        pm.expect(school).to.have.property('name');",
+                  "        pm.expect(school).to.have.property('roles');",
+                  "        pm.expect(school.id).to.be.a('string');",
+                  "        pm.expect(school.name).to.be.a('string');",
+                  "        pm.expect(school.roles).to.be.an('array');",
+                  "    });",
+                  "});",
+                  "",
+                  "// Test: Roles structure within schools",
+                  "pm.test(\"Sign In - Roles within schools have correct structure\", function () {",
+                  "    jsonData.schools.forEach(function(school) {",
+                  "        school.roles.forEach(function(role) {",
+                  "            pm.expect(role).to.have.property('id');",
+                  "            pm.expect(role).to.have.property('name');",
+                  "            pm.expect(role.id).to.be.a('string');",
+                  "            pm.expect(role.name).to.be.a('string');",
+                  "            pm.expect(['STAFF', 'PARENT', 'ADMIN', 'SCHOOL_ADMIN']).to.include(role.name);",
+                  "        });",
+                  "    });",
+                  "});",
+                  "",
+                  "// Store response data in environment for subsequent requests",
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.set(\"access_token\", jsonData.access_token);",
+                  "    pm.environment.set(\"user_id\", jsonData.user_id);",
+                  "    if (jsonData.schools && jsonData.schools.length > 0) {",
+                  "        pm.environment.set(\"school_id\", jsonData.schools[0].id);",
+                  "        pm.environment.set(\"school_name\", jsonData.schools[0].name);",
+                  "    }",
+                  "    console.log(\"✓ Sign In successful!\");",
+                  "    console.log(\"Access Token: \" + jsonData.access_token);",
+                  "    console.log(\"User ID: \" + jsonData.user_id);",
+                  "    console.log(\"Schools: \" + jsonData.schools.length);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"SecurePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-in",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-in"
+              ]
+            },
+            "description": "**Sign In - Authenticate User and Get Schools with Roles**\n\nAuthenticates a user with email and password, returning JWT access token and nested school/role information.\n\n**Response Structure**:\n```json\n{\n  \"user_id\": \"uuid\",\n  \"email\": \"user@example.com\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"access_token\": \"jwt_token\",\n  \"refresh_token\": null,\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600,\n  \"message\": \"Sign in successful\",\n  \"next_route\": \"/dashboard\",\n  \"status\": \"ACTIVE\",\n  \"schools\": [\n    {\n      \"id\": \"school_uuid\",\n      \"name\": \"School Name\",\n      \"roles\": [\n        {\n          \"id\": \"role_uuid\",\n          \"name\": \"STAFF\"\n        }\n      ]\n    }\n  ]\n}\n```\n\n**Tests Included**:\n- Status code validation (200)\n- Response structure validation\n- User data validation\n- Token validity checks\n- Schools and roles nested structure\n- Environment variables capture for subsequent requests\n\n**Uses captured email from sign up.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Sign In - Invalid Credentials (Error Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Sign In Invalid - Returns 401 Unauthorized\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Sign In Invalid - Error response has message\", function () {",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.include('Invalid email or password');",
+                  "});",
+                  "",
+                  "console.log(\"✓ Invalid credentials test passed - Got expected 401 error\");",
+                  "console.log(\"Message: \" + jsonData.message);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"WrongPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-in",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-in"
+              ]
+            },
+            "description": "Test Sign In with invalid password. Should return 401 Unauthorized error with message \"Invalid email or password\"."
+          },
+          "response": []
+        },
+        {
+          "name": "Sign In - Missing Fields (Error Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Sign In Missing Fields - Returns 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Sign In Missing Fields - Error message is present\", function () {",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.message).to.include('required');",
+                  "});",
+                  "",
+                  "console.log(\"✓ Missing fields test passed - Got expected 400 error\");",
+                  "console.log(\"Message: \" + jsonData.message);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-in",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-in"
+              ]
+            },
+            "description": "Test Sign In with missing password field. Should return 400 Bad Request error with \"required\" in message."
+          },
+          "response": []
+        },
+        {
+          "name": "Sign In - Non-existent User (Error Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Sign In Non-existent - Returns 401 Unauthorized\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Sign In Non-existent - Error message matches\", function () {",
+                  "    pm.expect(jsonData.message).to.include('Invalid email or password');",
+                  "});",
+                  "",
+                  "console.log(\"✓ Non-existent user test passed - Got expected 401 error\");",
+                  "console.log(\"Message: \" + jsonData.message);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nonexistent{{$timestamp}}@example.com\",\n  \"password\": \"SecurePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-in",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-in"
+              ]
+            },
+            "description": "Test Sign In with non-existent email. Should return 401 Unauthorized error."
+          },
+          "response": []
+        },
+        {
+          "name": "Send OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"OTP sent to: \" + jsonData.email);",
+                  "    console.log(\"Note: Check server logs for the OTP code (6 digits)\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/send-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "send-otp"
+              ]
+            },
+            "description": "Send a 6-digit OTP code to email. OTP expires in 15 minutes. Check server logs for the OTP value."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"✓ OTP verified successfully!\");",
+                  "    console.log(\"Message: \" + jsonData.message);",
+                  "    console.log(\"Next Route: \" + jsonData.next_route);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\",\"otp_code\":\"000000\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-otp"
+              ]
+            },
+            "description": "**Verify OTP and Activate Account**\n\nThis endpoint verifies the 6-digit OTP code sent to the user's email during account activation. When successfully verified, the user's account is automatically activated.\n\n**Workflow**:\n1. User receives OTP via email (sent from `/api/auth/activate` endpoint)\n2. User enters OTP in this endpoint\n3. System validates OTP (must match and not be expired - 15 min expiration)\n4. On successful verification:\n   - OTP is cleared from database\n   - Account is activated: `is_active = true`, `status = ACTIVE`\n   - User can now sign in\n\n**To Get OTP for Testing**:\n```bash\npsql postgres://postgres:password@localhost:5432/myschool -t -c \"SELECT otp_code FROM users WHERE email='your_email' ORDER BY created_at DESC LIMIT 1;\"\n```\n\n**Response on Success**:\n```json\n{\n  \"user_id\": \"d5cd9e29-5e33-4b2d-be7c-502605e698a9\",\n  \"email\": \"user@example.com\",\n  \"message\": \"OTP verified successfully. Your account is now active.\",\n  \"otp_verified\": true,\n  \"next_route\": \"/auth/sign-in\",\n  \"verified_at\": \"2026-05-21T18:45:56.414487291+00:00\"\n}\n```\n\n**Important Notes**:\n- OTP expires after 15 minutes\n- OTP is a 6-digit numeric code\n- After verification, user's `is_active` changes from false to true\n- User can then proceed to sign in"
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"Password reset email sent. Check server logs for reset token.\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Request password reset. Sends reset token to email. Check server logs for the reset token. Token expires in 1 hour."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"Password reset successfully\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\",\"reset_token\":\"token\",\"new_password\":\"NewPassword123!\",\"confirm_password\":\"NewPassword123!\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Reset user password. Steps: 1) Run Forgot Password endpoint, 2) Query DB: PGPASSWORD=\\\"password\\\" psql -h localhost -d myschool -U postgres -c \\\"SELECT otp_code FROM users ORDER BY created_at DESC LIMIT 1;\\\", 3) Copy the token here, 4) Set new passwords, 5) Click Send. Passwords must match and minimum 8 characters."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout user. Uses captured access_token from sign in and user_id."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Base URL for the API. Change to your server URL in production."
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token from sign in response. Populate this after successful login."
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "User ID from sign up or sign in response."
+    },
+    {
+      "key": "verification_token",
+      "value": "",
+      "type": "string",
+      "description": "Verification token from sign up response."
+    },
+    {
+      "key": "reset_token",
+      "value": "",
+      "type": "string",
+      "description": "Reset token from forgot password response."
+    },
+    {
+      "key": "school_id",
+      "value": "",
+      "type": "string",
+      "description": "School ID from sign in response. Captured from schools array."
+    },
+    {
+      "key": "school_name",
+      "value": "",
+      "type": "string",
+      "description": "School name from sign in response. Captured from schools array."
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: school_postgres
+    environment:
+      POSTGRES_DB: school_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "-c log_statement=all"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - school-network
+
+  # Rust Backend (build from local Dockerfile)
+  school-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: school_backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/school_management
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8000
+      RUST_LOG: info
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - school-network
+    restart: unless-stopped
+
+  # pgAdmin for database management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: school_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@school.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - school-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  school-network:
+    driver: bridge

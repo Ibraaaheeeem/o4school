@@ -1,0 +1,1 @@
+p//:sergtsoplqspood@localhost:5432/myschool -c \\d\ schools

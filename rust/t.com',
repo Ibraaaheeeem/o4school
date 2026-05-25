@@ -1,0 +1,9 @@
+                  id                  |        slug         | admission_prefix | staff_id_prefix 
+--------------------------------------+---------------------+------------------+-----------------
+ fd9bb8cd-0090-445e-aeff-071238818563 | school-722ee764     |                  | 
+ c1a36678-9233-4d67-ab6a-27056ba9c912 | ibrahim-0bf21cd6    |                  | 
+ c95df077-6158-4add-a631-113b4b8bbf77 | ibrahim```-2929b20f |                  | 
+ 9d973583-f26c-4655-9fa8-32e1c0d76326 | ibrahim-c7c0d59c    |                  | 
+ 17cc3ddb-00fe-4c1e-bfc0-a9054ed048c7 | panafrican          | PAF              | 
+(5 rows)
+

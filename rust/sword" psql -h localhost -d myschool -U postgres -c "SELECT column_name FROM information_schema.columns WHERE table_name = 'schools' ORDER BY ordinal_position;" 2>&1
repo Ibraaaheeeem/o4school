@@ -1,0 +1,56 @@
+                                 Table "public.schools"
+        Column         |              Type              | Collation | Nullable | Default 
+-----------------------+--------------------------------+-----------+----------+---------
+ id                    | uuid                           |           | not null | 
+ created_at            | timestamp(6) without time zone |           | not null | 
+ is_active             | boolean                        |           | not null | 
+ updated_at            | timestamp(6) without time zone |           | not null | 
+ academic_year_end     | character varying(255)         |           |          | 
+ academic_year_start   | character varying(255)         |           |          | 
+ address_line1         | character varying(255)         |           | not null | 
+ address_line2         | character varying(255)         |           |          | 
+ admin_email           | character varying(255)         |           | not null | 
+ admin_name            | character varying(255)         |           | not null | 
+ admin_phone           | character varying(255)         |           | not null | 
+ admin_user_id         | uuid                           |           |          | 
+ banner_url            | character varying(255)         |           |          | 
+ city                  | character varying(255)         |           | not null | 
+ country               | character varying(255)         |           | not null | 
+ currency              | character varying(255)         |           |          | 
+ current_academic_year | character varying(255)         |           |          | 
+ custom_domain         | character varying(255)         |           |          | 
+ email                 | character varying(255)         |           | not null | 
+ language              | character varying(255)         |           |          | 
+ logo_url              | character varying(255)         |           |          | 
+ name                  | character varying(255)         |           | not null | 
+ phone                 | character varying(255)         |           | not null | 
+ postal_code           | character varying(255)         |           | not null | 
+ primary_color         | character varying(255)         |           |          | 
+ school_motto          | character varying(255)         |           |          | 
+ secondary_color       | character varying(255)         |           |          | 
+ slug                  | character varying(255)         |           | not null | 
+ ssl_enabled           | boolean                        |           |          | 
+ state                 | character varying(255)         |           | not null | 
+ status                | character varying(255)         |           |          | 
+ subdomain             | character varying(255)         |           |          | 
+ timezone              | character varying(255)         |           |          | 
+ website               | character varying(255)         |           |          | 
+ admission_prefix      | character varying(255)         |           |          | 
+Indexes:
+    "schools_pkey" PRIMARY KEY, btree (id)
+    "ix_schools_custom_domain" UNIQUE, btree (custom_domain)
+    "ix_schools_slug" UNIQUE, btree (slug)
+    "ix_schools_subdomain" UNIQUE, btree (subdomain)
+    "ukaxk345ojatm1yhykgk4bv6nvt" UNIQUE CONSTRAINT, btree (slug)
+    "ukcllp8v2clp3cqbr1qlupxmmro" UNIQUE CONSTRAINT, btree (admission_prefix)
+Referenced by:
+    TABLE "fee_reminder_schedules" CONSTRAINT "fee_reminder_schedules_school_id_fkey" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "school_wallets" CONSTRAINT "fk37irjva1fbnu2l5oad5r505g9" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "school_subscriptions" CONSTRAINT "fkalttc6scmditcumrr5a2dqkmu" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "school_bank_accounts" CONSTRAINT "fkg64irc7pi55ld4ocu3q54i9hs" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "service_usage_logs" CONSTRAINT "fknbnpk2sdfy7cbye0uhscv456u" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "school_reimbursements" CONSTRAINT "fknpc5jgw7p2e99quyeyinxv66q" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "designations" CONSTRAINT "fkrmsj6tbrkyyiod0iqt3kxhgy7" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "sms_messages" CONSTRAINT "sms_messages_school_id_fkey" FOREIGN KEY (school_id) REFERENCES schools(id)
+    TABLE "whatsapp_messages" CONSTRAINT "whatsapp_messages_school_id_fkey" FOREIGN KEY (school_id) REFERENCES schools(id)
+

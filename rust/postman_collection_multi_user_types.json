@@ -1,0 +1,842 @@
+{
+  "info": {
+    "_postman_id": "4school-auth-api-enhanced",
+    "name": "4School Auth API - Enhanced",
+    "description": "Complete Auth API testing with multiple user types and school role management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Sign Up Tests",
+      "item": [
+        {
+          "name": "1. Sign Up - SCHOOL_ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"admin_user_id\", jsonData.user_id);",
+                  "    pm.environment.set(\"admin_email\", jsonData.email);",
+                  "    pm.environment.set(\"admin_verification_token\", jsonData.verification_token);",
+                  "    console.log(\"✅ SCHOOL_ADMIN Sign Up Success\");",
+                  "    console.log(\"User ID: \" + jsonData.user_id);",
+                  "} else {",
+                  "    console.log(\"❌ Sign Up Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"schooladmin{{$timestamp}}@example.com\",\"password\":\"SecurePassword123\",\"first_name\":\"Admin\",\"last_name\":\"User\",\"phone_number\":\"+1{{$randomInt}}\",\"role\":\"SCHOOL_ADMIN\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-up",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "sign-up"]
+            },
+            "description": "Sign up as SCHOOL_ADMIN - can create their own school"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Sign Up - PARENT (with demo-hsc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"parent_user_id\", jsonData.user_id);",
+                  "    pm.environment.set(\"parent_email\", jsonData.email);",
+                  "    pm.environment.set(\"parent_verification_token\", jsonData.verification_token);",
+                  "    console.log(\"✅ PARENT Sign Up Success\");",
+                  "    console.log(\"User ID: \" + jsonData.user_id);",
+                  "} else {",
+                  "    console.log(\"❌ Sign Up Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"parent{{$timestamp}}@example.com\",\"password\":\"SecurePassword123\",\"first_name\":\"Parent\",\"last_name\":\"User\",\"phone_number\":\"+1{{$randomInt}}\",\"role\":\"PARENT\",\"slug\":\"demo-hsc\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-up",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "sign-up"]
+            },
+            "description": "Sign up as PARENT with demo-hsc school slug"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Sign Up - STAFF (with demo-hsc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"staff_user_id\", jsonData.user_id);",
+                  "    pm.environment.set(\"staff_email\", jsonData.email);",
+                  "    pm.environment.set(\"staff_verification_token\", jsonData.verification_token);",
+                  "    console.log(\"✅ STAFF Sign Up Success\");",
+                  "    console.log(\"User ID: \" + jsonData.user_id);",
+                  "} else {",
+                  "    console.log(\"❌ Sign Up Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"staff{{$timestamp}}@example.com\",\"password\":\"SecurePassword123\",\"first_name\":\"Staff\",\"last_name\":\"User\",\"phone_number\":\"+1{{$randomInt}}\",\"role\":\"STAFF\",\"slug\":\"demo-hsc\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-up",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "sign-up"]
+            },
+            "description": "Sign up as STAFF with demo-hsc school slug"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Sign Up - STUDENT (with demo-hsc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"student_user_id\", jsonData.user_id);",
+                  "    pm.environment.set(\"student_email\", jsonData.email);",
+                  "    pm.environment.set(\"student_verification_token\", jsonData.verification_token);",
+                  "    console.log(\"✅ STUDENT Sign Up Success\");",
+                  "    console.log(\"User ID: \" + jsonData.user_id);",
+                  "} else {",
+                  "    console.log(\"❌ Sign Up Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"student{{$timestamp}}@example.com\",\"password\":\"SecurePassword123\",\"first_name\":\"Student\",\"last_name\":\"User\",\"phone_number\":\"+1{{$randomInt}}\",\"role\":\"STUDENT\",\"slug\":\"demo-hsc\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/sign-up",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "sign-up"]
+            },
+            "description": "Sign up as STUDENT with demo-hsc school slug"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth - Email Verification",
+      "item": [
+        {
+          "name": "Verify Email - SCHOOL_ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ SCHOOL_ADMIN Email Verified\");",
+                  "} else {",
+                  "    console.log(\"❌ Verify Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{admin_user_id}}\",\"verification_code\":\"{{admin_verification_token}}\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify-email"]
+            },
+            "description": "Verify SCHOOL_ADMIN email"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email - PARENT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ PARENT Email Verified\");",
+                  "} else {",
+                  "    console.log(\"❌ Verify Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{parent_user_id}}\",\"verification_code\":\"{{parent_verification_token}}\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify-email"]
+            },
+            "description": "Verify PARENT email"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email - STAFF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ STAFF Email Verified\");",
+                  "} else {",
+                  "    console.log(\"❌ Verify Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{staff_user_id}}\",\"verification_code\":\"{{staff_verification_token}}\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify-email"]
+            },
+            "description": "Verify STAFF email"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email - STUDENT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ STUDENT Email Verified\");",
+                  "} else {",
+                  "    console.log(\"❌ Verify Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{student_user_id}}\",\"verification_code\":\"{{student_verification_token}}\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify-email"]
+            },
+            "description": "Verify STUDENT email"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth - Activate Accounts",
+      "item": [
+        {
+          "name": "Activate - SCHOOL_ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ SCHOOL_ADMIN Account Activated\");",
+                  "} else {",
+                  "    console.log(\"❌ Activate Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"user_id\":\"{{admin_user_id}}\",\"activation_token\":\"\"}"},
+            "url": {
+              "raw": "{{base_url}}/api/auth/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "activate"]
+            },
+            "description": "Activate SCHOOL_ADMIN account"
+          },
+          "response": []
+        },
+        {
+          "name": "Activate - PARENT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ PARENT Account Activated\");",
+                  "} else {",
+                  "    console.log(\"❌ Activate Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"user_id\":\"{{parent_user_id}}\",\"activation_token\":\"\"}"},
+            "url": {
+              "raw": "{{base_url}}/api/auth/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "activate"]
+            },
+            "description": "Activate PARENT account"
+          },
+          "response": []
+        },
+        {
+          "name": "Activate - STAFF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ STAFF Account Activated\");",
+                  "} else {",
+                  "    console.log(\"❌ Activate Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"user_id\":\"{{staff_user_id}}\",\"activation_token\":\"\"}"},
+            "url": {
+              "raw": "{{base_url}}/api/auth/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "activate"]
+            },
+            "description": "Activate STAFF account"
+          },
+          "response": []
+        },
+        {
+          "name": "Activate - STUDENT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"✅ STUDENT Account Activated\");",
+                  "} else {",
+                  "    console.log(\"❌ Activate Failed: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"user_id\":\"{{student_user_id}}\",\"activation_token\":\"\"}"},
+            "url": {
+              "raw": "{{base_url}}/api/auth/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "activate"]
+            },
+            "description": "Activate STUDENT account"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User School Role Management",
+      "item": [
+        {
+          "name": "1. Create User School Role - PARENT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"parent_school_role_id\", jsonData.id || jsonData.user_school_role_id);",
+                  "    console.log(\"✅ PARENT School Role Created\");",
+                  "    console.log(\"Role: \" + jsonData.role);",
+                  "} else {",
+                  "    console.log(\"❌ Failed: \" + pm.response.code);",
+                  "    console.log(pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{parent_user_id}}\",\"school_id\":\"DEMO_HSC\",\"role\":\"PARENT\",\"status\":\"ACTIVE\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role"]
+            },
+            "description": "Create user school role for PARENT user"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Create User School Role - STAFF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"staff_school_role_id\", jsonData.id || jsonData.user_school_role_id);",
+                  "    console.log(\"✅ STAFF School Role Created\");",
+                  "    console.log(\"Role: \" + jsonData.role);",
+                  "} else {",
+                  "    console.log(\"❌ Failed: \" + pm.response.code);",
+                  "    console.log(pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{staff_user_id}}\",\"school_id\":\"DEMO_HSC\",\"role\":\"STAFF\",\"status\":\"ACTIVE\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role"]
+            },
+            "description": "Create user school role for STAFF user"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Create User School Role - STUDENT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"student_school_role_id\", jsonData.id || jsonData.user_school_role_id);",
+                  "    console.log(\"✅ STUDENT School Role Created\");",
+                  "    console.log(\"Role: \" + jsonData.role);",
+                  "} else {",
+                  "    console.log(\"❌ Failed: \" + pm.response.code);",
+                  "    console.log(pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{student_user_id}}\",\"school_id\":\"DEMO_HSC\",\"role\":\"STUDENT\",\"status\":\"ACTIVE\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role"]
+            },
+            "description": "Create user school role for STUDENT user"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Create Additional Role - PARENT (Second School)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    console.log(\"✅ Additional School Role Created for PARENT\");",
+                  "} else if (pm.response.code === 409) {",
+                  "    console.log(\"⚠️ Duplicate role already exists (409)\");",
+                  "} else {",
+                  "    console.log(\"❌ Failed: \" + pm.response.code);",
+                  "    console.log(pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{parent_user_id}}\",\"school_id\":\"ANOTHER_SCHOOL\",\"role\":\"PARENT\",\"status\":\"ACTIVE\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role"]
+            },
+            "description": "Add PARENT to a different school (should succeed)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Duplicate Prevention Tests",
+      "item": [
+        {
+          "name": "1. Attempt Duplicate - PARENT in demo-hsc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 409) {",
+                  "    console.log(\"✅ CORRECT: Duplicate role prevented (409 Conflict)\");",
+                  "} else if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    console.log(\"❌ ERROR: Duplicate was allowed! (should be 409)\");",
+                  "} else {",
+                  "    console.log(\"⚠️ Unexpected status: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{parent_user_id}}\",\"school_id\":\"DEMO_HSC\",\"role\":\"PARENT\",\"status\":\"ACTIVE\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role"]
+            },
+            "description": "Try to create duplicate PARENT role in same school (should fail with 409)"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Attempt Duplicate - STAFF in demo-hsc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 409) {",
+                  "    console.log(\"✅ CORRECT: Duplicate role prevented (409 Conflict)\");",
+                  "} else if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    console.log(\"❌ ERROR: Duplicate was allowed! (should be 409)\");",
+                  "} else {",
+                  "    console.log(\"⚠️ Unexpected status: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{staff_user_id}}\",\"school_id\":\"DEMO_HSC\",\"role\":\"STAFF\",\"status\":\"ACTIVE\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role"]
+            },
+            "description": "Try to create duplicate STAFF role in same school (should fail with 409)"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Attempt Duplicate - STUDENT in demo-hsc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 409) {",
+                  "    console.log(\"✅ CORRECT: Duplicate role prevented (409 Conflict)\");",
+                  "} else if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    console.log(\"❌ ERROR: Duplicate was allowed! (should be 409)\");",
+                  "} else {",
+                  "    console.log(\"⚠️ Unexpected status: \" + pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\":\"{{student_user_id}}\",\"school_id\":\"DEMO_HSC\",\"role\":\"STUDENT\",\"status\":\"ACTIVE\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role"]
+            },
+            "description": "Try to create duplicate STUDENT role in same school (should fail with 409)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Query & Utility",
+      "item": [
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{user_id}}"]
+            },
+            "description": "Get user details by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User School Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user-school-role/user/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user-school-role", "user", "{{user_id}}"]
+            },
+            "description": "Get all school roles for a user"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Base API URL"
+    },
+    {
+      "key": "admin_user_id",
+      "value": "",
+      "type": "string",
+      "description": "SCHOOL_ADMIN user ID"
+    },
+    {
+      "key": "admin_email",
+      "value": "",
+      "type": "string",
+      "description": "SCHOOL_ADMIN email"
+    },
+    {
+      "key": "admin_verification_token",
+      "value": "",
+      "type": "string",
+      "description": "SCHOOL_ADMIN verification token"
+    },
+    {
+      "key": "parent_user_id",
+      "value": "",
+      "type": "string",
+      "description": "PARENT user ID"
+    },
+    {
+      "key": "parent_email",
+      "value": "",
+      "type": "string",
+      "description": "PARENT email"
+    },
+    {
+      "key": "parent_verification_token",
+      "value": "",
+      "type": "string",
+      "description": "PARENT verification token"
+    },
+    {
+      "key": "staff_user_id",
+      "value": "",
+      "type": "string",
+      "description": "STAFF user ID"
+    },
+    {
+      "key": "staff_email",
+      "value": "",
+      "type": "string",
+      "description": "STAFF email"
+    },
+    {
+      "key": "staff_verification_token",
+      "value": "",
+      "type": "string",
+      "description": "STAFF verification token"
+    },
+    {
+      "key": "student_user_id",
+      "value": "",
+      "type": "string",
+      "description": "STUDENT user ID"
+    },
+    {
+      "key": "student_email",
+      "value": "",
+      "type": "string",
+      "description": "STUDENT email"
+    },
+    {
+      "key": "student_verification_token",
+      "value": "",
+      "type": "string",
+      "description": "STUDENT verification token"
+    },
+    {
+      "key": "parent_school_role_id",
+      "value": "",
+      "type": "string",
+      "description": "PARENT school role ID"
+    },
+    {
+      "key": "staff_school_role_id",
+      "value": "",
+      "type": "string",
+      "description": "STAFF school role ID"
+    },
+    {
+      "key": "student_school_role_id",
+      "value": "",
+      "type": "string",
+      "description": "STUDENT school role ID"
+    }
+  ]
+}

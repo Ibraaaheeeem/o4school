@@ -1,0 +1,35 @@
+                                     Table "public.parents"
+            Column            |              Type              | Collation | Nullable | Default 
+------------------------------+--------------------------------+-----------+----------+---------
+ id                           | uuid                           |           | not null | 
+ created_at                   | timestamp(6) without time zone |           | not null | 
+ is_active                    | boolean                        |           | not null | 
+ updated_at                   | timestamp(6) without time zone |           | not null | 
+ school_id                    | uuid                           |           | not null | 
+ is_emergency_contact         | boolean                        |           |          | 
+ is_financially_responsible   | boolean                        |           |          | 
+ is_primary_contact           | boolean                        |           |          | 
+ receive_academic_updates     | boolean                        |           |          | 
+ receive_disciplinary_updates | boolean                        |           |          | 
+ receive_financial_updates    | boolean                        |           |          | 
+ user_id                      | uuid                           |           | not null | 
+ payment_distribution_type    | character varying(255)         |           |          | 
+ payment_priority_order       | text                           |           |          | 
+Indexes:
+    "parents_pkey" PRIMARY KEY, btree (id)
+    "idx_parent_school_active" btree (school_id, is_active)
+    "ix_parents_school_id" btree (school_id)
+    "unique_parent_user_school" UNIQUE CONSTRAINT, btree (user_id, school_id)
+Foreign-key constraints:
+    "fkchh8tf8w072tapgqoijrahojk" FOREIGN KEY (user_id) REFERENCES users(id)
+    "parents_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id)
+Referenced by:
+    TABLE "squad_parent_wallets" CONSTRAINT "fk2kov02qfxtbj9m7op18x7q7gq" FOREIGN KEY (parent_id) REFERENCES parents(id)
+    TABLE "payment_notifications" CONSTRAINT "fk4s13uttkypq2801uo6y89jlqy" FOREIGN KEY (parent_id) REFERENCES parents(id)
+    TABLE "settlements" CONSTRAINT "fk_settlements_parent" FOREIGN KEY (parent_id) REFERENCES parents(id)
+    TABLE "paystack_parent_wallets" CONSTRAINT "fkbh65q5bygvgqt0ws7kg9jvan0" FOREIGN KEY (parent_id) REFERENCES parents(id)
+    TABLE "parent_wallets" CONSTRAINT "fkplfwwlihnjj8tffcx0uqnifrk" FOREIGN KEY (parent_id) REFERENCES parents(id)
+    TABLE "parent_student_relationships" CONSTRAINT "fkpmprs3muwjbit2bwie469hh6a" FOREIGN KEY (parent_id) REFERENCES parents(id)
+    TABLE "parent_student_relationships" CONSTRAINT "parent_student_relationships_parent_id_fkey" FOREIGN KEY (parent_id) REFERENCES parents(id)
+    TABLE "payment_notifications" CONSTRAINT "payment_notifications_parent_id_fkey" FOREIGN KEY (parent_id) REFERENCES parents(id)
+

@@ -1,0 +1,1 @@
+ql postgres://postgres:password@localhost:5432/myschool -Atc SELECT\ tablename\ FROM\ pg_tables\ WHERE\ schemaname\ \=\ \'public\'\;

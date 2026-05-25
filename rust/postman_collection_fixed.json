@@ -1,0 +1,421 @@
+{
+  "info": {
+    "_postman_id": "4school-auth-api",
+    "name": "4School Auth API",
+    "description": "Complete Auth API testing collection for 4School backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Sign Up",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201 || pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set('user_id', jsonData.user_id);",
+              "    pm.environment.set('email', jsonData.email);",
+              "    pm.environment.set('verification_token', jsonData.verification_token);",
+              "    console.log('✅ Sign Up Success');",
+              "    console.log('User ID: ' + jsonData.user_id);",
+              "    console.log('Email: ' + jsonData.email);",
+              "} else {",
+              "    console.log('❌ Sign Up Failed: ' + pm.response.code);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"testuser{{$timestamp}}@example.com\",\"password\":\"SecurePassword123\",\"first_name\":\"John\",\"last_name\":\"Doe\",\"phone_number\":\"+19876543210\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/sign-up",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "sign-up"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Verify Email",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    pm.environment.set('user_id', pm.response.json().user_id);",
+              "    console.log('✅ Email Verified');",
+              "} else {",
+              "    console.log('❌ Verify Email Failed: ' + pm.response.code);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"user_id\":\"{{user_id}}\",\"verification_code\":\"{{verification_token}}\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/verify-email",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "verify-email"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Activate Account",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    console.log('✅ Account Activated');",
+              "} else {",
+              "    console.log('❌ Activate Failed: ' + pm.response.code);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"user_id\":\"{{user_id}}\",\"activation_token\":\"activate\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/activate",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "activate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Sign In",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set('access_token', jsonData.access_token);",
+              "    console.log('✅ Sign In Success - Token: ' + jsonData.access_token.substring(0, 20) + '...');",
+              "} else {",
+              "    console.log('❌ Sign In Failed: ' + pm.response.code);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{email}}\",\"password\":\"SecurePassword123\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/sign-in",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "sign-in"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Send OTP",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    console.log('✅ OTP Sent - Check terminal logs for OTP code');",
+              "} else {",
+              "    console.log('❌ Send OTP Failed: ' + pm.response.code);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{email}}\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/send-otp",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "send-otp"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. Verify OTP (Manual Entry)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    console.log('✅ OTP Verified');",
+              "} else {",
+              "    console.log('❌ Verify OTP Failed: ' + pm.response.code);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{email}}\",\"otp_code\":\"000000\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/verify-otp",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "verify-otp"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Forgot Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    console.log('✅ Password Reset Email Sent');",
+              "} else {",
+              "    console.log('❌ Forgot Password Failed: ' + pm.response.code);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{email}}\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/forgot-password",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "forgot-password"
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Reset Password (Manual Entry)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{email}}\",\"reset_token\":\"token-here\",\"new_password\":\"NewPassword123!\",\"confirm_password\":\"NewPassword123!\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/reset-password",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "reset-password"
+          ]
+        }
+      }
+    },
+    {
+      "name": "9. Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"user_id\":\"{{user_id}}\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/logout",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verification_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+      column_name      |          data_type          
+-----------------------+-----------------------------
+ id                    | uuid
+ created_at            | timestamp without time zone
+ is_active             | boolean
+ updated_at            | timestamp without time zone
+ academic_year_end     | character varying
+ academic_year_start   | character varying
+ address_line1         | character varying
+ address_line2         | character varying
+ admin_email           | character varying
+ admin_name            | character varying
+ admin_phone           | character varying
+ admin_user_id         | uuid
+ banner_url            | character varying
+ city                  | character varying
+ country               | character varying
+ currency              | character varying
+ current_academic_year | character varying
+ custom_domain         | character varying
+ email                 | character varying
+ language              | character varying
+ logo_url              | character varying
+ name                  | character varying
+ phone                 | character varying
+ postal_code           | character varying
+ primary_color         | character varying
+ school_motto          | character varying
+ secondary_color       | character varying
+ slug                  | character varying
+ ssl_enabled           | boolean
+ state                 | character varying
+ status                | character varying
+ subdomain             | character varying
+ timezone              | character varying
+ website               | character varying
+ admission_prefix      | character varying
+(35 rows)
+

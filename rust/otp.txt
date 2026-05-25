@@ -1,0 +1,1 @@
+ql postgres://postgres:password@localhost:5432/myschool -A -t -c SELECT\ otp_code\ FROM\ users\ WHERE\ email\=\'flow_test@example.com\'\ ORDER\ BY\ created_at\ DESC\ LIMIT\ 1\;
