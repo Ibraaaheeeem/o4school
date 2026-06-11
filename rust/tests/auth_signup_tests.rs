@@ -52,7 +52,7 @@ mod auth_signup_integration_tests {
         assert_eq!(response.role, "SCHOOL_ADMIN", "role should be SCHOOL_ADMIN");
         assert!(!response.school_id.is_empty(), "school_id should be created");
         assert!(response.school_name.contains("School Admin"), "school_name format");
-        assert_eq!(response.next_route, "/auth/activate", "next_route should be /auth/activate");
+        assert_eq!(response.next_route, "ACTIVATE", "next_route should be ACTIVATE");
 
         // Verify database state
         let user = db::get_user_by_email(&pool, &test_email).await;

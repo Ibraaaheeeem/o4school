@@ -8,7 +8,7 @@ pub struct SchoolRepository;
 impl SchoolRepository {
     /// Get school by ID
     pub async fn get_by_id(pool: &PgPool, school_id: Uuid) -> Result<School, ApiError> {
-        sqlx::query_as::<_, School>(
+        sqlx::query_as::<sqlx::Postgres, School>(
             "SELECT * FROM schools WHERE id = $1"
         )
         .bind(school_id)
@@ -25,7 +25,7 @@ impl SchoolRepository {
 
     /// Get school by slug
     pub async fn get_by_slug(pool: &PgPool, slug: &str) -> Result<School, ApiError> {
-        sqlx::query_as::<_, School>(
+        sqlx::query_as::<sqlx::Postgres, School>(
             "SELECT * FROM schools WHERE slug = $1"
         )
         .bind(slug)
@@ -42,7 +42,7 @@ impl SchoolRepository {
 
     /// Get all schools
     pub async fn get_all(pool: &PgPool, limit: i64, offset: i64) -> Result<Vec<School>, ApiError> {
-        sqlx::query_as::<_, School>(
+        sqlx::query_as::<sqlx::Postgres, School>(
             "SELECT * FROM schools WHERE is_active = true ORDER BY created_at DESC LIMIT $1 OFFSET $2"
         )
         .bind(limit)
@@ -54,7 +54,7 @@ impl SchoolRepository {
 
     /// Create a new school
     pub async fn create(pool: &PgPool, school: &School) -> Result<School, ApiError> {
-        sqlx::query_as::<_, School>(
+        sqlx::query_as::<sqlx::Postgres, School>(
             r#"
             INSERT INTO schools (
                 id, name, slug, address_line1, address_line2, city, state, postal_code, 
@@ -104,7 +104,7 @@ impl SchoolRepository {
 
     /// Update school
     pub async fn update(pool: &PgPool, school_id: Uuid, updates: &School) -> Result<School, ApiError> {
-        sqlx::query_as::<_, School>(
+        sqlx::query_as::<sqlx::Postgres, School>(
             r#"
             UPDATE schools SET
                 name = $1, address_line1 = $2, city = $3, state = $4, 

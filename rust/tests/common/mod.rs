@@ -4,6 +4,44 @@ use serde_json::json;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use uuid::Uuid;
 
+fn with_required_sslmode(database_url: &str) -> String {
+    let is_local = database_url.contains("localhost")
+        || database_url.contains("127.0.0.1")
+        || database_url.contains("0.0.0.0");
+
+    if is_local || database_url.contains("sslmode=") {
+        return database_url.to_string();
+    }
+
+    if database_url.contains('?') {
+        format!("{}&sslmode=require", database_url)
+    } else {
+        format!("{}?sslmode=require", database_url)
+    }
+}
+
+fn redact_database_url(database_url: &str) -> String {
+    let scheme_sep = match database_url.find("://") {
+        Some(i) => i,
+        None => return "<redacted>".to_string(),
+    };
+
+    let creds_start = scheme_sep + 3;
+    let at_pos = match database_url[creds_start..].find('@') {
+        Some(i) => creds_start + i,
+        None => return database_url.to_string(),
+    };
+
+    let colon_pos = match database_url[creds_start..at_pos].find(':') {
+        Some(i) => creds_start + i,
+        None => return database_url.to_string(),
+    };
+
+    let mut redacted = database_url.to_string();
+    redacted.replace_range((colon_pos + 1)..at_pos, "***");
+    redacted
+}
+
 /// Test HTTP client
 pub fn get_http_client() -> reqwest::Client {
     reqwest::Client::new()
@@ -15,6 +53,8 @@ pub fn get_http_client() -> reqwest::Client {
 pub async fn get_db_pool() -> PgPool {
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/myschool".to_string());
+    let database_url = with_required_sslmode(&database_url);
+    let redacted_url = redact_database_url(&database_url);
 
     // Create pool with lenient settings for test environment
     // Tests must run with --test-threads=1 to avoid connection conflicts
@@ -27,8 +67,9 @@ pub async fn get_db_pool() -> PgPool {
         .await
         .map_err(|e| {
             eprintln!("❌ Database connection failed: {:?}", e);
-            eprintln!("   DATABASE_URL: {}", database_url);
+            eprintln!("   DATABASE_URL: {}", redacted_url);
             eprintln!("   Make sure PostgreSQL is running and accessible");
+            eprintln!("   Hosted PostgreSQL often requires sslmode=require");
             eprintln!("   Ensure server is running: cargo run (in another terminal)");
             eprintln!("   Run tests with: cargo test -- --test-threads=1");
             e
@@ -95,6 +136,12 @@ pub fn build_signup_request(
         "first_name": first_name,
         "last_name": last_name,
         "phone_number": phone,
+        "phone_country_code": "+1",
+        "address_line1": "123 Test Street",
+        "address_line2": null,
+        "city": "Test City",
+        "state": "Test State",
+        "country": "Test Country",
         "role": role
     });
 
@@ -133,6 +180,7 @@ pub struct DbUser {
     pub id: Uuid,
     pub email: String,
     pub phone_number: String,
+    pub phone_country_code: Option<String>,
     pub first_name: String,
     pub last_name: String,
     pub password_hash: String,
@@ -169,7 +217,7 @@ pub mod db {
     /// Get user by email from database
     pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Option<DbUser> {
         sqlx::query_as::<_, DbUser>(
-            "SELECT id, email, phone_number, first_name, last_name, password_hash, is_approved, is_active, created_at FROM users WHERE email = $1"
+            "SELECT id, email, phone_number, phone_country_code, first_name, last_name, password_hash, is_approved, is_active, created_at FROM users WHERE email = $1"
         )
         .bind(email)
         .fetch_optional(pool)
@@ -180,7 +228,7 @@ pub mod db {
     /// Get user by ID from database
     pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Option<DbUser> {
         sqlx::query_as::<_, DbUser>(
-            "SELECT id, email, phone_number, first_name, last_name, password_hash, is_approved, is_active, created_at FROM users WHERE id = $1"
+            "SELECT id, email, phone_number, phone_country_code, first_name, last_name, password_hash, is_approved, is_active, created_at FROM users WHERE id = $1"
         )
         .bind(user_id)
         .fetch_optional(pool)

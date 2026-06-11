@@ -6,6 +6,61 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::NaiveDate;
+use std::fmt;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum AuthNextRoute {
+    None,
+    Activate,
+    VerifyOtp,
+    VerifyEmail,
+    ResetPassword,
+    SignIn,
+    SignUp,
+    Dashboard,
+    ProfileComplete,
+    SupportContact,
+    SetPassword,
+}
+
+impl AuthNextRoute {
+    pub fn as_path(self) -> &'static str {
+        match self {
+            Self::None => "",
+            Self::Activate => "/auth/activate",
+            Self::VerifyOtp => "/auth/verify-otp",
+            Self::VerifyEmail => "/auth/verify-email",
+            Self::ResetPassword => "/auth/reset-password",
+            Self::SignIn => "/auth/sign-in",
+            Self::SignUp => "/auth/sign-up",
+            Self::Dashboard => "/dashboard",
+            Self::ProfileComplete => "/profile/complete",
+            Self::SupportContact => "/support/contact",
+            Self::SetPassword => "/set-password",
+        }
+    }
+}
+
+impl fmt::Display for AuthNextRoute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::None => "NONE",
+            Self::Activate => "ACTIVATE",
+            Self::VerifyOtp => "VERIFY_OTP",
+            Self::VerifyEmail => "VERIFY_EMAIL",
+            Self::ResetPassword => "RESET_PASSWORD",
+            Self::SignIn => "SIGN_IN",
+            Self::SignUp => "SIGN_UP",
+            Self::Dashboard => "DASHBOARD",
+            Self::ProfileComplete => "PROFILE_COMPLETE",
+            Self::SupportContact => "SUPPORT_CONTACT",
+            Self::SetPassword => "SET_PASSWORD",
+        };
+
+        f.write_str(value)
+    }
+}
 
 // ============================================================================
 // SIGN UP REQUEST/RESPONSE
@@ -18,6 +73,12 @@ pub struct SignUpRequest {
     pub first_name: String,
     pub last_name: String,
     pub phone_number: Option<String>,
+    pub phone_country_code: Option<String>,
+    pub address_line1: Option<String>,
+    pub address_line2: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub country: Option<String>,
     pub role: String, // STAFF, PARENT, ADMIN, SCHOOL_ADMIN
     pub school_code: Option<String>, // Required for STAFF, PARENT, ADMIN; ignored for SCHOOL_ADMIN
 }
@@ -31,8 +92,7 @@ pub struct SignUpResponse {
     pub school_name: Option<String>,
     pub user_school_role_id: Uuid,
     pub message: String,
-    pub next_route: String, // e.g., "/auth/verify-email", "/auth/activate"
-    pub verification_token: String,
+    pub next_route: AuthNextRoute,
 }
 
 // DTOs for service-to-service creation of role-assigned users
@@ -57,6 +117,7 @@ pub struct CreateRoleUserRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateStudentInfo {
     pub student_id: Option<String>,
+    pub school_id: Uuid,
     pub admission_number: Option<String>,
     pub admission_date: Option<NaiveDate>,
     pub graduation_date: Option<NaiveDate>,
@@ -68,6 +129,19 @@ pub struct CreateStudentInfo {
     pub special_needs_description: Option<String>,
     pub transportation_method: Option<String>,
     pub passport_photo_url: Option<String>,
+    pub has_special_needs: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateUserInfo {
+    pub email: Option<String>,
+    pub phone_number: Option<String>,
+    pub first_name: String,
+    pub middle_name: Option<String>,
+    pub last_name: String,
+    pub gender: Option<String>,
+    pub date_of_birth: Option<NaiveDate>,
+    pub school_slug: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +157,20 @@ pub struct CreateParentInfo {
     pub occupation: Option<String>,
     pub employer_name: Option<String>,
     pub business_address: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateParentWithUserRequest {
+    pub school_id: Uuid,
+    pub email: String,
+    pub phone_number: Option<String>,
+    pub first_name: String,
+    pub middle_name: Option<String>,
+    pub last_name: String,
+    pub gender: Option<String>,
+    pub date_of_birth: Option<NaiveDate>,
+    pub parent: CreateParentInfo,
+    pub parent_student_relationships: Option<Vec<CreateParentStudentInfo>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -112,6 +200,21 @@ pub struct CreateStaffInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateStaffWithUserRequest {
+    pub school_id: Uuid,
+    pub email: String,
+    pub phone_number: Option<String>,
+    pub first_name: String,
+    pub middle_name: Option<String>,
+    pub last_name: String,
+    pub gender: Option<String>,
+    pub date_of_birth: Option<NaiveDate>,
+    pub staff: CreateStaffInfo,
+    pub staff_class_assignments: Option<Vec<CreateClassTeacherInfo>>,
+    pub staff_subject_assignments: Option<Vec<CreateSubjectTeacherInfo>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateClassTeacherInfo {
     pub class_id: Uuid,
     pub session_id: Uuid,
@@ -126,6 +229,35 @@ pub struct CreateSubjectTeacherInfo {
     pub session_id: Uuid,
     pub term_id: Uuid,
     pub assigned_date: Option<NaiveDate>,
+}
+
+// Update request shapes for role relationship editing via API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateStudentClassesRequest {
+    pub school_id: Uuid,
+    pub student_user_id: Uuid,
+    pub student_classes: Vec<CreateStudentClassInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateParentStudentsRequest {
+    pub school_id: Uuid,
+    pub parent_user_id: Uuid,
+    pub parent_student_relationships: Vec<CreateParentStudentInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateClassTeacherRequest {
+    pub school_id: Uuid,
+    pub staff_user_id: Uuid,
+    pub staff_class_assignments: Vec<CreateClassTeacherInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSubjectTeacherRequest {
+    pub school_id: Uuid,
+    pub staff_user_id: Uuid,
+    pub staff_subject_assignments: Vec<CreateSubjectTeacherInfo>,
 }
 
 // (Old CreateRoleUserRequestV2 removed; V2 fields merged into canonical struct above.)
@@ -166,7 +298,7 @@ pub struct SignInResponse {
     pub token_type: String,
     pub expires_in: i64, // seconds
     pub message: String,
-    pub next_route: String, // e.g., "/dashboard", "/profile/complete", "/verify-email"
+    pub next_route: AuthNextRoute,
     pub status: String,    // ACTIVE, PENDING_VERIFICATION, PENDING_ACTIVATION, etc.
     pub schools: Vec<UserSchoolWithRoles>, // List of schools with their associated roles
 }
@@ -186,7 +318,7 @@ pub struct ActivationResponse {
     pub user_id: Option<Uuid>,
     pub status: String, // "email_not_found", "otp_sent", "email_already_active"
     pub message: String,
-    pub next_route: String, // "/auth/sign-up", "/auth/verify-otp", "/dashboard"
+    pub next_route: AuthNextRoute,
     pub otp_sent: bool,
 }
 
@@ -197,14 +329,14 @@ pub struct ActivationResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerifyEmailRequest {
     pub email: String,
-    pub next_route: String, // e.g., "/auth/verify-otp", "/auth/reset-password"
+    pub next_route: AuthNextRoute,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerifyEmailResponse {
     pub email: String,
     pub message: String,
-    pub next_route: String, // e.g., "/auth/verify-otp", "/dashboard"
+    pub next_route: AuthNextRoute,
     pub otp_sent: bool,
 }
 
@@ -221,7 +353,7 @@ pub struct ForgotPasswordRequest {
 pub struct ForgotPasswordResponse {
     pub email: String,
     pub message: String,
-    pub next_route: String, // e.g., "/auth/reset-password"
+    pub next_route: AuthNextRoute,
     pub reset_token_sent: bool,
 }
 
@@ -242,7 +374,7 @@ pub struct ResetPasswordResponse {
     pub user_id: Uuid,
     pub email: String,
     pub message: String,
-    pub next_route: String, // e.g., "/auth/sign-in"
+    pub next_route: AuthNextRoute,
     pub reset_at: String,
 }
 
@@ -275,7 +407,7 @@ pub struct LogoutRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogoutResponse {
     pub message: String,
-    pub next_route: String, // e.g., "/auth/sign-in"
+    pub next_route: AuthNextRoute,
 }
 
 // ============================================================================
@@ -285,6 +417,7 @@ pub struct LogoutResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendOtpRequest {
     pub email: String,
+    pub next_route: AuthNextRoute,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -293,7 +426,7 @@ pub struct SendOtpResponse {
     pub message: String,
     pub otp_sent: bool,
     pub expires_in_seconds: i64, // e.g., 900 for 15 minutes
-    pub next_route: String,      // e.g., "/auth/verify-otp"
+    pub next_route: AuthNextRoute,
 }
 
 // ============================================================================
@@ -304,7 +437,7 @@ pub struct SendOtpResponse {
 pub struct VerifyOtpRequest {
     pub email: String,
     pub otp_code: String,
-    pub next_route: String,
+    pub next_route: AuthNextRoute,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -314,7 +447,7 @@ pub struct VerifyOtpResponse {
     pub message: String,
     pub otp_verified: bool,
     pub reset_token: String,
-    pub next_route: String, // e.g., "/auth/sign-in", "/auth/reset-password"
+    pub next_route: AuthNextRoute,
     pub verified_at: String,
 }
 
@@ -326,6 +459,6 @@ pub struct VerifyOtpResponse {
 pub struct AuthErrorResponse {
     pub error: String,
     pub message: String,
-    pub next_route: Option<String>, // Suggest next step on error
+    pub next_route: Option<AuthNextRoute>,
     pub status_code: u16,
 }

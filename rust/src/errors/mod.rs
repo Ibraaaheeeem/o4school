@@ -37,7 +37,8 @@ impl ResponseError for ApiError {
         };
 
         HttpResponse::build(status).json(json!({
-            "error": message,
+            "error": message.clone(),
+            "message": message,
             "status": status.as_u16(),
         }))
     }

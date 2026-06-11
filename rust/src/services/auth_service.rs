@@ -16,7 +16,9 @@ pub struct JwtClaims {
 use crate::db::Database;
 use crate::db::repositories::{UserRepository, SchoolRepository, UserSchoolRoleRepository, StudentRepository, ParentRepository, StaffRepository};
 use crate::errors::ApiError;
+use crate::services::EmailService;
 use crate::models::{
+    AuthNextRoute,
     User, SignUpRequest, SignUpResponse, SignInRequest, SignInResponse, ActivationRequest,
     ActivationResponse, VerifyEmailRequest, VerifyEmailResponse, ForgotPasswordRequest,
     ForgotPasswordResponse, ResetPasswordRequest, ResetPasswordResponse,
@@ -43,7 +45,7 @@ impl AuthService {
         }
 
         // Validate role
-        let valid_roles = vec!["STAFF", "PARENT", "SCHOOL_ADMIN"];
+        let valid_roles = vec!["STAFF", "PARENT", "ADMIN", "SCHOOL_ADMIN"];
         if !valid_roles.contains(&req.role.as_str()) {
             return Err(ApiError::ValidationError(format!("Invalid role. Must be one of: {}", valid_roles.join(", "))));
         }
@@ -56,12 +58,12 @@ impl AuthService {
                 id: Uuid::new_v4(),
                 name: format!("School Admin - {}", req.email),
                 slug: format!("admin-{}", Uuid::new_v4().simple()),
-                address_line1: String::new(),
-                address_line2: None,
-                city: String::new(),
-                state: String::new(),
+                address_line1: req.address_line1.clone().unwrap_or_default(),
+                address_line2: req.address_line2.clone(),
+                city: req.city.clone().unwrap_or_default(),
+                state: req.state.clone().unwrap_or_default(),
                 postal_code: None,
-                country: String::new(),
+                country: req.country.clone().unwrap_or_default(),
                 status: Some("ACTIVE".to_string()),
                 timezone: Some("UTC".to_string()),
                 currency: Some("USD".to_string()),
@@ -101,18 +103,68 @@ impl AuthService {
                     return Err(ApiError::BadRequest(format!("User {} already has {} role at this school", req.email, req.role)));
                 }
 
-                    // Phone consistency: if request provides a phone different from existing, reject
+                    // Phone consistency for existing users:
+                    // - if user has no phone, set it from request
+                    // - if user has a different phone, do not reject; keep existing phone
                     if let Some(req_phone) = &req.phone_number {
-                        if let Some(existing_phone) = &existing_user.phone_number {
-                            if !existing_phone.is_empty() && existing_phone != req_phone {
-                                return Err(ApiError::BadRequest("Provided phone number does not match existing user phone".to_string()));
+                            // If another user already uses this phone, reject to preserve uniqueness
+                            let phone_owner: Option<Uuid> = sqlx::query_scalar("SELECT id FROM users WHERE phone_number = $1 LIMIT 1")
+                                .bind(req_phone)
+                                .fetch_optional(db.pool())
+                                .await
+                                .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+
+                            if let Some(owner_id) = phone_owner {
+                                if owner_id != existing_user.id {
+                                    return Err(ApiError::BadRequest("Phone number already in use".to_string()));
+                                }
                             }
-                        } else {
-                            // set phone when none exists
-                            existing_user.phone_number = Some(req_phone.clone());
-                            existing_user.updated_at = Utc::now();
-                            let _ = UserRepository::update(db.pool(), existing_user.id, &existing_user).await?;
-                        }
+
+                            if let Some(existing_phone) = &existing_user.phone_number {
+                                if !existing_phone.is_empty() && existing_phone != req_phone {
+                                    log::warn!(
+                                        "sign_up: phone mismatch for existing user {} (existing={}, request={}), preserving existing value",
+                                        req.email,
+                                        existing_phone,
+                                        req_phone
+                                    );
+                                }
+                            } else {
+                                // set phone when none exists
+                                existing_user.phone_number = Some(req_phone.clone());
+                                existing_user.updated_at = Utc::now();
+                                let _ = UserRepository::update(db.pool(), existing_user.id, &existing_user).await?;
+                            }
+                    }
+
+                    let mut existing_user_needs_update = false;
+                    if req.phone_country_code.is_some() && existing_user.phone_country_code.is_none() {
+                        existing_user.phone_country_code = req.phone_country_code.clone();
+                        existing_user_needs_update = true;
+                    }
+                    if req.address_line1.is_some() && existing_user.address_line1.is_none() {
+                        existing_user.address_line1 = req.address_line1.clone();
+                        existing_user_needs_update = true;
+                    }
+                    if req.address_line2.is_some() && existing_user.address_line2.is_none() {
+                        existing_user.address_line2 = req.address_line2.clone();
+                        existing_user_needs_update = true;
+                    }
+                    if req.city.is_some() && existing_user.city.is_none() {
+                        existing_user.city = req.city.clone();
+                        existing_user_needs_update = true;
+                    }
+                    if req.state.is_some() && existing_user.state.is_none() {
+                        existing_user.state = req.state.clone();
+                        existing_user_needs_update = true;
+                    }
+                    if req.country.is_some() && (existing_user.country.is_empty() || existing_user.country == "Unknown") {
+                        existing_user.country = req.country.clone().unwrap_or_default();
+                        existing_user_needs_update = true;
+                    }
+                    if existing_user_needs_update {
+                        existing_user.updated_at = Utc::now();
+                        let _ = UserRepository::update(db.pool(), existing_user.id, &existing_user).await?;
                     }
 
                 // Create user_school_role for existing user
@@ -183,18 +235,18 @@ impl AuthService {
                             designation: "Staff".to_string(),
                             hire_date: Utc::now().date_naive(),
                             termination_date: None,
-                            employment_status: "ACTIVE".to_string(),
-                            employment_type: "FULL_TIME".to_string(),
+                            employment_status: Some("ACTIVE".to_string()),
+                            employment_type: Some("FULL_TIME".to_string()),
                             highest_degree: None,
                             department: None,
-                            is_class_teacher: false,
-                            is_subject_teacher: false,
+                            is_class_teacher: Some(false),
+                            is_subject_teacher: Some(false),
                             bank_name: None,
                             account_name: None,
                             account_number: None,
-                            monthly_deduction: 0.0,
+                            monthly_deduction: Some(0.0),
                             class_teacher_for: None,
-                            years_of_experience: 0,
+                            years_of_experience: Some(0),
                             created_at: Utc::now().naive_utc(),
                             updated_at: Utc::now().naive_utc(),
                             is_active: false,
@@ -212,8 +264,7 @@ impl AuthService {
                     school_name: Some(school.name.clone()),
                     user_school_role_id: created_role.id,
                     message: format!("Role {} assigned to existing user {}", req.role, existing_user.email.clone()),
-                    next_route: "".to_string(),
-                    verification_token: "".to_string(),
+                    next_route: AuthNextRoute::None
                 });
             }
             Err(_) => {
@@ -222,13 +273,31 @@ impl AuthService {
         }
 
         // Hash password and create user
+        // Before creating user, ensure phone uniqueness (global)
+        if let Some(req_phone) = &req.phone_number {
+            let phone_owner: Option<Uuid> = sqlx::query_scalar("SELECT id FROM users WHERE phone_number = $1 LIMIT 1")
+                .bind(req_phone)
+                .fetch_optional(db.pool())
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+
+            if phone_owner.is_some() {
+                return Err(ApiError::BadRequest("Phone number already in use".to_string()));
+            }
+        }
+
         let password_hash = hash(&req.password, DEFAULT_COST)
             .map_err(|_| ApiError::InternalServerError("Password hashing failed".to_string()))?;
+
+        // First-time signup: generate OTP now so user can verify immediately.
+        let signup_otp = Self::generate_otp();
+        let signup_otp_expires = Utc::now() + chrono::Duration::minutes(15);
 
         let user = User {
             id: Uuid::new_v4(),
             email: req.email.clone(),
             phone_number: req.phone_number.clone(),
+            phone_country_code: req.phone_country_code.clone(),
             password_hash: Some(password_hash),
             first_name: Some(req.first_name.clone()),
             last_name: Some(req.last_name.clone()),
@@ -236,12 +305,12 @@ impl AuthService {
             date_of_birth: None,
             gender: None,
             profile_picture_url: None,
-            address_line1: None,
-            address_line2: None,
-            city: None,
-            state: None,
+            address_line1: req.address_line1.clone(),
+            address_line2: req.address_line2.clone(),
+            city: req.city.clone(),
+            state: req.state.clone(),
             postal_code: None,
-            country: "Unknown".to_string(),
+            country: req.country.clone().unwrap_or_else(|| "Unknown".to_string()),
             status: "PENDING".to_string(),
             is_verified: false,
             is_approved: Some(false),
@@ -249,9 +318,9 @@ impl AuthService {
             approved_at: None,
             approved_by: None,
             last_login_at: None,
-            otp_code: None,
-            otp_expires: None,
-            last_otp_sent: None,
+            otp_code: Some(signup_otp.clone()),
+            otp_expires: Some(signup_otp_expires),
+            last_otp_sent: Some(Utc::now()),
             created_at: Utc::now(),
             updated_at: Utc::now(),
             is_active: false,
@@ -327,18 +396,18 @@ impl AuthService {
                     designation: "Staff".to_string(),
                     hire_date: Utc::now().date_naive(),
                     termination_date: None,
-                    employment_status: "ACTIVE".to_string(),
-                    employment_type: "FULL_TIME".to_string(),
+                    employment_status: Some("ACTIVE".to_string()),
+                    employment_type: Some("FULL_TIME".to_string()),
                     highest_degree: None,
                     department: None,
-                    is_class_teacher: false,
-                    is_subject_teacher: false,
+                    is_class_teacher: Some(false),
+                    is_subject_teacher: Some(false),
                     bank_name: None,
                     account_name: None,
                     account_number: None,
-                    monthly_deduction: 0.0,
+                    monthly_deduction: Some(0.0),
                     class_teacher_for: None,
-                    years_of_experience: 0,
+                    years_of_experience: Some(0),
                     created_at: Utc::now().naive_utc(),
                     updated_at: Utc::now().naive_utc(),
                     is_active: false,
@@ -348,6 +417,20 @@ impl AuthService {
             _ => {}
         }
 
+        if cfg!(debug_assertions) {
+            log::debug!("sign_up debug OTP for {}: {}", created_user.email, signup_otp);
+        }
+
+        EmailService::from_env()?
+            .send_code_email(
+                &created_user.email,
+                "Your email verification code",
+                "email verification",
+                &signup_otp,
+                15,
+            )
+            .await?;
+
         Ok(SignUpResponse {
             user_id: created_user.id,
             email: created_user.email,
@@ -356,8 +439,7 @@ impl AuthService {
             school_name: Some(school.name.clone()),
             user_school_role_id: created_role.id,
             message: format!("Sign up successful as {} for {}. Please verify your email to continue by entering the OTP received in your email.", req.role, school.name),
-            next_route: "/auth/activate".to_string(),
-            verification_token: "".to_string(), // For email verification flow, we will use OTP instead of token
+            next_route: AuthNextRoute::VerifyOtp,
         })
     }
 
@@ -494,18 +576,18 @@ impl AuthService {
                             designation: staff_info.designation.unwrap_or_else(|| "Staff".to_string()),
                             hire_date: staff_info.hire_date.unwrap_or_else(|| Utc::now().date_naive()),
                             termination_date: None,
-                            employment_status: staff_info.employment_status.unwrap_or_else(|| "ACTIVE".to_string()),
-                            employment_type: staff_info.employment_type.unwrap_or_else(|| "FULL_TIME".to_string()),
+                            employment_status: Some(staff_info.employment_status.unwrap_or_else(|| "ACTIVE".to_string())),
+                            employment_type: Some(staff_info.employment_type.unwrap_or_else(|| "FULL_TIME".to_string())),
                             highest_degree: staff_info.highest_degree,
                             department: staff_info.department,
-                            is_class_teacher: staff_info.is_class_teacher.unwrap_or(false),
-                            is_subject_teacher: staff_info.is_subject_teacher.unwrap_or(false),
+                            is_class_teacher: Some(staff_info.is_class_teacher.unwrap_or(false)),
+                            is_subject_teacher: Some(staff_info.is_subject_teacher.unwrap_or(false)),
                             bank_name: staff_info.bank_name,
                             account_name: staff_info.account_name,
                             account_number: staff_info.account_number,
-                            monthly_deduction: staff_info.monthly_deduction.unwrap_or(0.0),
+                            monthly_deduction: Some(staff_info.monthly_deduction.unwrap_or(0.0)),
                             class_teacher_for: staff_info.class_teacher_for,
-                            years_of_experience: staff_info.years_of_experience.unwrap_or(0),
+                            years_of_experience: Some(staff_info.years_of_experience.unwrap_or(0)),
                             created_at: Utc::now().naive_utc(),
                             updated_at: Utc::now().naive_utc(),
                             is_active: true,
@@ -530,8 +612,7 @@ impl AuthService {
                 school_name: Some(school.name.clone()),
                 user_school_role_id: created_role.id,
                 message: format!("Role {} assigned to existing user {}", req.role, user.email.clone()),
-                next_route: "".to_string(),
-                verification_token: "".to_string(),
+                next_route: AuthNextRoute::Dashboard,
             });
         }
 
@@ -540,6 +621,7 @@ impl AuthService {
             id: Uuid::new_v4(),
             email: req.email.clone(),
             phone_number: req.phone_number.clone(),
+            phone_country_code: None,
             password_hash: None,
             first_name: Some(req.first_name.clone()),
             last_name: Some(req.last_name.clone()),
@@ -643,18 +725,18 @@ impl AuthService {
                         designation: staff_info.designation.unwrap_or_else(|| "Staff".to_string()),
                         hire_date: staff_info.hire_date.unwrap_or_else(|| Utc::now().date_naive()),
                         termination_date: None,
-                        employment_status: staff_info.employment_status.unwrap_or_else(|| "ACTIVE".to_string()),
-                        employment_type: staff_info.employment_type.unwrap_or_else(|| "FULL_TIME".to_string()),
+                        employment_status: Some(staff_info.employment_status.unwrap_or_else(|| "ACTIVE".to_string())),
+                        employment_type: Some(staff_info.employment_type.unwrap_or_else(|| "FULL_TIME".to_string())),
                         highest_degree: staff_info.highest_degree,
                         department: staff_info.department,
-                        is_class_teacher: staff_info.is_class_teacher.unwrap_or(false),
-                        is_subject_teacher: staff_info.is_subject_teacher.unwrap_or(false),
+                        is_class_teacher: Some(staff_info.is_class_teacher.unwrap_or(false)),
+                        is_subject_teacher: Some(staff_info.is_subject_teacher.unwrap_or(false)),
                         bank_name: staff_info.bank_name,
                         account_name: staff_info.account_name,
                         account_number: staff_info.account_number,
-                        monthly_deduction: staff_info.monthly_deduction.unwrap_or(0.0),
+                        monthly_deduction: Some(staff_info.monthly_deduction.unwrap_or(0.0)),
                         class_teacher_for: staff_info.class_teacher_for,
-                        years_of_experience: staff_info.years_of_experience.unwrap_or(0),
+                        years_of_experience: Some(staff_info.years_of_experience.unwrap_or(0)),
                         created_at: Utc::now().naive_utc(),
                         updated_at: Utc::now().naive_utc(),
                         is_active: false,
@@ -675,8 +757,7 @@ impl AuthService {
             school_name: Some(school.name.clone()),
             user_school_role_id: created_role.id,
             message: format!("User {} added as a {}. Now, they will have to activate and set their login password", created_user.email.clone(), req.role),
-            next_route: "/auth/activate".to_string(),
-            verification_token: Self::generate_token(),
+            next_route: AuthNextRoute::VerifyOtp,
         })
     }
 
@@ -685,7 +766,7 @@ impl AuthService {
         // Query the roles table for the role name. This avoids hardcoded UUIDs
         // and ensures we only use role IDs that actually exist in the database.
         let pool = _db.pool();
-        match sqlx::query_scalar::<_, Uuid>("SELECT id FROM roles WHERE name = $1 LIMIT 1")
+        match sqlx::query_scalar::<sqlx::Postgres, Uuid>("SELECT id FROM roles WHERE name = $1 LIMIT 1")
             .bind(role_name)
             .fetch_optional(pool)
             .await
@@ -722,6 +803,221 @@ impl AuthService {
         })
     }
 
+    /// Update student class enrollments (replace/create provided enrollments)
+    pub async fn update_student_classes(db: &Database, req: crate::models::auth::UpdateStudentClassesRequest, performed_by: Option<Uuid>) -> Result<(), ApiError> {
+        // Authorization: ensure caller is SCHOOL_ADMIN for the school
+        if let Some(actor) = performed_by {
+            let school_admin_role_id = Self::get_role_id_for_name(db, "SCHOOL_ADMIN").await?;
+            let is_admin = crate::db::repositories::UserSchoolRoleRepository::exists(db.pool(), actor, req.school_id, school_admin_role_id).await?;
+            if !is_admin {
+                return Err(ApiError::Unauthorized("Caller is not a SCHOOL_ADMIN for this school".to_string()));
+            }
+        }
+
+        // resolve student by user id
+        let student = crate::db::repositories::StudentRepository::get_by_user_id(db.pool(), req.student_user_id).await.map_err(|_| ApiError::NotFound("Student record not found for provided user id".to_string()))?;
+
+        for sc in req.student_classes.into_iter() {
+            let class_track = sqlx::query_scalar::<sqlx::Postgres, Uuid>(
+                "SELECT track_id FROM classes WHERE id = $1 AND school_id = $2 AND is_active = true"
+            )
+                .bind(sc.class_id)
+                .bind(req.school_id)
+                .fetch_optional(db.pool())
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.to_string()))?
+                .ok_or_else(|| ApiError::ValidationError(format!("Class {} not found for provided school", sc.class_id)))?;
+
+            let enrollment_date = sc.enrollment_date.unwrap_or_else(|| Utc::now().date_naive());
+            let _ = sqlx::query("INSERT INTO student_classes (id, school_id, student_id, class_id, academic_session_id, term_id, track_id, enrollment_date, created_at, updated_at, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW(),NOW(),true) ON CONFLICT (student_id, track_id, academic_session_id, term_id) DO UPDATE SET class_id = EXCLUDED.class_id, school_id = EXCLUDED.school_id, enrollment_date = EXCLUDED.enrollment_date, updated_at = NOW(), is_active = true")
+                .bind(Uuid::new_v4())
+                .bind(req.school_id)
+                .bind(student.id)
+                .bind(sc.class_id)
+                .bind(sc.session_id)
+                .bind(sc.term_id)
+                .bind(class_track)
+                .bind(enrollment_date)
+                .execute(db.pool())
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+
+    /// Update parent-student relationships
+    pub async fn update_parent_student_relationships(db: &Database, req: crate::models::auth::UpdateParentStudentsRequest, performed_by: Option<Uuid>) -> Result<(), ApiError> {
+        if let Some(actor) = performed_by {
+            let school_admin_role_id = Self::get_role_id_for_name(db, "SCHOOL_ADMIN").await?;
+            let is_admin = crate::db::repositories::UserSchoolRoleRepository::exists(db.pool(), actor, req.school_id, school_admin_role_id).await?;
+            if !is_admin {
+                return Err(ApiError::Unauthorized("Caller is not a SCHOOL_ADMIN for this school".to_string()));
+            }
+        }
+
+        // resolve parent record from user id
+        let parent = match crate::db::repositories::ParentRepository::get_by_user_id(db.pool(), req.parent_user_id).await {
+            Ok(p) => p,
+            Err(_) => return Err(ApiError::NotFound("Parent record not found for provided user id".to_string())),
+        };
+
+        for rel in req.parent_student_relationships.into_iter() {
+            // delete any existing relation for this parent-student
+            let _ = sqlx::query("DELETE FROM parent_student_relationships WHERE parent_id = $1 AND student_id = $2")
+                .bind(parent.id)
+                .bind(rel.student_id)
+                .execute(db.pool())
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+
+            let id = Uuid::new_v4();
+            let relationship = rel.relationship.unwrap_or_else(|| "GUARDIAN".to_string());
+            let _ = sqlx::query("INSERT INTO parent_student_relationships (id, school_id, parent_id, student_id, relationship_type, created_at, updated_at, is_active) VALUES ($1,$2,$3,$4,$5,NOW(),NOW(),true)")
+                .bind(id)
+                .bind(req.school_id)
+                .bind(parent.id)
+                .bind(rel.student_id)
+                .bind(relationship)
+                .execute(db.pool())
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+
+    /// Update class teacher assignments
+    pub async fn update_class_teacher_assignments(db: &Database, req: crate::models::auth::UpdateClassTeacherRequest, performed_by: Option<Uuid>) -> Result<(), ApiError> {
+        if let Some(actor) = performed_by {
+            let school_admin_role_id = Self::get_role_id_for_name(db, "SCHOOL_ADMIN").await?;
+            let is_admin = crate::db::repositories::UserSchoolRoleRepository::exists(db.pool(), actor, req.school_id, school_admin_role_id).await?;
+            if !is_admin {
+                return Err(ApiError::Unauthorized("Caller is not a SCHOOL_ADMIN for this school".to_string()));
+            }
+        }
+
+        // resolve staff id
+        let staff = crate::db::repositories::StaffRepository::get_by_user_id(db.pool(), req.staff_user_id).await.map_err(|_| ApiError::NotFound("Staff record not found for provided user id".to_string()))?;
+
+        // Resolve session and term IDs
+        let session_id = match req.staff_class_assignments.first() {
+            Some(a) => a.session_id,
+            None => {
+                sqlx::query_scalar::<sqlx::Postgres, Uuid>("SELECT id FROM academic_sessions WHERE school_id = $1 AND is_current_session = true LIMIT 1")
+                    .bind(req.school_id)
+                    .fetch_optional(db.pool())
+                    .await
+                    .map_err(|e| ApiError::DatabaseError(e.to_string()))?
+                    .unwrap_or(Uuid::nil())
+            }
+        };
+
+        let term_id = match req.staff_class_assignments.first() {
+            Some(a) => a.term_id,
+            None => {
+                sqlx::query_scalar::<sqlx::Postgres, Uuid>("SELECT id FROM terms WHERE academic_session_id = $1 AND is_current_term = true LIMIT 1")
+                    .bind(session_id)
+                    .fetch_optional(db.pool())
+                    .await
+                    .map_err(|e| ApiError::DatabaseError(e.to_string()))?
+                    .unwrap_or(Uuid::nil())
+            }
+        };
+
+        // Clear existing active class assignments for this staff in the current session/term
+        let _ = sqlx::query("DELETE FROM class_teachers WHERE staff_id = $1 AND school_id = $2 AND academic_session_id = $3 AND term_id = $4")
+            .bind(staff.id)
+            .bind(req.school_id)
+            .bind(session_id)
+            .bind(term_id)
+            .execute(db.pool())
+            .await
+            .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+
+        for a in req.staff_class_assignments.into_iter() {
+            let id = Uuid::new_v4();
+            let _ = sqlx::query("INSERT INTO class_teachers (id, school_id, class_id, staff_id, academic_session_id, term_id, created_at, updated_at, is_active) VALUES ($1,$2,$3,$4,$5,$6,NOW(),NOW(),true)")
+                .bind(id)
+                .bind(req.school_id)
+                .bind(a.class_id)
+                .bind(staff.id)
+                .bind(a.session_id)
+                .bind(a.term_id)
+                .execute(db.pool())
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+
+    /// Update subject teacher assignments
+    pub async fn update_subject_teacher_assignments(db: &Database, req: crate::models::auth::UpdateSubjectTeacherRequest, performed_by: Option<Uuid>) -> Result<(), ApiError> {
+        if let Some(actor) = performed_by {
+            let school_admin_role_id = Self::get_role_id_for_name(db, "SCHOOL_ADMIN").await?;
+            let is_admin = crate::db::repositories::UserSchoolRoleRepository::exists(db.pool(), actor, req.school_id, school_admin_role_id).await?;
+            if !is_admin {
+                return Err(ApiError::Unauthorized("Caller is not a SCHOOL_ADMIN for this school".to_string()));
+            }
+        }
+
+        // resolve staff id
+        let staff = crate::db::repositories::StaffRepository::get_by_user_id(db.pool(), req.staff_user_id).await.map_err(|_| ApiError::NotFound("Staff record not found for provided user id".to_string()))?;
+
+        // Resolve session and term IDs
+        let session_id = match req.staff_subject_assignments.first() {
+            Some(a) => a.session_id,
+            None => {
+                sqlx::query_scalar::<sqlx::Postgres, Uuid>("SELECT id FROM academic_sessions WHERE school_id = $1 AND is_current_session = true LIMIT 1")
+                    .bind(req.school_id)
+                    .fetch_optional(db.pool())
+                    .await
+                    .map_err(|e| ApiError::DatabaseError(e.to_string()))?
+                    .unwrap_or(Uuid::nil())
+            }
+        };
+
+        let term_id = match req.staff_subject_assignments.first() {
+            Some(a) => a.term_id,
+            None => {
+                sqlx::query_scalar::<sqlx::Postgres, Uuid>("SELECT id FROM terms WHERE academic_session_id = $1 AND is_current_term = true LIMIT 1")
+                    .bind(session_id)
+                    .fetch_optional(db.pool())
+                    .await
+                    .map_err(|e| ApiError::DatabaseError(e.to_string()))?
+                    .unwrap_or(Uuid::nil())
+            }
+        };
+
+        // Clear existing active subject assignments for this staff in the current session/term
+        let _ = sqlx::query("DELETE FROM subject_teachers WHERE staff_id = $1 AND school_id = $2 AND academic_session_id = $3 AND term_id = $4")
+            .bind(staff.id)
+            .bind(req.school_id)
+            .bind(session_id)
+            .bind(term_id)
+            .execute(db.pool())
+            .await
+            .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+
+        for a in req.staff_subject_assignments.into_iter() {
+            let id = Uuid::new_v4();
+            let _ = sqlx::query("INSERT INTO subject_teachers (id, school_id, subject_id, staff_id, class_id, academic_session_id, term_id, created_at, updated_at, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW(),true)")
+                .bind(id)
+                .bind(req.school_id)
+                .bind(a.subject_id)
+                .bind(staff.id)
+                .bind(a.class_id)
+                .bind(a.session_id)
+                .bind(a.term_id)
+                .execute(db.pool())
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+
 
     
     // ========================================================================
@@ -752,11 +1048,19 @@ impl AuthService {
 
         UserRepository::update(db.pool(), user.id, &user).await?;
 
-        // TODO: Send OTP to email via email service
+        EmailService::from_env()?
+            .send_code_email(
+                &user.email,
+                "Your email verification code",
+                "email verification",
+                &otp_code,
+                15,
+            )
+            .await?;
         log::info!("OTP sent to email: {}", user.email);
 
         // Generate conditional message based on next_route
-        let message = if req.next_route == "/auth/reset-password" {
+        let message = if req.next_route == AuthNextRoute::ResetPassword {
             "OTP sent successfully to your email. Enter the OTP to reset your password".to_string()
         } else {
             "OTP sent successfully to your email. Enter the OTP received to verify your email".to_string()
@@ -765,7 +1069,7 @@ impl AuthService {
         Ok(VerifyEmailResponse {
             email: user.email,
             message,
-            next_route: req.next_route.to_string(),
+            next_route: req.next_route,
             otp_sent: true,
         })
     }
@@ -795,7 +1099,7 @@ impl AuthService {
                     user_id: None,
                     status: "email_not_found".to_string(),
                     message: "Email address not found in our records".to_string(),
-                    next_route: "/auth/sign-up".to_string(),
+                    next_route: AuthNextRoute::SignUp,
                     otp_sent: false,
                 })
             }
@@ -808,7 +1112,7 @@ impl AuthService {
                         user_id: Some(user.id),
                         status: "email_already_active".to_string(),
                         message: "Email address is already active. Please sign in to continue or use \"Forgot password\" link if you can't remember your password.".to_string(),
-                        next_route: "/auth/sign-in".to_string(),
+                        next_route: AuthNextRoute::SignIn,
                         otp_sent: false,
                     });
                 }
@@ -826,7 +1130,15 @@ impl AuthService {
 
                 UserRepository::update(db.pool(), user.id, &user).await?;
 
-                // TODO: Send OTP to email via email service
+                EmailService::from_env()?
+                    .send_code_email(
+                        &user.email,
+                        "Your account activation code",
+                        "account activation",
+                        &otp_code,
+                        15,
+                    )
+                    .await?;
                 log::info!("OTP sent for account activation: {}", user.email);
 
                 Ok(ActivationResponse {
@@ -834,7 +1146,7 @@ impl AuthService {
                     user_id: Some(user.id),
                     status: "otp_sent".to_string(),
                     message: format!("OTP sent to {}. Please enter the OTP to verify your account.", req.email),
-                    next_route: "/auth/verify-otp".to_string(),
+                    next_route: AuthNextRoute::VerifyOtp,
                     otp_sent: true,
                 })
             }
@@ -874,9 +1186,9 @@ impl AuthService {
         // Check user status
         if user.status != "ACTIVE" {
             let next_route = match user.status.as_str() {
-                "PENDING" => "/auth/verify-email",
-                "SUSPENDED" => "/support/contact",
-                _ => "/dashboard",
+                "PENDING" => AuthNextRoute::VerifyEmail,
+                "SUSPENDED" => AuthNextRoute::SupportContact,
+                _ => AuthNextRoute::Dashboard,
             };
 
             return Err(ApiError::Unauthorized(format!(
@@ -930,12 +1242,12 @@ impl AuthService {
 
         let next_route = if let Some(first_name) = &user.first_name {
             if first_name.is_empty() {
-                "/profile/complete"
+                AuthNextRoute::ProfileComplete
             } else {
-                "/dashboard"
+                AuthNextRoute::Dashboard
             }
         } else {
-            "/profile/complete"
+            AuthNextRoute::ProfileComplete
         };
 
         Ok(SignInResponse {
@@ -948,7 +1260,7 @@ impl AuthService {
             token_type: "Bearer".to_string(),
             expires_in: 3600, // 1 hour
             message: "Sign in successful".to_string(),
-            next_route: next_route.to_string(),
+            next_route,
             status: "ACTIVE".to_string(),
             schools,
         })
@@ -976,14 +1288,22 @@ impl AuthService {
 
         UserRepository::update(db.pool(), user.id, &user).await?;
 
-        // TODO: Send password reset email here with the reset_token
+        EmailService::from_env()?
+            .send_code_email(
+                &user.email,
+                "Your password reset code",
+                "password reset",
+                &reset_token,
+                60,
+            )
+            .await?;
 
         log::info!("Password reset requested for user: {}", user.email);
 
         Ok(ForgotPasswordResponse {
             email: user.email,
             message: "OTP sent to your email".to_string(),
-            next_route: "/auth/reset-password".to_string(),
+            next_route: AuthNextRoute::ResetPassword,
             reset_token_sent: true,
         })
     }
@@ -1042,7 +1362,7 @@ impl AuthService {
             user_id: user.id,
             email: user.email,
             message: "Password reset successfully".to_string(),
-            next_route: "/auth/sign-in".to_string(),
+            next_route: AuthNextRoute::SignIn,
             reset_at: Utc::now().to_rfc3339(),
         })
     }
@@ -1067,7 +1387,7 @@ impl AuthService {
 
         Ok(LogoutResponse {
             message: "Logged out successfully".to_string(),
-            next_route: "/auth/sign-in".to_string(),
+            next_route: AuthNextRoute::SignIn,
         })
     }
 
@@ -1099,7 +1419,15 @@ impl AuthService {
 
         UserRepository::update(db.pool(), user.id, &user).await?;
 
-        // TODO: Send OTP to email via email service
+        EmailService::from_env()?
+            .send_code_email(
+                &user.email,
+                "Your one-time password",
+                "one-time password",
+                &otp_code,
+                15,
+            )
+            .await?;
         log::info!("OTP sent to email: {}", user.email);
 
         Ok(SendOtpResponse {
@@ -1107,7 +1435,7 @@ impl AuthService {
             message: "OTP sent successfully to your email".to_string(),
             otp_sent: true,
             expires_in_seconds: 900, // 15 minutes
-            next_route: "/auth/verify-otp".to_string(),
+            next_route: AuthNextRoute::VerifyOtp,
         })
     }
 
@@ -1156,14 +1484,14 @@ impl AuthService {
         log::info!("OTP verified and account activated for user: {}", user.email);
 
         // Generate conditional message based on next_route
-        let message = if req.next_route == "/set-password" {
+        let message = if req.next_route == AuthNextRoute::SetPassword {
             "OTP verified successfully. Now, proceed to change password".to_string()
         } else {
             "OTP verified successfully. Your account is now active".to_string()
         };
 
         // Generate reset token for password change if needed
-        let reset_token = if req.next_route == "/set-password" {
+        let reset_token = if req.next_route == AuthNextRoute::SetPassword {
             Self::generate_token()
         } else {
             String::new()
@@ -1175,7 +1503,7 @@ impl AuthService {
             message,
             otp_verified: true,
             reset_token,
-            next_route: req.next_route.to_string(),
+            next_route: req.next_route,
             verified_at: Utc::now().to_rfc3339(),
         })
     }
@@ -1189,7 +1517,7 @@ impl AuthService {
         Uuid::new_v4().to_string().replace("-", "")[..32].to_string()
     }
 
-    fn generate_otp() -> String {
+    pub fn generate_otp() -> String {
         use rand::Rng;
         let mut rng = rand::thread_rng();
         format!("{:06}", rng.gen_range(0..1000000))

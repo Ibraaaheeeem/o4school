@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules xmlns:tools="http://schemas.android.com/tools">
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true"
+            tools:ignore="FullBackupContent">10.0.3.2</domain>
+    </domain-config>
+</data-extraction-rules>

@@ -67,7 +67,7 @@ Expected response:
 **Actions**:
 - ✅ Click **Send**
 - ✅ Check console for captured values
-- ✅ Note the `verification_token` value (you'll see it in the test output)
+- ✅ Note the `verification_token` value (you'll lysee it in the test output)
 
 ---
 

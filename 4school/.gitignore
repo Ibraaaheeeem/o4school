@@ -1,0 +1,42 @@
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS Files
+*.log
+
+# Android Studio generated files and folders
+.idea/
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+
+# IntelliJ
+*.iml
+*.iws
+*.ipr
+
+# The .settings folder contains metadata about the IDE state for each project, and should
+# be checked into source control
+.settings/
+
+# The .classpath file is required if you are using Eclipse IDE.
+.classpath
+
+# Annotation Processing
+app/src/main/java/com/haneef/school/BuildConfig.java
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (if using Firebase)
+google-services.json
+
+# Outgoing files
+bin/
+out/

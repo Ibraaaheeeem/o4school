@@ -13,7 +13,7 @@ actix-cors = "0.7"
 tokio = { version = "1", features = ["full"] }
 
 # Database
-sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls", "uuid", "chrono"] }
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls", "uuid", "chrono", "migrate"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -42,6 +42,9 @@ jsonwebtoken = "9.0"
 # Password hashing
 bcrypt = "0.15"
 
+# Email delivery
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-native-tls"] }
+
 # Random number generation
 rand = "0.8"
 
@@ -63,3 +66,15 @@ actix-test = "0.1"
 [[bin]]
 name = "server"
 path = "src/main.rs"
+
+[[test]]
+name = "scoring_scheme_endpoints_tests"
+path = "tests/assessment/scoring_scheme_endpoints_tests.rs"
+
+[[test]]
+name = "assessment_endpoints_tests"
+path = "tests/assessment/assessment_endpoints_tests.rs"
+
+[[test]]
+name = "school_package_endpoints_tests"
+path = "tests/school/school_package_endpoints_tests.rs"

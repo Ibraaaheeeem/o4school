@@ -16,6 +16,7 @@ use crate::models::{
 use crate::models::auth::CreateRoleUserRequest;
 use crate::services::AuthService;
 use crate::middleware::UserContext;
+use crate::models::auth::{UpdateStudentClassesRequest, UpdateParentStudentsRequest, UpdateClassTeacherRequest, UpdateSubjectTeacherRequest};
 
 // ============================================================================
 // SIGN UP HANDLER
@@ -195,6 +196,50 @@ pub async fn verify_otp(
     log::info!("Verify OTP handler: OTP verified for {}", response.user_id);
 
     Ok(HttpResponse::Ok().json(response))
+}
+
+/// PUT /api/auth/role/student-classes
+pub async fn update_student_classes(
+    db: web::Data<Database>,
+    req: web::Json<UpdateStudentClassesRequest>,
+    user_ctx: UserContext,
+) -> Result<HttpResponse, ApiError> {
+    let payload = req.into_inner();
+    AuthService::update_student_classes(&db, payload, Some(user_ctx.user_id)).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status":"ok"})))
+}
+
+/// PUT /api/auth/role/parent-students
+pub async fn update_parent_students(
+    db: web::Data<Database>,
+    req: web::Json<UpdateParentStudentsRequest>,
+    user_ctx: UserContext,
+) -> Result<HttpResponse, ApiError> {
+    let payload = req.into_inner();
+    AuthService::update_parent_student_relationships(&db, payload, Some(user_ctx.user_id)).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status":"ok"})))
+}
+
+/// PUT /api/auth/role/class-teachers
+pub async fn update_class_teachers(
+    db: web::Data<Database>,
+    req: web::Json<UpdateClassTeacherRequest>,
+    user_ctx: UserContext,
+) -> Result<HttpResponse, ApiError> {
+    let payload = req.into_inner();
+    AuthService::update_class_teacher_assignments(&db, payload, Some(user_ctx.user_id)).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status":"ok"})))
+}
+
+/// PUT /api/auth/role/subject-teachers
+pub async fn update_subject_teachers(
+    db: web::Data<Database>,
+    req: web::Json<UpdateSubjectTeacherRequest>,
+    user_ctx: UserContext,
+) -> Result<HttpResponse, ApiError> {
+    let payload = req.into_inner();
+    AuthService::update_subject_teacher_assignments(&db, payload, Some(user_ctx.user_id)).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status":"ok"})))
 }
 
 // ============================================================================

@@ -337,7 +337,7 @@ mod multi_role_tests {
     }
 
     // ========================================================================
-    // TEST CASE 6: User Has Different Phone for Each Signup
+    // TEST CASE 6: Existing User Can Add Role With Different Requested Phone
     // ========================================================================
     #[tokio::test]
     async fn test_user_different_phone_each_signup() {
@@ -374,18 +374,11 @@ mod multi_role_tests {
             "PARENT",
             Some(constants::TEST_SCHOOL_CODE_1),
         );
-        let response = client
-            .post(&format!("{}{}",constants::API_URL, constants::SIGNUP_ENDPOINT))
-            .json(&signup_request)
-            .send()
-            .await
-            .unwrap();
+        let response_2 = http::signup_expect_success(&client, signup_request).await;
 
-        // Should fail (phone is unique constraint)
-        assert!(
-            response.status().is_client_error() || response.status().is_server_error(),
-            "Expected error for duplicate phone"
-        );
+        // Same user should receive an additional role on same school.
+        assert_eq!(response_1.user_id, response_2.user_id, "Expected same user when email already exists");
+        assert_eq!(response_2.role, "PARENT", "Expected second role to be PARENT");
 
         println!("✓ Test: user different phone each signup");
         let _ = db::delete_test_user(&pool, &test_email).await;

@@ -138,7 +138,7 @@ mod auth_password_flow_tests {
             .json(&serde_json::json!({
                 "email": &test_email,
                 "otp_code": otp,
-                "next_route": "/auth/sign-in"
+                "next_route": "SIGN_IN"
             }))
             .send()
             .await

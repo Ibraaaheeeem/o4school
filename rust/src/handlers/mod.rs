@@ -6,6 +6,17 @@ use crate::errors::ApiError;
 use crate::services::HealthService;
 
 pub mod auth;
+pub mod dashboard;
+pub mod finance;
+pub mod community;
+pub mod schedule;
+pub mod assessment;
+pub mod school_package;
+
+pub use community::students;
+pub use community::parents;
+pub use community::staff;
+pub use community::users;
 
 pub async fn health_check(db: web::Data<Database>) -> Result<HttpResponse, ApiError> {
     let health = HealthService::check_system_health(&db).await?;

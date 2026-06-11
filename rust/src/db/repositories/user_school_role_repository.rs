@@ -1,6 +1,5 @@
 use uuid::Uuid;
 use sqlx::PgPool;
-use sqlx::{Transaction, Postgres, Executor};
 use crate::errors::ApiError;
 use crate::models::UserSchoolRole;
 
@@ -9,7 +8,7 @@ pub struct UserSchoolRoleRepository;
 impl UserSchoolRoleRepository {
     /// Get UserSchoolRole by ID
     pub async fn get_by_id(pool: &PgPool, id: Uuid) -> Result<UserSchoolRole, ApiError> {
-        sqlx::query_as::<_, UserSchoolRole>(
+        sqlx::query_as::<sqlx::Postgres, UserSchoolRole>(
             "SELECT * FROM user_school_roles WHERE id = $1"
         )
         .bind(id)
@@ -36,7 +35,7 @@ impl UserSchoolRoleRepository {
     ) -> Result<bool, ApiError> {
         // Log inputs for debugging role existence issues
         log::info!("UserSchoolRoleRepository::exists called with user_id={} school_id={} role_id={}", user_id, school_id, role_id);
-        let result = sqlx::query_scalar::<_, i64>(
+        let result = sqlx::query_scalar::<sqlx::Postgres, i64>(
             "SELECT COUNT(*) FROM user_school_roles WHERE user_id = $1 AND school_id = $2 AND role_id = $3 AND is_active = true"
         )
         .bind(user_id)
@@ -53,7 +52,7 @@ impl UserSchoolRoleRepository {
 
     /// Get all UserSchoolRoles for a specific user
     pub async fn get_by_user_id(pool: &PgPool, user_id: Uuid) -> Result<Vec<UserSchoolRole>, ApiError> {
-        sqlx::query_as::<_, UserSchoolRole>(
+        sqlx::query_as::<sqlx::Postgres, UserSchoolRole>(
             "SELECT * FROM user_school_roles WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC"
         )
         .bind(user_id)
@@ -64,7 +63,7 @@ impl UserSchoolRoleRepository {
 
     /// Get all UserSchoolRoles for a specific school
     pub async fn get_by_school_id(pool: &PgPool, school_id: Uuid) -> Result<Vec<UserSchoolRole>, ApiError> {
-        sqlx::query_as::<_, UserSchoolRole>(
+        sqlx::query_as::<sqlx::Postgres, UserSchoolRole>(
             "SELECT * FROM user_school_roles WHERE school_id = $1 AND is_active = true ORDER BY created_at DESC"
         )
         .bind(school_id)
@@ -75,7 +74,7 @@ impl UserSchoolRoleRepository {
 
     /// Create a new UserSchoolRole
     pub async fn create(pool: &PgPool, user_school_role: &UserSchoolRole) -> Result<UserSchoolRole, ApiError> {
-        sqlx::query_as::<_, UserSchoolRole>(
+        sqlx::query_as::<sqlx::Postgres, UserSchoolRole>(
             r#"
             INSERT INTO user_school_roles (
                 id, school_id, user_id, role_id, created_at, updated_at, is_active
@@ -99,7 +98,7 @@ impl UserSchoolRoleRepository {
 
     /// Update a UserSchoolRole
     pub async fn update(pool: &PgPool, id: Uuid, updates: &UserSchoolRole) -> Result<UserSchoolRole, ApiError> {
-        sqlx::query_as::<_, UserSchoolRole>(
+        sqlx::query_as::<sqlx::Postgres, UserSchoolRole>(
             r#"
             UPDATE user_school_roles SET
                 school_id = $1, user_id = $2, role_id = $3, updated_at = $4, is_active = $5

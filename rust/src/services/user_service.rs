@@ -54,6 +54,7 @@ impl UserService {
             id: Uuid::new_v4(),
             email: req.email,
             phone_number: None,
+            phone_country_code: None,
             password_hash: None,
             first_name: Some(req.name),
             last_name: None,

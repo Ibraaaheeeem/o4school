@@ -103,7 +103,7 @@ impl SchoolService {
 
     /// Count schools
     pub async fn count_schools(db: &Database) -> Result<i64, ApiError> {
-        sqlx::query_scalar::<_, i64>(
+        sqlx::query_scalar::<sqlx::Postgres, i64>(
             "SELECT COUNT(*) FROM schools WHERE is_active = true"
         )
         .fetch_one(db.pool())

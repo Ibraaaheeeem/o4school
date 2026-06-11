@@ -8,6 +8,7 @@ pub struct User {
     pub id: Uuid,
     pub email: String,
     pub phone_number: Option<String>,
+    pub phone_country_code: Option<String>,
     pub password_hash: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,

@@ -177,12 +177,13 @@ mod auth_signin_integration_tests {
         let _ = db::delete_test_user(&pool, &test_email).await;
 
         // First signup as STAFF at school 1
+        let phone = generate_test_phone();
         let signup_request = build_signup_request(
             &test_email,
             password,
             "Test",
             "User",
-            &generate_test_phone(),
+            &phone,
             "STAFF",
             Some(constants::TEST_SCHOOL_CODE_1),
         );
@@ -194,7 +195,7 @@ mod auth_signin_integration_tests {
             password,
             "Test",
             "User",
-            &generate_test_phone(),
+            &phone,
             "PARENT",
             Some(constants::TEST_SCHOOL_CODE_1),
         );
