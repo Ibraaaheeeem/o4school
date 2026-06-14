@@ -58,7 +58,7 @@ impl SchoolPackageService {
         school_id: Uuid,
         request: &UpdateSchoolDataRequest,
     ) -> Result<StatusResponse, ApiError> {
-        if let Some(name): &String = &request.name {
+        if let Some(name) = &request.name {
             if name.trim().is_empty() {
                 return Err(ApiError::ValidationError(
                     "School name cannot be empty".to_string(),
@@ -66,7 +66,7 @@ impl SchoolPackageService {
             }
         }
 
-        if let Some(address_line1): &String = &request.address_line1 {
+        if let Some(address_line1) = &request.address_line1 {
             if address_line1.trim().is_empty() {
                 return Err(ApiError::ValidationError(
                     "address_line1 cannot be empty".to_string(),

@@ -73,6 +73,7 @@ pub struct Examination {
     pub is_online: bool,
     pub session_id: Uuid,
     pub term_id: Uuid,
+    pub questions_json: Option<String>,
 }
 
 /// Assessments table - Behavioral and practical assessments
@@ -161,6 +162,7 @@ pub struct CreateExaminationRequest {
     pub is_online: bool,
     pub session_id: Uuid,
     pub term_id: Uuid,
+    pub questions_json: Option<String>,
 }
 
 /// Request payload for updating examinations.
@@ -180,6 +182,7 @@ pub struct UpdateExaminationRequest {
     pub is_online: Option<bool>,
     pub session_id: Option<Uuid>,
     pub term_id: Option<Uuid>,
+    pub questions_json: Option<String>,
 }
 
 /// Request payload for creating placeholder assessments for all students in classes.

@@ -126,6 +126,7 @@ impl ExaminationService {
                     is_online: request.is_online,
                     session_id: request.session_id,
                     term_id: request.term_id,
+                    questions_json: request.questions_json.clone(),
                 };
 
                 let inserted = ExaminationRepository::create_in_transaction(&mut tx, &exam).await?;
@@ -185,6 +186,7 @@ impl ExaminationService {
                 is_online: request.is_online.unwrap_or(existing.is_online),
                 session_id: request.session_id.unwrap_or(existing.session_id),
                 term_id: request.term_id.unwrap_or(existing.term_id),
+                questions_json: request.questions_json.clone().or(existing.questions_json),
             };
 
             let saved = ExaminationRepository::update_in_transaction(&mut tx, &next).await?;
@@ -196,5 +198,28 @@ impl ExaminationService {
             .map_err(|error| ApiError::DatabaseError(error.to_string()))?;
 
         Ok(updated)
+    }
+
+    pub async fn list_examinations(
+        db: &Database,
+        school_id: Uuid,
+        session_id: Option<Uuid>,
+        term_id: Option<Uuid>,
+        class_id: Option<Uuid>,
+        subject_id: Option<Uuid>,
+        page: i64,
+        per_page: i64,
+    ) -> Result<crate::models::PaginatedResponse<Examination>, ApiError> {
+        let p = if page <= 0 { 1 } else { page };
+        let pp = if per_page <= 0 { 20 } else { per_page };
+        ExaminationRepository::list(db.pool(), school_id, session_id, term_id, class_id, subject_id, p, pp).await
+    }
+
+    pub async fn delete_examination(
+        db: &Database,
+        school_id: Uuid,
+        examination_id: Uuid,
+    ) -> Result<(), ApiError> {
+        ExaminationRepository::delete(db.pool(), school_id, examination_id).await
     }
 }

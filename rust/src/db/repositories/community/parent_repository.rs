@@ -1,6 +1,6 @@
 use uuid::Uuid;
 use sqlx::PgPool;
-use sqlx::{Transaction, Postgres, Executor};
+
 use crate::errors::ApiError;
 use crate::models::Parent;
 
@@ -179,7 +179,6 @@ impl ParentRepository {
             struct FlatRelRow {
                 id: Uuid,
                 parent_id: Uuid,
-                student_uuid: Uuid,
                 student_id: String,
                 student_name: String,
                 class_name: Option<String>,
@@ -191,7 +190,6 @@ impl ParentRepository {
                 SELECT 
                     psr.id,
                     psr.parent_id,
-                    s.id AS student_uuid,
                     COALESCE(NULLIF(s.admission_number, ''), s.student_id) AS student_id,
                     su.first_name || ' ' || su.last_name AS student_name,
                     (

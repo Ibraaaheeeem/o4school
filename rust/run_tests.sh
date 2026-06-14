@@ -21,8 +21,12 @@ echo "✓ PostgreSQL is running"
 echo "📋 Checking API server at http://127.0.0.1:8080..."
 if ! curl -s http://127.0.0.1:8080/api/health > /dev/null 2>&1; then
     echo "⚠️  API server not running. Starting in background..."
-    timeout 10 cargo run > /tmp/server.log 2>&1 &
+    timeout 300 cargo run > /tmp/server.log 2>&1 &
     SERVER_PID=$!
+    
+    # Set up trap to clean up server on exit
+    trap "echo 'Cleaning up server...'; kill $SERVER_PID 2>/dev/null || true" EXIT
+    
     sleep 3
     
     # Check if server is now running

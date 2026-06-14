@@ -4,7 +4,7 @@
 // HTTP endpoint handlers for authentication
 
 use uuid::Uuid;
-use actix_web::{web, HttpResponse, HttpRequest};
+use actix_web::{web, HttpResponse};
 
 use crate::db::Database;
 use crate::errors::ApiError;

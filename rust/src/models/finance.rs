@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveDateTime, Utc};
+use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -291,4 +291,24 @@ pub struct SquadParentWallet {
     pub currency: String,
     pub customer_identifier: Option<String>,
     pub parent_id: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct StudentOptionalFeeResponse {
+    pub id: Uuid,
+    pub student_id: Uuid,
+    pub admission_number: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub class_name: Option<String>,
+    pub class_id: Option<Uuid>,
+    pub fee_item_id: Uuid,
+    pub fee_name: String,
+    pub amount: f64,
+    pub custom_amount: Option<f64>,
+    pub is_locked: bool,
+    pub notes: Option<String>,
+    pub class_fee_item_id: Uuid,
+    pub academic_session_id: Option<Uuid>,
+    pub term_id: Option<Uuid>,
 }

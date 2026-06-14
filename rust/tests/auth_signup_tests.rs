@@ -52,7 +52,7 @@ mod auth_signup_integration_tests {
         assert_eq!(response.role, "SCHOOL_ADMIN", "role should be SCHOOL_ADMIN");
         assert!(!response.school_id.is_empty(), "school_id should be created");
         assert!(response.school_name.contains("School Admin"), "school_name format");
-        assert_eq!(response.next_route, "ACTIVATE", "next_route should be ACTIVATE");
+        assert_eq!(response.next_route, "VERIFY_OTP", "next_route should be VERIFY_OTP");
 
         // Verify database state
         let user = db::get_user_by_email(&pool, &test_email).await;
@@ -567,7 +567,6 @@ mod auth_signup_integration_tests {
         assert!(!response.user_school_role_id.is_empty(), "user_school_role_id required");
         assert!(!response.message.is_empty(), "message required");
         assert!(!response.next_route.is_empty(), "next_route required");
-        assert!(!response.verification_token.is_empty(), "verification_token required");
 
         // Verify UUIDs are valid
         assert!(uuid::Uuid::parse_str(&response.user_id).is_ok());

@@ -1,3 +1,4 @@
+
 use uuid::Uuid;
 use chrono::Utc;
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -792,7 +793,7 @@ impl AuthService {
     }
 
     fn normalize_gender(g: Option<String>) -> Option<String> {
-        g.map(|mut s| {
+        g.map(|s| {
             let up = s.trim().to_uppercase();
             match up.as_str() {
                 "M" | "MALE" => "MALE".to_string(),

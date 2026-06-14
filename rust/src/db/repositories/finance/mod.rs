@@ -674,6 +674,8 @@ impl FinanceRepository {
         school_id: Uuid,
         fee_item_id: Uuid,
         class_id: Uuid,
+        academic_session_id: Option<Uuid>,
+        term_id: Option<Uuid>,
     ) -> Result<Option<ClassFeeItem>, ApiError> {
         sqlx::query_as::<sqlx::Postgres, ClassFeeItem>(
             r#"
@@ -694,13 +696,20 @@ impl FinanceRepository {
                 term_id,
                 is_locked
             FROM class_fee_items
-            WHERE school_id = $1 AND fee_item_id = $2 AND class_id = $3 AND is_active = true
+            WHERE school_id = $1 
+              AND fee_item_id = $2 
+              AND class_id = $3 
+              AND academic_session_id IS NOT DISTINCT FROM $4
+              AND term_id IS NOT DISTINCT FROM $5
+              AND is_active = true
             LIMIT 1
             "#,
         )
         .bind(school_id)
         .bind(fee_item_id)
         .bind(class_id)
+        .bind(academic_session_id)
+        .bind(term_id)
         .fetch_optional(pool)
         .await
         .map_err(|e| ApiError::DatabaseError(e.to_string()))
@@ -903,7 +912,16 @@ impl FinanceRepository {
         term_id: Option<Uuid>,
         is_locked: Option<bool>,
     ) -> Result<ClassFeeItem, ApiError> {
-        if let Some(existing) = Self::get_class_fee_item_assignment(pool, school_id, fee_item_id, class_id).await? {
+        if let Some(existing) = Self::get_class_fee_item_assignment(
+            pool,
+            school_id,
+            fee_item_id,
+            class_id,
+            academic_session_id,
+            term_id,
+        )
+        .await?
+        {
             sqlx::query_as::<sqlx::Postgres, ClassFeeItem>(
                 r#"
                 UPDATE class_fee_items
@@ -1026,5 +1044,152 @@ impl FinanceRepository {
         }
 
         Ok(())
+    }
+
+    pub async fn list_student_optional_fees_paged(
+        pool: &PgPool,
+        school_id: Uuid,
+        page: i64,
+        per_page: i64,
+        search: Option<String>,
+        class_id: Option<Uuid>,
+        fee_item_id: Option<Uuid>,
+    ) -> Result<crate::models::PaginatedResponse<crate::models::finance::StudentOptionalFeeResponse>, ApiError> {
+        let limit = per_page;
+        let offset = (page - 1) * per_page;
+        
+        let search_pattern = search.map(|s| format!("%{}%", s));
+
+        // 1. Fetch total count
+        let total = sqlx::query_scalar::<sqlx::Postgres, i64>(
+            r#"
+            SELECT COUNT(DISTINCT sof.id)
+            FROM student_optional_fees sof
+            JOIN students s ON s.id = sof.student_id
+            JOIN users u ON u.id = s.user_id
+            JOIN class_fee_items cfi ON cfi.id = sof.class_fee_item_id
+            JOIN classes c ON c.id = cfi.class_id
+            JOIN fee_items fi ON fi.id = cfi.fee_item_id
+            JOIN academic_sessions curr_sess ON curr_sess.school_id = $1 AND curr_sess.is_current_session = true AND curr_sess.is_active = true
+            JOIN terms curr_term ON curr_term.school_id = $1 AND curr_term.academic_session_id = curr_sess.id AND curr_term.is_current_term = true AND curr_term.is_active = true
+            LEFT JOIN academic_sessions asess ON asess.id = COALESCE(sof.academic_session_id, cfi.academic_session_id) AND asess.is_active = true
+            LEFT JOIN terms t ON t.id = COALESCE(sof.term_id, cfi.term_id) AND t.is_active = true
+            WHERE sof.school_id = $1
+              AND sof.is_active = true
+              AND s.is_active = true
+              AND cfi.is_active = true
+              AND fi.is_active = true
+              AND (asess.id IS NULL OR asess.id = curr_sess.id)
+              AND (t.id IS NULL OR t.id = curr_term.id)
+              AND ($2::text IS NULL OR u.first_name ILIKE $2 OR u.last_name ILIKE $2 OR s.student_id ILIKE $2 OR s.admission_number ILIKE $2 OR fi.name ILIKE $2)
+              AND ($3::uuid IS NULL OR EXISTS (
+                  SELECT 1 FROM student_classes sc
+                  WHERE sc.student_id = s.id
+                    AND sc.academic_session_id = curr_sess.id
+                    AND sc.term_id = curr_term.id
+                    AND sc.class_id = $3
+                    AND sc.is_active = true
+              ))
+              AND ($4::uuid IS NULL OR cfi.fee_item_id = $4)
+            "#
+        )
+        .bind(school_id)
+        .bind(search_pattern.clone())
+        .bind(class_id)
+        .bind(fee_item_id)
+        .fetch_one(pool)
+        .await
+        .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+
+        // 2. Fetch rows
+        let items = sqlx::query_as::<sqlx::Postgres, crate::models::finance::StudentOptionalFeeResponse>(
+            r#"
+            SELECT
+                sof.id,
+                sof.student_id,
+                s.admission_number,
+                u.first_name,
+                u.last_name,
+                sc_c.class_name,
+                sc_c.id AS class_id,
+                fi.id AS fee_item_id,
+                fi.name AS fee_name,
+                COALESCE(sof.custom_amount, cfi.custom_amount, fi.amount)::float8 AS amount,
+                sof.custom_amount::float8 AS custom_amount,
+                COALESCE(sof.is_locked, false) AS is_locked,
+                sof.notes,
+                sof.class_fee_item_id,
+                sof.academic_session_id,
+                sof.term_id
+            FROM student_optional_fees sof
+            JOIN students s ON s.id = sof.student_id
+            JOIN users u ON u.id = s.user_id
+            JOIN class_fee_items cfi ON cfi.id = sof.class_fee_item_id
+            JOIN classes c ON c.id = cfi.class_id
+            JOIN fee_items fi ON fi.id = cfi.fee_item_id
+            JOIN academic_sessions curr_sess ON curr_sess.school_id = $1 AND curr_sess.is_current_session = true AND curr_sess.is_active = true
+            JOIN terms curr_term ON curr_term.school_id = $1 AND curr_term.academic_session_id = curr_sess.id AND curr_term.is_current_term = true AND curr_term.is_active = true
+            LEFT JOIN academic_sessions asess ON asess.id = COALESCE(sof.academic_session_id, cfi.academic_session_id) AND asess.is_active = true
+            LEFT JOIN terms t ON t.id = COALESCE(sof.term_id, cfi.term_id) AND t.is_active = true
+            LEFT JOIN LATERAL (
+                SELECT cl.id, cl.class_name
+                FROM student_classes sc
+                JOIN classes cl ON cl.id = sc.class_id
+                WHERE sc.student_id = s.id
+                  AND sc.academic_session_id = curr_sess.id
+                  AND sc.term_id = curr_term.id
+                  AND sc.is_active = true
+                ORDER BY CASE WHEN sc.class_id = $3 THEN 0 ELSE 1 END ASC
+                LIMIT 1
+            ) sc_c ON true
+            WHERE sof.school_id = $1
+              AND sof.is_active = true
+              AND s.is_active = true
+              AND cfi.is_active = true
+              AND fi.is_active = true
+              AND (asess.id IS NULL OR asess.id = curr_sess.id)
+              AND (t.id IS NULL OR t.id = curr_term.id)
+              AND ($2::text IS NULL OR u.first_name ILIKE $2 OR u.last_name ILIKE $2 OR s.student_id ILIKE $2 OR s.admission_number ILIKE $2 OR fi.name ILIKE $2)
+              AND ($3::uuid IS NULL OR EXISTS (
+                  SELECT 1 FROM student_classes sc
+                  WHERE sc.student_id = s.id
+                    AND sc.academic_session_id = curr_sess.id
+                    AND sc.term_id = curr_term.id
+                    AND sc.class_id = $3
+                    AND sc.is_active = true
+              ))
+              AND ($4::uuid IS NULL OR cfi.fee_item_id = $4)
+            ORDER BY u.first_name ASC, u.last_name ASC, fi.name ASC
+            LIMIT $5 OFFSET $6
+            "#
+        )
+        .bind(school_id)
+        .bind(search_pattern)
+        .bind(class_id)
+        .bind(fee_item_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await
+        .map_err(|e| ApiError::DatabaseError(e.to_string()))?;
+
+        let total_pages = (total as f64 / per_page as f64).ceil() as i64;
+        let has_next = page < total_pages;
+        let has_previous = page > 1;
+
+        Ok(crate::models::PaginatedResponse {
+            success: true,
+            message: "Student optional fees retrieved successfully".to_string(),
+            data: items,
+            pagination: crate::models::Pagination {
+                current_page: page,
+                per_page,
+                total,
+                total_pages,
+                has_next,
+                has_previous,
+            },
+            errors: None,
+        })
     }
 }

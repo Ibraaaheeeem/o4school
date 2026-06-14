@@ -1121,6 +1121,7 @@ async fn finance_apply_optional_fee_item_respects_mandatory_gender_and_status_el
     let (admin_token, school_id, _admin_user_id, admin_email) =
         create_school_admin_and_token(&client, &pool).await;
     let class_id = ensure_class_for_school(&pool, school_id).await;
+    let (_session_id, _term_id, _track_id) = ensure_academic_context_for_school(&pool, school_id).await;
 
     let male_student_id = create_student_via_endpoint(
         &client,
@@ -1397,6 +1398,29 @@ async fn finance_apply_optional_fee_item_respects_mandatory_gender_and_status_el
         .await
         .expect("failed to call apply optional fee for mandatory item");
     assert_eq!(apply_mandatory_resp.status(), reqwest::StatusCode::BAD_REQUEST);
+
+    // List optional fees and verify it is returned
+    let list_resp = client
+        .get(&format!(
+            "{}{}?school_id={}&fee_item_id={}",
+            constants::API_URL,
+            "/api/auth/finance/student-optional-fees",
+            school_id,
+            optional_fee_id
+        ))
+        .bearer_auth(&admin_token)
+        .send()
+        .await
+        .expect("failed to list optional fees");
+    assert!(list_resp.status().is_success(), "list optional fees should succeed");
+    
+    let list_json: serde_json::Value = list_resp
+        .json()
+        .await
+        .expect("failed to parse list response");
+    
+    let data = list_json.get("data").and_then(|d| d.as_array()).expect("missing data array");
+    assert!(!data.is_empty(), "optional fees list should not be empty");
 
     let _ = db::delete_test_user(&pool, &admin_email).await;
 }

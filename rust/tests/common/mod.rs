@@ -158,11 +158,14 @@ pub struct SignUpResponse {
     pub user_id: String,
     pub email: String,
     pub role: String,
+    #[serde(default)]
     pub school_id: String,
+    #[serde(default)]
     pub school_name: String,
     pub user_school_role_id: String,
     pub message: String,
     pub next_route: String,
+    #[serde(default)]
     pub verification_token: String,
 }
 

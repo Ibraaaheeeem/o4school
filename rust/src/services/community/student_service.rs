@@ -5,7 +5,7 @@ use crate::db::repositories::StudentRepository;
 use crate::errors::ApiError;
 use crate::models::Student;
 use crate::models::auth::CreateStudentClassInfo;
-use sqlx::{Transaction, Postgres, Executor};
+use sqlx::Postgres;
 use crate::models::auth::CreateUserInfo;
 use crate::models::auth::CreateStudentInfo;
 use crate::models::users::User;

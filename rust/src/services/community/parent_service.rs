@@ -44,7 +44,7 @@ impl ParentService {
         ParentRepository::get_by_id(db.pool(), id).await
     }
 
-    pub async fn update_parent(db: &Database, id: Uuid, payload: Parent) -> Result<Parent, ApiError> {
+    pub async fn update_parent(db: &Database, _id: Uuid, payload: Parent) -> Result<Parent, ApiError> {
         // ParentRepository currently has no update; reuse create pattern or return NotImplemented
         ParentRepository::create(db.pool(), &payload).await
     }

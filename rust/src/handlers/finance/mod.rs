@@ -323,3 +323,37 @@ pub async fn delete_student_optional_fee(
 
 	Ok(HttpResponse::Ok().json(serde_json::json!({"status": "deleted"})))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ListStudentOptionalFeesQuery {
+	pub school_id: Uuid,
+	pub page: Option<i64>,
+	pub per_page: Option<i64>,
+	pub search: Option<String>,
+	pub class_id: Option<Uuid>,
+	pub fee_item_id: Option<Uuid>,
+}
+
+pub async fn list_student_optional_fees(
+	db: web::Data<Database>,
+	query: web::Query<ListStudentOptionalFeesQuery>,
+	user_ctx: UserContext,
+) -> Result<HttpResponse, ApiError> {
+	let q = query.into_inner();
+	let page = q.page.unwrap_or(1);
+	let per_page = q.per_page.unwrap_or(20);
+
+	let res = FinanceService::list_student_optional_fees_paged(
+		&db,
+		user_ctx.user_id,
+		q.school_id,
+		page,
+		per_page,
+		q.search,
+		q.class_id,
+		q.fee_item_id,
+	)
+	.await?;
+
+	Ok(HttpResponse::Ok().json(res))
+}

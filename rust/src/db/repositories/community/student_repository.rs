@@ -1,8 +1,6 @@
 use uuid::Uuid;
 use sqlx::PgPool;
-use sqlx::Executor;
-use sqlx::Postgres;
-use sqlx::Transaction;
+
 use crate::errors::ApiError;
 use crate::models::Student;
 
@@ -242,7 +240,16 @@ impl StudentRepository {
               AND s.is_active = true
               AND ($2::text IS NULL OR u.first_name ILIKE $2 OR u.last_name ILIKE $2 OR s.student_id ILIKE $2 OR s.admission_number ILIKE $2 OR u.email ILIKE $2)
               AND ($3::uuid IS NULL OR EXISTS (SELECT 1 FROM student_classes sc WHERE sc.student_id = s.id AND sc.track_id = $3 AND sc.is_active = true))
-              AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM student_classes sc WHERE sc.student_id = s.id AND sc.class_id = $4 AND sc.is_active = true))
+              AND ($4::uuid IS NULL OR EXISTS (
+                  SELECT 1 FROM student_classes sc 
+                  JOIN academic_sessions asess ON sc.academic_session_id = asess.id
+                  JOIN terms t ON sc.term_id = t.id
+                  WHERE sc.student_id = s.id 
+                    AND sc.class_id = $4 
+                    AND sc.is_active = true
+                    AND asess.is_current_session = true
+                    AND t.is_current_term = true
+              ))
             "#
         )
         .bind(school_id)
@@ -295,7 +302,16 @@ impl StudentRepository {
               AND s.is_active = true
               AND ($2::text IS NULL OR u.first_name ILIKE $2 OR u.last_name ILIKE $2 OR s.student_id ILIKE $2 OR s.admission_number ILIKE $2 OR u.email ILIKE $2)
               AND ($3::uuid IS NULL OR EXISTS (SELECT 1 FROM student_classes sc WHERE sc.student_id = s.id AND sc.track_id = $3 AND sc.is_active = true))
-              AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM student_classes sc WHERE sc.student_id = s.id AND sc.class_id = $4 AND sc.is_active = true))
+              AND ($4::uuid IS NULL OR EXISTS (
+                  SELECT 1 FROM student_classes sc 
+                  JOIN academic_sessions asess ON sc.academic_session_id = asess.id
+                  JOIN terms t ON sc.term_id = t.id
+                  WHERE sc.student_id = s.id 
+                    AND sc.class_id = $4 
+                    AND sc.is_active = true
+                    AND asess.is_current_session = true
+                    AND t.is_current_term = true
+              ))
             ORDER BY full_name ASC
             LIMIT $5 OFFSET $6
             "#

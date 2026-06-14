@@ -135,6 +135,7 @@ async fn main() -> std::io::Result<()> {
                                             .route("/student-optional-fees/{id}/lock", web::put().to(handlers::finance::lock_student_optional_fee))
                                             .route("/student-optional-fees/{id}/unlock", web::put().to(handlers::finance::unlock_student_optional_fee))
                                             .route("/student-optional-fees/{id}", web::delete().to(handlers::finance::delete_student_optional_fee))
+                                            .route("/student-optional-fees", web::get().to(handlers::finance::list_student_optional_fees))
                                     )
                                     // Assessment endpoints
                                     .configure(handlers::assessment::configure)

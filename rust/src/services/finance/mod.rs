@@ -573,4 +573,27 @@ impl FinanceService {
         )
         .await
     }
+
+    pub async fn list_student_optional_fees_paged(
+        db: &Database,
+        actor: Uuid,
+        school_id: Uuid,
+        page: i64,
+        per_page: i64,
+        search: Option<String>,
+        class_id: Option<Uuid>,
+        fee_item_id: Option<Uuid>,
+    ) -> Result<crate::models::PaginatedResponse<crate::models::finance::StudentOptionalFeeResponse>, ApiError> {
+        Self::ensure_school_admin(db, actor, school_id).await?;
+        FinanceRepository::list_student_optional_fees_paged(
+            db.pool(),
+            school_id,
+            page,
+            per_page,
+            search,
+            class_id,
+            fee_item_id,
+        )
+        .await
+    }
 }

@@ -1,7 +1,6 @@
 use actix_web::{web, HttpResponse};
 use crate::db::Database;
 use crate::errors::ApiError;
-use crate::models::Student;
 use crate::services::StudentService;
 use crate::middleware::UserContext;
 use crate::models::auth::{CreateStudentClassInfo, CreateUserInfo, CreateStudentInfo};
