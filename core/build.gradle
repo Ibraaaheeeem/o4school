@@ -20,7 +20,7 @@ dependencies {
 	api 'org.aspectj:aspectjweaver'
     api 'com.bucket4j:bucket4j-core:8.10.1'
     api 'org.dhatim:fastexcel:0.17.0'
-    api 'org.jsoup:jsoup:1.17.2'
+    api 'org.jsoup:jsoup:1.23.1'
     api 'io.jsonwebtoken:jjwt-api:0.12.3'
 	api 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	api 'io.jsonwebtoken:jjwt-jackson:0.12.3'
